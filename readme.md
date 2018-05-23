@@ -1,5 +1,7 @@
 # Nio
 
+[![Build Status](https://travis-ci.org/MAIF/nio.svg?branch=master)](https://travis-ci.org/MAIF/nio)
+
 **Nio** is the Privacy Management Toolbox developped by the <a href="https://maif.github.io" target="_blank">MAIF OSS</a> team.
 
 **Nio** is built on top of <a href="https://akka.io">akka</a> and <a href="https://www.playframework.com">playframework</a> backed by <a href="https://www.mongodb.com/">Mongo</a> and <a href="https://kafka.apache.org/">Kafka</a>.
