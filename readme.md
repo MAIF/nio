@@ -2,11 +2,11 @@
 
 **Nio** is ...
 
-**Otoroshi** is built on top of <a href="https://akka.io">akka</a> and <a href="https://www.playframework.com">playframework</a>.
+**Nio** is built on top of <a href="https://akka.io">akka</a> and <a href="https://www.playframework.com">playframework</a> backed by <a href="https://www.mongodb.com/">Mongo</a> and <a href="https://kafka.apache.org/">Kafka</a>.
 
 ## Reference Documentation
 
-The reference documentation is available at https://maif.github.io/nio/manual/
+The reference documentation will be available at https://maif.github.io/nio/manual/
 
 ## Community
 You can join these groups and chats to discuss and ask Nio related questions:
@@ -26,5 +26,5 @@ and general hints on how to prepare your pull request. You can also ask for clar
 
 ## License
 
-Otoroshi is Open Source and available under the Apache 2 License.
+Nio is Open Source and available under the Apache 2 License.
 
