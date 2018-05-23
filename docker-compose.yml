@@ -1,0 +1,22 @@
+version: '2'
+services:
+  mongo:
+    image: mongo:3.4.3
+    ports:
+      - 27017:27017
+  kafka:
+    image: spotify/kafka
+    ports:
+      - 2181:2181
+      - 9092:9092
+    environment:
+      - "ADVERTISED_HOST=127.0.0.1"
+      - "ADVERTISED_PORT=9092"
+      - "AUTO.CREATE.TOPICS.ENABLE"
+  s3server:
+    image: scality/s3server
+    ports:
+      - 8000:8000
+    environment:
+      - "SCALITY_ACCESS_KEY_ID=newAccessKey"
+      - "SCALITY_SECRET_ACCESS_KEY=newSecretKey"

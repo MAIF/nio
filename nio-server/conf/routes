@@ -1,0 +1,78 @@
+# Routes
+# This file defines all application routes (Higher priority routes first)
+# ~~~~
+
+GET         /docs/swagger-ui/*file                                  controllers.Assets.at(path:String="/public/lib/swagger-ui", file:String)
+
+# Map static resources from the /public folder to the /assets URL path
+GET         /assets/*file                                           controllers.Assets.versioned(path="/public", file: Asset)
+
+GET         /:tenant/bo                                             controllers.HomeController.index(tenant: String)
+GET         /:tenant/bo/                                            controllers.HomeController.indexOther(tenant: String)
+
+# Deletions
+
+GET         /api/:tenant/organisations/:orgKey/users/deletions                                      controllers.DeletionController.allDeletionTasksByOrgKey(tenant: String, orgKey: String)
+
+GET         /api/:tenant/organisations/:orgKey/users/deletions/:deletionTaskId                      controllers.DeletionController.findDeletionTask(tenant: String, orgKey: String, deletionTaskId: String)
+
+POST        /api/:tenant/organisations/:orgKey/users/:userId/deletion/_start                        controllers.DeletionController.startDeletionTask(tenant: String, orgKey: String, userId: String)
+
+POST        /api/:tenant/organisations/:orgKey/users/deletions/:deletionTaskId/apps/:appId/_done    controllers.DeletionController.updateDeletionTask(tenant: String, orgKey: String, deletionTaskId: String, appId: String)
+
+
+GET         /api/:tenant/organisations                              controllers.OrganisationController.list(tenant: String)
+
+GET         /api/:tenant/organisations.ndjson                       controllers.OrganisationController.download(tenant: String, from: String ?= "2000-01-01T00:00:00Z", to: String ?= "2100-01-01T00:00:00Z")
+
+POST        /api/:tenant/organisations                              controllers.OrganisationController.create(tenant: String)
+
+GET         /api/:tenant/organisations/:orgKey                      controllers.OrganisationController.findAllReleasedByKey(tenant: String, orgKey: String)
+
+DELETE      /api/:tenant/organisations/:orgKey                      controllers.OrganisationController.delete(tenant: String, orgKey: String)
+
+GET         /api/:tenant/organisations/:orgKey/last                 controllers.OrganisationController.findLastReleasedByKey(tenant: String, orgKey: String)
+
+GET         /api/:tenant/organisations/:orgKey/draft                controllers.OrganisationController.findDraftByKey(tenant: String, orgKey: String)
+
+GET         /api/:tenant/organisations/:orgKey/users                controllers.UserController.listByOrganisation(tenant: String, orgKey: String, page: Int ?= 0, pageSize: Int ?= 10)
+
+GET         /api/:tenant/organisations/:orgKey/:versionNum          controllers.OrganisationController.findReleasedByKeyAndVersionNum(tenant: String, orgKey: String, versionNum: Int)
+
+PUT         /api/:tenant/organisations/:orgKey/draft                controllers.OrganisationController.replaceDraftIfExists(tenant: String, orgKey: String)
+
+POST        /api/:tenant/organisations/:orgKey/draft/_release       controllers.OrganisationController.releaseDraft(tenant: String, orgKey: String)
+
+GET         /api/:tenant/organisations/:orgKey/users/_template      controllers.ConsentController.getTemplate(tenant: String, orgKey: String, userId: Option[String] ?= None)
+
+PUT         /api/:tenant/organisations/:orgKey/users/:userId        controllers.ConsentController.createOrReplaceIfExists(tenant: String, orgKey: String, userId: String)
+
+GET         /api/:tenant/organisations/:orgKey/users/:userId        controllers.ConsentController.find(tenant: String, orgKey: String, userId: String)
+
+GET         /api/:tenant/organisations/:orgKey/users/:userId/logs   controllers.ConsentController.getConsentFactHistory(tenant: String, orgKey: String, userId: String, page: Int ?= 0, pageSize: Int ?= 10)
+
+GET         /api/:tenant/accounts/:accountId                        controllers.AccountController.find(tenant: String, accountId: String)
+
+GET         /api/:tenant/accounts                                   controllers.AccountController.findAll(tenant: String, page: Int ?= 0, pageSize: Int ?= 10)
+
+POST        /api/:tenant/accounts                                   controllers.AccountController.create(tenant: String)
+
+PUT         /api/:tenant/accounts/:accountId                        controllers.AccountController.update(tenant: String, accountId: String)
+
+DELETE      /api/:tenant/accounts/:accountId                        controllers.AccountController.delete(tenant: String, accountId: String)
+
+GET         /api/:tenant/users                                      controllers.UserController.listAll(tenant: String, page: Int ?= 0, pageSize: Int ?= 10)
+
+GET         /api/:tenant/users.ndjson                               controllers.UserController.download(tenant: String)
+
+GET         /api/:tenant/consents.ndjson                            controllers.ConsentController.download(tenant: String)
+
+GET         /api/:tenant/events                                     controllers.EventController.events(tenant: String)
+
+GET         /api/tenants                                            controllers.TenantController.tenants
+
+POST        /api/tenants                                            controllers.TenantController.createTenant
+
+DELETE      /api/tenants/:tenantKey                                 controllers.TenantController.deleteTenant(tenantKey)
+
+GET         /:tenant/bo/*other                                      controllers.HomeController.otherRoutes(tenant: String, other: String)
