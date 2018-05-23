@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html class="no-js" lang="en">
+
+<head>
+<title>Events · Nio</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="description" content='nio-manual'/>
+<link href="https://fonts.googleapis.com/css?family=Roboto:100normal,100italic,300normal,300italic,400normal,400italic,500normal,500italic,700normal,700italic,900normal,900italicc" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="lib/jquery/jquery.min.js"></script>
+<script type="text/javascript" src="js/page.js"></script>
+<script type="text/javascript" src="js/groups.js"></script>
+<link rel="stylesheet" type="text/css" href="lib/normalize.css/normalize.css"/>
+<link rel="stylesheet" type="text/css" href="lib/foundation/dist/foundation.min.css"/>
+<link rel="stylesheet" type="text/css" href="css/page.css"/>
+
+<!--
+<link rel="shortcut icon" href="images/favicon.ico" />
+-->
+</head>
+
+<body>
+<div class="off-canvas-wrapper">
+<div class="off-canvas-wrapper-inner" data-off-canvas-wrapper>
+
+<div class="off-canvas position-left" id="off-canvas-menu" data-off-canvas>
+<nav class="off-canvas-nav">
+<div class="nav-home">
+<a href="index.html" >
+<span class="home-icon">⌂</span>Nio
+</a>
+<div class="version-number">
+0.1.0
+</div>
+</div>
+<div class="nav-toc">
+<ul>
+  <li><a href="about.html" class="page">About Nio</a></li>
+  <li><a href="archi.html" class="page">Architecture</a></li>
+  <li><a href="features.html" class="page">Features</a></li>
+  <li><a href="quickstart.html" class="page">Quickstart</a></li>
+  <li><a href="api.html" class="page">API</a></li>
+  <li><a href="events.html" class="active page">Events</a></li>
+  <li><a href="backoffice.html" class="page">Back Office</a></li>
+  <li><a href="recordmanagment.html" class="page">Record Management</a></li>
+</ul>
+</div>
+
+</nav>
+</div>
+
+<div class="off-canvas-content" data-off-canvas-content>
+
+<header class="site-header expanded row">
+<div class="small-12 column">
+<a href="#" class="off-canvas-toggle hide-for-medium" data-toggle="off-canvas-menu"><svg class="svg-icon svg-icon-menu" version="1.1" id="Menu" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 20 20" enable-background="new 0 0 20 20" xml:space="preserve"> <path class="svg-icon-menu-path" fill="#53CDEC" d="M16.4,9H3.6C3.048,9,3,9.447,3,10c0,0.553,0.048,1,0.6,1H16.4c0.552,0,0.6-0.447,0.6-1C17,9.447,16.952,9,16.4,9z M16.4,13
+H3.6C3.048,13,3,13.447,3,14c0,0.553,0.048,1,0.6,1H16.4c0.552,0,0.6-0.447,0.6-1C17,13.447,16.952,13,16.4,13z M3.6,7H16.4
+C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.048,7,3.6,7z"/></svg>
+</a>
+<div class="title-wrapper">
+<div class="title-logo"></div>
+<div class="title"><a href="index.html">Nio</a></div>
+</div>
+<!--
+<a href="https://www.example.com" class="logo show-for-medium">logo</a>
+-->
+</div>
+</header>
+
+<div class="expanded row">
+
+<div class="medium-3 large-2 show-for-medium column">
+<nav class="site-nav">
+<div class="nav-home">
+<a href="index.html" >
+<span class="home-icon">⌂</span>Nio
+</a>
+<div class="version-number">
+0.1.0
+</div>
+</div>
+<div class="nav-toc">
+<ul>
+  <li><a href="about.html" class="page">About Nio</a></li>
+  <li><a href="archi.html" class="page">Architecture</a></li>
+  <li><a href="features.html" class="page">Features</a></li>
+  <li><a href="quickstart.html" class="page">Quickstart</a></li>
+  <li><a href="api.html" class="page">API</a></li>
+  <li><a href="events.html" class="active page">Events</a></li>
+  <li><a href="backoffice.html" class="page">Back Office</a></li>
+  <li><a href="recordmanagment.html" class="page">Record Management</a></li>
+</ul>
+</div>
+
+</nav>
+</div>
+
+<div class="small-12 medium-9 large-10 column">
+<section class="site-content">
+
+<div class="page-header row">
+<div class="medium-12 show-for-medium column">
+<div class="nav-breadcrumbs">
+<ul>
+  <li><a href="index.html">Nio</a></li>
+  <li>Events</li>
+</ul>
+</div>
+</div>
+</div>
+
+<div class="page-content row">
+<div class="small-12 large-9 column" id="docs">
+<h1><a href="#events" name="events" class="anchor"><span class="anchor-link"></span></a>Events</h1>
+<p>Following events are produced in <strong>Kafka</strong> for each mutation/request performed to <strong>Nio</strong>.</p>
+<table>
+  <thead>
+    <tr>
+      <th>Event Type </th>
+      <th>Description </th>
+      <th>Payload example </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>TenantCreated </td>
+      <td>Emitted when a new tenant has been created. </td>
+      <td><code>{&quot;type&quot;:&quot;TenantCreated&quot;,&quot;author&quot;:&quot;tenant-admin&quot;,&quot;date&quot;:&quot;2018-04-11T12:27:34Z&quot;,&quot;id&quot;:984045289865216000,&quot;payload&quot;:{&quot;key&quot;:&quot;newTenant&quot;,&quot;description&quot;:&quot;a new tenant&quot;}}</code> </td>
+    </tr>
+    <tr>
+      <td>TenantDeleted </td>
+      <td>Emitted when an existing tenant has been deleted. </td>
+      <td><code>{&quot;type&quot;:&quot;TenantDeleted&quot;,&quot;author&quot;:&quot;tenant-admin&quot;,&quot;date&quot;:&quot;2018-04-11T12:27:35Z&quot;,&quot;id&quot;:984045289865216004,&quot;payload&quot;:{&quot;key&quot;:&quot;newTenant&quot;,&quot;description&quot;:&quot;a new tenant&quot;}}</code> </td>
+    </tr>
+    <tr>
+      <td>OrganisationCreated </td>
+      <td>Emitted when a new Organisation has been created (as a draft). </td>
+      <td><code>{&quot;type&quot;:&quot;OrganisationCreated&quot;,&quot;tenant&quot;:&quot;prod&quot;,&quot;author&quot;:&quot;admin@test.com&quot;,&quot;date&quot;:&quot;2018-04-11T12:27:41Z&quot;,&quot;id&quot;:984045319233732614,&quot;payload&quot;:{&quot;key&quot;:&quot;org1&quot;,&quot;label&quot;:&quot;lbl1&quot;,&quot;version&quot;:{&quot;status&quot;:&quot;DRAFT&quot;,&quot;num&quot;:1,&quot;latest&quot;:false},&quot;groups&quot;:[{&quot;key&quot;:&quot;group1&quot;,&quot;label&quot;:&quot;blalba&quot;,&quot;permissions&quot;:[{&quot;key&quot;:&quot;sms&quot;,&quot;label&quot;:&quot;Please accept sms&quot;}]}]}}</code> </td>
+    </tr>
+    <tr>
+      <td>OrganisationUpdated </td>
+      <td>Emitted when an existing Organisation has been updated </td>
+      <td><code>{&quot;type&quot;:&quot;OrganisationUpdated&quot;,&quot;tenant&quot;:&quot;prod&quot;,&quot;author&quot;:&quot;admin@test.com&quot;,&quot;date&quot;:&quot;2018-01-01T20:20:20Z&quot;,&quot;id&quot;:984045319233732615,&quot;payload&quot;:{&quot;key&quot;:&quot;org1&quot;,&quot;label&quot;:&quot;lbl2&quot;,&quot;version&quot;:{&quot;status&quot;:&quot;DRAFT&quot;,&quot;num&quot;:1,&quot;latest&quot;:false},&quot;groups&quot;:[{&quot;key&quot;:&quot;group1&quot;,&quot;label&quot;:&quot;blalba&quot;,&quot;permissions&quot;:[{&quot;key&quot;:&quot;sms&quot;,&quot;label&quot;:&quot;Please accept sms&quot;}]}]}, &quot;oldValue&quot;: {&quot;key&quot;:&quot;org1&quot;,&quot;label&quot;:&quot;lbl1&quot;,&quot;version&quot;:{&quot;status&quot;:&quot;DRAFT&quot;,&quot;num&quot;:1,&quot;latest&quot;:false},&quot;groups&quot;:[{&quot;key&quot;:&quot;group1&quot;,&quot;label&quot;:&quot;blalba&quot;,&quot;permissions&quot;:[{&quot;key&quot;:&quot;sms&quot;,&quot;label&quot;:&quot;Please accept sms&quot;}]}]}}</code> </td>
+    </tr>
+    <tr>
+      <td>OrganisationReleased </td>
+      <td>Emitted when an existing Organisation draft has been released. </td>
+      <td><code>{&quot;type&quot;:&quot;OrganisationReleased&quot;,&quot;tenant&quot;:&quot;prod&quot;,&quot;author&quot;:&quot;admin@test.com&quot;,&quot;date&quot;:&quot;2018-04-11T12:27:41Z&quot;,&quot;id&quot;:984045319397310471,&quot;payload&quot;:{&quot;key&quot;:&quot;org1&quot;,&quot;label&quot;:&quot;lbl2&quot;,&quot;version&quot;:{&quot;status&quot;:&quot;RELEASED&quot;,&quot;num&quot;:1,&quot;latest&quot;:true},&quot;groups&quot;:[{&quot;key&quot;:&quot;group1&quot;,&quot;label&quot;:&quot;blalba&quot;,&quot;permissions&quot;:[{&quot;key&quot;:&quot;sms&quot;,&quot;label&quot;:&quot;Please accept sms&quot;}]}]}}</code> </td>
+    </tr>
+    <tr>
+      <td>OrganisationDeleted </td>
+      <td>Emitted when an existing Organisation has been deleted. </td>
+      <td><code>{&quot;type&quot;:&quot;OrganisationDeleted&quot;,&quot;tenant&quot;:&quot;prod&quot;,&quot;author&quot;:&quot;admin@test.com&quot;,&quot;date&quot;:&quot;2018-04-11T12:27:42Z&quot;,&quot;id&quot;:984045319233732615,&quot;payload&quot;:{&quot;key&quot;:&quot;org1&quot;,&quot;label&quot;:&quot;lbl2&quot;,&quot;version&quot;:{&quot;status&quot;:&quot;RELEASED&quot;,&quot;num&quot;:1,&quot;latest&quot;:true},&quot;groups&quot;:[{&quot;key&quot;:&quot;group1&quot;,&quot;label&quot;:&quot;blalba&quot;,&quot;permissions&quot;:[{&quot;key&quot;:&quot;sms&quot;,&quot;label&quot;:&quot;Please accept sms&quot;}]}]}}</code> </td>
+    </tr>
+    <tr>
+      <td>ConsentFactCreated </td>
+      <td>Emitted when a new ConsentFact has been created. </td>
+      <td><code>{&quot;type&quot;:&quot;ConsentFactCreated&quot;,&quot;tenant&quot;:&quot;prod&quot;,&quot;author&quot;:&quot;admin@test.com&quot;,date&quot;:&quot;2018-04-11T12:27:43Z&quot;,&quot;id&quot;:984045319397310472,&quot;payload&quot;:{&quot;userId&quot;:&quot;toto1&quot;,&quot;doneBy&quot;:{&quot;userId&quot;:&quot;bob&quot;,&quot;role&quot;:&quot;admin&quot;},&quot;version&quot;:1,&quot;groups&quot;:[{&quot;key&quot;:&quot;group1&quot;,&quot;label&quot;:&quot;blabla&quot;,&quot;consents&quot;:[{&quot;key&quot;:&quot;sms&quot;,&quot;label&quot;:&quot;Please accept sms&quot;,&quot;checked&quot;:true}]}], &quot;orgKey&quot;:&quot;org1&quot; }</code> </td>
+    </tr>
+    <tr>
+      <td>ConsentFactUpdated </td>
+      <td>Emitted when an existing ConsentFact has been updated. </td>
+      <td><code>{&quot;type&quot;:&quot;ConsentFactUreated&quot;,&quot;tenant&quot;:&quot;prod&quot;,&quot;author&quot;:&quot;admin@test.com&quot;,date&quot;:&quot;2018-04-11T12:27:44Z&quot;,&quot;id&quot;:984045319397310473,&quot;payload&quot;:{&quot;userId&quot;:&quot;toto1&quot;,&quot;doneBy&quot;:{&quot;userId&quot;:&quot;bob&quot;,&quot;role&quot;:&quot;admin&quot;},&quot;version&quot;:1,&quot;groups&quot;:[{&quot;key&quot;:&quot;group1&quot;,&quot;label&quot;:&quot;blabla&quot;,&quot;consents&quot;:[{&quot;key&quot;:&quot;sms&quot;,&quot;label&quot;:&quot;Please accept sms&quot;,&quot;checked&quot;:true}]}], &quot;orgKey&quot;:&quot;org1&quot; }, &quot;oldValue&quot;:{&quot;userId&quot;:&quot;toto1&quot;,&quot;doneBy&quot;:{&quot;userId&quot;:&quot;bob&quot;,&quot;role&quot;:&quot;admin&quot;},&quot;version&quot;:1,&quot;groups&quot;:[{&quot;key&quot;:&quot;group1&quot;,&quot;label&quot;:&quot;blabla&quot;,&quot;consents&quot;:[{&quot;key&quot;:&quot;sms&quot;,&quot;label&quot;:&quot;Please accept sms&quot;,&quot;checked&quot;:true}]}], &quot;orgKey&quot;:&quot;org1&quot; }</code> </td>
+    </tr>
+    <tr>
+      <td>AccountCreated </td>
+      <td>Emitted when a new Account has been created. </td>
+      <td><code>{&quot;type&quot;:&quot;AccountCreated&quot;,&quot;tenant&quot;:&quot;prod&quot;,&quot;account&quot;:&quot;account1&quot;,&quot;date&quot;:&quot;2018-04-25T13:22:54Z&quot;,&quot;id&quot;:989132643281928192,&quot;payload&quot;:{&quot;accountId&quot;:&quot;account1&quot;,&quot;creationDate&quot;:&quot;2018-04-25T13:22:45Z&quot;,&quot;organisationsUsers&quot;:[{&quot;userId&quot;:&quot;user1&quot;,&quot;orgKey&quot;:&quot;org1&quot;},{&quot;userId&quot;:&quot;user1&quot;,&quot;orgKey&quot;:&quot;org2&quot;}]}}</code> </td>
+    </tr>
+    <tr>
+      <td>AccountUpdated </td>
+      <td>Emitted when an existing Account has been updated. </td>
+      <td><code>{&quot;type&quot;:&quot;AccountUpdated&quot;,&quot;tenant&quot;:&quot;prod&quot;,&quot;account&quot;:&quot;account1&quot;,&quot;date&quot;:&quot;2018-04-25T13:22:54Z&quot;,&quot;id&quot;:989132644422778881,&quot;payload&quot;:{&quot;accountId&quot;:&quot;account1&quot;,&quot;creationDate&quot;:&quot;2018-04-25T13:22:45Z&quot;,&quot;organisationsUsers&quot;:[{&quot;userId&quot;:&quot;user1&quot;,&quot;orgKey&quot;:&quot;org1&quot;},{&quot;userId&quot;:&quot;user1&quot;,&quot;orgKey&quot;:&quot;org2&quot;},{&quot;userId&quot;:&quot;user1&quot;,&quot;orgKey&quot;:&quot;org3&quot;}]},&quot;oldValue&quot;:{&quot;accountId&quot;:&quot;account1&quot;,&quot;creationDate&quot;:&quot;2018-04-25T13:22:45Z&quot;,&quot;organisationsUsers&quot;:[{&quot;userId&quot;:&quot;user1&quot;,&quot;orgKey&quot;:&quot;org1&quot;},{&quot;userId&quot;:&quot;user1&quot;,&quot;orgKey&quot;:&quot;org2&quot;}]}}</code> </td>
+    </tr>
+    <tr>
+      <td>AccountDeleted </td>
+      <td>Emitted when an existing Account has been deleted. </td>
+      <td><code>{&quot;type&quot;:&quot;AccountDeleted&quot;,&quot;tenant&quot;:&quot;prod&quot;,&quot;account&quot;:&quot;account1&quot;,&quot;date&quot;:&quot;2018-04-25T13:22:54Z&quot;,&quot;id&quot;:989132645030952962,&quot;payload&quot;:{&quot;accountId&quot;:&quot;account1&quot;,&quot;creationDate&quot;:&quot;2018-04-25T13:22:45Z&quot;,&quot;organisationsUsers&quot;:[{&quot;userId&quot;:&quot;user1&quot;,&quot;orgKey&quot;:&quot;org1&quot;},{&quot;userId&quot;:&quot;user1&quot;,&quot;orgKey&quot;:&quot;org2&quot;},{&quot;userId&quot;:&quot;user1&quot;,&quot;orgKey&quot;:&quot;org3&quot;}]}}</code> </td>
+    </tr>
+    <tr>
+      <td>DeletionTaskStarted </td>
+      <td>Emitted when a DeletionTask is started. </td>
+      <td><code>{&quot;type&quot;:&quot;DeletionTaskStarted&quot;,&quot;tenant&quot;:&quot;prod&quot;,&quot;date&quot;:&quot;2018-04-25T13:22:54Z&quot;,&quot;id&quot;:989132645030952962,&quot;payload&quot;:{&quot;orgKey&quot;:&quot;maif&quot;,&quot;userId&quot;:&quot;toto&quot;,&quot;appId&quot;: &quot;nestor1&quot;, &quot;deletionTaskId&quot;:&quot;delTaskMaif1&quot;}]}}</code> </td>
+    </tr>
+    <tr>
+      <td>DeletionTaskUpdated </td>
+      <td>Emitted when a DeletionTask is updated. </td>
+      <td><code>{&quot;type&quot;:&quot;DeletionTaskUpdate&quot;,&quot;tenant&quot;:&quot;prod&quot;,&quot;date&quot;:&quot;2018-04-25T13:22:54Z&quot;,&quot;id&quot;:989132645030952963,&quot;payload&quot;:{&quot;id&quot;: &quot;abc&quot;,orgKey&quot;:&quot;maif&quot;,&quot;userId&quot;:&quot;toto&quot;,&quot;startedAt&quot;:&quot;2018-04-25T13:22:54Z&quot;,&quot;appIds&quot;:[&quot;nestor1&quot;, &quot;socialClub1&quot;],&quot;states&quot;:[{&quot;appId&quot;:&quot;nestor1&quot;,&quot;status&quot;:&quot;Running&quot;},{&quot;appId&quot;:&quot;socialClub1&quot;,&quot;Done&quot;}],&quot;status&quot;:&quot;Running&quot;,&quot;lastUpdate&quot;:&quot;2018-04-25T13:22:45Z&quot;}]},&quot;oldValue&quot;:{&quot;id&quot;: &quot;abc&quot;,orgKey&quot;:&quot;maif&quot;,&quot;userId&quot;:&quot;toto&quot;,&quot;startedAt&quot;:&quot;2018-04-25T13:22:54Z&quot;,&quot;appIds&quot;:[&quot;nestor1&quot;, &quot;socialClub1&quot;],&quot;states&quot;:[{&quot;appId&quot;:&quot;nestor1&quot;,&quot;status&quot;:&quot;Running&quot;},{&quot;appId&quot;:&quot;socialClub1&quot;,&quot;Running&quot;}],&quot;status&quot;:&quot;Running&quot;,&quot;lastUpdate&quot;:&quot;2018-04-25T13:22:45Z&quot;}]}}</code> </td>
+    </tr>
+    <tr>
+      <td>DeletionTaskDone </td>
+      <td>Emitted when a DeletionTask is done. </td>
+      <td><code>{&quot;type&quot;:&quot;DeletionTaskUpdate&quot;,&quot;tenant&quot;:&quot;prod&quot;,&quot;date&quot;:&quot;2018-04-25T13:22:54Z&quot;,&quot;id&quot;:989132645030952963,&quot;payload&quot;:{&quot;id&quot;: &quot;abc&quot;,orgKey&quot;:&quot;maif&quot;,&quot;userId&quot;:&quot;toto&quot;,&quot;startedAt&quot;:&quot;2018-04-25T13:22:54Z&quot;,&quot;appIds&quot;:[&quot;nestor1&quot;, &quot;socialClub1&quot;],&quot;states&quot;:[{&quot;appId&quot;:&quot;nestor1&quot;,&quot;status&quot;:&quot;Done&quot;},{&quot;appId&quot;:&quot;socialClub1&quot;,&quot;Done&quot;}],&quot;status&quot;:&quot;Done&quot;,&quot;lastUpdate&quot;:&quot;2018-04-25T13:22:45Z&quot;}]}}</code> </td>
+    </tr>
+  </tbody>
+</table>
+<div class="nav-next">
+<p><strong>Next:</strong> <a href="backoffice.html">Back Office</a></p>
+</div>
+</div>
+<div class="large-3 show-for-large column" data-sticky-container>
+</div>
+</div>
+
+</section>
+</div>
+
+</div>
+
+<footer class="site-footer">
+
+<section class="site-footer-nav">
+<div class="expanded row">
+<div class="small-12 large-offset-2 large-10 column">
+<div class="row site-footer-content">
+
+<div class="small-12 medium-4 large-3 text-center column">
+<div class="nav-links">
+<ul>
+<!-- <li><a href="https://www.example.com/products/">Products</a> -->
+</ul>
+</div>
+</div>
+
+</div>
+</div>
+</div>
+</section>
+
+<section class="site-footer-base">
+<div class="expanded row">
+<div class="small-12 large-offset-2 large-10 column">
+<div class="row site-footer-content">
+
+<div class="small-12 text-center large-9 column">
+
+<!--
+<div class="copyright">
+<span class="text">&copy; 2018</span>
+<a href="https://www.example.com" class="logo">logo</a>
+</div>
+-->
+</div>
+
+</div>
+</div>
+</div>
+</section>
+</footer>
+
+</div>
+</div>
+</div>
+</body>
+
+<script type="text/javascript" src="lib/foundation/dist/foundation.min.js"></script>
+<script type="text/javascript">jQuery(document).foundation();</script>
+<script type="text/javascript" src="js/magellan.js"></script>
+
+<style type="text/css">@import "lib/prettify/prettify.css";</style>
+<script type="text/javascript" src="lib/prettify/prettify.js"></script>
+<script type="text/javascript" src="lib/prettify/lang-scala.js"></script>
+<script type="text/javascript">jQuery(function(){window.prettyPrint && prettyPrint()});</script>
+
+</html>
