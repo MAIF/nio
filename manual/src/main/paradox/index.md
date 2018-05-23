@@ -9,13 +9,17 @@
 * Data erasure request API
 
 @@@ div { .centered-img }
+[![Build Status](https://travis-ci.org/MAIF/nio.svg?branch=master)](https://travis-ci.org/MAIF/nio) [![Join the chat at https://gitter.im/MAIF/otoroshi](https://badges.gitter.im/MAIF/nio.svg)](https://gitter.im/MAIF/nio?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+@@@
+
+@@@ div { .centered-img }
 <img src="./img/nio_logo.svg" width="300"/>
 @@@
 
 
 @@@ warning
 
-Work is still in progress.
+Work is still in progress, stay tuned for our next releases.
 
 @@@
 
