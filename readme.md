@@ -15,7 +15,7 @@ You can join these groups and chats to discuss and ask Nio related questions:
 
 - Issue tracker: [![github: MAIF/nio/issues](https://img.shields.io/github/issues/MAIF/nio.svg)](https://github.com/MAIF/nio/issues)
 - Pull request: [![github: MAIF/nio/pulls](https://img.shields.io/github/issues-pr/MAIF/nio.svg)](https://github.com/MAIF/nio/pulls)
-- Chat room: [![Join the chat at https://gitter.im/MAIF/nio](https://badges.gitter.im/MAIF/nio.svg)](https://gitter.im/MAIF/nio?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+- Chat room: [![Join the chat at https://gitter.im/MAIF/nio](https://badges.gitter.im/MAIF/nio.svg)](https://gitter.im/MAIF/nio?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Join the chat at https://gitter.im/MAIF/nio](https://badges.gitter.im/MAIF/nio.svg)](https://gitter.im/MAIF/nio?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 ## Contributing
 
