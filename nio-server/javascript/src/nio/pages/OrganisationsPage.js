@@ -117,7 +117,7 @@ export class OrganisationsPage extends Component {
         <div className="row">
           <div className="col-md-12">
             <ReactTable
-              className="fulltable -striped -highlight"
+              className="fulltable -striped -highlight organisations"
               data={this.state.organisations}
               filterable={true}
               filterAll={true}
