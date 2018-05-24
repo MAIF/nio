@@ -121,16 +121,123 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <p>A <em>Tenant</em> is a dedicated environment that is totally isolated from other tenants.</p>
 <h3><a href="#organisation" name="organisation" class="anchor"><span class="anchor-link"></span></a>Organisation</h3>
 <p><em>Organisation</em> element represents an organisation (business organisation or any kind of organisation) that as a set of associated permissions.</p>
+<p>Organisation example :</p>
+<pre class="prettyprint"><code class="language-json">{
+  &quot;key&quot;: &quot;string&quot;,
+  &quot;label&quot;: &quot;string&quot;,
+  &quot;groups&quot;: [
+    {
+      &quot;key&quot;: &quot;string&quot;,
+      &quot;label&quot;: &quot;string&quot;,
+      &quot;permissions&quot;: [
+        {
+          &quot;key&quot;: &quot;string&quot;,
+          &quot;label&quot;: &quot;string&quot;
+        }
+      ]
+    }
+  ],
+  &quot;version&quot;: {
+    &quot;status&quot;: &quot;string&quot;,
+    &quot;num&quot;: 0,
+    &quot;latest&quot;: true,
+    &quot;neverReleased&quot;: true,
+    &quot;lastUpdate&quot;: &quot;string&quot;
+  }
+}
+</code></pre>
 <h3><a href="#permission-group" name="permission-group" class="anchor"><span class="anchor-link"></span></a>Permission group</h3>
 <p>A <em>Permission Group</em> is a set of permissions (this is actually a functionnal gathering).</p>
 <h3><a href="#permission" name="permission" class="anchor"><span class="anchor-link"></span></a>Permission</h3>
-<p>A <em>Permission</em> is an actual permission for a given authorisation (ex : &ldquo;I authorise CompanyX to send me promotional emails&rdquo;)/</p>
+<p>A <em>Permission</em> is an actual permission for a given authorisation (ex : &ldquo;I authorise CompanyX to send me promotional emails&rdquo;).</p>
 <h3><a href="#user" name="user" class="anchor"><span class="anchor-link"></span></a>User</h3>
 <p>A <em>User</em> is a user in the scope of your organisation. User&rsquo;s <strong>id</strong> is his <strong>id</strong> in your organisation.</p>
+<pre class="prettyprint"><code class="language-json">{
+  &quot;userId&quot;: &quot;string&quot;,
+  &quot;orgKey&quot;: &quot;string&quot;,
+  &quot;lastUpdate&quot;: &quot;string&quot;,
+  &quot;doneBy&quot;: {
+    &quot;userId&quot;: &quot;string&quot;,
+    &quot;role&quot;: &quot;string&quot;
+  },
+  &quot;version&quot;: 0,
+  &quot;groups&quot;: [
+    {
+      &quot;key&quot;: &quot;string&quot;,
+      &quot;label&quot;: &quot;string&quot;,
+      &quot;consents&quot;: [
+        {
+          &quot;key&quot;: &quot;string&quot;,
+          &quot;label&quot;: &quot;string&quot;,
+          &quot;checked&quot;: true
+        }
+      ]
+    }
+  ]
+}
+</code></pre>
 <h3><a href="#consents" name="consents" class="anchor"><span class="anchor-link"></span></a>Consents</h3>
 <p><em>Consent</em> element stands for the actual user consent for a given permission.</p>
 <h2><a href="#versionning" name="versionning" class="anchor"><span class="anchor-link"></span></a>Versionning</h2>
 <p><em>Permissions</em> and <em>Consents</em> are versionned in order to be able to handle changes in the permissions to be able to know at anytime which version of the permissions have been approuved by the user.</p>
+<h2><a href="#typical-workflow" name="typical-workflow" class="anchor"><span class="anchor-link"></span></a>Typical workflow</h2>
+<p>Here is a typical workflow of nios usage.</p>
+<h3><a href="#init" name="init" class="anchor"><span class="anchor-link"></span></a>Init</h3>
+<p>Create <code>dev</code> tenant :</p>
+<pre class="prettyprint"><code class="language-shell">curl -X POST &quot;https://&lt;nio-url&gt;/api/tenants&quot; \
+-H &#39;Opun-Client-Id: &lt;client-id&gt;&#39; \
+-H &#39;Opun-Client-Secret: &lt;client-secret&gt;&#39; \
+-H &#39;tenant-admin-secret:&lt;tenant-admin-id&gt;&#39; \
+-H &#39;Content-Type: application/json&#39; \
+-H &#39;Accept: application/json&#39; \
+--include \
+-d &#39;{&quot;key&quot;: &quot;dev&quot;,&quot;description&quot;: &quot;dev tenant&quot;}&#39;
+</code></pre>
+<p>Create organisation :</p>
+<pre class="prettyprint"><code class="language-shell">curl -X POST \
+  &quot;https://&lt;nio-url&gt;/api/dev/organisations&quot; \
+  -H &#39;accept: application/json&#39; \
+  -H &#39;content-type: application/json&#39; \
+  -H &#39;Opun-Client-Id: &lt;client-id&gt;&#39; \
+  -H &#39;Opun-Client-Secret: &lt;client-secret&gt;&#39; \
+  -d &#39;{
+    &quot;key&quot;: &quot;exampleorg&quot;,
+    &quot;label&quot;: &quot;Example Organisation&quot;,
+    &quot;version&quot;: {
+        &quot;status&quot;: &quot;RELEASED&quot;,
+        &quot;num&quot;: 1,
+        &quot;latest&quot;: true
+    },
+    &quot;groups&quot;: [{
+        &quot;key&quot;: &quot;groupexample&quot;,
+        &quot;label&quot;: &quot;Group Example&quot;,
+        &quot;permissions&quot;: [{
+            &quot;key&quot;: &quot;premissionexample&quot;,
+            &quot;label&quot;: &quot;Permission example&quot;
+        }]
+    }]
+}&#39; \
+--include
+</code></pre>
+<h3><a href="#consents-update" name="consents-update" class="anchor"><span class="anchor-link"></span></a>Consents update</h3>
+<p>GET consents <code>template</code> for the given organisation :</p>
+<pre class="prettyprint"><code class="language-shell">curl -X GET &quot;https://&lt;nio-url&gt;/api/dev/organisations/exampleorg/users/_template&quot; \
+-H &#39;accept: application/json&#39; \
+-H &#39;content-type: application/json&#39; \
+-H &#39;Opun-Client-Id: &lt;client-id&gt;&#39; \
+-H &#39;Opun-Client-Secret: &lt;client-secret&gt;&#39;
+</code></pre>
+<p>PUT filled <code>template</code> :</p>
+<pre class="prettyprint"><code class="language-shell">curl -X PUT \
+  &quot;https://&lt;nio-url&gt;/api/dev/organisations/exampleorg/users/&lt;user-id&quot; \
+  -H &#39;accept: application/json&#39; \
+  -H &#39;content-type: application/json&#39; \
+  -H &#39;Opun-Client-Id: &lt;client-id&gt;&#39; \
+  -H &#39;Opun-Client-Secret: &lt;client-secret&gt;&#39; \
+  -d &#39;{
+    // the filled template ...
+  }&#39;
+</code></pre>
 <div class="nav-next">
 <p><strong>Next:</strong> <a href="events.html">Events</a></p>
 </div>
@@ -146,6 +253,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
     <li><a href="api.html#swagger" class="header">Swagger</a></li>
     <li><a href="api.html#model" class="header">Model</a></li>
     <li><a href="api.html#versionning" class="header">Versionning</a></li>
+    <li><a href="api.html#typical-workflow" class="header">Typical workflow</a></li>
   </ul></li>
 </ul>
 </div>
