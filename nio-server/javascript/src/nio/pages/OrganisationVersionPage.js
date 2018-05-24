@@ -80,7 +80,7 @@ export class OrganisationVersionPage extends Component {
                   <li key={tab.id} className={`nav-item ${tab.id === this.state.selectedTab ? "active" : ""}`}>
                     <a className="nav-link">
                       <span onClick={() => this.setState({selectedTab: tab.id})}>{tab.title}</span> {tab.deletable &&
-                    <i className="glyphicon glyphicon-remove" onClick={() => this.removeTab(index)}/>}
+                    <i style={{cursor: 'pointer'}} className="glyphicon glyphicon-remove" onClick={() => this.removeTab(index)}/>}
                     </a>
                   </li>
                   :
