@@ -21,6 +21,13 @@
 
 Work is still in progress, stay tuned for our next releases.
 
+Coming next :
+
+* OAuth2 integration
+* Configurable email notifications
+* Front Office
+* ...
+
 @@@
 
 **Nio** does not to the effective erasure or the effective access in yout information system (who knows better than your team and your operating system how to provide and to erase data).
