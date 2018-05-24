@@ -54,7 +54,7 @@ class KafkaMessageBroker @Inject()(actorSystem: ActorSystem)(
   private lazy val consumerSettings =
     KafkaSettings.consumerSettings(actorSystem, kafka)
 
-  private val partitions: Seq[TopicPartition] = consumerSettings
+  private lazy val partitions: Seq[TopicPartition] = consumerSettings
     .createKafkaConsumer()
     .partitionsFor(kafka.topic)
     .asScala
@@ -80,11 +80,13 @@ class KafkaMessageBroker @Inject()(actorSystem: ActorSystem)(
   }
 
   def publish(event: NioEvent): Unit = {
-    val fut = publishEvent(event)
-    fut.onComplete {
-      case Failure(e) =>
-        Logger.error(s"Error sending message ${event.asJson.toString()}", e)
-      case _ =>
+    if (env.config.recordManagementEnabled) {
+      val fut = publishEvent(event)
+      fut.onComplete {
+        case Failure(e) =>
+          Logger.error(s"Error sending message ${event.asJson.toString()}", e)
+        case _ =>
+      }
     }
   }
 
@@ -166,7 +168,8 @@ class KafkaMessageBroker @Inject()(actorSystem: ActorSystem)(
   override def close() =
     producer.close()
 
-  def dropUntilLastId(lastId: Option[Long]): Flow[NioEvent, NioEvent, NotUsed] =
+  private def dropUntilLastId(
+      lastId: Option[Long]): Flow[NioEvent, NioEvent, NotUsed] =
     lastId.map { id =>
       Flow[NioEvent].filter(_.id > id)
     } getOrElse {

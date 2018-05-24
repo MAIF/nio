@@ -39,5 +39,8 @@ class SecureEvent @Inject()(env: Env,
       .runWith(Sink.ignore)
 
   }
-  run()
+
+  if (env.config.recordManagementEnabled) {
+    run()
+  }
 }

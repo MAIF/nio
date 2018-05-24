@@ -41,7 +41,8 @@ class OtoroshiFilter @Inject()(env: Env)(implicit ec: ExecutionContext,
         nextFilter(
           requestHeader
             .addAttr(OtoroshiFilter.Email, "test@test.com")
-            .addAttr(OtoroshiFilter.AuthInfo, AuthInfo("test@test.com", isAdmin = true)))
+            .addAttr(OtoroshiFilter.AuthInfo,
+                     AuthInfo("test@test.com", isAdmin = true)))
           .map {
             result =>
               val requestTime = System.currentTimeMillis - startTime
