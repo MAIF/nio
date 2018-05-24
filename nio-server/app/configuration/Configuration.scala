@@ -18,6 +18,7 @@ object NioConfiguration {
 case class NioConfiguration(logoutUrl: String,
                             filter: Otoroshi,
                             recordManagementEnabled: Boolean,
+                            s3ManagementEnabled: Boolean,
                             kafka: KafkaConfig,
                             s3Config: S3Config)
 

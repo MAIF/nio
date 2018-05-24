@@ -11,10 +11,13 @@ import play.api.Logger
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.DurationDouble
 
+trait TSecureEvent {}
+
 class SecureEvent @Inject()(env: Env,
                             kafkaMessageBroker: KafkaMessageBroker,
                             actorSystem: ActorSystem,
-                            implicit val executionContext: ExecutionContext) {
+                            implicit val executionContext: ExecutionContext)
+    extends TSecureEvent {
 
   implicit val materializer = ActorMaterializer()(actorSystem)
   lazy val kafkaConfig = env.config.kafka
@@ -40,7 +43,7 @@ class SecureEvent @Inject()(env: Env,
 
   }
 
-  if (env.config.recordManagementEnabled) {
+  if (env.config.recordManagementEnabled && env.config.s3ManagementEnabled) {
     run()
   }
 }

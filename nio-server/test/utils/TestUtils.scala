@@ -15,6 +15,8 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
 import scala.xml.Elem
 
+class SecureEventMock extends TSecureEvent {}
+
 trait TestUtils
     extends PlaySpec
     with GuiceOneServerPerSuite
@@ -40,6 +42,7 @@ trait TestUtils
   protected def ws: WSClient = app.injector.instanceOf[WSClient]
 
   override def fakeApplication() = {
+
     val application: Application = new GuiceApplicationBuilder()
       .configure(customConf)
       .build()
@@ -68,7 +71,8 @@ trait TestUtils
       "db.flush" -> "true",
       "nio.kafka.port" -> getKafkaPort(),
       "nio.kafka.servers" -> s"127.0.0.1:${getKafkaPort()}",
-      "nio.kafka.topic" -> getKafkaTopic()
+      "nio.kafka.topic" -> getKafkaTopic(),
+      "nio.s3ManagementEnabled" -> "false"
     )
   }
 
