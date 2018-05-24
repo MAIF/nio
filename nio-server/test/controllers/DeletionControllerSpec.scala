@@ -8,7 +8,7 @@ import play.api.test.Helpers._
 
 class DeletionControllerSpec extends TestUtils {
 
-  val tenant: String = "prod1"
+  val tenant: String = "sandbox"
   val orgKey = "orgTest1"
   val userId = "toto"
 

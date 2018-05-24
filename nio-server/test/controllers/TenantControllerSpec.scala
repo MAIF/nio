@@ -31,7 +31,7 @@ class TenantControllerSpec extends TestUtils {
 
       value.value.size mustBe 1
 
-      (value \ 0 \ "key").as[String] mustBe "prod1"
+      (value \ 0 \ "key").as[String] mustBe "sandbox"
       (value \ 0 \ "description")
         .as[String] mustBe "Default tenant from config file"
     }
@@ -59,7 +59,7 @@ class TenantControllerSpec extends TestUtils {
 
       value.value.size mustBe 2
 
-      (value \ 0 \ "key").as[String] mustBe "prod1"
+      (value \ 0 \ "key").as[String] mustBe "sandbox"
       (value \ 0 \ "description")
         .as[String] mustBe "Default tenant from config file"
 
@@ -91,7 +91,7 @@ class TenantControllerSpec extends TestUtils {
 
       val xmlValue = resp.xml
 
-      (xmlValue \\ "key")(0).text mustBe "prod1"
+      (xmlValue \\ "key")(0).text mustBe "sandbox"
       (xmlValue \\ "key")(1).text mustBe "newTenant"
       (xmlValue \\ "key")(2).text mustBe "testTenant"
     }

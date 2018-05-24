@@ -12,7 +12,7 @@ import scala.concurrent.duration.Duration
 
 class OrganisationMongoDataStoreSpec extends TestUtils {
 
-  val tenant = "prod1"
+  val tenant = "sandbox"
 
   "store" should {
     "insert" in {

@@ -8,7 +8,7 @@ import play.api.test.Helpers._
 
 class AccountControllerSpec extends TestUtils {
 
-  val tenant: String = "prod1"
+  val tenant: String = "sandbox"
 
   val account1: String = "account1"
   val account2: String = "account2"

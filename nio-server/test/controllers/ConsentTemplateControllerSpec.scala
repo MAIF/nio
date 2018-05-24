@@ -7,7 +7,7 @@ import utils.TestUtils
 import play.api.test.Helpers._
 
 class ConsentTemplateControllerSpec extends TestUtils {
-  val tenant: String = "prod1"
+  val tenant: String = "sandbox"
   val org1Key = "orgTest1"
 
   val org1 = Organisation(

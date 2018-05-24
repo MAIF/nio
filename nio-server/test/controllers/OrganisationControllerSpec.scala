@@ -11,7 +11,7 @@ import play.api.test.Helpers._
 class OrganisationControllerSpec extends TestUtils {
 
   "OrganisationController" should {
-    val tenant: String = "prod1"
+    val tenant: String = "sandbox"
     val org1Key = "orgTest1"
 
     val org1 = Organisation(

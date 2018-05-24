@@ -24,7 +24,7 @@ yarn start
 
 ## Access to app
 
-Access to app on your browser : [http://localhost:9000/prod1/bo](http://localhost:9000/prod1/bo)
+Access to app on your browser : [http://localhost:9000/sandbox/bo](http://localhost:9000/sandbox/bo)
 
 
 ## Published Kafka Events

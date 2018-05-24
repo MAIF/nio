@@ -130,7 +130,7 @@ class ConsentControllerSpec extends TestUtils {
   )
 
   "ConsentController" should {
-    val tenant: String = "prod1"
+    val tenant: String = "sandbox"
     val organisationKey: String = "maif"
 
     "user not exist" in {

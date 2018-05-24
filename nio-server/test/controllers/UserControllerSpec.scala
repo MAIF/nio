@@ -7,7 +7,7 @@ import utils.TestUtils
 
 class UserControllerSpec extends TestUtils {
 
-  val tenant: String = "prod1"
+  val tenant: String = "sandbox"
   val org1key: String = "maif1"
   val org2key: String = "maif2"
   val userId1: String = "userId1"

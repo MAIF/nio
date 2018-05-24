@@ -17,7 +17,7 @@ class HomeControllerSpec extends TestUtils {
     "render the index page from the application" in {
 
       val response: WSResponse =
-        callJson("/prod1/bo", GET, api = false)
+        callJson("/sandbox/bo", GET, api = false)
 
       response.status must be(OK)
       response.contentType must be("text/html; charset=UTF-8")
