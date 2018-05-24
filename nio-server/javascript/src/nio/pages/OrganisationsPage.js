@@ -46,7 +46,7 @@ export class OrganisationsPage extends Component {
       content: item => item.label,
       cell: (v, item) => {
         return <Link to={`/organisations/${item.key}/users`} style={{cursor: 'pointer'}}><i
-          className="glyphicon glyphicon-eye-open"/></Link>
+          className="glyphicon glyphicon-eye-open consultColor"/></Link>
       }
     }
   ];
