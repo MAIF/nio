@@ -12,9 +12,9 @@ You want to start quick ? We provide a docker image in order to be able to start
 
 ## Getting started
 
-First install [Docker](https://docs.docker.com/install/) for your favorite operating system.
+First install [Docker](https://docs.docker.com/install/) and [Docker Compose](https://docs.docker.com/compose/install/) for your favorite operating system.
 
-Start Docker :
+Start Docker, in order to provide [MongoDB](https://www.mongodb.com/), [Kafka](https://kafka.apache.org/) and [S3-compliant](https://fr.wikipedia.org/wiki/Amazon_S3) services in dev mode (for production mode, you'll need to install these services) :
 
 ```sh
 sudo docker-compose up
@@ -34,3 +34,5 @@ cd nio-server/javascript
 yarn install
 yarn start
 ```
+
+You may now connect to Nio's back office on [http://localhost:9000/prod1/bo](http://localhost:9000/prod1/bo), default tenant `prod1` is created.

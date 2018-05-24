@@ -1,6 +1,6 @@
 # Architecture
 
-**Nio's** architecture is composed of a JVM-compliant service (Play2 + Scala), a MongoDB databse and a Kafka Broker. For now, you will also need [Otoroshi](https://maif.github.io/otoroshi/) as an API gateway. We will later consider to provide an implemnetation of Nio that does not need Otoroshi but not yet :D
+**Nio's** architecture is composed of a JVM-compliant service (Play2 + Scala), a MongoDB databse and a Kafka Broker. For now, you will also need [Otoroshi](https://maif.github.io/otoroshi/) as an API gateway. We will later consider to provide an implementation of Nio that does not need Otoroshi but not yet :D
 
 @@@ div { .centered-img }
 <img src="./img/nio-architecture.png" />
@@ -24,6 +24,6 @@
 
 Record management is optional.
 
-## (Optional) email notification using mail gun.
+## Soon : email notification using mail gun.
 
 **Nio** provides features to send e-mails using [mail gun](https://www.mailgun.com/).

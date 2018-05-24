@@ -14,7 +14,7 @@ Swagger for API documentation may be found [here](https://raw.githubusercontent.
 
 ### Tenant
 
-A tenant is a dedicated environment that is totally isolated from other tenants.
+A *Tenant* is a dedicated environment that is totally isolated from other tenants.
 
 ### Organisation
 
@@ -26,7 +26,7 @@ A *Permission Group* is a set of permissions (this is actually a functionnal gat
 
 ### Permission
 
-A *Permission* is a permission for a given authorisation.
+A *Permission* is an actual permission for a given authorisation (ex : "I authorise CompanyX to send me promotional emails").
 
 ### User
 

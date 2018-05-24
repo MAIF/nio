@@ -117,8 +117,8 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <p>You want to start quick ? We provide a docker image in order to be able to start whitout installing all elements of the Architecture.</p><div class="centered-img">
 <img src="./img/nio-architecture-quickstart.png"/></div>
 <h2><a href="#getting-started" name="getting-started" class="anchor"><span class="anchor-link"></span></a>Getting started</h2>
-<p>First install <a href="https://docs.docker.com/install/">Docker</a> for your favorite operating system.</p>
-<p>Start Docker :</p>
+<p>First install <a href="https://docs.docker.com/install/">Docker</a> and <a href="https://docs.docker.com/compose/install/">Docker Compose</a> for your favorite operating system.</p>
+<p>Start Docker, in order to provide <a href="https://www.mongodb.com/">MongoDB</a>, <a href="https://kafka.apache.org/">Kafka</a> and <a href="https://fr.wikipedia.org/wiki/Amazon_S3">S3-compliant</a> services in dev mode (for production mode, you&rsquo;ll need to install these services) :</p>
 <pre class="prettyprint"><code class="language-sh">sudo docker-compose up
 </code></pre>
 <p>You will need to install <a href="https://www.scala-sbt.org/download.html?_ga=2.189648747.1180427007.1527096641-566511216.1527096641">SBT</a> and <a href="https://yarnpkg.com/lang/en/docs/install/#mac-stable">Yarn</a> first.</p>
@@ -130,6 +130,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 yarn install
 yarn start
 </code></pre>
+<p>You may now connect to Nio&rsquo;s back office on <a href="http://localhost:9000/prod1/bo">http://localhost:9000/prod1/bo</a>, default tenant <code>prod1</code> is created.</p>
 <div class="nav-next">
 <p><strong>Next:</strong> <a href="api.html">API</a></p>
 </div>

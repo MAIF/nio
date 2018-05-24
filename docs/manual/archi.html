@@ -112,7 +112,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <div class="page-content row">
 <div class="small-12 large-9 column" id="docs">
 <h1><a href="#architecture" name="architecture" class="anchor"><span class="anchor-link"></span></a>Architecture</h1>
-<p><strong>Nio&rsquo;s</strong> architecture is composed of a JVM-compliant service (Play2 + Scala), a MongoDB databse and a Kafka Broker. For now, you will also need <a href="https://maif.github.io/otoroshi/">Otoroshi</a> as an API gateway. We will later consider to provide an implemnetation of Nio that does not need Otoroshi but not yet :D</p><div class="centered-img">
+<p><strong>Nio&rsquo;s</strong> architecture is composed of a JVM-compliant service (Play2 + Scala), a MongoDB databse and a Kafka Broker. For now, you will also need <a href="https://maif.github.io/otoroshi/">Otoroshi</a> as an API gateway. We will later consider to provide an implementation of Nio that does not need Otoroshi but not yet :D</p><div class="centered-img">
 <img src="./img/nio-architecture.png" /></div>
 <h2><a href="#database" name="database" class="anchor"><span class="anchor-link"></span></a>Database</h2>
 <p><strong>Nio&rsquo;s</strong> database is MongoDB, which mostly stores consents and account data.</p>
@@ -123,7 +123,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <h2><a href="#optional-s3-compliant-storage-for-events-record-management" name="optional-s3-compliant-storage-for-events-record-management" class="anchor"><span class="anchor-link"></span></a>(Optional) S3-compliant storage for events record management</h2>
 <p><strong>Nio</strong> also provides events record management which consists in a chained event logs that needs to be stored in a S3-compliant store.</p>
 <p>Record management is optional.</p>
-<h2><a href="#optional-email-notification-using-mail-gun-" name="optional-email-notification-using-mail-gun-" class="anchor"><span class="anchor-link"></span></a>(Optional) email notification using mail gun.</h2>
+<h2><a href="#soon-email-notification-using-mail-gun-" name="soon-email-notification-using-mail-gun-" class="anchor"><span class="anchor-link"></span></a>Soon : email notification using mail gun.</h2>
 <p><strong>Nio</strong> provides features to send e-mails using <a href="https://www.mailgun.com/">mail gun</a>.</p>
 <div class="nav-next">
 <p><strong>Next:</strong> <a href="features.html">Features</a></p>
@@ -140,7 +140,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
     <li><a href="archi.html#database" class="header">Database</a></li>
     <li><a href="archi.html#events-broker" class="header">Events Broker</a></li>
     <li><a href="archi.html#optional-s3-compliant-storage-for-events-record-management" class="header">(Optional) S3-compliant storage for events record management</a></li>
-    <li><a href="archi.html#optional-email-notification-using-mail-gun-" class="header">(Optional) email notification using mail gun.</a></li>
+    <li><a href="archi.html#soon-email-notification-using-mail-gun-" class="header">Soon : email notification using mail gun.</a></li>
   </ul></li>
 </ul>
 </div>

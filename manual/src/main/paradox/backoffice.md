@@ -2,11 +2,11 @@
 
 Each tenant comes with its own data, it also comes with its own back office.
 
-## Acess
+## Access
 
 Backoffice is accessible through the following url :
 
-> https://<nio-url>/<tenant>/bo
+> https://&lt;nio-url&gt;/&lt;tenant&gt;/bo
 
 ## Organisations View
 

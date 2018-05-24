@@ -1,10 +1,10 @@
 # Features
 
-Rigth now **Nio** provides the following features.
+Right now **Nio** provides the following features.
 
 ## Consents management API
 
-**Nio** provides an [API](api.md) to manage consents for yout users.
+**Nio** provides an [API](api.md) to manage consents for your users.
 
 ## Right of erasure API and event service
 
@@ -16,9 +16,8 @@ Rigth now **Nio** provides the following features.
 
 ## Record Management
 
-**Nio** provides an optionnal record management feature to increase traceability.
+**Nio** provides an optional record management feature to increase traceability.
 
+## Soon : Mailgun integration for end-user notifications
 
-## Mailgun integration for end-user notifications
-
-**Nio** provides integration in order to notify users of any actions on their personnal data.
+**Nio** will provide mail fun integration in order to notify users of any actions performed on their personnal data.
