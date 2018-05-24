@@ -9,9 +9,6 @@ import scala.concurrent.{ExecutionContext, Future}
 import javax.inject.Inject
 
 case class AuthInfo(sub: String, isAdmin: Boolean)
-object AuthInfo {
-  val admin = AuthInfo(sub = "pa:admin@maif.fr", isAdmin = true)
-}
 
 case class AuthContextWithEmail[A](request: Request[A],
                                    email: String,
