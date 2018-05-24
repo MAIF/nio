@@ -314,6 +314,10 @@ footer {
 }
 tr:nth-child(even) {background: #424241;}
 
+.organisations .rt-tr .rt-td:nth-child(3),.organisations .rt-tr .rt-td:nth-child(4),.organisations .rt-tr .rt-td:nth-child(5) {
+    text-align: center;
+}
+
   a,a:hover {
       color: #5cb85c;
   }
