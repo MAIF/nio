@@ -242,7 +242,7 @@ export class OrganisationPage extends Component {
     }
 
     const actionButtons = (
-      <div className="form-buttons pull-right">
+      <div className="form-buttons pull-right btnsNewOrga">
         <button className="btn btn-primary" onClick={this.toggleVisualize}>
           {
             this.state.visualizeConsents ?
@@ -252,7 +252,7 @@ export class OrganisationPage extends Component {
           }
         </button>
 
-        <button className="btn btn-primary" onClick={this.save}>
+        <button className="btn btn-success" onClick={this.save}>
           {
             this.props.organisationKey ?
               <i className="glyphicon glyphicon-hdd"/>
@@ -332,9 +332,10 @@ export class OrganisationPage extends Component {
                      prefixe={"organisation."} errors={this.state.errors}/>
             )
           }
+
+                  {!this.props.readOnlyMode && actionButtons}
         </div>
 
-        {!this.props.readOnlyMode && actionButtons}
 
         <div className="col-md-12">
           {
