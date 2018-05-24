@@ -32,7 +32,7 @@ export class OrganisationReleasePage extends Component {
       title: 'Afficher les détails',
       content: item => item.version,
       notFilterable: true,
-      cell: (v, item) => <i className="glyphicon glyphicon-eye-open"
+      cell: (v, item) => <i style={{cursor: 'pointer'}} className="glyphicon glyphicon-eye-open consultColor"
                             onClick={() => this.props.showDetails(item.version.num)}/>
     }
   ];
@@ -93,12 +93,9 @@ export class OrganisationReleasePage extends Component {
 
     return (
       <div className="row">
-        <div className="col-md-12">
-          <h1>Publications</h1>
-        </div>
           <div className="col-md-12">
             <ReactTable
-              className="fulltable -striped -highlight"
+              className="fulltable -striped -highlight publications"
               data={this.state.releases}
               filterable={true}
               filterAll={true}
