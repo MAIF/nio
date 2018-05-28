@@ -129,10 +129,21 @@ class KafkaMessageBroker @Inject()(actorSystem: ActorSystem)(
       implicit m: Materializer)
     : Source[Done, (Consumer.Control, Future[Done])] = {
 
+    val consumerSettingsS3 =
+      KafkaSettings.consumerSettings(actorSystem, kafka, true)
+    val partitionsS3: Seq[TopicPartition] = consumerSettingsS3
+      .createKafkaConsumer()
+      .partitionsFor(kafka.topic)
+      .asScala
+      .map { t =>
+        Logger.info(
+          s"------> Found topic: ${kafka.topic} partition: ${t.partition()}")
+        new TopicPartition(kafka.topic, t.partition())
+      }
     val source: Source[Done, (Consumer.Control, Future[Done])] = Consumer
-      .committableSource(consumerSettings,
+      .committableSource(consumerSettingsS3,
                          Subscriptions.topics(env.config.kafka.topic))
-      .groupBy(partitions.size, _.record.partition())
+      .groupBy(partitionsS3.size, _.record.partition())
       .groupedWithin(groupIn, groupDuration)
       .filter(_.nonEmpty)
       .mapAsync(1) { messages =>
