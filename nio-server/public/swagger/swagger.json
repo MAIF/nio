@@ -1,6 +1,5 @@
 {
   "swagger": "2.0",
-  "host": "nio.fr",
   "info": {
     "version": "1.0-SNAPSHOT",
     "title": "Swagger Nio",
