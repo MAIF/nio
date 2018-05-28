@@ -29,7 +29,9 @@ case class OtoroshiFilterConfig(sharedKey: String,
                                 headerClaim: String,
                                 headerRequestId: String,
                                 headerGatewayState: String,
-                                headerGatewayStateResp: String)
+                                headerGatewayStateResp: String,
+                                headerGatewayHeaderClientId: String,
+                                headerGatewayHeaderClientSecret: String)
 
 case class Otoroshi(otoroshi: OtoroshiFilterConfig)
 

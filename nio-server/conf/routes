@@ -2,6 +2,7 @@
 # This file defines all application routes (Higher priority routes first)
 # ~~~~
 
+GET         /assets/swagger/swagger.json                                   controllers.HomeController.swagger()
 GET         /docs/swagger-ui/*file                                  controllers.Assets.at(path:String="/public/lib/swagger-ui", file:String)
 
 # Map static resources from the /public folder to the /assets URL path

@@ -48,17 +48,17 @@
         "description": "Récupération de la liste des organisations connus soit en prenant la dernière version publiée pour cette organisation soit en prenant la version brouillon.",
         "parameters": [
           {
-            "name": "Client-Id",
+            "name": "$CLIENT_ID",
             "in": "header",
             "description": "Otoroshi client id",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
-            "name": "Client-Secret",
+            "name": "$CLIENT_SECRET",
             "in": "header",
             "description": "Otoroshi client secret",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
@@ -92,17 +92,17 @@
         "description": "Création d'une nouvelle organisation en spécifiant les différentes permissions souhaitées en les rassemblant par groupes.",
         "parameters": [
           {
-            "name": "Client-Id",
+            "name": "$CLIENT_ID",
             "in": "header",
             "description": "Otoroshi client id",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
-            "name": "Client-Secret",
+            "name": "$CLIENT_SECRET",
             "in": "header",
             "description": "Otoroshi client secret",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
@@ -150,14 +150,14 @@
         "description": "Récupération de l'historique des versions publiées pour une organisation donnée.",
         "parameters": [
           {
-            "name": "Client-Id",
+            "name": "$CLIENT_ID",
             "in": "header",
             "description": "Otoroshi client id",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
-            "name": "Client-Secret",
+            "name": "$CLIENT_SECRET",
             "in": "header",
             "description": "Otoroshi client secret",
             "required": false,
@@ -201,17 +201,17 @@
         "description": "Suppression d'une organisation.",
         "parameters": [
           {
-            "name": "Client-Id",
+            "name": "$CLIENT_ID",
             "in": "header",
             "description": "Otoroshi client id",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
-            "name": "Client-Secret",
+            "name": "$CLIENT_SECRET",
             "in": "header",
             "description": "Otoroshi client secret",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
@@ -245,17 +245,17 @@
         "description": "Récupération de la dernière version publiée pour une organisation donnée.",
         "parameters": [
           {
-            "name": "Client-Id",
+            "name": "$CLIENT_ID",
             "in": "header",
             "description": "Otoroshi client id",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
-            "name": "Client-Secret",
+            "name": "$CLIENT_SECRET",
             "in": "header",
             "description": "Otoroshi client secret",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
@@ -295,17 +295,17 @@
         "description": "Récupération du brouillon pour une organisation donnée. A noter, si une organisation existe elle a forcément une version brouillon de disponible.",
         "parameters": [
           {
-            "name": "Client-Id",
+            "name": "$CLIENT_ID",
             "in": "header",
             "description": "Otoroshi client id",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
-            "name": "Client-Secret",
+            "name": "$CLIENT_SECRET",
             "in": "header",
             "description": "Otoroshi client secret",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
@@ -343,17 +343,17 @@
         "description": "Mise à jour du brouillon courant pour une organisation donnée. Cette opération ne publie pas la version brouillon.",
         "parameters": [
           {
-            "name": "Client-Id",
+            "name": "$CLIENT_ID",
             "in": "header",
             "description": "Otoroshi client id",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
-            "name": "Client-Secret",
+            "name": "$CLIENT_SECRET",
             "in": "header",
             "description": "Otoroshi client secret",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
@@ -405,17 +405,17 @@
         "description": "Publication de la version brouillon passée dans le body. Cette opération va permettre de publier un brouillon, créer un nouveau brouillon à partir de la version publiée en incrémentant la version du brouillon en vue de la prochaine publication.",
         "parameters": [
           {
-            "name": "Client-Id",
+            "name": "$CLIENT_ID",
             "in": "header",
             "description": "Otoroshi client id",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
-            "name": "Client-Secret",
+            "name": "$CLIENT_SECRET",
             "in": "header",
             "description": "Otoroshi client secret",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
@@ -464,17 +464,17 @@
         "description": "Récupération d'une version spécifique publiée pour une organisation donnée.",
         "parameters": [
           {
-            "name": "Client-Id",
+            "name": "$CLIENT_ID",
             "in": "header",
             "description": "Otoroshi client id",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
-            "name": "Client-Secret",
+            "name": "$CLIENT_SECRET",
             "in": "header",
             "description": "Otoroshi client secret",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
@@ -521,17 +521,17 @@
         "description": "Récupération de la structure des consentements initialisée avec la structure de la dernière publiée de permissions de l'organisation spécifiée.",
         "parameters": [
           {
-            "name": "Client-Id",
+            "name": "$CLIENT_ID",
             "in": "header",
             "description": "Otoroshi client id",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
-            "name": "Client-Secret",
+            "name": "$CLIENT_SECRET",
             "in": "header",
             "description": "Otoroshi client secret",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
@@ -578,17 +578,17 @@
         "description": "Récupération des consentements enregistrés pour un utilisateur donné pour une organisation donnée.",
         "parameters": [
           {
-            "name": "Client-Id",
+            "name": "$CLIENT_ID",
             "in": "header",
             "description": "Otoroshi client id",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
-            "name": "Client-Secret",
+            "name": "$CLIENT_SECRET",
             "in": "header",
             "description": "Otoroshi client secret",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
@@ -633,17 +633,17 @@
         "description": "Mise à jour des consentements d'un utilisateur. Si l'utilisateur n'existait pas dans Nio, nous vérifions que la structure de consentements transmise corresponds bien à la structure de la dernière version publiée de l'organisation. Si l'utilisateur existe et que la version présente dans Nio est la même que la version envoyée, on vérifie que la structure de consentements transmise corresponds bien à la structure spécifiée. Si l'utilisateur existe et que la version présente dans Nio est inférieur à la version envoyée, on vérifie que la structure des consentements pour cette version corresponds bien à la version envoyée. Dans les autres cas l'api retournera une erreur 400.",
         "parameters": [
           {
-            "name": "Client-Id",
+            "name": "$CLIENT_ID",
             "in": "header",
             "description": "Otoroshi client id",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
-            "name": "Client-Secret",
+            "name": "$CLIENT_SECRET",
             "in": "header",
             "description": "Otoroshi client secret",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
@@ -699,17 +699,17 @@
         "description": "Récupération de la liste paginée des utilisateurs pour une organisation donnée.",
         "parameters": [
           {
-            "name": "Client-Id",
+            "name": "$CLIENT_ID",
             "in": "header",
             "description": "Otoroshi client id",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
-            "name": "Client-Secret",
+            "name": "$CLIENT_SECRET",
             "in": "header",
             "description": "Otoroshi client secret",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
@@ -767,17 +767,17 @@
         "description": "Récupération de la liste des utilisateurs pour un tenant donné.",
         "parameters": [
           {
-            "name": "Client-Id",
+            "name": "$CLIENT_ID",
             "in": "header",
             "description": "Otoroshi client id",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
-            "name": "Client-Secret",
+            "name": "$CLIENT_SECRET",
             "in": "header",
             "description": "Otoroshi client secret",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
@@ -828,17 +828,17 @@
         "description": "Récupération de la liste des utilisateurs en tant que fichier .ndjson pour un tenant donné.",
         "parameters": [
           {
-            "name": "Client-Id",
+            "name": "$CLIENT_ID",
             "in": "header",
             "description": "Otoroshi client id",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
-            "name": "Client-Secret",
+            "name": "$CLIENT_SECRET",
             "in": "header",
             "description": "Otoroshi client secret",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
@@ -868,17 +868,17 @@
         "description": "Récupération de la liste des tenants.",
         "parameters": [
           {
-            "name": "Client-Id",
+            "name": "$CLIENT_ID",
             "in": "header",
             "description": "Otoroshi client id",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
-            "name": "Client-Secret",
+            "name": "$CLIENT_SECRET",
             "in": "header",
             "description": "Otoroshi client secret",
-            "required": false,
+            "required": true,
             "type": "string"
           }
         ],
@@ -902,17 +902,17 @@
         "description": "Création d'un nouveau tenant.",
         "parameters": [
           {
-            "name": "Client-Id",
+            "name": "$CLIENT_ID",
             "in": "header",
             "description": "Otoroshi client id",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
-            "name": "Client-Secret",
+            "name": "$CLIENT_SECRET",
             "in": "header",
             "description": "Otoroshi client secret",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
@@ -952,17 +952,17 @@
         "description": "Suppression d'un tenant.",
         "parameters": [
           {
-            "name": "Client-Id",
+            "name": "$CLIENT_ID",
             "in": "header",
             "description": "Otoroshi client id",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
-            "name": "Client-Secret",
+            "name": "$CLIENT_SECRET",
             "in": "header",
             "description": "Otoroshi client secret",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
@@ -992,17 +992,17 @@
         "description": "Création d'un compte permettant d'associer des utilisateurs à un seul compte",
         "parameters": [
           {
-            "name": "Client-Id",
+            "name": "$CLIENT_ID",
             "in": "header",
             "description": "Otoroshi client id",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
-            "name": "Client-Secret",
+            "name": "$CLIENT_SECRET",
             "in": "header",
             "description": "Otoroshi client secret",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
@@ -1042,17 +1042,17 @@
         "description": "Récupération de la liste des comptes pour un tenant donné",
         "parameters": [
           {
-            "name": "Client-Id",
+            "name": "$CLIENT_ID",
             "in": "header",
             "description": "Otoroshi client id",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
-            "name": "Client-Secret",
+            "name": "$CLIENT_SECRET",
             "in": "header",
             "description": "Otoroshi client secret",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
@@ -1099,17 +1099,17 @@
         "description": "Mise à jour d'un compte permettant d'associer des utilisateurs à un seul compte",
         "parameters": [
           {
-            "name": "Client-Id",
+            "name": "$CLIENT_ID",
             "in": "header",
             "description": "Otoroshi client id",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
-            "name": "Client-Secret",
+            "name": "$CLIENT_SECRET",
             "in": "header",
             "description": "Otoroshi client secret",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
@@ -1159,17 +1159,17 @@
         "description": "Récupération d'un compte par son identifiant",
         "parameters": [
           {
-            "name": "Client-Id",
+            "name": "$CLIENT_ID",
             "in": "header",
             "description": "Otoroshi client id",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
-            "name": "Client-Secret",
+            "name": "$CLIENT_SECRET",
             "in": "header",
             "description": "Otoroshi client secret",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
@@ -1207,17 +1207,17 @@
         "description": "Suppression d'un compte par son identifiant",
         "parameters": [
           {
-            "name": "Client-Id",
+            "name": "$CLIENT_ID",
             "in": "header",
             "description": "Otoroshi client id",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
-            "name": "Client-Secret",
+            "name": "$CLIENT_SECRET",
             "in": "header",
             "description": "Otoroshi client secret",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
@@ -1254,17 +1254,17 @@
         "description": "Retourne la liste paginée des tâches de suppression en cours ou terminées pour tous les utilisateurs d'une organisation specifique.",
         "parameters": [
           {
-            "name": "Client-Id",
+            "name": "$CLIENT_ID",
             "in": "header",
             "description": "Otoroshi client id",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
-            "name": "Client-Secret",
+            "name": "$CLIENT_SECRET",
             "in": "header",
             "description": "Otoroshi client secret",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
@@ -1322,17 +1322,17 @@
         "description": "Retourne la liste paginée des tâches de suppression en cours ou terminées pour tous les utilisateurs d'une organisation specifique.",
         "parameters": [
           {
-            "name": "Client-Id",
+            "name": "$CLIENT_ID",
             "in": "header",
             "description": "Otoroshi client id",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
-            "name": "Client-Secret",
+            "name": "$CLIENT_SECRET",
             "in": "header",
             "description": "Otoroshi client secret",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
@@ -1381,17 +1381,17 @@
         "description": "Lance la tâche de suppression des données; nio va emmettre les évenements sur le topic kafka pour avertir les applications concernées de la nécessité de suppression des données de l'utilisateur identifié userId.",
         "parameters": [
           {
-            "name": "Client-Id",
+            "name": "$CLIENT_ID",
             "in": "header",
             "description": "Otoroshi client id",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
-            "name": "Client-Secret",
+            "name": "$CLIENT_SECRET",
             "in": "header",
             "description": "Otoroshi client secret",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
@@ -1444,17 +1444,17 @@
         "description": "Met à jour la tâche de supression, l'application spécifiée est considerée comme ayant terminé la suppression.",
         "parameters": [
           {
-            "name": "Client-Id",
+            "name": "$CLIENT_ID",
             "in": "header",
             "description": "Otoroshi client id",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
-            "name": "Client-Secret",
+            "name": "$CLIENT_SECRET",
             "in": "header",
             "description": "Otoroshi client secret",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {

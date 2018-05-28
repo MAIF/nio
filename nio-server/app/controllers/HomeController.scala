@@ -1,5 +1,7 @@
 package controllers
 
+import java.nio.file.Files
+
 import akka.actor.ActorSystem
 import configuration.Env
 import javax.inject.Inject
@@ -36,5 +38,20 @@ class HomeController @Inject()(val AuthAction: AuthActionWithEmail,
     } else {
       Forbidden("error.forbidden.backoffice.access")
     }
+  }
+
+  def swagger() = AuthAction { req =>
+    import scala.collection.JavaConverters._
+
+    val value: String = Files
+      .readAllLines(env.environment.getFile("conf/swagger/swagger.json").toPath)
+      .asScala
+      .mkString("\n")
+      .replace("$CLIENT_ID",
+               env.config.filter.otoroshi.headerGatewayHeaderClientId)
+      .replace("$CLIENT_SECRET",
+               env.config.filter.otoroshi.headerGatewayHeaderClientSecret)
+
+    Ok(value).as("application/json")
   }
 }

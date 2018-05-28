@@ -7,7 +7,7 @@ import play.api.{Configuration, Environment, Mode}
 @Singleton
 class Env @Inject()(
     configuration: Configuration,
-    environment: Environment
+    val environment: Environment
 ) {
 
   val config = NioConfiguration(configuration)
