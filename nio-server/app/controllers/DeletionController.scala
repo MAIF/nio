@@ -30,8 +30,7 @@ class DeletionController @Inject()(
 
   def startDeletionTask(tenant: String, orgKey: String, userId: String) =
     AuthAction.async(parse.anyContent) { implicit req =>
-      val parsed = parseMethod[DeletionTaskInput](DeletionTaskInput)
-      parsed match {
+      parseMethod[AppIds](AppIds) match {
         case Left(error) =>
           Logger.error(s"Unable to parse deletion task input due to $error")
           Future.successful(BadRequest(error))
@@ -40,7 +39,7 @@ class DeletionController @Inject()(
           deletionTaskStore.insert(tenant, task).map { _ =>
             task.appIds.foreach { appId =>
               broker.publish(
-                DeletionTaskStarted(tenant = tenant,
+                DeletionStarted(tenant = tenant,
                                     author = req.authInfo.sub,
                                     payload = DeletionTaskInfoPerApp(
                                       orgKey = orgKey,
@@ -92,7 +91,7 @@ class DeletionController @Inject()(
           .map { _ =>
             if (updatedDeletionTask.status == DeletionTaskStatus.Done) {
               broker.publish(
-                DeletionTaskDone(
+                DeletionFinished(
                   tenant = tenant,
                   author = request.authInfo.sub,
                   payload = updatedDeletionTask
@@ -100,11 +99,10 @@ class DeletionController @Inject()(
               )
             } else {
               broker.publish(
-                DeletionTaskUpdated(
+                DeletionAppDone(
                   tenant = tenant,
                   author = request.authInfo.sub,
-                  payload = updatedDeletionTask,
-                  oldValue = deletionTask
+                  payload = AppDone(orgKey, updatedDeletionTask.userId, appId)
                 )
               )
             }
