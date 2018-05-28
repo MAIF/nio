@@ -10,56 +10,6 @@ import utils.DateUtils
 import scala.util.{Failure, Success, Try}
 import scala.xml.Elem
 
-case class DeletionTaskInput(appIds: Seq[String])
-object DeletionTaskInput extends ReadableEntity[DeletionTaskInput] {
-  implicit val deletionTaskInputFormats = Json.format[DeletionTaskInput]
-
-  def fromXml(xml: Elem) = {
-    Try {
-      val appIds = xml.collect {
-        case e: Elem => (e \ "appId").head.text
-      }
-      DeletionTaskInput(appIds)
-    } match {
-      case Success(value) => Right(value)
-      case Failure(throwable) => {
-        Left(throwable.getMessage)
-      }
-    }
-  }
-
-  def fromJson(json: JsValue) = {
-    json.validate[DeletionTaskInput](deletionTaskInputFormats) match {
-      case JsSuccess(o, _) => Right(o)
-      case JsError(errors) => Left(errors.mkString(", "))
-    }
-  }
-}
-
-case class DeletionTaskAppDone(appId: String)
-object DeletionTaskAppDone extends ReadableEntity[DeletionTaskAppDone] {
-  implicit val deletionTaskAppDoneFormats = Json.format[DeletionTaskAppDone]
-
-  def fromXml(xml: Elem) = {
-    Try {
-      val appId = (xml \ "appId").head.text
-      DeletionTaskAppDone(appId)
-    } match {
-      case Success(value) => Right(value)
-      case Failure(throwable) => {
-        Left(throwable.getMessage)
-      }
-    }
-  }
-
-  def fromJson(json: JsValue) = {
-    json.validate[DeletionTaskAppDone](deletionTaskAppDoneFormats) match {
-      case JsSuccess(o, _) => Right(o)
-      case JsError(errors) => Left(errors.mkString(", "))
-    }
-  }
-}
-
 object DeletionTaskStatus extends Enumeration {
   type DeletionTaskStatus = Value
   val Running, Done, Unknown = Value

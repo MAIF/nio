@@ -2,18 +2,16 @@ package messaging
 
 import java.io.Closeable
 import java.security.MessageDigest
-import java.time.format.DateTimeFormatter
-import java.time.temporal.ChronoUnit
 
 import akka.{Done, NotUsed}
 import javax.inject.{Inject, Singleton}
 import akka.actor.ActorSystem
 import akka.kafka.ConsumerMessage.CommittableOffsetBatch
 import akka.kafka.scaladsl.Consumer
-import akka.kafka.{ConsumerSettings, ProducerMessage, Subscriptions}
+import akka.kafka.Subscriptions
 import akka.stream.Materializer
 import akka.stream.scaladsl.Keep.both
-import akka.stream.scaladsl.{Flow, Keep, RestartSource, Sink, Source}
+import akka.stream.scaladsl.{Flow, Source}
 import configuration.{Env, KafkaConfig}
 import models.{Digest, NioEvent, SecuredEvent}
 import org.apache.kafka.clients.producer.{
