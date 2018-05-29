@@ -2,7 +2,7 @@
 
 [GDPR](https://en.wikipedia.org/wiki/General_Data_Protection_Regulation) is the new EU reglementation on data protection and data privacy.
 
-**Nio** is a privacy manamgement toolbox designed to implement GDPR. The aim of **Nio** is to provide tools to handle, main features are :
+**Nio** is a privacy management toolbox designed to implement GDPR. The aim of **Nio** is to provide tools to handle, main features are :
 
 * Consents management
 * Data access request API (simple access or portability)

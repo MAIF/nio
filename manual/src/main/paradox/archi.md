@@ -1,6 +1,6 @@
 # Architecture
 
-**Nio's** architecture is composed of a JVM-compliant service (Play2 + Scala), a MongoDB databse and a Kafka Broker. For now, you will also need [Otoroshi](https://maif.github.io/otoroshi/) as an API gateway. We will later consider to provide an implementation of Nio that does not need Otoroshi but not yet :D
+**Nio's** architecture is composed of a JVM-compliant service (Play2 + Scala), a MongoDB database and a Kafka Broker. For now, you will also need [Otoroshi](https://maif.github.io/otoroshi/) as an API gateway. We will later consider to provide an implementation of Nio that does not need Otoroshi but not yet :D
 
 @@@ div { .centered-img }
 <img src="./img/nio-architecture.png" />
@@ -12,11 +12,11 @@
 
 ### Multi-tenancy
 
-**Nio's** database is multi-tenant, which let's you instanciate multiple environnement with only one database. This can be very usefull for any *non-prod* envs.
+**Nio's** database is multi-tenant, which let's you instanciate multiple environnement with only one database. This can be very useful for any *non-prod* envs.
 
 ## Events Broker
 
-**Nio** provides events through a Kafka broker (Kafka is the only supprted broker for now).
+**Nio** provides events through a Kafka broker (Kafka is the only supported broker for now).
 
 ## (Optional) S3-compliant storage for events record management
 

@@ -4,7 +4,7 @@ This is a quick start guide to start with **Nio**.
 
 ## Docker Image
 
-You want to start quick ? We provide a docker image in order to be able to start whitout installing all elements of the Architecture.
+You want to start quick ? We provide a docker image in order to be able to start whithout installing all elements of the Architecture.
 
 @@@ div { .centered-img }
 <img src="./img/nio-architecture-quickstart.png"/>

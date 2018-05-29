@@ -92,9 +92,9 @@ A *User* is a user in the scope of your organisation. User's **id** is his **id*
 
 *Consent* element stands for the actual user consent for a given permission.
 
-## Versionning
+## Versioning
 
-*Permissions* and *Consents* are versionned in order to be able to handle changes in the permissions to be able to know at anytime which version of the permissions have been approuved by the user.
+*Permissions* and *Consents* are versioned in order to be able to handle changes in the permissions to be able to know at anytime which version of the permissions have been approuved by the user.
 
 ## Typical workflow
 

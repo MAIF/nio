@@ -20,4 +20,4 @@ Right now **Nio** provides the following features.
 
 ## Soon : Mailgun integration for end-user notifications
 
-**Nio** will provide mail fun integration in order to notify users of any actions performed on their personnal data.
+**Nio** will provide mailgun integration in order to notify users of any actions performed on their personal data.
