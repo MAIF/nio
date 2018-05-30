@@ -943,7 +943,9 @@
             "description": "Le header \"tenant-admin-secret\" est manquant"
           }
         }
-      },
+      }
+    },
+    "/api/tenants/{tenantId}": {
       "delete": {
         "tags": [
           "tenant"
@@ -969,6 +971,13 @@
             "name": "tenant-admin-secret",
             "in": "header",
             "description": "Tenant admin secret",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "tenantId",
+            "in": "path",
+            "description": "Le nom du tenant",
             "required": true,
             "type": "string"
           }
