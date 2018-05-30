@@ -69,6 +69,7 @@ trait TestUtils
       "mongodb.uri" -> mongoUrl,
       "tenant.admin.secret" -> "secret",
       "db.flush" -> "true",
+      "nio.s3Config.v4Auth" -> "false",
       "nio.kafka.port" -> getKafkaPort(),
       "nio.kafka.servers" -> s"127.0.0.1:${getKafkaPort()}",
       "nio.kafka.topic" -> getKafkaTopic(),

@@ -6,7 +6,6 @@ import play.api.libs.json._
 import scala.util.{Failure, Success, Try}
 import scala.xml.Elem
 
-
 case class AppDone(orgKey: String, userId: String, appId: String) {
   def asJson = AppDone.appDoneFormats.writes(this)
 }
@@ -55,3 +54,11 @@ object Digest {
     }
   }
 }
+
+case class AppFilesMetadata(orgKey: String, userId: String, appId: String, files: Seq[FileMetadata]) {
+  def asJson = AppFilesMetadata.appFilesMetadataFormats.writes(this)
+}
+object AppFilesMetadata{
+  implicit val appFilesMetadataFormats = Json.format[AppFilesMetadata]
+}
+

@@ -1,6 +1,6 @@
 package controllers
 
-import models.{AppDeletionState, DeletionTaskStatus}
+import models.{AppDeletionState, DeletionTaskStatus, EventType}
 import net.manub.embeddedkafka.EmbeddedKafka
 import play.api.libs.json.{JsArray, JsNull, Json}
 import utils.TestUtils
@@ -19,8 +19,7 @@ class DeletionControllerSpec extends TestUtils {
       val inputJson = Json.obj("appIds" -> Seq("app1", "app2"))
       val startResp =
         postJson(
-          s"/$tenant/organisations/$orgKey/users/$userId/deletion/_start",
-          inputJson)
+          s"/$tenant/organisations/$orgKey/users/$userId/deletion/_start", inputJson)
 
       startResp.status mustBe CREATED
 
@@ -28,12 +27,12 @@ class DeletionControllerSpec extends TestUtils {
 
       val msg1 = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
       val msg1AsJson = Json.parse(msg1)
-      (msg1AsJson \ "type").as[String] mustBe "DeletionTaskStarted"
+      (msg1AsJson \ "type").as[String] mustBe EventType.DeletionStarted.toString
       (msg1AsJson \ "payload" \ "appId").as[String] mustBe "app1"
 
       val msg2 = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
       val msg2AsJson = Json.parse(msg2)
-      (msg2AsJson \ "type").as[String] mustBe "DeletionTaskStarted"
+      (msg2AsJson \ "type").as[String] mustBe EventType.DeletionStarted.toString
       (msg2AsJson \ "payload" \ "appId").as[String] mustBe "app2"
     }
 
@@ -65,7 +64,7 @@ class DeletionControllerSpec extends TestUtils {
 
       val msg1 = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
       val msg1AsJson = Json.parse(msg1)
-      (msg1AsJson \ "type").as[String] mustBe "DeletionTaskUpdated"
+      (msg1AsJson \ "type").as[String] mustBe EventType.DeletionAppDone.toString
       val appStates1 = (msg1AsJson \ "payload" \ "states")
         .as[JsArray]
         .value
@@ -83,7 +82,7 @@ class DeletionControllerSpec extends TestUtils {
 
       val msg2 = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
       val msg2AsJson = Json.parse(msg2)
-      (msg2AsJson \ "type").as[String] mustBe "DeletionTaskDone"
+      (msg2AsJson \ "type").as[String] mustBe EventType.DeletionAppDone.toString
       val appStates2 = (msg2AsJson \ "payload" \ "states")
         .as[JsArray]
         .value

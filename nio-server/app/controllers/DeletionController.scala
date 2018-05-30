@@ -40,13 +40,13 @@ class DeletionController @Inject()(
             task.appIds.foreach { appId =>
               broker.publish(
                 DeletionStarted(tenant = tenant,
-                                    author = req.authInfo.sub,
-                                    payload = DeletionTaskInfoPerApp(
-                                      orgKey = orgKey,
-                                      userId = userId,
-                                      appId = appId,
-                                      deletionTaskId = task._id
-                                    ))
+                                author = req.authInfo.sub,
+                                payload = DeletionTaskInfoPerApp(
+                                  orgKey = orgKey,
+                                  userId = userId,
+                                  appId = appId,
+                                  deletionTaskId = task._id
+                                ))
               )
             }
             renderMethod(task, Created)

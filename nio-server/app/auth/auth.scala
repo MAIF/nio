@@ -8,8 +8,7 @@ import play.api.mvc.Results.Unauthorized
 
 import scala.concurrent.{ExecutionContext, Future}
 import javax.inject.Inject
-import models.{DataStores, DestroyTask, ExtractTask, ExtractionTask}
-import play.api.libs.json.Json
+import models.ExtractionTask
 
 case class AuthInfo(sub: String, isAdmin: Boolean)
 
@@ -63,15 +62,22 @@ class AuthAction @Inject()(val parser: BodyParsers.Default)(
   }
 }
 
-case class ReqWithExtractionTask[A](task: ExtractionTask, request: Request[A], authInfo: AuthInfo) extends WrappedRequest[A](request)
+case class ReqWithExtractionTask[A](task: ExtractionTask,
+                                    request: Request[A],
+                                    authInfo: AuthInfo)
+    extends WrappedRequest[A](request)
 
 class ExtractionAction[A](val tenant: String,
                           val taskId: String,
-                          val parser: BodyParser[A])(implicit val executionContext: ExecutionContext, store: ExtractionTaskMongoDataStore)
-  extends ActionBuilder[ReqWithExtractionTask, A]
+                          val parser: BodyParser[A])(
+    implicit val executionContext: ExecutionContext,
+    store: ExtractionTaskMongoDataStore)
+    extends ActionBuilder[ReqWithExtractionTask, A]
     with ActionFunction[Request, ReqWithExtractionTask] {
 
-  override def invokeBlock[A](request: Request[A], block: (ReqWithExtractionTask[A]) => Future[Result]): Future[Result] = {
+  override def invokeBlock[A](
+      request: Request[A],
+      block: (ReqWithExtractionTask[A]) => Future[Result]): Future[Result] = {
     store.findById(tenant, taskId).flatMap {
       case Some(task) =>
         request.attrs
@@ -91,6 +97,8 @@ class ExtractionAction[A](val tenant: String,
 }
 
 object ExtractionAction {
-  def apply[A](tenant: String, taskId: String, parser: BodyParser[A])(implicit executionContext: ExecutionContext, store: ExtractionTaskMongoDataStore): ExtractionAction[A] =
+  def apply[A](tenant: String, taskId: String, parser: BodyParser[A])(
+      implicit executionContext: ExecutionContext,
+      store: ExtractionTaskMongoDataStore): ExtractionAction[A] =
     new ExtractionAction(tenant, taskId, parser)(executionContext, store)
 }

@@ -29,7 +29,7 @@ GET         /api/:tenant/organisations/:orgKey/users/extractions/:extractionTask
 
 POST        /api/:tenant/organisations/:orgKey/users/:userId/extraction/_start                                    controllers.ExtractionController.startExtractionTask(tenant: String, orgKey: String, userId: String)
 
-POST        /api/:tenant/organisations/:orgKey/users/extractions/:extractionTaskId/apps/:appId/_files             controllers.ExtractionController.setExtractedFiles(tenant: String, orgKey: String, extractionTaskId: String, appId: String)
+POST        /api/:tenant/organisations/:orgKey/users/extractions/:extractionTaskId/apps/:appId/_setFilesMetadata  controllers.ExtractionController.setFilesMetadata(tenant: String, orgKey: String, extractionTaskId: String, appId: String)
 
 POST        /api/:tenant/organisations/:orgKey/users/extractions/:extractionTaskId/apps/:appId/files/*name        controllers.ExtractionController.uploadFile(tenant: String, orgKey: String, extractionTaskId: String, appId: String, name: String)
 

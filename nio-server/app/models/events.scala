@@ -12,7 +12,8 @@ object EventType extends Enumeration {
   OrganisationReleased, OrganisationDeleted, ConsentFactCreated,
   ConsentFactUpdated, AccountCreated, AccountUpdated, AccountDeleted,
   SecuredEvent, DeletionStarted, DeletionAppDone, DeletionFinished,
-  ExtractionStarted, ExtractionAppDone, ExtractionFinished, Unknown = Value
+  ExtractionStarted, ExtractionAppFilesMetadataReceived, ExtractionAppDone, ExtractionFinished,
+  Unknown = Value
 
   def from(name: String): Value =
     values.find(_.toString.toLowerCase == name.toLowerCase()).getOrElse(Unknown)
@@ -426,7 +427,7 @@ case class ExtractionStarted(tenant: String,
                              id: Long = NioEvent.gen.nextId(),
                              date: DateTime = DateTime.now(DateTimeZone.UTC),
                              payload: ExtractionTaskInfoPerApp)
-  extends NioEvent {
+    extends NioEvent {
   def shardId = payload.userId
   def tYpe = EventType.ExtractionStarted
   def asJson = Json.obj(
@@ -444,9 +445,9 @@ case class ExtractionAppDone(tenant: String,
                              id: Long = NioEvent.gen.nextId(),
                              date: DateTime = DateTime.now(DateTimeZone.UTC),
                              payload: AppDone)
-  extends NioEvent {
+    extends NioEvent {
   def shardId = payload.userId
-  def tYpe = EventType.ExtractionFinished
+  def tYpe = EventType.ExtractionAppDone
   def asJson = Json.obj(
     "type" -> tYpe,
     "tenant" -> tenant,
@@ -456,13 +457,31 @@ case class ExtractionAppDone(tenant: String,
     "payload" -> payload.asJson
   )
 }
+
+case class ExtractionAppFilesMetadataReceived(tenant: String,
+                                              author: String,
+                                              id: Long = NioEvent.gen.nextId(),
+                                              date: DateTime = DateTime.now(DateTimeZone.UTC),
+                                              payload: AppFilesMetadata) extends NioEvent {
+  def shardId = payload.userId
+  def tYpe = EventType.ExtractionAppFilesMetadataReceived
+  def asJson = Json.obj(
+    "type" -> tYpe,
+    "tenant" -> tenant,
+    "author" -> author,
+    "date" -> date.toString(DateUtils.utcDateFormatter),
+    "id" -> id,
+    "payload" -> payload.asJson
+  )
+}
+
 
 case class ExtractionFinished(tenant: String,
                               author: String,
                               id: Long = NioEvent.gen.nextId(),
                               date: DateTime = DateTime.now(DateTimeZone.UTC),
                               payload: ExtractionTask)
-  extends NioEvent {
+    extends NioEvent {
   def shardId = payload.userId
   def tYpe = EventType.ExtractionFinished
   def asJson = Json.obj(
@@ -474,4 +493,3 @@ case class ExtractionFinished(tenant: String,
     "payload" -> payload.asJson
   )
 }
-
