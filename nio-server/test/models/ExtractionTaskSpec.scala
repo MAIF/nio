@@ -36,12 +36,9 @@ class ExtractionTaskSpec extends PlaySpec with WordSpecLike {
 
     "serialize/deserialize from JSON" in {
       val extractionTask = ExtractionTask.newFrom(orgKey, "user1", Set("app1","app2"))
-      val xml = extractionTask.asXml
-      (xml \ "status").text
-      // val fromXml = ExtractionTask.fromXml(xml)
+      val xml = extractionTask.asJson
+      (xml \ "status").as[String] mustBe "Running"
       println(xml)
-      //fromXml.isRight mustBe true
-      //fromXml.right.get.key mustBe org.key
     }
   }
 }

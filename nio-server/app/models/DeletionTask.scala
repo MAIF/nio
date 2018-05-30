@@ -1,14 +1,10 @@
 package models
 
-import controllers.ReadableEntity
 import models.DeletionTaskStatus.DeletionTaskStatus
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json._
 import reactivemongo.bson.BSONObjectID
 import utils.DateUtils
-
-import scala.util.{Failure, Success, Try}
-import scala.xml.Elem
 
 object DeletionTaskStatus extends Enumeration {
   type DeletionTaskStatus = Value

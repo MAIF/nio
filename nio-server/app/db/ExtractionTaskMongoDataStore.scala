@@ -1,7 +1,9 @@
 package db
 
+import akka.stream.Materializer
 import javax.inject.{Inject, Singleton}
-import models._
+import models.ExtractionTask
+import models.ExtractionTaskStatus.ExtractionTaskStatus
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoApi
 import play.modules.reactivemongo.json.ImplicitBSONHandlers._
@@ -82,6 +84,16 @@ class ExtractionTaskMongoDataStore @Inject()(reactiveMongoApi: ReactiveMongoApi)
         _ <- col.drop(failIfNotFound = false)
         _ <- col.create()
       } yield ()
+    }
+  }
+
+  def streamAllByState(tenant: String, status: ExtractionTaskStatus)(
+      implicit m: Materializer) = {
+    storedCollection(tenant).map { col =>
+      col
+        .find(Json.obj("status" -> status))
+        .cursor[JsValue]()
+        .documentSource()
     }
   }
 

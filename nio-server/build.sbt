@@ -36,7 +36,9 @@ libraryDependencies ++= Seq(
   "net.manub" %% "scalatest-embedded-kafka" % "1.1.0" % Test
     exclude ("javax.jms", "jms")
     exclude ("com.sun.jdmk", "jmxtools")
-    exclude ("com.sun.jmx", "jmxri")
+    exclude ("com.sun.jmx", "jmxri"),
+  // For testing with a mocked s3 server
+  "io.findify" %% "s3mock" % "0.2.4" % Test
 )
 
 scalacOptions ++= Seq(
