@@ -29,8 +29,6 @@ class ConsentFactSpec extends PlaySpec with WordSpecLike with MustMatchers {
 
       val fromXml = ConsentFact.fromXml(xml)
 
-      println(" --- >  " + xml)
-
       fromXml.isRight mustBe true
       val cf = fromXml.right.get
       cf.userId mustBe consentFact.userId
@@ -42,8 +40,6 @@ class ConsentFactSpec extends PlaySpec with WordSpecLike with MustMatchers {
 
     "serialize/deserialize from JSON" in {
       val json = consentFact.asJson
-
-      println(" --- >  " + json)
 
       val fromJson = ConsentFact.fromJson(json)
 
