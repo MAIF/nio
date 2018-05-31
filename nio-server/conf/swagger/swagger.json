@@ -1659,6 +1659,20 @@
         }
       }
     },
+    "MetaDataEntry": {
+      "type": "object",
+      "description": "definition d'une meta donnée",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "clé de la meta donnée"
+        },
+        "orgKey": {
+          "type": "string",
+          "description": "valeur de la meta donnée"
+        }
+      }
+    },
     "ConsentFact": {
       "type": "object",
       "description": "structure représentant l'ensemble des consentements d'un utilisateur",
@@ -1674,6 +1688,13 @@
         "lastUpdate": {
           "type": "string",
           "description": "date de dernière mise à jour des consentements de l'utilisateur au format \"YYYY-MM-DDTHH:mm:ssZ\""
+        },
+        "metaData": {
+          "type": "array",
+          "description": "meta données liées au consentements",
+          "items": {
+            "$ref": "#/definitions/MetaDataEntry"
+          }
         },
         "doneBy": {
           "type": "object",
