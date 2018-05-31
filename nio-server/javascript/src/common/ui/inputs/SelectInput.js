@@ -54,36 +54,38 @@ export class SelectInput extends Component {
 
   render() {
     return (
-      <FieldError errorKey={this.props.errorKey} errorMessage={this.props.errorMessage}>
-        <label htmlFor={`input-${this.props.label}`} className="col-xs-12 col-sm-2 control-label">
-          {this.props.label} <Help text={this.props.help}/>
-        </label>
-        <div className="col-sm-10">
-          <div style={{width: '100%'}}>
-            {!this.props.disabled && (
-              <Select
-                style={{width: this.props.more ? '100%' : '100%'}}
-                name={`${this.props.label}-search`}
-                isLoading={this.state.loading}
-                value={this.state.value}
-                placeholder={this.props.placeholder}
-                options={this.state.values}
-                onChange={this.onChange}
-              />
-            )}
-            {this.props.disabled && (
-              <input
-                type="text"
-                className="form-control"
-                disabled={true}
-                placeholder={this.props.placeholder}
-                value={this.state.value}
-                onChange={this.onChange}
-              />
-            )}
+      <div className="row selectContent">
+        <FieldError errorKey={this.props.errorKey} errorMessage={this.props.errorMessage}>
+          <label htmlFor={`input-${this.props.label}`} className="col-xs-12 col-sm-2 control-label">
+            {this.props.label} <Help text={this.props.help}/>
+          </label>
+          <div className="col-sm-10">
+            <div style={{width: '100%'}}>
+              {!this.props.disabled && (
+                <Select
+                  style={{width: this.props.more ? '100%' : '100%'}}
+                  name={`${this.props.label}-search`}
+                  isLoading={this.state.loading}
+                  value={this.state.value}
+                  placeholder={this.props.placeholder}
+                  options={this.state.values}
+                  onChange={this.onChange}
+                />
+              )}
+              {this.props.disabled && (
+                <input
+                  type="text"
+                  className="form-control"
+                  disabled={true}
+                  placeholder={this.props.placeholder}
+                  value={this.state.value}
+                  onChange={this.onChange}
+                />
+              )}
+            </div>
           </div>
-        </div>
-      </FieldError>
+        </FieldError>
+      </div>
     );
   }
 }
