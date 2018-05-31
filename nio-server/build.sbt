@@ -5,7 +5,7 @@ resolvers ++= Seq(
   "Maven central" at "http://repo1.maven.org/maven2/"
 )
 
-lazy val `nio-server` = (project in file(".")).enablePlugins(PlayJava)
+lazy val `nio-server` = (project in file(".")).enablePlugins(PlayScala)
 
 scalaVersion := "2.12.4"
 

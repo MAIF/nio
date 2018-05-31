@@ -67,7 +67,8 @@ case class ConsentFact(_id: String = BSONObjectID.generate().stringify,
                        version: Int,
                        groups: Seq[ConsentGroup],
                        lastUpdate: DateTime = DateTime.now(DateTimeZone.UTC),
-                       orgKey: Option[String] = None)
+                       orgKey: Option[String] = None,
+                       metaData: Option[Map[String, String]] = None)
     extends ModelTransformAs {
   def asJson = {
     Json.obj(
@@ -76,7 +77,11 @@ case class ConsentFact(_id: String = BSONObjectID.generate().stringify,
       "version" -> version,
       "groups" -> Json.toJson(groups),
       "lastUpdate" -> lastUpdate.toString(DateUtils.utcDateFormatter),
-      "orgKey" -> JsString(orgKey.getOrElse(""))
+      "orgKey" -> JsString(orgKey.getOrElse("")),
+      "metaData" -> JsObject(
+        metaData
+          .map(_.map { case (k, v) => (k, JsString(v)) }.toSeq)
+          .getOrElse(Seq[(String, JsValue)]()))
     )
   }
 
@@ -91,6 +96,7 @@ case class ConsentFact(_id: String = BSONObjectID.generate().stringify,
       <groups>{groups.map(_.asXml)}</groups>
       <lastUpdate>{lastUpdate.toString(DateUtils.utcDateFormatter)}</lastUpdate>
       <orgKey>{orgKey.getOrElse("")}</orgKey>
+      {metaData.map{md => <metaData>{md.map{ e => <metaDataEntry key={e._1} value={e._2}/>}}</metaData>}.getOrElse{<metaData/>}}
     </consentFact>
   }
 }
@@ -99,22 +105,26 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
                                 doneBy: DoneBy,
                                 version: Int,
                                 groups: Seq[ConsentGroup],
-                                orgKey: Option[String] = None) = ConsentFact(
-    _id = BSONObjectID.generate().stringify,
-    userId = userId,
-    doneBy = doneBy,
-    version = version,
-    groups = groups,
-    lastUpdate = DateTime.now(DateTimeZone.UTC),
-    orgKey = orgKey
-  )
+                                orgKey: Option[String] = None,
+                                metaData: Option[Map[String, String]] = None) =
+    ConsentFact(
+      _id = BSONObjectID.generate().stringify,
+      userId = userId,
+      doneBy = doneBy,
+      version = version,
+      groups = groups,
+      lastUpdate = DateTime.now(DateTimeZone.UTC),
+      orgKey = orgKey,
+      metaData = metaData
+    )
 
   val consentFactReadsWithoutIdAndLastUpdate: Reads[ConsentFact] = (
     (__ \ "userId").read[String] and
       (__ \ "doneBy").read[DoneBy] and
       (__ \ "version").read[Int] and
       (__ \ "groups").read[Seq[ConsentGroup]] and
-      (__ \ "orgKey").readNullable[String]
+      (__ \ "orgKey").readNullable[String] and
+      (__ \ "metaData").readNullable[Map[String, String]]
   )(ConsentFact.newWithoutIdAndLastUpdate _)
 
   val consentFactReads: Reads[ConsentFact] = (
@@ -124,7 +134,8 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
       (__ \ "version").read[Int] and
       (__ \ "groups").read[Seq[ConsentGroup]] and
       (__ \ "lastUpdate").read[DateTime](DateUtils.utcDateTimeReads) and
-      (__ \ "orgKey").readNullable[String]
+      (__ \ "orgKey").readNullable[String] and
+      (__ \ "metaData").readNullable[Map[String, String]]
   )(ConsentFact.apply _)
 
   val consentFactWrites: Writes[ConsentFact] = (
@@ -134,7 +145,8 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
       (JsPath \ "version").write[Int] and
       (JsPath \ "groups").write[Seq[ConsentGroup]] and
       (JsPath \ "lastUpdate").write[DateTime](DateUtils.utcDateTimeWrites) and
-      (JsPath \ "orgKey").writeNullable[String]
+      (JsPath \ "orgKey").writeNullable[String] and
+      (JsPath \ "metaData").writeNullable[Map[String, String]]
   )(unlift(ConsentFact.unapply))
 
   val consentFactFormats = Format(consentFactReads, consentFactWrites)
@@ -158,6 +170,10 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
       val groups = groupsXml.child.collect {
         case e: Elem => ConsentGroup.fromXml(e)
       }
+      val metaData = (xml \ "metaData").headOption.map(md =>
+        md.child.collect {
+          case e: Elem => (e \ "@key").text -> (e \ "@value").text
+        }.toMap)
 
       ConsentFact(
         _id = BSONObjectID.generate().stringify,
@@ -165,7 +181,8 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
         doneBy = DoneBy(doneByUserId, doneByRole),
         version = version,
         lastUpdate = DateTime.now(DateTimeZone.UTC),
-        groups = groups
+        groups = groups,
+        metaData = metaData
       )
     } match {
       case Success(value) => Right(value)
