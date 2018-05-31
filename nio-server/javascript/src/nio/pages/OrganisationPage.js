@@ -412,7 +412,7 @@ class Group extends Component {
       };
 
       const permissions = [...this.state.group.permissions];
-      permissions.push(permission);
+      permissions.unshift(permission);
 
       this.setState({group: {...this.state.group, permissions}}, () => {
         this.props.onChange(this.props.index, this.state.group);
@@ -544,7 +544,7 @@ class Permission extends Component {
 
   render() {
     return (
-      <div>
+      <div className="blocOnePermission">
         <div className="form-group">
         <div className="row">
             <label className="col-sm-2 control-label"/>
