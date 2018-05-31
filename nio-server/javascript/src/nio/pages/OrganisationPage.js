@@ -289,7 +289,7 @@ export class OrganisationPage extends Component {
           </div>
         }
 
-        <div className="col-md-12">
+        <div className="col-md-12 blocOrganisation">
           {
             this.props.readOnlyMode ?
               <LabelInput label={"Version"} value={this.state.organisation.version.num || "1"}/>
@@ -453,15 +453,17 @@ class Group extends Component {
       <div className="groupContent">
         <hr />
         <div className="form-group">
-          <label className="col-sm-2 control-label"/>
-          <div className="col-sm-10">
-            <span className="groupe">Groupe</span>
-            {
-              !this.props.readOnlyMode &&
-              <button type="button" className="btn btn-danger pull-right btn-xs" onClick={this.props.onRemove}>
-                <i className="glyphicon glyphicon-trash"/>
-              </button>
-            }
+          <div className="row">
+            <label className="col-sm-2 control-label"/>
+            <div className="col-sm-10">
+              <span className="groupe">Groupe</span>
+              {
+                !this.props.readOnlyMode &&
+                <button type="button" className="btn btn-danger pull-right btn-xs" onClick={this.props.onRemove}>
+                  <i className="glyphicon glyphicon-trash"/>
+                </button>
+              }
+            </div>
           </div>
         </div>
 
@@ -477,16 +479,18 @@ class Group extends Component {
                    errorKey={`${this.props.prefixe}groups.${this.props.index}.label.required`}/>
 
         <div className="form-group">
-          <label className="col-sm-2 control-label"/>
-          <div className="col-sm-10" style={{'marginTop': '40px'}}>
-            <span className="groupe">Permissions</span>
-            {
-              !this.props.readOnlyMode &&
-              <button type="button" className="btn btn-primary btn-xs" style={{'marginLeft': '10px'}}
-                      onClick={this.addPermission}>
-                <i className="glyphicon glyphicon-plus"/>
-              </button>
-            }
+          <div className="row">
+            <label className="col-sm-2 control-label"/>
+            <div className="col-sm-10" style={{'marginTop': '40px'}}>
+              <span className="groupe">Permissions</span>
+              {
+                !this.props.readOnlyMode &&
+                <button type="button" className="btn btn-primary btn-xs" style={{'marginLeft': '10px'}}
+                        onClick={this.addPermission}>
+                  <i className="glyphicon glyphicon-plus"/>
+                </button>
+              }
+            </div>
           </div>
         </div>
 
@@ -542,14 +546,16 @@ class Permission extends Component {
     return (
       <div>
         <div className="form-group">
-          <label className="col-sm-2 control-label"/>
-          <div className="col-sm-10" style={{'marginTop': '10px'}}>
-            {
-              !this.props.readOnlyMode &&
-              <button className="btn btn-danger pull-right btn-xs" onClick={this.props.onRemove}>
-                <i className="glyphicon glyphicon-trash"/>
-              </button>
-            }
+        <div className="row">
+            <label className="col-sm-2 control-label"/>
+            <div className="col-sm-10" style={{'marginTop': '10px'}}>
+              {
+                !this.props.readOnlyMode &&
+                <button className="btn btn-danger pull-right btn-xs" onClick={this.props.onRemove}>
+                  <i className="glyphicon glyphicon-trash"/>
+                </button>
+              }
+            </div>
           </div>
         </div>
         <TextInput label={"Clé de la permission"} value={this.state.permission.key}

@@ -6,14 +6,14 @@ export class LabelInput extends Component {
 
   render() {
     return (
-      <div className="form-group">
+      <div className="form-group blocLabel">
         <div className={`row`}>
-          <label htmlFor={`input-${this.props.label}`} className={`col-xs-12 col-sm-2 control-label`} style={this.props.alignLeft ? {textAlign: "left"}: {}}>
+          <label htmlFor={`input-${this.props.label}`} className={`col-xs-3 col-sm-2 control-label`} style={this.props.alignLeft ? {textAlign: "left"}: {}}>
             {this.props.label} <Help text={this.props.help}/>
           </label>
 
           <div className="col-sm-10">
-            <label htmlFor={`input-${this.props.value}`} className="col-xs-12 col-sm-2 control-label-left">
+            <label htmlFor={`input-${this.props.value}`} className="col-xs-9 col-sm-2 control-label-left">
               {this.props.value} <Help text={this.props.help}/>
             </label>
           </div>

@@ -14,8 +14,7 @@ export const FieldError = (props) => {
   let errors = (props.errorMessage || []).filter(message => compare(message));
 
   return (
-    <div className={`form-group ${errors.length ? "has-error" : ""}`}>
-      <div className={`col-md-12`}>
+    <div className={`form-group blocFiedlError ${errors.length ? "has-error" : ""}`}>
       <div className={`row`}>
         {props.children}
 
@@ -28,7 +27,6 @@ export const FieldError = (props) => {
             </div>
           )
         }
-      </div>
       </div>
     </div>
   );
