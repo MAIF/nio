@@ -25,9 +25,11 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsValue, Json}
 import play.api.libs.ws.{BodyWritable, WSClient, WSResponse}
 import play.api.test.Helpers._
+import play.modules.reactivemongo.ReactiveMongoApi
+import reactivemongo.play.json.collection.JSONCollection
 
 import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, Future}
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.xml.Elem
 
 class MockS3Manager extends FSManager {
@@ -43,11 +45,11 @@ class MockS3Manager extends FSManager {
 trait TestUtils
     extends PlaySpec
     with GuiceOneServerPerSuite
-    with WithMongo
     with WordSpecLike
     with MustMatchers
     with OptionValues
     with BeforeAndAfterAll {
+
   protected val serverHost: String = s"http://localhost:${this.port}"
   protected val apiPath: String = s"$serverHost/api"
 
@@ -62,6 +64,11 @@ trait TestUtils
   )
 
   val kafkaPort = 9092
+  val mongoPort = 27017
+  val tenant = "test"
+
+  private lazy val actorSystem = ActorSystem("test")
+  implicit val materializer = ActorMaterializer()(actorSystem)
 
   protected def ws: WSClient = app.injector.instanceOf[WSClient]
 
@@ -75,38 +82,62 @@ trait TestUtils
     application
   }
 
-  override protected def beforeAll(): Unit = {
-    startMongo()
-
-    //    startKafka()
-  }
+  override protected def beforeAll(): Unit = {}
 
   override protected def afterAll(): Unit = {
-    stopMongo()
+    implicit val executionContext: ExecutionContext =
+      app.injector.instanceOf[ExecutionContext]
 
-    //    stopKafka()
+    val reactiveMongoApi: ReactiveMongoApi =
+      app.injector.instanceOf[ReactiveMongoApi]
+
+    // clean mongo data
+    getStoredCollection(reactiveMongoApi, s"$tenant-accounts")
+      .flatMap(_.drop(failIfNotFound = false))
+    getStoredCollection(reactiveMongoApi, s"$tenant-consentFacts")
+      .flatMap(_.drop(failIfNotFound = false))
+    getStoredCollection(reactiveMongoApi, s"$tenant-deletionTasks")
+      .flatMap(_.drop(failIfNotFound = false))
+    getStoredCollection(reactiveMongoApi, s"$tenant-organisations")
+      .flatMap(_.drop(failIfNotFound = false))
+    getStoredCollection(reactiveMongoApi, s"$tenant-users")
+      .flatMap(_.drop(failIfNotFound = false))
+
+    import play.modules.reactivemongo.json.ImplicitBSONHandlers._
+    val tenantsCollection = getStoredCollection(reactiveMongoApi, "tenants")
+
+    tenantsCollection.flatMap(_.remove(Json.obj("key" -> tenant)))
+    tenantsCollection.flatMap(_.remove(Json.obj("key" -> "newTenant")))
+    tenantsCollection.flatMap(_.remove(Json.obj("key" -> "testTenantXml")))
+    tenantsCollection.flatMap(_.remove(Json.obj("key" -> "testTenantJson")))
+    tenantsCollection.flatMap(_.remove(Json.obj("key" -> "newTenant1")))
+    tenantsCollection.flatMap(
+      _.remove(Json.obj("key" -> "newTenantAlreadyExist")))
   }
 
-  val kafkaTopic = "nio-consent-events"
+  def getStoredCollection(reactiveMongoApi: ReactiveMongoApi,
+                          collectionName: String)(
+      implicit ec: ExecutionContext): Future[JSONCollection] =
+    reactiveMongoApi.database.map(_.collection(collectionName))
 
-  private def customConf: Map[String, String] = {
-    val mongoUrl = "mongodb://localhost:" + getMongoPort() + "/nio"
+  val kafkaTopic = "test-nio-consent-events"
+
+  private def customConf: Map[String, Any] = {
+    val mongoUrl = "mongodb://localhost:" + mongoPort + "/nio"
     Map(
       "nio.mongo.url" -> mongoUrl,
       "mongodb.uri" -> mongoUrl,
       "tenant.admin.secret" -> "secret",
       "db.flush" -> "true",
-      "nio.kafka.port" -> "$kafkaPort",
+      "nio.kafka.port" -> s"$kafkaPort",
       "nio.kafka.servers" -> s"127.0.0.1:$kafkaPort",
-      "nio.kafka.topic" -> "nio-consent-events",
-      "nio.s3ManagementEnabled" -> "true"
+      "nio.kafka.topic" -> kafkaTopic,
+      "nio.s3ManagementEnabled" -> "true",
+      "db.tenants" -> List(tenant)
     )
   }
 
-  private lazy val actorSystem = ActorSystem("test")
-  implicit val materializer = ActorMaterializer()(actorSystem)
-
-  private def consumerSettings =
+  private def consumerSettings: ConsumerSettings[Array[Byte], String] =
     ConsumerSettings(actorSystem,
                      new ByteArrayDeserializer,
                      new StringDeserializer)

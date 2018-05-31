@@ -10,7 +10,6 @@ import utils.TestUtils
 class OrganisationControllerSpec extends TestUtils {
 
   "OrganisationController" should {
-    val tenant: String = "sandbox"
     val org1Key = "orgTest1"
 
     val org1 = Organisation(

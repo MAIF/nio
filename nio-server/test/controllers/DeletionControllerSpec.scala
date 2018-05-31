@@ -6,8 +6,6 @@ import play.api.test.Helpers._
 import utils.TestUtils
 
 class DeletionControllerSpec extends TestUtils {
-
-  val tenant: String = "sandbox"
   val orgKey = "orgTest1"
   val userId = "toto"
 

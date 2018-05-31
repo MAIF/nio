@@ -6,7 +6,10 @@ import akka.actor.ActorSystem
 import configuration.KafkaConfig
 import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.common.config.internals.BrokerSecurityConfigs
-import org.apache.kafka.common.serialization.{StringDeserializer, StringSerializer}
+import org.apache.kafka.common.serialization.{
+  StringDeserializer,
+  StringSerializer
+}
 
 object KafkaSettings {
 
