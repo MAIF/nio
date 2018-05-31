@@ -65,6 +65,23 @@ body {
   margin-right: 5px;
 }
 
+@media screen and (max-width: 767px) {
+  .sidebar {
+      display: none;
+      top: 91px;
+      width: 100%;
+  }
+}
+
+.menu {
+    float: left;
+    color: #fff;
+}
+
+.backoffice-container{
+      margin-top: 56px;
+}
+
 .navbar-inverse .navbar-nav>li>a:focus, .navbar-inverse .navbar-nav>li>a:hover, .nav>li>a.active {
   color: #75b94e;
   cursor: pointer;
@@ -359,6 +376,14 @@ tr:nth-child(even) {background: #424241;}
     margin-bottom: 0;
     text-align: right;
 }
+
+@media screen and (max-width: 767px) {
+  .control-label{
+      text-align: left;
+  }
+
+}
+
 
 .control-label-left{
     padding-top: 7px;

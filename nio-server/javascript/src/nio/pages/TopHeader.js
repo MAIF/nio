@@ -26,7 +26,20 @@ export class TopHeader extends Component {
   render() {
     return (
       <nav className="navbar navbar-inverse navbar-fixed-top">
-        <div className="navbar-header col-md-2"><Link to={`/`} className="navbar-brand"
+        <div className="navbar-header col-sm-2">
+        <button
+          id="toggle-sidebar"
+          type="button"
+          className="navbar-toggle collapsed menu"
+          data-toggle="collapse"
+          data-target="#sidebar"
+          aria-expanded="false"
+          aria-controls="sidebar">
+          <span className="sr-only">Toggle sidebar</span>
+          <span>Menu</span>
+        </button>
+
+        <Link to={`/`} className="navbar-brand"
                                                       style={{display: 'flex'}}>仁王&nbsp; Niō</Link>
         </div>
         <div className="container-fluid">

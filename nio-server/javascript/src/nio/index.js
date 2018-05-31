@@ -40,7 +40,7 @@ export class NioApp extends Component {
           <div className="row">
             <div className="analytics-viewer-bottom-container"
                  style={{display: 'flex', flexDirection: 'row', width: '100%', height: '100%'}}>
-              <div className="col-md-2 sidebar">
+              <div className="col-sm-2 sidebar" id="sidebar">
                 <ul className="nav nav-sidebar">
                   <li>
                     <Link to="">
@@ -66,7 +66,7 @@ export class NioApp extends Component {
                   </li>
                 </ul>
               </div>
-              <div className="col-md-10 col-md-offset-2">
+              <div className="col-xs-12 col-sm-10 col-sm-offset-2 backoffice-container">
                 <Switch>
                   <Route exact path="/" component={props => this.decorate(OrganisationsPage, {
                     ...this.props,
