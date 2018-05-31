@@ -94,7 +94,7 @@ export class OrganisationPage extends Component {
       };
 
       const groups = [...this.state.organisation.groups];
-      groups.push(group);
+      groups.unshift(group);
 
       this.setState({organisation: {...this.state.organisation, groups}});
     }
