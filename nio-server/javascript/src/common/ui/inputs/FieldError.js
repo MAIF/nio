@@ -15,18 +15,21 @@ export const FieldError = (props) => {
 
   return (
     <div className={`form-group ${errors.length ? "has-error" : ""}`}>
-      {props.children}
+      <div className={`col-md-12`}>
+      <div className={`row`}>
+        {props.children}
 
-      {
-        errors.map((err, index) =>
-          <div key={index}>
-            <label className="control-label col-md-offset-2 paddingLabelError">
-              {errorManager.translate(err)}
-            </label>
-          </div>
-        )
-      }
-
+        {
+          errors.map((err, index) =>
+            <div key={index}>
+              <label className="control-label col-md-offset-2 paddingLabelError">
+                {errorManager.translate(err)}
+              </label>
+            </div>
+          )
+        }
+      </div>
+      </div>
     </div>
   );
 
