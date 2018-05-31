@@ -346,6 +346,14 @@ tr:nth-child(even) {background: #424241;}
   color: #5cb85c;
 }
 
+.groupContent{
+      overflow: auto;
+}
+
+.selectContent{
+  margin-bottom: 5px;
+}
+
 .control-label{
     padding-top: 7px;
     margin-bottom: 0;

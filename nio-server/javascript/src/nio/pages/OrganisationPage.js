@@ -450,8 +450,8 @@ class Group extends Component {
   render() {
     return (
 
-      <div className="row">
-        <hr/>
+      <div className="groupContent">
+        <hr />
         <div className="form-group">
           <label className="col-sm-2 control-label"/>
           <div className="col-sm-10">
