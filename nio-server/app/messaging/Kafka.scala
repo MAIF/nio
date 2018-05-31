@@ -6,10 +6,7 @@ import akka.actor.ActorSystem
 import configuration.KafkaConfig
 import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.common.config.internals.BrokerSecurityConfigs
-import org.apache.kafka.common.serialization.{
-  StringDeserializer,
-  StringSerializer
-}
+import org.apache.kafka.common.serialization.{StringDeserializer, StringSerializer}
 
 object KafkaSettings {
 
@@ -22,22 +19,14 @@ object KafkaSettings {
 
   def consumerSettings(
       system: ActorSystem,
-      config: KafkaConfig,
-      defineGroupId: Boolean = false): ConsumerSettings[Array[Byte], String] = {
+      config: KafkaConfig): ConsumerSettings[Array[Byte], String] = {
     val settings =
-      if (defineGroupId)
-        ConsumerSettings
-          .create(system, new ByteArrayDeserializer, new StringDeserializer())
-          .withGroupId(config.groupId.get)
-          .withProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
-          .withProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false")
-          .withBootstrapServers(config.servers)
-      else
-        ConsumerSettings
-          .create(system, new ByteArrayDeserializer, new StringDeserializer())
-          .withProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
-          .withProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false")
-          .withBootstrapServers(config.servers)
+      ConsumerSettings
+        .create(system, new ByteArrayDeserializer, new StringDeserializer())
+        .withGroupId(config.groupId.get)
+        .withProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+        .withProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false")
+        .withBootstrapServers(config.servers)
 
     val s = for {
       ks <- config.keystore.location

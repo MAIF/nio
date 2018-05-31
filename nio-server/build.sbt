@@ -26,14 +26,7 @@ libraryDependencies ++= Seq(
   // https://mvnrepository.com/artifact/com.amazonaws/aws-java-sdk-s3
   "com.amazonaws" % "aws-java-sdk-s3" % "1.11.224", // Apache 2.0
   "org.scalatestplus.play" %% "scalatestplus-play" % "3.1.0" % Test,
-  "de.flapdoodle.embed" % "de.flapdoodle.embed.mongo" % "2.0.0" % Test,
-  //For some legal reason the jms-api 1.1 has been removed from central
-  //@see https://issues.apache.org/jira/browse/KAFKA-974
-  //@see http://maven.apache.org/guides/mini/guide-coping-with-sun-jars.html
-  "net.manub" %% "scalatest-embedded-kafka" % "1.1.0" % Test
-    exclude ("javax.jms", "jms")
-    exclude ("com.sun.jdmk", "jmxtools")
-    exclude ("com.sun.jmx", "jmxri")
+  "de.flapdoodle.embed" % "de.flapdoodle.embed.mongo" % "2.0.0" % Test
 )
 
 scalacOptions ++= Seq(

@@ -1,12 +1,11 @@
 package controllers
 
 import models.{Organisation, Permission, PermissionGroup}
-import net.manub.embeddedkafka.EmbeddedKafka
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json.{JsArray, JsValue, Json}
 import play.api.libs.ws.WSResponse
-import utils.TestUtils
 import play.api.test.Helpers._
+import utils.TestUtils
 
 class OrganisationControllerSpec extends TestUtils {
 
@@ -51,8 +50,7 @@ class OrganisationControllerSpec extends TestUtils {
       createResponse.status mustBe CREATED
       createResponse.contentType mustBe JSON
 
-      val msg = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
-      val msgAsJson = Json.parse(msg)
+      val msgAsJson = readLastKafkaEvent()
       (msgAsJson \ "type").as[String] mustBe "OrganisationCreated"
       (msgAsJson \ "payload" \ "key").as[String] mustBe org1Key
 
@@ -130,8 +128,7 @@ class OrganisationControllerSpec extends TestUtils {
       response.status mustBe OK
       response.json.toString mustBe "true"
 
-      val msg = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
-      val msgAsJson = Json.parse(msg)
+      val msgAsJson = readLastKafkaEvent()
       (msgAsJson \ "type").as[String] mustBe "OrganisationReleased"
       (msgAsJson \ "payload" \ "key").as[String] mustBe org1Key
       (msgAsJson \ "payload" \ "version" \ "num")
@@ -186,8 +183,7 @@ class OrganisationControllerSpec extends TestUtils {
 
       response.json.toString mustBe "true"
 
-      val msg = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
-      val msgAsJson = Json.parse(msg)
+      val msgAsJson = readLastKafkaEvent()
       (msgAsJson \ "type").as[String] mustBe "OrganisationReleased"
       (msgAsJson \ "payload" \ "key").as[String] mustBe org1Key
       (msgAsJson \ "payload" \ "version" \ "num").as[Int] mustBe 2
@@ -223,8 +219,7 @@ class OrganisationControllerSpec extends TestUtils {
       response.status mustBe CREATED
       response.contentType mustBe JSON
 
-      val msg = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
-      val msgAsJson = Json.parse(msg)
+      val msgAsJson = readLastKafkaEvent()
       (msgAsJson \ "type").as[String] mustBe "OrganisationCreated"
       (msgAsJson \ "payload" \ "key").as[String] mustBe org2Key
     }
@@ -236,8 +231,7 @@ class OrganisationControllerSpec extends TestUtils {
       response.status mustBe OK
       response.json.toString mustBe "true"
 
-      val msg = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
-      val msgAsJson = Json.parse(msg)
+      val msgAsJson = readLastKafkaEvent()
       (msgAsJson \ "type").as[String] mustBe "OrganisationUpdated"
       (msgAsJson \ "oldValue" \ "label").as[String] mustBe "lbl"
       (msgAsJson \ "payload" \ "label").as[String] mustBe "modified"
@@ -396,13 +390,11 @@ class OrganisationControllerSpec extends TestUtils {
       val respOrgaCreated: WSResponse =
         postJson(s"/$tenant/organisations", orgAsJson)
       respOrgaCreated.status mustBe CREATED
-      EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
 
       val respRelease =
         postJson(s"/$tenant/organisations/$orgKey/draft/_release",
                  respOrgaCreated.json)
       respRelease.status mustBe OK
-      EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
 
       val userId: String = "userToDelete"
 
@@ -430,12 +422,10 @@ class OrganisationControllerSpec extends TestUtils {
 
       putJson(s"/$tenant/organisations/$orgKey/users/$userId",
               consentFactAsJson).status mustBe OK
-      EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
 
       delete(s"/$tenant/organisations/$orgKey").status mustBe OK
 
-      val msg = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
-      val msgAsJson = Json.parse(msg)
+      val msgAsJson = readLastKafkaEvent()
       (msgAsJson \ "type").as[String] mustBe "OrganisationDeleted"
       (msgAsJson \ "payload" \ "key").as[String] mustBe orgKey
 

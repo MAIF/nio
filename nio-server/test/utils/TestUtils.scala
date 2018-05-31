@@ -1,13 +1,28 @@
 package utils
 
+import java.util.UUID
 import java.util.concurrent.TimeUnit
+import java.{lang, util}
 
+import akka.actor.ActorSystem
+import akka.kafka.scaladsl.Consumer
+import akka.kafka.{ConsumerSettings, Subscriptions}
+import akka.stream.ActorMaterializer
+import akka.stream.scaladsl.Sink
+import com.amazonaws.services.s3.model.PutObjectResult
+import org.apache.kafka.clients.consumer.ConsumerConfig
+import org.apache.kafka.common.TopicPartition
+import org.apache.kafka.common.serialization.{
+  ByteArrayDeserializer,
+  StringDeserializer
+}
 import org.scalatest._
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.Application
+import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.JsValue
+import play.api.libs.json.{JsValue, Json}
 import play.api.libs.ws.{BodyWritable, WSClient, WSResponse}
 import play.api.test.Helpers._
 
@@ -15,12 +30,19 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
 import scala.xml.Elem
 
-class SecureEventMock extends TSecureEvent {}
+class MockS3Manager extends FSManager {
+  override def addFile(key: String, content: String)(
+      implicit s3ExecutionContext: S3ExecutionContext)
+    : Future[PutObjectResult] = {
+    Future {
+      null
+    }
+  }
+}
 
 trait TestUtils
     extends PlaySpec
     with GuiceOneServerPerSuite
-    with WithKafka
     with WithMongo
     with WordSpecLike
     with MustMatchers
@@ -39,11 +61,14 @@ trait TestUtils
     CONTENT_TYPE -> XML
   )
 
+  val kafkaPort = 9092
+
   protected def ws: WSClient = app.injector.instanceOf[WSClient]
 
   override def fakeApplication() = {
 
     val application: Application = new GuiceApplicationBuilder()
+      .overrides(bind[FSManager].to[MockS3Manager])
       .configure(customConf)
       .build()
 
@@ -53,14 +78,16 @@ trait TestUtils
   override protected def beforeAll(): Unit = {
     startMongo()
 
-    startKafka()
+    //    startKafka()
   }
 
   override protected def afterAll(): Unit = {
     stopMongo()
 
-    stopKafka()
+    //    stopKafka()
   }
+
+  val kafkaTopic = "nio-consent-events"
 
   private def customConf: Map[String, String] = {
     val mongoUrl = "mongodb://localhost:" + getMongoPort() + "/nio"
@@ -69,11 +96,46 @@ trait TestUtils
       "mongodb.uri" -> mongoUrl,
       "tenant.admin.secret" -> "secret",
       "db.flush" -> "true",
-      "nio.kafka.port" -> getKafkaPort(),
-      "nio.kafka.servers" -> s"127.0.0.1:${getKafkaPort()}",
-      "nio.kafka.topic" -> getKafkaTopic(),
-      "nio.s3ManagementEnabled" -> "false"
+      "nio.kafka.port" -> "$kafkaPort",
+      "nio.kafka.servers" -> s"127.0.0.1:$kafkaPort",
+      "nio.kafka.topic" -> "nio-consent-events",
+      "nio.s3ManagementEnabled" -> "true"
     )
+  }
+
+  private lazy val actorSystem = ActorSystem("test")
+  implicit val materializer = ActorMaterializer()(actorSystem)
+
+  private def consumerSettings =
+    ConsumerSettings(actorSystem,
+                     new ByteArrayDeserializer,
+                     new StringDeserializer)
+      .withBootstrapServers(s"127.0.0.1:$kafkaPort")
+      .withGroupId(UUID.randomUUID().toString)
+      .withProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+
+  def readLastKafkaEvent(): JsValue = {
+    Thread.sleep(500)
+
+    import scala.collection.JavaConverters._
+
+    val partition = new TopicPartition(kafkaTopic, 0)
+    val partitionToLong: util.Map[TopicPartition, lang.Long] = consumerSettings
+      .createKafkaConsumer()
+      .endOffsets(List(partition).asJavaCollection)
+
+    val lastOffset: Long = partitionToLong.get(partition)
+
+    val lastEvent: Future[JsValue] = Consumer
+      .plainSource(consumerSettings, Subscriptions.assignment(partition))
+      .filter(r => r.offset() == (lastOffset - 1))
+      .map(_.value())
+      .map(Json.parse)
+      .take(1)
+      .alsoTo(Sink.foreach(v => println(s"read events ${Json.stringify(v)}")))
+      .runWith(Sink.last)
+
+    Await.result[JsValue](lastEvent, Duration(10, TimeUnit.SECONDS))
   }
 
   private def callByType[T: BodyWritable](path: String,

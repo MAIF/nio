@@ -1,11 +1,10 @@
 package controllers
 
 import models.Tenant
-import net.manub.embeddedkafka.EmbeddedKafka
 import play.api.libs.json.{JsArray, Json}
 import play.api.libs.ws.WSResponse
-import utils.TestUtils
 import play.api.test.Helpers._
+import utils.TestUtils
 
 class TenantControllerSpec extends TestUtils {
 
@@ -44,8 +43,7 @@ class TenantControllerSpec extends TestUtils {
 
       response.contentType.contains("json") mustBe true
 
-      val msg = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
-      val msgAsJson = Json.parse(msg)
+      val msgAsJson = readLastKafkaEvent()
       (msgAsJson \ "type").as[String] mustBe "TenantCreated"
       (msgAsJson \ "payload" \ "key").as[String] mustBe "newTenant"
     }
@@ -76,8 +74,7 @@ class TenantControllerSpec extends TestUtils {
 
       resp.contentType.contains("xml") mustBe true
 
-      val msg = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
-      val msgAsJson = Json.parse(msg)
+      val msgAsJson = readLastKafkaEvent()
       (msgAsJson \ "type").as[String] mustBe "TenantCreated"
       (msgAsJson \ "payload" \ "key").as[String] mustBe "testTenant"
     }
@@ -104,7 +101,6 @@ class TenantControllerSpec extends TestUtils {
 
       resp.status mustBe CREATED
       resp.contentType mustBe s"$XML; charset=UTF-8"
-      EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
     }
 
     "create with content-type json" in {
@@ -115,8 +111,6 @@ class TenantControllerSpec extends TestUtils {
 
       resp.status mustBe CREATED
       resp.contentType mustBe JSON
-
-      EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
     }
 
     "create tenant with an already exist key" in {
@@ -128,7 +122,6 @@ class TenantControllerSpec extends TestUtils {
       val resp = postJson(path, tenantAsJson, headers = jsonHeaders)
 
       resp.status mustBe CREATED
-      EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
 
       val alreadyExistResp = postJson(path, tenantAsJson, headers = jsonHeaders)
 
@@ -146,8 +139,6 @@ class TenantControllerSpec extends TestUtils {
       val respCreate = postJson("/tenants", tenantAsJson, headers = jsonHeaders)
 
       respCreate.status mustBe CREATED
-
-      EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
 
       val respGet1 = getJson("/tenants", headers = jsonHeaders)
 
@@ -177,11 +168,9 @@ class TenantControllerSpec extends TestUtils {
       val respOrgaCreated: WSResponse =
         postJson(s"/$tenantToDelete/organisations", orgAsJson)
       respOrgaCreated.status mustBe CREATED
-      EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
 
       postJson(s"/$tenantToDelete/organisations/$orgKey/draft/_release",
                respOrgaCreated.json).status mustBe OK
-      EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
 
       val userId: String = "userToDelete"
 
@@ -209,12 +198,10 @@ class TenantControllerSpec extends TestUtils {
 
       putJson(s"/$tenantToDelete/organisations/$orgKey/users/$userId",
               consentFactAsJson).status mustBe OK
-      EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
 
       delete(s"/tenants/$tenantToDelete", headers = jsonHeaders).status mustBe OK
 
-      val msg = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
-      val msgAsJson = Json.parse(msg)
+      val msgAsJson = readLastKafkaEvent()
       (msgAsJson \ "type").as[String] mustBe "TenantDeleted"
       (msgAsJson \ "payload" \ "key").as[String] mustBe tenantToDelete
 

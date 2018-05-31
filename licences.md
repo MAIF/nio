@@ -20,7 +20,6 @@ Nio dependencies and licences
 * com.amazonaws.aws-java-sdk-s3 - Apache 2.0 : https://github.com/aws/aws-sdk-java
 * org.scalatestplus.play.scalatestplus-play - Apache 2.0 : https://github.com/playframework
 * de.flapdoodle.embed.de.flapdoodle.embed.mongo - Apache 2.0 : https://github.com/flapdoodle-oss/de.flapdoodle.embed.mongo
-* net.manub.scalatest-embedded-kafka - MIT : https://github.com/manub/scalatest-embedded-kafka
 * com.typesafe.play.sbt-plugin - Apache 2.0 : https://github.com/playframework/playframework
 * io.get-coursier.sbt-coursier - Apache 2.0 : https://github.com/coursier/coursier
 * com.lucidchart.sbt-scalafmt - Apache 2.0 : https://github.com/scalameta/scalafmt
