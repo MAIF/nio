@@ -163,9 +163,7 @@ case class ExtractionTask(_id: String,
 
   def copyWithUpdatedAppState(tenant: String,
                         appId: String,
-                        appExtractedFiles: FilesMetadata)(
-      implicit ec: ExecutionContext,
-      store: ExtractionTaskMongoDataStore): ExtractionTask = {
+                        appExtractedFiles: FilesMetadata): ExtractionTask = {
     val appState = this.states.find(_.appId == appId).get
     val sizeOfAllFiles = appExtractedFiles.files.foldLeft(0l) { (z, i) =>
       z + i.size

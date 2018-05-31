@@ -168,7 +168,6 @@ class ExtractionController @Inject()(val AuthAction: AuthAction,
     req.body
       .via(
         Flow[ByteString].map { chunk =>
-          println("---- > incrementing "  + chunk.size)
           UploadTracker.incrementUploadedBytes(appId, chunk.size)
           chunk
         }
