@@ -112,7 +112,7 @@ class OrganisationController @Inject()(
                                             oldValue = previousDraft,
                                             payload = newDraft,
                                             author = req.authInfo.sub))
-                      Ok("true")
+                      renderMethod(newDraft)
                     }
               }
           }
@@ -246,7 +246,7 @@ class OrganisationController @Inject()(
                 OrganisationDeleted(tenant = tenant,
                                     payload = org,
                                     author = req.authInfo.sub))
-              Ok("true")
+              Ok
             }
           case None =>
             Future.successful(NotFound("error.organisation.not.found"))

@@ -191,7 +191,7 @@ class ConsentController @Inject()(
                       Future
                         .sequence(Seq(storedConsentFactFut, storedUserFut))
                         .map { _ =>
-                          Ok("true")
+                          renderMethod(cf)
                         }
                   }
               }
@@ -236,7 +236,7 @@ class ConsentController @Inject()(
                         Future
                           .sequence(Seq(storedConsentFactFut, storedUserFut))
                           .map { _ =>
-                            Ok("true")
+                            renderMethod(cf)
                           }
                     }
                 }
@@ -282,7 +282,7 @@ class ConsentController @Inject()(
                       Future
                         .sequence(Seq(storedConsentFactFut, storedUserFut))
                         .map { _ =>
-                          Ok("true")
+                          renderMethod(cf)
                         }
                   }
                 case Some(_) =>
@@ -329,7 +329,7 @@ class ConsentController @Inject()(
                               .sequence(
                                 Seq(storedConsentFactFut, storedUserFut))
                               .map { _ =>
-                                Ok("true")
+                                renderMethod(cf)
                               }
                         }
                     }

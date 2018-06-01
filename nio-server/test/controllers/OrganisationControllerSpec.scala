@@ -251,7 +251,10 @@ class OrganisationControllerSpec extends TestUtils {
       val response: WSResponse = putJson(path, org2AsJsonModified)
 
       response.status mustBe OK
-      response.json.toString mustBe "true"
+
+      val putValue: JsValue = response.json
+
+      (putValue \ "label").as[String] mustBe org2Modified.label
 
       val msgAsJson = readLastKafkaEvent()
       (msgAsJson \ "type").as[String] mustBe "OrganisationUpdated"
