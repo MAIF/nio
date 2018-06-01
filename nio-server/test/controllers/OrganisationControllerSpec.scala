@@ -125,7 +125,13 @@ class OrganisationControllerSpec extends TestUtils {
       val response: WSResponse = postJson(path, org1AsJson)
 
       response.status mustBe OK
-      response.json.toString mustBe "true"
+
+      val value: JsValue = response.json
+
+      (value \ "key").as[String] mustBe org1Key
+      (value \ "version" \ "status").as[String] mustBe "RELEASED"
+      (value \ "version" \ "num").as[Int] mustBe 1
+      (value \ "version" \ "latest").as[Boolean] mustBe true
 
       val msgAsJson = readLastKafkaEvent()
       (msgAsJson \ "type").as[String] mustBe "OrganisationReleased"
@@ -180,7 +186,24 @@ class OrganisationControllerSpec extends TestUtils {
 
       response.status mustBe OK
 
-      response.json.toString mustBe "true"
+      val value: JsValue = response.json
+
+      (value \ "key").as[String] mustBe org1Key
+      (value \ "version" \ "status").as[String] mustBe "RELEASED"
+      (value \ "version" \ "num").as[Int] mustBe 2
+      (value \ "version" \ "latest").as[Boolean] mustBe true
+
+      val orgRelease1: WSResponse =
+        getJson(s"/$tenant/organisations/$org1Key/1")
+
+      orgRelease1.status mustBe OK
+
+      val value1: JsValue = orgRelease1.json
+
+      (value1 \ "key").as[String] mustBe org1Key
+      (value1 \ "version" \ "status").as[String] mustBe "RELEASED"
+      (value1 \ "version" \ "num").as[Int] mustBe 1
+      (value1 \ "version" \ "latest").as[Boolean] mustBe false
 
       val msgAsJson = readLastKafkaEvent()
       (msgAsJson \ "type").as[String] mustBe "OrganisationReleased"
@@ -430,6 +453,34 @@ class OrganisationControllerSpec extends TestUtils {
 
       getJson(s"/$tenant/organisations/$orgKey").status mustBe NOT_FOUND
       getJson(s"/$tenant/organisations/$orgKey/users/$userId").status mustBe NOT_FOUND
+    }
+  }
+
+  "validate release management" should {
+    "create released without organisation creation" in {
+      val orgKey = "orgTest5"
+      val org = Organisation(
+        key = orgKey,
+        label = "lbl",
+        groups = Seq(
+          PermissionGroup(key = "group1",
+                          label = "blalba",
+                          permissions =
+                            Seq(Permission("sms", "Please accept sms")))
+        )
+      )
+
+      val releaseErrorResponse: WSResponse =
+        postJson(s"/$tenant/organisations/$orgKey/draft/_release", org.asJson)
+      releaseErrorResponse.status mustBe NOT_FOUND
+
+      val creationResponse: WSResponse =
+        postJson(s"/$tenant/organisations", org.asJson)
+      creationResponse.status mustBe CREATED
+
+      val releaseResponse: WSResponse =
+        postJson(s"/$tenant/organisations/$orgKey/draft/_release", org.asJson)
+      releaseResponse.status mustBe OK
     }
   }
 }

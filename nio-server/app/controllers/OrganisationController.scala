@@ -16,6 +16,7 @@ import play.api.Logger
 import play.api.http.HttpEntity
 import play.api.libs.json.Json
 import play.api.mvc.{ControllerComponents, ResponseHeader, Result}
+import reactivemongo.bson.BSONObjectID
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -159,94 +160,66 @@ class OrganisationController @Inject()(
   }
 
   def releaseDraft(tenant: String, orgKey: String) =
-    AuthAction.async(parse.anyContent) { implicit req =>
-      val parsed: Either[String, Organisation] =
-        parseMethod(Organisation)
-
-      parsed match {
-        case Left(error) =>
-          Logger.error("Unable to parse organisation  " + error)
-          Future.successful(BadRequest(error))
-        case Right(o) if o.key != orgKey =>
-          Future.successful(BadRequest("error.invalid.organisation.key"))
-        case Right(receivedDraft) if receivedDraft.key == orgKey =>
-          OrganisationValidator.validateOrganisation(receivedDraft) match {
-            case Left(error) =>
-              Logger.error("Organisation is not valid  " + error)
-
-              Future.successful(
-                BadRequest(
-                  Json.obj(
-                    "messages" -> error
-                  )
-                )
+    AuthAction.async { implicit req =>
+      ds.findDraftByKey(tenant, orgKey).flatMap {
+        case Some(previousOrganisationDraft) =>
+          // configure the new organisation draft (update version, change flag never released to false)
+          val newOrganisationDraft: Organisation =
+            previousOrganisationDraft.copy(
+              version = VersionInfo(
+                num = previousOrganisationDraft.version.num + 1,
+                neverReleased = Some(false),
+                lastUpdate = previousOrganisationDraft.version.lastUpdate
               )
-            case Right(_) =>
-              ds.findDraftByKey(tenant, orgKey).flatMap { maybePreviousDraft =>
-                val nextDraft = maybePreviousDraft
-                  .map { pd =>
-                    receivedDraft.copy(
-                      _id = pd._id,
-                      version = VersionInfo(num = pd.version.num + 1,
-                                            neverReleased = Some(false),
-                                            lastUpdate = pd.version.lastUpdate)
-                    )
-                  }
-                  .getOrElse(
-                    receivedDraft.copy(
-                      // keep new default id
-                      version =
-                        VersionInfo(num = 2, neverReleased = Some(false))
-                    )
-                  )
+            )
 
-                val currentRelease =
-                  receivedDraft.copy(
-                    version = VersionInfo(
-                      num = maybePreviousDraft.map(_.version.num).getOrElse(1),
-                      status = "RELEASED",
-                      latest = true,
-                      neverReleased = None)
-                  )
+          // configure the current organisation release (keep organisation draft version number, change status to RELEASED, update flag latest to true)
+          val currentOrganisationReleased: Organisation =
+            previousOrganisationDraft.copy(
+              _id = BSONObjectID.generate().stringify,
+              version = VersionInfo(
+                num = previousOrganisationDraft.version.num,
+                status = "RELEASED",
+                latest = true,
+                neverReleased = None
+              )
+            )
 
-                for {
-                  maybePreviousRelease <- ds.findLastReleasedByKey(tenant,
-                                                                   orgKey)
-                  _ <- Future
-                    .sequence(
-                      Seq(
-                        // Update or insert next draft
-                        maybePreviousDraft
-                          .map { pr =>
-                            ds.updateById(tenant, pr._id, nextDraft)
-                          }
-                          .getOrElse {
-                            ds.insert(tenant, nextDraft)
-                          },
-                        // Insert release
-                        ds.insert(tenant, currentRelease),
-                        // If previous exists set it's latest tag to false
-                        maybePreviousRelease
-                          .map { previousRelease =>
-                            ds.updateById(
-                              tenant,
+          for {
+            // find previous released to trace into kafka
+            maybePreviousRelease <- ds.findLastReleasedByKey(tenant, orgKey)
+
+            // update current draft with new version
+            _ <- ds.updateById(tenant,
+                               newOrganisationDraft._id,
+                               newOrganisationDraft)
+
+            // insert release
+            _ <- ds.insert(tenant, currentOrganisationReleased)
+
+            // update flag latest on the old organisation release
+            _ <- maybePreviousRelease
+              .map { previousRelease =>
+                ds.updateById(tenant,
                               previousRelease._id,
                               previousRelease.copy(version =
                                 previousRelease.version.copy(latest = false)))
-                          }
-                          .getOrElse(Future.successful(()))
-                      )
-                    )
-                  _ = broker.publish(
-                    OrganisationReleased(tenant = tenant,
-                                         payload = currentRelease,
-                                         author = req.authInfo.sub)
-                  )
-                } yield {
-                  Ok("true")
-                }
               }
+              .getOrElse(Future.successful(()))
+
+            // publish new released event on kafka
+            _ <- Future {
+              broker.publish(
+                OrganisationReleased(tenant = tenant,
+                                     payload = currentOrganisationReleased,
+                                     author = req.authInfo.sub))
+            }
+          } yield {
+            renderMethod(currentOrganisationReleased)
           }
+
+        case None =>
+          Future.successful(NotFound("error.organisation.not.found"))
       }
     }
 

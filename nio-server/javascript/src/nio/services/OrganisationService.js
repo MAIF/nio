@@ -61,15 +61,14 @@ export function saveOrganisationDraft(tenant, organisationKey, organisation) {
 
 
 // Create release for an specific organisation
-export function createOrganisationRelease(tenant, organisationKey, organisation) {
+export function createOrganisationRelease(tenant, organisationKey) {
   return fetch(`/api/${tenant}/organisations/${organisationKey}/draft/_release`, {
     method: "POST",
     credentials: 'include',
     headers: {
       Accept: 'application/json',
       'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(organisation)
+    }
   }).then(r => r.json());
 }
 
