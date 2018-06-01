@@ -65,15 +65,7 @@ class DeletionControllerSpec extends TestUtils {
       val msg1 = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
       val msg1AsJson = Json.parse(msg1)
       (msg1AsJson \ "type").as[String] mustBe EventType.DeletionAppDone.toString
-      val appStates1 = (msg1AsJson \ "payload" \ "states")
-        .as[JsArray]
-        .value
-        .flatMap(el => AppDeletionState.appDeletionStateFormats.reads(el).asOpt)
-
-      appStates1.exists(state =>
-        state.appId == "app1" && state.status == DeletionTaskStatus.Done) mustBe true
-      appStates1.exists(state =>
-        state.appId == "app2" && state.status == DeletionTaskStatus.Running) mustBe true
+      (msg1AsJson \ "payload" \ "appId").as[String] mustBe "app1"
 
       val app2DoneResp = postJson(
         s"/$tenant/organisations/$orgKey/users/deletions/$deletionTaskId/apps/app2/_done",
@@ -83,15 +75,12 @@ class DeletionControllerSpec extends TestUtils {
       val msg2 = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
       val msg2AsJson = Json.parse(msg2)
       (msg2AsJson \ "type").as[String] mustBe EventType.DeletionAppDone.toString
-      val appStates2 = (msg2AsJson \ "payload" \ "states")
-        .as[JsArray]
-        .value
-        .flatMap(el => AppDeletionState.appDeletionStateFormats.reads(el).asOpt)
+      (msg2AsJson \ "payload" \ "appId").as[String] mustBe "app2"
 
-      appStates2.exists(state =>
-        state.appId == "app1" && state.status == DeletionTaskStatus.Done) mustBe true
-      appStates2.exists(state =>
-        state.appId == "app2" && state.status == DeletionTaskStatus.Done) mustBe true
+      val msg3 = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
+      val msg3AsJson = Json.parse(msg3)
+      (msg3AsJson \ "type").as[String] mustBe EventType.DeletionFinished.toString
+      (msg3AsJson \ "payload" \ "status").as[String] mustBe DeletionTaskStatus.Done.toString
     }
   }
 }

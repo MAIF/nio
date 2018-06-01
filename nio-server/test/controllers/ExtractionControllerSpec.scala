@@ -114,7 +114,7 @@ class ExtractionControllerSpec extends TestUtils {
     "upload a file during an extraction task" in {
 
       /** Create and start S3 API mock. */
-      val api = S3Mock(port = 8001, dir = "tmp")
+      val api = S3Mock(port = 8000, dir = "tmp")
       api.start
 
       /* AWS S3 client setup.
@@ -124,7 +124,7 @@ class ExtractionControllerSpec extends TestUtils {
        *  which requires specific DNS setup.
        */
       val endpoint =
-        new EndpointConfiguration("http://localhost:8001", "us-west-2")
+        new EndpointConfiguration("http://localhost:8000", "us-west-2")
       val client = AmazonS3ClientBuilder.standard
         .withPathStyleAccessEnabled(true)
         .withEndpointConfiguration(endpoint)

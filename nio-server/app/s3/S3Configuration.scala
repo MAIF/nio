@@ -17,7 +17,7 @@ class S3Configuration @Inject()(val configuration: Configuration) {
   lazy val expirationInDays =
     configuration.get[Int]("nio.s3Config.expirationInDays")
 
-  lazy val endpoint = configuration.get[String]("nio.s3Config.host")
+  lazy val endpoint = configuration.get[String]("nio.s3Config.endpoint")
 
   lazy val region = configuration.get[String]("nio.s3Config.region")
 

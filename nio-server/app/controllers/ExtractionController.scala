@@ -92,7 +92,8 @@ class ExtractionController @Inject()(val AuthAction: AuthAction,
             case Some(task) if !task.appIds.contains(appId) =>
               Future.successful(NotFound("error.unknown.appId"))
             case Some(task) =>
-              val updatedTask = task.copyWithUpdatedAppState(tenant, appId, extractedFiles)
+              val updatedTask =
+                task.copyWithUpdatedAppState(appId, extractedFiles)
               store.updateById(tenant, task._id, updatedTask).map { _ =>
                 broker.publish(
                   ExtractionAppFilesMetadataReceived(
@@ -150,25 +151,38 @@ class ExtractionController @Inject()(val AuthAction: AuthAction,
             case None =>
               Future.successful(NotFound("error.unknown.appId"))
             case Some(fileMetadata) =>
-              if (s3Conf.v4auth) {
-                upload(tenant, req.task, appId, name, appState)
-              } else {
-                oldUpload(tenant, req.task, appId, name, appState)
+              (if (s3Conf.v4auth) {
+                 upload(tenant, req.task, appId, name)
+               } else {
+                 oldUpload(tenant, req.task, appId, name)
+               }).flatMap { location =>
+                // Check all files are done for this app
+                (if (req.task.allFilesDone(appId)) {
+                   val updatedTask =
+                     req.task.copyWithFileUploadHandled(appId, appState)
+                   updatedTask.storeAndEmitEvents(tenant,
+                                                  appId,
+                                                  req.authInfo.sub)
+                 } else {
+                   Future.successful()
+                 }).map { _ =>
+                  Ok(location)
+                }
               }
           }
         }
     }
 
-  private def upload(tenant: String,
-                     task: ExtractionTask,
-                     appId: String,
-                     name: String,
-                     appState: AppState)(
-      implicit req: ReqWithExtractionTask[Source[ByteString, _]]) = {
+  private def upload(
+      tenant: String,
+      task: ExtractionTask,
+      appId: String,
+      name: String)(implicit req: ReqWithExtractionTask[Source[ByteString, _]])
+    : Future[String] = {
     req.body
       .via(
         Flow[ByteString].map { chunk =>
-          UploadTracker.incrementUploadedBytes(appId, chunk.size)
+          UploadTracker.incrementUploadedBytes(task._id, appId, chunk.size)
           chunk
         }
       )
@@ -176,10 +190,8 @@ class ExtractionController @Inject()(val AuthAction: AuthAction,
         s3FileDataStore
           .store(tenant, task.orgKey, task.userId, task._id, appId, name)
       )
-      .flatMap { res =>
-        task.handleFileUploaded(tenant, appId, req.authInfo.sub, appState).map { _ =>
-          Ok(Json.obj("location" -> res.location.toString()))
-        }
+      .map { res =>
+        res.location.toString()
       }
   }
 
@@ -187,9 +199,8 @@ class ExtractionController @Inject()(val AuthAction: AuthAction,
       tenant: String,
       task: ExtractionTask,
       appId: String,
-      name: String,
-      appState: AppState)(implicit req: ReqWithExtractionTask[Source[ByteString, _]])
-    : Future[Result] = {
+      name: String)(implicit req: ReqWithExtractionTask[Source[ByteString, _]])
+    : Future[String] = {
     val uploadKey =
       s"$tenant/${task.orgKey}/${task.userId}/${task._id}/$appId/$name"
 
@@ -216,14 +227,12 @@ class ExtractionController @Inject()(val AuthAction: AuthAction,
                 groupedChunk.toArray[Byte]) {
                 override def read(): Int = {
                   // Notify upload progress
-                  println("---- > incrementing " )
-                  UploadTracker.incrementUploadedBytes(appId, 1)
+                  UploadTracker.incrementUploadedBytes(task._id, appId, 1)
                   super.read()
                 }
                 override def read(b: Array[Byte], off: Int, len: Int): Int = {
                   // Notify upload progress
-                  println("---- > incrementing " + len )
-                  UploadTracker.incrementUploadedBytes(appId, len)
+                  UploadTracker.incrementUploadedBytes(task._id, appId, len)
                   super.read(b, off, len)
                 }
               })
@@ -234,7 +243,7 @@ class ExtractionController @Inject()(val AuthAction: AuthAction,
       .runFold(Seq[UploadPartResult]()) { (results, uploadResult) =>
         results :+ uploadResult
       }
-      .flatMap { results =>
+      .map { results =>
         val tags = scala.collection.JavaConverters
           .seqAsJavaList(results.map(_.getPartETag))
         val completeRequest =
@@ -243,9 +252,7 @@ class ExtractionController @Inject()(val AuthAction: AuthAction,
                                              uploadId,
                                              tags)
         val result = s3.client.completeMultipartUpload(completeRequest)
-        task.handleFileUploaded(tenant, appId, req.authInfo.sub, appState).map { _ =>
-          Ok(result.getLocation)
-        }
+        result.getLocation
       }
   }
 

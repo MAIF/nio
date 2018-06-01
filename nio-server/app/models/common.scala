@@ -55,10 +55,12 @@ object Digest {
   }
 }
 
-case class AppFilesMetadata(orgKey: String, userId: String, appId: String, files: Seq[FileMetadata]) {
+case class AppFilesMetadata(orgKey: String,
+                            userId: String,
+                            appId: String,
+                            files: Seq[FileMetadata]) {
   def asJson = AppFilesMetadata.appFilesMetadataFormats.writes(this)
 }
-object AppFilesMetadata{
+object AppFilesMetadata {
   implicit val appFilesMetadataFormats = Json.format[AppFilesMetadata]
 }
-

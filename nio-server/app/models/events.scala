@@ -12,8 +12,8 @@ object EventType extends Enumeration {
   OrganisationReleased, OrganisationDeleted, ConsentFactCreated,
   ConsentFactUpdated, AccountCreated, AccountUpdated, AccountDeleted,
   SecuredEvent, DeletionStarted, DeletionAppDone, DeletionFinished,
-  ExtractionStarted, ExtractionAppFilesMetadataReceived, ExtractionAppDone, ExtractionFinished,
-  Unknown = Value
+  ExtractionStarted, ExtractionAppFilesMetadataReceived, ExtractionAppDone,
+  ExtractionFinished, Unknown = Value
 
   def from(name: String): Value =
     values.find(_.toString.toLowerCase == name.toLowerCase()).getOrElse(Unknown)
@@ -461,8 +461,10 @@ case class ExtractionAppDone(tenant: String,
 case class ExtractionAppFilesMetadataReceived(tenant: String,
                                               author: String,
                                               id: Long = NioEvent.gen.nextId(),
-                                              date: DateTime = DateTime.now(DateTimeZone.UTC),
-                                              payload: AppFilesMetadata) extends NioEvent {
+                                              date: DateTime =
+                                                DateTime.now(DateTimeZone.UTC),
+                                              payload: AppFilesMetadata)
+    extends NioEvent {
   def shardId = payload.userId
   def tYpe = EventType.ExtractionAppFilesMetadataReceived
   def asJson = Json.obj(
@@ -474,7 +476,6 @@ case class ExtractionAppFilesMetadataReceived(tenant: String,
     "payload" -> payload.asJson
   )
 }
-
 
 case class ExtractionFinished(tenant: String,
                               author: String,

@@ -90,10 +90,18 @@ case class AppState(appId: String,
                     files: Seq[FileMetadata],
                     totalBytes: Long,
                     status: ExtractionTaskStatus) {
-  def uploadedBytes = UploadTracker.getUploadedBytes(appId)
 
-  def progress =
-    if (uploadedBytes == 0l) { 0l } else { (uploadedBytes * 100L) / totalBytes }
+  def uploadedBytes(taskId: String) =
+    UploadTracker.getUploadedBytes(taskId, appId)
+
+  def progress(taskId: String) = {
+    val bytes = uploadedBytes(taskId)
+    if (bytes == 0l) {
+      0l
+    } else {
+      (bytes * 100L) / totalBytes
+    }
+  }
 
   def asJson = AppState.appStateFormats.writes(this)
 
@@ -150,20 +158,26 @@ case class ExtractionTask(_id: String,
     </extractionTask>
   }
 
-  def progress: Double = states.size match {
-    case 0    => 0.0
-    case size => states.map(_.progress).map{x => println("---->  progress " + x); x}.foldLeft(0.0)(_ + _) / size
+  def progress: Double = {
+    if (done == appIds.size) { 100 } else {
+      states.size match {
+        case 0 => 0.0
+        case size =>
+          states.toSeq.map(_.progress(this._id)).foldLeft(0.0)(_ + _) / size
+      }
+    }
   }
 
-  def allAppsDone = done == appIds.size - 1
+  def allFilesDone(appId: String) =
+    states
+      .collectFirst {
+        case x if x.appId == appId => x.uploadedBytes(this._id) == x.totalBytes
+      }
+      .contains(true)
 
-  def allFilesDone(appId: String) = states.collectFirst {
-    case x if x.appId == appId => x.uploadedBytes == x.totalBytes
-  }
-
-  def copyWithUpdatedAppState(tenant: String,
-                        appId: String,
-                        appExtractedFiles: FilesMetadata): ExtractionTask = {
+  def copyWithUpdatedAppState(
+      appId: String,
+      appExtractedFiles: FilesMetadata): ExtractionTask = {
     val appState = this.states.find(_.appId == appId).get
     val sizeOfAllFiles = appExtractedFiles.files.foldLeft(0l) { (z, i) =>
       z + i.size
@@ -171,49 +185,42 @@ case class ExtractionTask(_id: String,
     val newAppState = appState.copy(files = appExtractedFiles.files,
                                     totalBytes = sizeOfAllFiles)
 
-    UploadTracker.addApp(appId)
-    copy(
-      states = states.filterNot(_.appId == appId) + newAppState,
-      lastUpdate = DateTime.now(DateTimeZone.UTC))
+    UploadTracker.addApp(this._id, appId)
+    copy(states = states.filterNot(_.appId == appId) + newAppState,
+         lastUpdate = DateTime.now(DateTimeZone.UTC))
   }
 
-  def handleFileUploaded(tenant: String, appId: String, author: String, appState: AppState)(
+  def copyWithFileUploadHandled(appId: String, appState: AppState) = {
+    // All files are uploaded for this app
+    val newAppState = appState.copy(status = ExtractionTaskStatus.Done)
+    val allWillBeDone = this.done + 1 == appIds.size
+    copy(
+      states = states.filterNot(_.appId == appId) + newAppState,
+      done = done + 1,
+      status =
+        if (allWillBeDone) ExtractionTaskStatus.Done
+        else ExtractionTaskStatus.Running,
+      lastUpdate = DateTime.now(DateTimeZone.UTC)
+    )
+  }
+
+  def storeAndEmitEvents(tenant: String, appId: String, author: String)(
       implicit ec: ExecutionContext,
       store: ExtractionTaskMongoDataStore,
       broker: KafkaMessageBroker) = {
+    // Store updated task then emit events
+    store.updateById(tenant, this._id, this).map { _ =>
+      broker.publish(
+        ExtractionAppDone(tenant = tenant,
+                          author = author,
+                          payload = AppDone(orgKey, userId, appId)))
 
-      // Check all files are done for this app
-      if (allFilesDone(appId).contains(true)) {
-        // All files are uploaded for this app
-        val newAppState = appState.copy(status = ExtractionTaskStatus.Done)
-        val allDone = allAppsDone
-        val newTask = copy(
-          states = states.filterNot(_.appId == appId) + newAppState,
-          done = done + 1,
-          status =
-            if (allDone) ExtractionTaskStatus.Done
-            else ExtractionTaskStatus.Running,
-          lastUpdate = DateTime.now(DateTimeZone.UTC)
-        )
-        // Store updated task then emit events
-        store.updateById(tenant, this._id, newTask).map { _ =>
-          broker.publish(
-            ExtractionAppDone(tenant = tenant,
-                              author = "",
-                              payload = AppDone(orgKey, userId, appId)))
-
-          if (allDone) {
-            broker.publish(
-              ExtractionFinished(tenant = tenant,
-                                 author = "",
-                                 payload = newTask))
-          }
-
-        }
-      } else {
-        // Awaiting next file ...
-        Future.successful(())
+      if (this.done == appIds.size) {
+        UploadTracker.removeApp(this._id, appId)
+        broker.publish(
+          ExtractionFinished(tenant = tenant, author = author, payload = this))
       }
+    }
   }
 
   def expire(tenant: String)(implicit ec: ExecutionContext,

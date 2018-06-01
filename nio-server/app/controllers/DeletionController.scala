@@ -89,20 +89,19 @@ class DeletionController @Inject()(
         deletionTaskStore
           .updateById(tenant, deletionId, updatedDeletionTask)
           .map { _ =>
+            broker.publish(
+              DeletionAppDone(
+                tenant = tenant,
+                author = request.authInfo.sub,
+                payload = AppDone(orgKey, updatedDeletionTask.userId, appId)
+              )
+            )
             if (updatedDeletionTask.status == DeletionTaskStatus.Done) {
               broker.publish(
                 DeletionFinished(
                   tenant = tenant,
                   author = request.authInfo.sub,
                   payload = updatedDeletionTask
-                )
-              )
-            } else {
-              broker.publish(
-                DeletionAppDone(
-                  tenant = tenant,
-                  author = request.authInfo.sub,
-                  payload = AppDone(orgKey, updatedDeletionTask.userId, appId)
                 )
               )
             }
