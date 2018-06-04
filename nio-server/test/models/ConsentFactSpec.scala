@@ -24,6 +24,8 @@ class ConsentFactSpec extends PlaySpec with WordSpecLike with MustMatchers {
       metaData = Some(Map(mdKey1 -> mdVal1, "tata" -> "val2"))
     )
 
+    val consentFactWithoutMetaData = consentFact.copy(metaData = None)
+
     "serialize/deserialize from XML" in {
       val xml = consentFact.asXml
 
@@ -36,6 +38,9 @@ class ConsentFactSpec extends PlaySpec with WordSpecLike with MustMatchers {
 
       val md = cf.metaData.get
       md(mdKey1) mustBe mdVal1
+
+      val xml2 = consentFactWithoutMetaData.asXml
+      xml2.contains("metaData") mustBe false
     }
 
     "serialize/deserialize from JSON" in {
@@ -50,6 +55,10 @@ class ConsentFactSpec extends PlaySpec with WordSpecLike with MustMatchers {
 
       val md = cf.metaData.get
       md(mdKey1) mustBe mdVal1
+
+      val consentFact2 = consentFactWithoutMetaData
+      val asStr = consentFact2.asJson.toString()
+      asStr.contains("metaData") mustBe false
     }
   }
 

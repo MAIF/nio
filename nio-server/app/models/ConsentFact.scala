@@ -70,20 +70,8 @@ case class ConsentFact(_id: String = BSONObjectID.generate().stringify,
                        orgKey: Option[String] = None,
                        metaData: Option[Map[String, String]] = None)
     extends ModelTransformAs {
-  def asJson = {
-    Json.obj(
-      "userId" -> userId,
-      "doneBy" -> Json.toJson(doneBy),
-      "version" -> version,
-      "groups" -> Json.toJson(groups),
-      "lastUpdate" -> lastUpdate.toString(DateUtils.utcDateFormatter),
-      "orgKey" -> JsString(orgKey.getOrElse("")),
-      "metaData" -> JsObject(
-        metaData
-          .map(_.map { case (k, v) => (k, JsString(v)) }.toSeq)
-          .getOrElse(Seq[(String, JsValue)]()))
-    )
-  }
+
+  def asJson = ConsentFact.consentFactWritesWithoutId.writes(this)
 
   def asXml = {
     <consentFact>
@@ -96,7 +84,7 @@ case class ConsentFact(_id: String = BSONObjectID.generate().stringify,
       <groups>{groups.map(_.asXml)}</groups>
       <lastUpdate>{lastUpdate.toString(DateUtils.utcDateFormatter)}</lastUpdate>
       <orgKey>{orgKey.getOrElse("")}</orgKey>
-      {metaData.map{md => <metaData>{md.map{ e => <metaDataEntry key={e._1} value={e._2}/>}}</metaData>}.getOrElse{<metaData/>}}
+      {if (metaData.isDefined) { metaData.map{md => <metaData>{md.map{ e => <metaDataEntry key={e._1} value={e._2}/>}}</metaData>} }.get }
     </consentFact>
   }
 }
@@ -140,6 +128,17 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
 
   val consentFactWrites: Writes[ConsentFact] = (
     (JsPath \ "_id").write[String] and
+      (JsPath \ "userId").write[String] and
+      (JsPath \ "doneBy").write[DoneBy](DoneBy.doneByFormats) and
+      (JsPath \ "version").write[Int] and
+      (JsPath \ "groups").write[Seq[ConsentGroup]] and
+      (JsPath \ "lastUpdate").write[DateTime](DateUtils.utcDateTimeWrites) and
+      (JsPath \ "orgKey").writeNullable[String] and
+      (JsPath \ "metaData").writeNullable[Map[String, String]]
+  )(unlift(ConsentFact.unapply))
+
+  val consentFactWritesWithoutId: Writes[ConsentFact] = (
+    (JsPath \ "_id").writeNullable[String].contramap((_: String) => None) and
       (JsPath \ "userId").write[String] and
       (JsPath \ "doneBy").write[DoneBy](DoneBy.doneByFormats) and
       (JsPath \ "version").write[Int] and
