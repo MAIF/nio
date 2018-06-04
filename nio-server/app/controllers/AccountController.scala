@@ -97,7 +97,7 @@ class AccountController @Inject()(
               broker.publish(
                 AccountDeleted(tenant, payload = account)
               )
-              Ok("true")
+              Ok
             })
         case None =>
           Future.successful(NotFound("error.account.not.found"))

@@ -402,7 +402,7 @@
           "organisation"
         ],
         "summary": "Publication d'une nouvelle version.",
-        "description": "Publication de la version brouillon passée dans le body. Cette opération va permettre de publier un brouillon, créer un nouveau brouillon à partir de la version publiée en incrémentant la version du brouillon en vue de la prochaine publication.",
+        "description": "Publication de la version brouillon courante de l'organisation. Cette opération va permettre de publier un brouillon, créer un nouveau brouillon à partir de la version publiée en incrémentant la version du brouillon en vue de la prochaine publication.",
         "parameters": [
           {
             "name": "$CLIENT_ID",
@@ -428,18 +428,9 @@
           {
             "name": "orgKey",
             "in": "path",
-            "description": "La clé de l'organisation",
+            "description": "La clé de l'organisation à publier",
             "required": true,
             "type": "string"
-          },
-          {
-            "name": "organisation",
-            "in": "body",
-            "description": "L'organisation à publier",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/Organisation"
-            }
           }
         ],
         "responses": {
@@ -1659,6 +1650,20 @@
         }
       }
     },
+    "MetaDataEntry": {
+      "type": "object",
+      "description": "definition d'une meta donnée",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "clé de la meta donnée"
+        },
+        "orgKey": {
+          "type": "string",
+          "description": "valeur de la meta donnée"
+        }
+      }
+    },
     "ConsentFact": {
       "type": "object",
       "description": "structure représentant l'ensemble des consentements d'un utilisateur",
@@ -1674,6 +1679,13 @@
         "lastUpdate": {
           "type": "string",
           "description": "date de dernière mise à jour des consentements de l'utilisateur au format \"YYYY-MM-DDTHH:mm:ssZ\""
+        },
+        "metaData": {
+          "type": "array",
+          "description": "meta données liées au consentements",
+          "items": {
+            "$ref": "#/definitions/MetaDataEntry"
+          }
         },
         "doneBy": {
           "type": "object",

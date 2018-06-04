@@ -1,7 +1,6 @@
 package controllers
 
 import models.{Consent, ConsentFact, ConsentGroup, DoneBy}
-import net.manub.embeddedkafka.EmbeddedKafka
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json.{JsArray, JsValue, Json}
 import utils.TestUtils
@@ -130,7 +129,6 @@ class ConsentControllerSpec extends TestUtils {
   )
 
   "ConsentController" should {
-    val tenant: String = "sandbox"
     val organisationKey: String = "maif"
 
     "user not exist" in {
@@ -205,10 +203,15 @@ class ConsentControllerSpec extends TestUtils {
       val putResponse = putJson(path, user1AsJson)
 
       putResponse.status mustBe OK
-      putResponse.json.toString mustBe "true"
 
-      val msg = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
-      val msgAsJson = Json.parse(msg)
+      val putValue: JsValue = putResponse.json
+
+      (putValue \ "userId").as[String] mustBe user1.userId
+      (putValue \ "doneBy" \ "userId").as[String] mustBe user1.doneBy.userId
+      (putValue \ "doneBy" \ "role").as[String] mustBe user1.doneBy.role
+      (putValue \ "version").as[Int] mustBe user1.version
+
+      val msgAsJson = readLastKafkaEvent()
       (msgAsJson \ "type").as[String] mustBe "ConsentFactCreated"
       (msgAsJson \ "payload" \ "userId").as[String] mustBe userId1
 
@@ -270,10 +273,18 @@ class ConsentControllerSpec extends TestUtils {
       val putResponse = putJson(path, user1ModifiedAsJson)
 
       putResponse.status mustBe OK
-      putResponse.json.toString mustBe "true"
 
-      val msg = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
-      val msgAsJson = Json.parse(msg)
+      val putValue: JsValue = putResponse.json
+
+      (putValue \ "userId").as[String] mustBe userId1
+      (putValue \ "orgKey").as[String] mustBe organisationKey
+      (putValue \ "doneBy" \ "userId").as[String] mustBe user1Modified.doneBy
+        .userId
+      (putValue \ "doneBy" \ "role").as[String] mustBe user1Modified.doneBy.role
+      (putValue \ "version").as[Int] mustBe user1Modified.version
+
+      val msgAsJson = readLastKafkaEvent()
+
       (msgAsJson \ "type").as[String] mustBe "ConsentFactUpdated"
       (msgAsJson \ "oldValue" \ "doneBy" \ "role")
         .as[String] mustBe user1.doneBy.role
@@ -362,20 +373,20 @@ class ConsentControllerSpec extends TestUtils {
       val path: String =
         s"/$tenant/organisations/$organisationKey/users/$userId3"
       putJson(path, user3AsJson).status mustBe OK
-      val msg1 = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
-      (Json.parse(msg1) \ "type").as[String] mustBe "ConsentFactCreated"
+      val msg1 = readLastKafkaEvent()
+      (msg1 \ "type").as[String] mustBe "ConsentFactCreated"
       putJson(path, user3AsJson).status mustBe OK
-      val msg2 = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
-      (Json.parse(msg2) \ "type").as[String] mustBe "ConsentFactUpdated"
+      val msg2 = readLastKafkaEvent()
+      (msg2 \ "type").as[String] mustBe "ConsentFactUpdated"
       putJson(path, user3AsJson).status mustBe OK
-      val msg3 = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
-      (Json.parse(msg3) \ "type").as[String] mustBe "ConsentFactUpdated"
+      val msg3 = readLastKafkaEvent()
+      (msg3 \ "type").as[String] mustBe "ConsentFactUpdated"
       putJson(path, user3AsJson).status mustBe OK
-      val msg4 = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
-      (Json.parse(msg4) \ "type").as[String] mustBe "ConsentFactUpdated"
+      val msg4 = readLastKafkaEvent()
+      (msg4 \ "type").as[String] mustBe "ConsentFactUpdated"
       putJson(path, user3AsJson).status mustBe OK
-      val msg5 = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
-      (Json.parse(msg5) \ "type").as[String] mustBe "ConsentFactUpdated"
+      val msg5 = readLastKafkaEvent()
+      (msg5 \ "type").as[String] mustBe "ConsentFactUpdated"
 
       val historyPath: String = s"$path/logs?page=0&pageSize=10"
 
@@ -451,8 +462,7 @@ class ConsentControllerSpec extends TestUtils {
 
       resp.status mustBe OK
 
-      val msg = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
-      val msgAsJson = Json.parse(msg)
+      val msgAsJson = readLastKafkaEvent()
       (msgAsJson \ "type").as[String] mustBe "ConsentFactCreated"
       (msgAsJson \ "payload" \ "userId").as[String] mustBe userId4
     }

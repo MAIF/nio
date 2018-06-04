@@ -1,14 +1,11 @@
 package controllers
 
-import models.{AppDeletionState, DeletionTaskStatus, EventType}
-import net.manub.embeddedkafka.EmbeddedKafka
+import models.{DeletionTaskStatus, EventType}
 import play.api.libs.json.{JsArray, JsNull, Json}
-import utils.TestUtils
 import play.api.test.Helpers._
+import utils.TestUtils
 
 class DeletionControllerSpec extends TestUtils {
-
-  val tenant: String = "sandbox"
   val orgKey = "orgTest1"
   val userId = "toto"
 
@@ -26,13 +23,11 @@ class DeletionControllerSpec extends TestUtils {
 
       deletionTaskId = (startResp.json \ "id").as[String]
 
-      val msg1 = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
-      val msg1AsJson = Json.parse(msg1)
+      val msg1AsJson = readLastKafkaEvent()
       (msg1AsJson \ "type").as[String] mustBe EventType.DeletionStarted.toString
       (msg1AsJson \ "payload" \ "appId").as[String] mustBe "app1"
 
-      val msg2 = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
-      val msg2AsJson = Json.parse(msg2)
+      val msg2AsJson = readLastKafkaEvent()
       (msg2AsJson \ "type").as[String] mustBe EventType.DeletionStarted.toString
       (msg2AsJson \ "payload" \ "appId").as[String] mustBe "app2"
     }
@@ -61,8 +56,7 @@ class DeletionControllerSpec extends TestUtils {
         JsNull)
       app1DoneResp.status mustBe OK
 
-      val msg1 = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
-      val msg1AsJson = Json.parse(msg1)
+      val msg1AsJson = readLastKafkaEvent()
       (msg1AsJson \ "type").as[String] mustBe EventType.DeletionAppDone.toString
       (msg1AsJson \ "payload" \ "appId").as[String] mustBe "app1"
 
@@ -71,13 +65,11 @@ class DeletionControllerSpec extends TestUtils {
         JsNull)
       app2DoneResp.status mustBe OK
 
-      val msg2 = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
-      val msg2AsJson = Json.parse(msg2)
+      val msg2AsJson = readLastKafkaEvent()
       (msg2AsJson \ "type").as[String] mustBe EventType.DeletionAppDone.toString
       (msg2AsJson \ "payload" \ "appId").as[String] mustBe "app2"
 
-      val msg3 = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
-      val msg3AsJson = Json.parse(msg3)
+      val msg3AsJson = readLastKafkaEvent()
       (msg3AsJson \ "type").as[String] mustBe EventType.DeletionFinished
         .toString
       (msg3AsJson \ "payload" \ "status")

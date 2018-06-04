@@ -72,7 +72,7 @@ class TenantController @Inject()(
             ).mapN { (_, _, _, _) =>
               broker.publish(TenantDeleted(tenant = tenantToDelete.key,
                                            payload = tenantToDelete))
-              Ok("true")
+              Ok
             }
           case None =>
             Future.successful(NotFound("error.tenant.not.found"))

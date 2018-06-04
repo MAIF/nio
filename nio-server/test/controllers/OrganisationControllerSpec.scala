@@ -1,17 +1,15 @@
 package controllers
 
 import models.{Organisation, Permission, PermissionGroup}
-import net.manub.embeddedkafka.EmbeddedKafka
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json.{JsArray, JsValue, Json}
 import play.api.libs.ws.WSResponse
-import utils.TestUtils
 import play.api.test.Helpers._
+import utils.TestUtils
 
 class OrganisationControllerSpec extends TestUtils {
 
   "OrganisationController" should {
-    val tenant: String = "sandbox"
     val org1Key = "orgTest1"
 
     val org1 = Organisation(
@@ -51,8 +49,7 @@ class OrganisationControllerSpec extends TestUtils {
       createResponse.status mustBe CREATED
       createResponse.contentType mustBe JSON
 
-      val msg = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
-      val msgAsJson = Json.parse(msg)
+      val msgAsJson = readLastKafkaEvent()
       (msgAsJson \ "type").as[String] mustBe "OrganisationCreated"
       (msgAsJson \ "payload" \ "key").as[String] mustBe org1Key
 
@@ -128,10 +125,15 @@ class OrganisationControllerSpec extends TestUtils {
       val response: WSResponse = postJson(path, org1AsJson)
 
       response.status mustBe OK
-      response.json.toString mustBe "true"
 
-      val msg = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
-      val msgAsJson = Json.parse(msg)
+      val value: JsValue = response.json
+
+      (value \ "key").as[String] mustBe org1Key
+      (value \ "version" \ "status").as[String] mustBe "RELEASED"
+      (value \ "version" \ "num").as[Int] mustBe 1
+      (value \ "version" \ "latest").as[Boolean] mustBe true
+
+      val msgAsJson = readLastKafkaEvent()
       (msgAsJson \ "type").as[String] mustBe "OrganisationReleased"
       (msgAsJson \ "payload" \ "key").as[String] mustBe org1Key
       (msgAsJson \ "payload" \ "version" \ "num")
@@ -184,10 +186,26 @@ class OrganisationControllerSpec extends TestUtils {
 
       response.status mustBe OK
 
-      response.json.toString mustBe "true"
+      val value: JsValue = response.json
 
-      val msg = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
-      val msgAsJson = Json.parse(msg)
+      (value \ "key").as[String] mustBe org1Key
+      (value \ "version" \ "status").as[String] mustBe "RELEASED"
+      (value \ "version" \ "num").as[Int] mustBe 2
+      (value \ "version" \ "latest").as[Boolean] mustBe true
+
+      val orgRelease1: WSResponse =
+        getJson(s"/$tenant/organisations/$org1Key/1")
+
+      orgRelease1.status mustBe OK
+
+      val value1: JsValue = orgRelease1.json
+
+      (value1 \ "key").as[String] mustBe org1Key
+      (value1 \ "version" \ "status").as[String] mustBe "RELEASED"
+      (value1 \ "version" \ "num").as[Int] mustBe 1
+      (value1 \ "version" \ "latest").as[Boolean] mustBe false
+
+      val msgAsJson = readLastKafkaEvent()
       (msgAsJson \ "type").as[String] mustBe "OrganisationReleased"
       (msgAsJson \ "payload" \ "key").as[String] mustBe org1Key
       (msgAsJson \ "payload" \ "version" \ "num").as[Int] mustBe 2
@@ -223,8 +241,7 @@ class OrganisationControllerSpec extends TestUtils {
       response.status mustBe CREATED
       response.contentType mustBe JSON
 
-      val msg = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
-      val msgAsJson = Json.parse(msg)
+      val msgAsJson = readLastKafkaEvent()
       (msgAsJson \ "type").as[String] mustBe "OrganisationCreated"
       (msgAsJson \ "payload" \ "key").as[String] mustBe org2Key
     }
@@ -234,10 +251,12 @@ class OrganisationControllerSpec extends TestUtils {
       val response: WSResponse = putJson(path, org2AsJsonModified)
 
       response.status mustBe OK
-      response.json.toString mustBe "true"
 
-      val msg = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
-      val msgAsJson = Json.parse(msg)
+      val putValue: JsValue = response.json
+
+      (putValue \ "label").as[String] mustBe org2Modified.label
+
+      val msgAsJson = readLastKafkaEvent()
       (msgAsJson \ "type").as[String] mustBe "OrganisationUpdated"
       (msgAsJson \ "oldValue" \ "label").as[String] mustBe "lbl"
       (msgAsJson \ "payload" \ "label").as[String] mustBe "modified"
@@ -396,13 +415,11 @@ class OrganisationControllerSpec extends TestUtils {
       val respOrgaCreated: WSResponse =
         postJson(s"/$tenant/organisations", orgAsJson)
       respOrgaCreated.status mustBe CREATED
-      EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
 
       val respRelease =
         postJson(s"/$tenant/organisations/$orgKey/draft/_release",
                  respOrgaCreated.json)
       respRelease.status mustBe OK
-      EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
 
       val userId: String = "userToDelete"
 
@@ -430,17 +447,43 @@ class OrganisationControllerSpec extends TestUtils {
 
       putJson(s"/$tenant/organisations/$orgKey/users/$userId",
               consentFactAsJson).status mustBe OK
-      EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
 
       delete(s"/$tenant/organisations/$orgKey").status mustBe OK
 
-      val msg = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
-      val msgAsJson = Json.parse(msg)
+      val msgAsJson = readLastKafkaEvent()
       (msgAsJson \ "type").as[String] mustBe "OrganisationDeleted"
       (msgAsJson \ "payload" \ "key").as[String] mustBe orgKey
 
       getJson(s"/$tenant/organisations/$orgKey").status mustBe NOT_FOUND
       getJson(s"/$tenant/organisations/$orgKey/users/$userId").status mustBe NOT_FOUND
+    }
+  }
+
+  "validate release management" should {
+    "create released without organisation creation" in {
+      val orgKey = "orgTest5"
+      val org = Organisation(
+        key = orgKey,
+        label = "lbl",
+        groups = Seq(
+          PermissionGroup(key = "group1",
+                          label = "blalba",
+                          permissions =
+                            Seq(Permission("sms", "Please accept sms")))
+        )
+      )
+
+      val releaseErrorResponse: WSResponse =
+        postJson(s"/$tenant/organisations/$orgKey/draft/_release", org.asJson)
+      releaseErrorResponse.status mustBe NOT_FOUND
+
+      val creationResponse: WSResponse =
+        postJson(s"/$tenant/organisations", org.asJson)
+      creationResponse.status mustBe CREATED
+
+      val releaseResponse: WSResponse =
+        postJson(s"/$tenant/organisations/$orgKey/draft/_release", org.asJson)
+      releaseResponse.status mustBe OK
     }
   }
 }

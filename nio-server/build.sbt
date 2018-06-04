@@ -28,17 +28,7 @@ libraryDependencies ++= Seq(
 
   // S3 client for akka-stream
   "com.lightbend.akka" %% "akka-stream-alpakka-s3" % "0.14",
-  "org.scalatestplus.play" %% "scalatestplus-play" % "3.1.0" % Test,
-  "de.flapdoodle.embed" % "de.flapdoodle.embed.mongo" % "2.0.0" % Test,
-  //For some legal reason the jms-api 1.1 has been removed from central
-  //@see https://issues.apache.org/jira/browse/KAFKA-974
-  //@see http://maven.apache.org/guides/mini/guide-coping-with-sun-jars.html
-  "net.manub" %% "scalatest-embedded-kafka" % "1.1.0" % Test
-    exclude ("javax.jms", "jms")
-    exclude ("com.sun.jdmk", "jmxtools")
-    exclude ("com.sun.jmx", "jmxri"),
-  // For testing with a mocked s3 server
-  "io.findify" %% "s3mock" % "0.2.4" % Test
+  "org.scalatestplus.play" %% "scalatestplus-play" % "3.1.0" % Test
 )
 
 scalacOptions ++= Seq(

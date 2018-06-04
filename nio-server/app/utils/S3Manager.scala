@@ -2,26 +2,25 @@ package utils
 
 import java.util.Base64
 
-import akka.stream.{ActorMaterializer, Materializer}
-import akka.stream.scaladsl.StreamConverters
 import com.amazonaws.ClientConfiguration
 import com.amazonaws.auth.{AWSStaticCredentialsProvider, BasicAWSCredentials}
 import com.amazonaws.client.builder.AwsClientBuilder
 import com.amazonaws.regions.Regions
-import com.amazonaws.services.s3.model.{
-  DeleteObjectsRequest,
-  ObjectListing,
-  PutObjectResult
-}
+import com.amazonaws.services.s3.model.PutObjectResult
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
+import com.google.inject.ImplementedBy
 import configuration.{Env, S3Config}
 import javax.inject.Inject
-import play.api.Logger
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success, Try}
 
-class S3Manager @Inject()(env: Env) {
+@ImplementedBy(classOf[S3Manager])
+trait FSManager {
+  def addFile(key: String, content: String)(
+      implicit s3ExecutionContext: S3ExecutionContext): Future[PutObjectResult]
+}
+
+class S3Manager @Inject()(env: Env) extends FSManager {
 
   private lazy val s3Config: S3Config = env.config.s3Config
 
@@ -79,25 +78,6 @@ class S3Manager @Inject()(env: Env) {
                              Base64.getEncoder.encodeToString(key.getBytes),
                              content)
         }
-      }
-
-  }
-
-  def reads()(implicit mat: Materializer,
-              s3ExecutionContext: S3ExecutionContext): Unit = {
-    createBucket(s3Config.bucketName)
-      .flatMap { _ =>
-        Future {
-          amazonS3.listObjects(s3Config.bucketName)
-        }.map { listing =>
-          Logger.info(
-            s"objects in bucket : ${listing.getObjectSummaries.size()}")
-
-          listing.getObjectSummaries.forEach(o => {
-            Logger.info(s"key : ${o.getKey}")
-          })
-        }
-
       }
 
   }
