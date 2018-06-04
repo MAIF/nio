@@ -19,7 +19,8 @@ class DeletionControllerSpec extends TestUtils {
       val inputJson = Json.obj("appIds" -> Seq("app1", "app2"))
       val startResp =
         postJson(
-          s"/$tenant/organisations/$orgKey/users/$userId/deletion/_start", inputJson)
+          s"/$tenant/organisations/$orgKey/users/$userId/deletion/_start",
+          inputJson)
 
       startResp.status mustBe CREATED
 
@@ -47,8 +48,6 @@ class DeletionControllerSpec extends TestUtils {
     "show all deletion tasks" in {
       val resp = getJson(s"/$tenant/organisations/$orgKey/users/deletions")
       resp.status mustBe OK
-
-      println("tasks -> " + resp.json)
 
       (resp.json \ "count").as[Int] mustBe 1
 
@@ -79,8 +78,10 @@ class DeletionControllerSpec extends TestUtils {
 
       val msg3 = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
       val msg3AsJson = Json.parse(msg3)
-      (msg3AsJson \ "type").as[String] mustBe EventType.DeletionFinished.toString
-      (msg3AsJson \ "payload" \ "status").as[String] mustBe DeletionTaskStatus.Done.toString
+      (msg3AsJson \ "type").as[String] mustBe EventType.DeletionFinished
+        .toString
+      (msg3AsJson \ "payload" \ "status")
+        .as[String] mustBe DeletionTaskStatus.Done.toString
     }
   }
 }

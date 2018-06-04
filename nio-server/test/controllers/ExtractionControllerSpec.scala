@@ -11,7 +11,10 @@ import java.nio.file.Files
 import java.util.concurrent.TimeUnit
 
 import akka.stream.scaladsl.FileIO
-import com.amazonaws.auth.{AWSStaticCredentialsProvider, AnonymousAWSCredentials}
+import com.amazonaws.auth.{
+  AWSStaticCredentialsProvider,
+  AnonymousAWSCredentials
+}
 import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 import io.findify.s3mock.S3Mock
@@ -44,12 +47,14 @@ class ExtractionControllerSpec extends TestUtils {
 
       val msg1 = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
       val msg1AsJson = Json.parse(msg1)
-      (msg1AsJson \ "type").as[String] mustBe EventType.ExtractionStarted.toString
+      (msg1AsJson \ "type").as[String] mustBe EventType.ExtractionStarted
+        .toString
       (msg1AsJson \ "payload" \ "appId").as[String] mustBe appId1
 
       val msg2 = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
       val msg2AsJson = Json.parse(msg2)
-      (msg2AsJson \ "type").as[String] mustBe EventType.ExtractionStarted.toString
+      (msg2AsJson \ "type").as[String] mustBe EventType.ExtractionStarted
+        .toString
       (msg2AsJson \ "payload" \ "appId").as[String] mustBe "app2"
     }
 
@@ -74,14 +79,19 @@ class ExtractionControllerSpec extends TestUtils {
     }
 
     val fileApp1 = File.createTempFile("file_app1_", ".json")
-    Files.write(fileApp1.toPath, """{ "key": "value" }""".getBytes(StandardCharsets.UTF_8))
+    Files.write(fileApp1.toPath,
+                """{ "key": "value" }""".getBytes(StandardCharsets.UTF_8))
 
     val fileApp2 = File.createTempFile("file_app2_", ".json")
-    Files.write(fileApp2.toPath, """{ "key": "value" }""".getBytes(StandardCharsets.UTF_8))
+    Files.write(fileApp2.toPath,
+                """{ "key": "value" }""".getBytes(StandardCharsets.UTF_8))
 
     "set files metadata for a task" in {
-      val inputJson = FilesMetadata(files = Seq(FileMetadata(fileApp1.getName,"json",fileApp1.length))).asJson
-      val resp = postJson(s"/$tenant/organisations/$orgKey/users/extractions/$extractionTaskId/apps/$appId1/_setFilesMetadata", inputJson)
+      val inputJson = FilesMetadata(files =
+        Seq(FileMetadata(fileApp1.getName, "json", fileApp1.length))).asJson
+      val resp = postJson(
+        s"/$tenant/organisations/$orgKey/users/extractions/$extractionTaskId/apps/$appId1/_setFilesMetadata",
+        inputJson)
 
       resp.status mustBe OK
 
@@ -90,24 +100,34 @@ class ExtractionControllerSpec extends TestUtils {
         .value
         .flatMap(el => AppState.appStateFormats.reads(el).asOpt)
 
-      appStates.find(_.appId == appId1).get.files.exists(fm =>
-        fm.name == fileApp1.getName &&
-        fm.contentType == "json" &&
-        fm.size == fileApp1.length()) mustBe true
+      appStates
+        .find(_.appId == appId1)
+        .get
+        .files
+        .exists(
+          fm =>
+            fm.name == fileApp1.getName &&
+              fm.contentType == "json" &&
+              fm.size == fileApp1.length()) mustBe true
 
       val msg1 = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
       val msg1AsJson = Json.parse(msg1)
-      (msg1AsJson \ "type").as[String] mustBe EventType.ExtractionAppFilesMetadataReceived.toString
+      (msg1AsJson \ "type")
+        .as[String] mustBe EventType.ExtractionAppFilesMetadataReceived.toString
       (msg1AsJson \ "payload" \ "appId").as[String] mustBe appId1
 
-      val inputJson2 = FilesMetadata(files = Seq(FileMetadata(fileApp2.getName,"json",fileApp2.length))).asJson
-      val resp2 = postJson(s"/$tenant/organisations/$orgKey/users/extractions/$extractionTaskId/apps/$appId2/_setFilesMetadata", inputJson2)
+      val inputJson2 = FilesMetadata(files =
+        Seq(FileMetadata(fileApp2.getName, "json", fileApp2.length))).asJson
+      val resp2 = postJson(
+        s"/$tenant/organisations/$orgKey/users/extractions/$extractionTaskId/apps/$appId2/_setFilesMetadata",
+        inputJson2)
 
       resp2.status mustBe OK
 
       val msg2 = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
       val msg2AsJson = Json.parse(msg2)
-      (msg2AsJson \ "type").as[String] mustBe EventType.ExtractionAppFilesMetadataReceived.toString
+      (msg2AsJson \ "type")
+        .as[String] mustBe EventType.ExtractionAppFilesMetadataReceived.toString
       (msg2AsJson \ "payload" \ "appId").as[String] mustBe appId2
     }
 
@@ -134,14 +154,14 @@ class ExtractionControllerSpec extends TestUtils {
 
       createBucketIfNotExist(client, "nioevents")
 
-
       val chunks = FileIO.fromPath(fileApp1.toPath)
 
       val resp = Await.result(
-        ws.url(s"$serverHost/api/$tenant/organisations/$orgKey/users/extractions/$extractionTaskId/apps/$appId1/files/${fileApp1.getName}")
-        .withBody(SourceBody(chunks))
-        .withMethod("POST")
-        .execute(),
+        ws.url(
+            s"$serverHost/api/$tenant/organisations/$orgKey/users/extractions/$extractionTaskId/apps/$appId1/files/${fileApp1.getName}")
+          .withBody(SourceBody(chunks))
+          .withMethod("POST")
+          .execute(),
         Duration(60, TimeUnit.SECONDS)
       )
 
@@ -149,11 +169,13 @@ class ExtractionControllerSpec extends TestUtils {
 
       val msg1 = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
       val msg1AsJson = Json.parse(msg1)
-      (msg1AsJson \ "type").as[String] mustBe EventType.ExtractionAppDone.toString
+      (msg1AsJson \ "type").as[String] mustBe EventType.ExtractionAppDone
+        .toString
       (msg1AsJson \ "payload" \ "appId").as[String] mustBe appId1
 
       val respBad = Await.result(
-        ws.url(s"$serverHost/api/$tenant/organisations/$orgKey/users/extractions/$extractionTaskId/apps/app3/files/${fileApp1.getName}")
+        ws.url(
+            s"$serverHost/api/$tenant/organisations/$orgKey/users/extractions/$extractionTaskId/apps/app3/files/${fileApp1.getName}")
           .withBody(SourceBody(chunks))
           .withMethod("POST")
           .execute(),
@@ -165,10 +187,10 @@ class ExtractionControllerSpec extends TestUtils {
       val respTask = getJson(
         s"/$tenant/organisations/$orgKey/users/extractions/$extractionTaskId")
       respTask.status mustBe OK
-      println("-----> " + respTask.body)
 
       val resp2 = Await.result(
-        ws.url(s"$serverHost/api/$tenant/organisations/$orgKey/users/extractions/$extractionTaskId/apps/$appId2/files/${fileApp2.getName}")
+        ws.url(
+            s"$serverHost/api/$tenant/organisations/$orgKey/users/extractions/$extractionTaskId/apps/$appId2/files/${fileApp2.getName}")
           .withBody(SourceBody(chunks))
           .withMethod("POST")
           .execute(),
@@ -176,18 +198,16 @@ class ExtractionControllerSpec extends TestUtils {
       )
       resp2.status mustBe OK
 
-      println("---- > "+ resp2.body)
-
       val msg2 = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
       val msg2AsJson = Json.parse(msg2)
-      (msg2AsJson \ "type").as[String] mustBe EventType.ExtractionAppDone.toString
+      (msg2AsJson \ "type").as[String] mustBe EventType.ExtractionAppDone
+        .toString
       (msg2AsJson \ "payload" \ "appId").as[String] mustBe appId2
-      println("----> " + (msg2AsJson \ "payload"))
 
       val msg3 = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
       val msg3AsJson = Json.parse(msg3)
-      (msg3AsJson \ "type").as[String] mustBe EventType.ExtractionFinished.toString
-      println("----> " + (msg3AsJson \ "payload"))
+      (msg3AsJson \ "type")
+        .as[String] mustBe EventType.ExtractionFinished.toString
     }
   }
 
