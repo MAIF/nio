@@ -83,8 +83,7 @@ case class ConsentFact(_id: String = BSONObjectID.generate().stringify,
       <version>{version}</version>
       <groups>{groups.map(_.asXml)}</groups>
       <lastUpdate>{lastUpdate.toString(DateUtils.utcDateFormatter)}</lastUpdate>
-      <orgKey>{orgKey.getOrElse("")}</orgKey>
-      {if (metaData.isDefined) { metaData.map{md => <metaData>{md.map{ e => <metaDataEntry key={e._1} value={e._2}/>}}</metaData>} }.get }
+      <orgKey>{orgKey.getOrElse("")}</orgKey>{if (metaData.isDefined) { metaData.map{md => <metaData>{md.map{ e => <metaDataEntry key={e._1} value={e._2}/>}}</metaData>} }.get }
     </consentFact>
   }
 }
