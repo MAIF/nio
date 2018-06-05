@@ -13,4 +13,3 @@ services:
 before_install:
   - docker run -d -p 2181:2181 -p 9092:9092 --env ADVERTISED_HOST=127.0.0.1 --env ADVERTISED_PORT=9092 spotify/kafka
   - docker run -d -p 27017:27017 mongo:3.4.3
-  - docker run -d -p 8000:8000 scality/s3server
