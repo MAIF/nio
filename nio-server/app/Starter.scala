@@ -24,6 +24,7 @@ class Starter @Inject()(config: Configuration,
                         consentFactStore: ConsentFactMongoDataStore,
                         accountMongoDataStore: AccountMongoDataStore,
                         destroyTaskMongoDataStore: DeletionTaskMongoDataStore,
+                        extractionTaskMongoDataStore: ExtractionTaskMongoDataStore,
                         kafkaMessageBroker: KafkaMessageBroker,
                         defaultLoader: DefaultLoader,
                         secureEvent: SecureEvent,
@@ -53,6 +54,7 @@ class Starter @Inject()(config: Configuration,
             _ <- consentFactStore.init(tenant)
             _ <- accountMongoDataStore.init(tenant)
             _ <- destroyTaskMongoDataStore.init(tenant)
+            _ <- extractionTaskMongoDataStore.init(tenant)
             _ <- defaultLoader.load(tenant)
           } yield {
             ()

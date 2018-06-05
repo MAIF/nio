@@ -12,10 +12,7 @@ import akka.stream.scaladsl.Sink
 import com.amazonaws.services.s3.model.PutObjectResult
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.common.TopicPartition
-import org.apache.kafka.common.serialization.{
-  ByteArrayDeserializer,
-  StringDeserializer
-}
+import org.apache.kafka.common.serialization.{ByteArrayDeserializer, StringDeserializer}
 import org.scalatest._
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
@@ -98,6 +95,8 @@ trait TestUtils
       .flatMap(_.drop(failIfNotFound = false))
     getStoredCollection(reactiveMongoApi, s"$tenant-deletionTasks")
       .flatMap(_.drop(failIfNotFound = false))
+    getStoredCollection(reactiveMongoApi, s"$tenant-extractionTasks")
+      .flatMap(_.drop(failIfNotFound = false))
     getStoredCollection(reactiveMongoApi, s"$tenant-organisations")
       .flatMap(_.drop(failIfNotFound = false))
     getStoredCollection(reactiveMongoApi, s"$tenant-users")
@@ -129,7 +128,7 @@ trait TestUtils
       "mongodb.uri" -> mongoUrl,
       "tenant.admin.secret" -> "secret",
       "db.flush" -> "true",
-      "nio.s3Config.v4Auth" -> "false
+      "nio.s3Config.v4Auth" -> "false",
       "nio.kafka.port" -> s"$kafkaPort",
       "nio.kafka.servers" -> s"127.0.0.1:$kafkaPort",
       "nio.kafka.topic" -> kafkaTopic,
@@ -168,6 +167,29 @@ trait TestUtils
       .runWith(Sink.last)
 
     Await.result[JsValue](lastEvent, Duration(10, TimeUnit.SECONDS))
+  }
+
+  def readLastNKafkaEvents(n: Int): Seq[JsValue] = {
+
+    val partition = new TopicPartition(kafkaTopic, 0)
+
+    import scala.collection.JavaConverters._
+
+    val partitionToLong: util.Map[TopicPartition, lang.Long] = consumerSettings
+      .createKafkaConsumer()
+      .endOffsets(List(partition).asJavaCollection)
+
+    val lastOffset: Long = partitionToLong.get(partition)
+
+    val topicsAndDate =
+      Subscriptions.assignmentWithOffset(new TopicPartition(kafkaTopic, 0) -> (lastOffset - n ))
+    val lastEvents: Future[Seq[JsValue]] = Consumer
+      .plainSource[Array[Byte], String](consumerSettings, topicsAndDate)
+      .map{r => Json.parse(r.value())}
+      .take(n)
+      .runWith(Sink.seq)
+
+    Await.result[Seq[JsValue]](lastEvents, Duration(10, TimeUnit.SECONDS))
   }
 
   private def callByType[T: BodyWritable](path: String,

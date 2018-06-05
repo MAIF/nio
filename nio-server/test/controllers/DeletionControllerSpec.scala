@@ -23,11 +23,14 @@ class DeletionControllerSpec extends TestUtils {
 
       deletionTaskId = (startResp.json \ "id").as[String]
 
-      val msg1AsJson = readLastKafkaEvent()
+      val messages = readLastNKafkaEvents(2)
+      messages.length mustBe 2
+
+      val msg1AsJson = messages(0)
       (msg1AsJson \ "type").as[String] mustBe EventType.DeletionStarted.toString
       (msg1AsJson \ "payload" \ "appId").as[String] mustBe "app1"
 
-      val msg2AsJson = readLastKafkaEvent()
+      val msg2AsJson = messages(1)
       (msg2AsJson \ "type").as[String] mustBe EventType.DeletionStarted.toString
       (msg2AsJson \ "payload" \ "appId").as[String] mustBe "app2"
     }
@@ -65,11 +68,14 @@ class DeletionControllerSpec extends TestUtils {
         JsNull)
       app2DoneResp.status mustBe OK
 
-      val msg2AsJson = readLastKafkaEvent()
+      val messages = readLastNKafkaEvents(2)
+      messages.length mustBe 2
+
+      val msg2AsJson = messages(0)
       (msg2AsJson \ "type").as[String] mustBe EventType.DeletionAppDone.toString
       (msg2AsJson \ "payload" \ "appId").as[String] mustBe "app2"
 
-      val msg3AsJson = readLastKafkaEvent()
+      val msg3AsJson = messages(1)
       (msg3AsJson \ "type").as[String] mustBe EventType.DeletionFinished
         .toString
       (msg3AsJson \ "payload" \ "status")

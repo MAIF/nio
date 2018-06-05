@@ -1,7 +1,6 @@
 package controllers
 
 import models._
-import net.manub.embeddedkafka.EmbeddedKafka
 import play.api.libs.json.{JsArray, Json}
 import play.api.test.Helpers._
 import utils.TestUtils
@@ -11,21 +10,15 @@ import java.nio.file.Files
 import java.util.concurrent.TimeUnit
 
 import akka.stream.scaladsl.FileIO
-import com.amazonaws.auth.{
-  AWSStaticCredentialsProvider,
-  AnonymousAWSCredentials
-}
-import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration
-import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
-import io.findify.s3mock.S3Mock
+import com.amazonaws.services.s3.AmazonS3
 import play.api.libs.ws.SourceBody
+import s3.{S3, S3Configuration}
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 
 class ExtractionControllerSpec extends TestUtils {
 
-  val tenant: String = "sandbox"
   val orgKey = "orgTest1"
   val appId1 = "app1"
   val appId2 = "app2"
@@ -34,7 +27,7 @@ class ExtractionControllerSpec extends TestUtils {
   "ExtractionController" should {
     var extractionTaskId = ""
 
-    "start deletion task and check for kafka event" in {
+    "start extraction task and check for kafka event" in {
       val inputJson = Json.obj("appIds" -> Seq(appId1, "app2"))
       val startResp =
         postJson(
@@ -45,14 +38,15 @@ class ExtractionControllerSpec extends TestUtils {
 
       extractionTaskId = (startResp.json \ "id").as[String]
 
-      val msg1 = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
-      val msg1AsJson = Json.parse(msg1)
+      val messages = readLastNKafkaEvents(2)
+      messages.length mustBe 2
+
+      val msg1AsJson = messages(0)
       (msg1AsJson \ "type").as[String] mustBe EventType.ExtractionStarted
         .toString
       (msg1AsJson \ "payload" \ "appId").as[String] mustBe appId1
 
-      val msg2 = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
-      val msg2AsJson = Json.parse(msg2)
+      val msg2AsJson = messages(1)
       (msg2AsJson \ "type").as[String] mustBe EventType.ExtractionStarted
         .toString
       (msg2AsJson \ "payload" \ "appId").as[String] mustBe "app2"
@@ -110,8 +104,7 @@ class ExtractionControllerSpec extends TestUtils {
               fm.contentType == "json" &&
               fm.size == fileApp1.length()) mustBe true
 
-      val msg1 = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
-      val msg1AsJson = Json.parse(msg1)
+      val msg1AsJson = readLastKafkaEvent()
       (msg1AsJson \ "type")
         .as[String] mustBe EventType.ExtractionAppFilesMetadataReceived.toString
       (msg1AsJson \ "payload" \ "appId").as[String] mustBe appId1
@@ -124,35 +117,17 @@ class ExtractionControllerSpec extends TestUtils {
 
       resp2.status mustBe OK
 
-      val msg2 = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
-      val msg2AsJson = Json.parse(msg2)
+      val msg2AsJson = readLastKafkaEvent()
       (msg2AsJson \ "type")
         .as[String] mustBe EventType.ExtractionAppFilesMetadataReceived.toString
       (msg2AsJson \ "payload" \ "appId").as[String] mustBe appId2
     }
 
     "upload a file during an extraction task" in {
+      val s3Client = app.injector.instanceOf[S3]
+      val s3Conf = app.injector.instanceOf[S3Configuration]
 
-      /** Create and start S3 API mock. */
-      val api = S3Mock(port = 8000, dir = "tmp")
-      api.start
-
-      /* AWS S3 client setup.
-       *  withPathStyleAccessEnabled(true) trick is required to overcome S3 default
-       *  DNS-based bucket access scheme
-       *  resulting in attempts to connect to addresses like "bucketname.localhost"
-       *  which requires specific DNS setup.
-       */
-      val endpoint =
-        new EndpointConfiguration("http://localhost:8000", "us-west-2")
-      val client = AmazonS3ClientBuilder.standard
-        .withPathStyleAccessEnabled(true)
-        .withEndpointConfiguration(endpoint)
-        .withCredentials(
-          new AWSStaticCredentialsProvider(new AnonymousAWSCredentials()))
-        .build
-
-      createBucketIfNotExist(client, "nioevents")
+      createBucketIfNotExist(s3Client.client, s3Conf.bucketName)
 
       val chunks = FileIO.fromPath(fileApp1.toPath)
 
@@ -167,8 +142,7 @@ class ExtractionControllerSpec extends TestUtils {
 
       resp.status mustBe OK
 
-      val msg1 = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
-      val msg1AsJson = Json.parse(msg1)
+      val msg1AsJson = readLastKafkaEvent()
       (msg1AsJson \ "type").as[String] mustBe EventType.ExtractionAppDone
         .toString
       (msg1AsJson \ "payload" \ "appId").as[String] mustBe appId1
@@ -198,14 +172,15 @@ class ExtractionControllerSpec extends TestUtils {
       )
       resp2.status mustBe OK
 
-      val msg2 = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
-      val msg2AsJson = Json.parse(msg2)
+      val messages = readLastNKafkaEvents(2)
+      messages.length mustBe 2
+
+      val msg2AsJson = messages(0)
       (msg2AsJson \ "type").as[String] mustBe EventType.ExtractionAppDone
         .toString
       (msg2AsJson \ "payload" \ "appId").as[String] mustBe appId2
 
-      val msg3 = EmbeddedKafka.consumeFirstStringMessageFrom(kafkaTopic)
-      val msg3AsJson = Json.parse(msg3)
+      val msg3AsJson = messages(1)
       (msg3AsJson \ "type")
         .as[String] mustBe EventType.ExtractionFinished.toString
     }
