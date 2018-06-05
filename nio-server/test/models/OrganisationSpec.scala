@@ -35,8 +35,6 @@ class OrganisationSpec extends PlaySpec with WordSpecLike {
 
       val fromXml = Organisation.fromXml(xml)
 
-      println(fromXml)
-
       fromXml.isRight mustBe true
       fromXml.right.get.key mustBe org.key
     }

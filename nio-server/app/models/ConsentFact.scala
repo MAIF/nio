@@ -2,11 +2,10 @@ package models
 
 import controllers.ReadableEntity
 import org.joda.time.{DateTime, DateTimeZone}
-import play.api.libs.functional.syntax.unlift
-import reactivemongo.bson.BSONObjectID
-import play.api.libs.json._
-import play.api.libs.functional.syntax._
+import play.api.libs.functional.syntax.{unlift, _}
 import play.api.libs.json.Reads._
+import play.api.libs.json._
+import reactivemongo.bson.BSONObjectID
 import utils.DateUtils
 
 import scala.util.{Failure, Success, Try}
@@ -66,7 +65,8 @@ case class ConsentFact(_id: String = BSONObjectID.generate().stringify,
                        doneBy: DoneBy,
                        version: Int,
                        groups: Seq[ConsentGroup],
-                       lastUpdate: DateTime = DateTime.now(DateTimeZone.UTC),
+                       lastUpdate: Option[DateTime] = Some(
+                         DateTime.now(DateTimeZone.UTC)),
                        orgKey: Option[String] = None,
                        metaData: Option[Map[String, String]] = None)
     extends ModelTransformAs {
@@ -82,7 +82,7 @@ case class ConsentFact(_id: String = BSONObjectID.generate().stringify,
       </doneBy>
       <version>{version}</version>
       <groups>{groups.map(_.asXml)}</groups>
-      <lastUpdate>{lastUpdate.toString(DateUtils.utcDateFormatter)}</lastUpdate>
+      <lastUpdate>{lastUpdate.getOrElse(DateTime.now(DateTimeZone.UTC)).toString(DateUtils.utcDateFormatter)}</lastUpdate>
       <orgKey>{orgKey.getOrElse("")}</orgKey>{if (metaData.isDefined) { metaData.map{md => <metaData>{md.map{ e => <metaDataEntry key={e._1} value={e._2}/>}}</metaData>} }.get }
     </consentFact>
   }
@@ -92,6 +92,8 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
                                 doneBy: DoneBy,
                                 version: Int,
                                 groups: Seq[ConsentGroup],
+                                lastUpdate: Option[DateTime] = Some(
+                                  DateTime.now(DateTimeZone.UTC)),
                                 orgKey: Option[String] = None,
                                 metaData: Option[Map[String, String]] = None) =
     ConsentFact(
@@ -100,7 +102,7 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
       doneBy = doneBy,
       version = version,
       groups = groups,
-      lastUpdate = DateTime.now(DateTimeZone.UTC),
+      lastUpdate = lastUpdate,
       orgKey = orgKey,
       metaData = metaData
     )
@@ -110,6 +112,7 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
       (__ \ "doneBy").read[DoneBy] and
       (__ \ "version").read[Int] and
       (__ \ "groups").read[Seq[ConsentGroup]] and
+      (__ \ "lastUpdate").readNullable[DateTime](DateUtils.utcDateTimeReads) and
       (__ \ "orgKey").readNullable[String] and
       (__ \ "metaData").readNullable[Map[String, String]]
   )(ConsentFact.newWithoutIdAndLastUpdate _)
@@ -120,7 +123,7 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
       (__ \ "doneBy").read[DoneBy] and
       (__ \ "version").read[Int] and
       (__ \ "groups").read[Seq[ConsentGroup]] and
-      (__ \ "lastUpdate").read[DateTime](DateUtils.utcDateTimeReads) and
+      (__ \ "lastUpdate").readNullable[DateTime](DateUtils.utcDateTimeReads) and
       (__ \ "orgKey").readNullable[String] and
       (__ \ "metaData").readNullable[Map[String, String]]
   )(ConsentFact.apply _)
@@ -131,7 +134,8 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
       (JsPath \ "doneBy").write[DoneBy](DoneBy.doneByFormats) and
       (JsPath \ "version").write[Int] and
       (JsPath \ "groups").write[Seq[ConsentGroup]] and
-      (JsPath \ "lastUpdate").write[DateTime](DateUtils.utcDateTimeWrites) and
+      (JsPath \ "lastUpdate")
+        .writeNullable[DateTime](DateUtils.utcDateTimeWrites) and
       (JsPath \ "orgKey").writeNullable[String] and
       (JsPath \ "metaData").writeNullable[Map[String, String]]
   )(unlift(ConsentFact.unapply))
@@ -142,7 +146,8 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
       (JsPath \ "doneBy").write[DoneBy](DoneBy.doneByFormats) and
       (JsPath \ "version").write[Int] and
       (JsPath \ "groups").write[Seq[ConsentGroup]] and
-      (JsPath \ "lastUpdate").write[DateTime](DateUtils.utcDateTimeWrites) and
+      (JsPath \ "lastUpdate")
+        .writeNullable[DateTime](DateUtils.utcDateTimeWrites) and
       (JsPath \ "orgKey").writeNullable[String] and
       (JsPath \ "metaData").writeNullable[Map[String, String]]
   )(unlift(ConsentFact.unapply))
@@ -150,19 +155,25 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
   val consentFactFormats = Format(consentFactReads, consentFactWrites)
 
   def template(orgVerNum: Int, groups: Seq[ConsentGroup], orgKey: String) =
-    ConsentFact(_id = null,
-                userId = "fill",
-                doneBy = DoneBy("fill", "fill"),
-                version = orgVerNum,
-                groups = groups,
-                lastUpdate = DateTime.now(DateTimeZone.UTC),
-                orgKey = Some(orgKey))
+    ConsentFact(
+      _id = null,
+      userId = "fill",
+      doneBy = DoneBy("fill", "fill"),
+      version = orgVerNum,
+      groups = groups,
+      lastUpdate = Some(DateTime.now(DateTimeZone.UTC)),
+      orgKey = Some(orgKey)
+    )
 
   def fromXml(xml: Elem) = {
     Try {
       val userId = (xml \ "userId").head.text
       val doneByUserId = (xml \ "doneBy" \ "userId").head.text
       val doneByRole = (xml \ "doneBy" \ "role").head.text
+
+      val lastUpdate = (xml \ "lastUpdate").headOption.map(h =>
+        DateUtils.utcDateFormatter.parseDateTime(h.text))
+
       val version = (xml \ "version").head.text.toInt
       val groupsXml = (xml \ "groups").head
       val groups = groupsXml.child.collect {
@@ -178,7 +189,8 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
         userId = userId,
         doneBy = DoneBy(doneByUserId, doneByRole),
         version = version,
-        lastUpdate = DateTime.now(DateTimeZone.UTC),
+        lastUpdate =
+          Option(lastUpdate.getOrElse(DateTime.now(DateTimeZone.UTC))),
         groups = groups,
         metaData = metaData
       )

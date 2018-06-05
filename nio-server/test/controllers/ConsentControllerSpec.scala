@@ -3,7 +3,7 @@ package controllers
 import models.{Consent, ConsentFact, ConsentGroup, DoneBy}
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json.{JsArray, JsValue, Json}
-import utils.TestUtils
+import utils.{DateUtils, TestUtils}
 import play.api.test.Helpers._
 
 class ConsentControllerSpec extends TestUtils {
@@ -451,7 +451,7 @@ class ConsentControllerSpec extends TestUtils {
                 Consent("sms", "Par SMS / MMS / VMS", false))
           )
         ),
-        lastUpdate = DateTime.now(DateTimeZone.UTC)
+        lastUpdate = Some(DateTime.now(DateTimeZone.UTC))
       )
 
       val consentFactAsXml = consentFact.asXml
@@ -473,6 +473,142 @@ class ConsentControllerSpec extends TestUtils {
       val response = putJson(path, user1AsJson)
 
       response.status mustBe BAD_REQUEST
+    }
+
+    "force lastUpdate date" in {
+      val yesterday: DateTime = DateTime.now(DateTimeZone.UTC).minusDays(1)
+
+      val consentFact = ConsentFact(
+        _id = "cf",
+        userId = userId4,
+        doneBy = DoneBy("a1", "admin"),
+        version = 2,
+        groups = Seq(
+          ConsentGroup(
+            "maifNotifs",
+            "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF",
+            Seq(Consent("phone", "Par contact téléphonique", false),
+                Consent("mail", "Par contact électronique", false),
+                Consent("sms", "Par SMS / MMS / VMS", false))
+          ),
+          ConsentGroup(
+            "partenaireNotifs",
+            "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées des partenaires du groupe MAIF",
+            Seq(Consent("phone", "Par contact téléphonique", false),
+                Consent("mail", "Par contact électronique", false),
+                Consent("sms", "Par SMS / MMS / VMS", false))
+          )
+        ),
+        lastUpdate = Some(yesterday)
+      )
+
+      val resp =
+        putJson(s"/$tenant/organisations/$organisationKey/users/$userId4",
+                consentFact.asJson)
+
+      resp.status mustBe OK
+
+      val json: JsValue = resp.json
+
+      (json \ "lastUpdate").as[String] mustBe yesterday.toString(
+        DateUtils.utcDateFormatter)
+
+      val respGet =
+        getJson(s"/$tenant/organisations/$organisationKey/users/$userId4")
+
+      respGet.status mustBe OK
+
+      val jsonGet: JsValue = respGet.json
+
+      (jsonGet \ "lastUpdate").as[String] mustBe yesterday.toString(
+        DateUtils.utcDateFormatter)
+    }
+
+    "not force update date" in {
+      val userId5 = "userId5"
+      val consentFact = ConsentFact(
+        _id = "cf",
+        userId = userId5,
+        doneBy = DoneBy("a1", "admin"),
+        version = 2,
+        groups = Seq(
+          ConsentGroup(
+            "maifNotifs",
+            "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF",
+            Seq(Consent("phone", "Par contact téléphonique", false),
+                Consent("mail", "Par contact électronique", false),
+                Consent("sms", "Par SMS / MMS / VMS", false))
+          ),
+          ConsentGroup(
+            "partenaireNotifs",
+            "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées des partenaires du groupe MAIF",
+            Seq(Consent("phone", "Par contact téléphonique", false),
+                Consent("mail", "Par contact électronique", false),
+                Consent("sms", "Par SMS / MMS / VMS", false))
+          )
+        )
+      )
+
+      val resp =
+        putJson(s"/$tenant/organisations/$organisationKey/users/$userId5",
+                consentFact.asJson)
+
+      resp.status mustBe OK
+
+      val json: JsValue = resp.json
+
+      (json \ "lastUpdate").as[String] must not be null
+    }
+
+    "force lastUpdate date xml" in {
+      val yesterday: DateTime = DateTime.now(DateTimeZone.UTC).minusDays(1)
+
+      val userId6 = "userId6"
+
+      val consentFact = ConsentFact(
+        _id = "cf",
+        userId = userId6,
+        doneBy = DoneBy("a1", "admin"),
+        version = 2,
+        groups = Seq(
+          ConsentGroup(
+            "maifNotifs",
+            "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF",
+            Seq(Consent("phone", "Par contact téléphonique", false),
+                Consent("mail", "Par contact électronique", false),
+                Consent("sms", "Par SMS / MMS / VMS", false))
+          ),
+          ConsentGroup(
+            "partenaireNotifs",
+            "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées des partenaires du groupe MAIF",
+            Seq(Consent("phone", "Par contact téléphonique", false),
+                Consent("mail", "Par contact électronique", false),
+                Consent("sms", "Par SMS / MMS / VMS", false))
+          )
+        ),
+        lastUpdate = Some(yesterday)
+      )
+
+      val resp =
+        putXml(s"/$tenant/organisations/$organisationKey/users/$userId6",
+               consentFact.asXml)
+
+      resp.status mustBe OK
+
+      val xml = resp.xml
+
+      (xml \ "lastUpdate").head.text mustBe yesterday.toString(
+        DateUtils.utcDateFormatter)
+
+      val respGet =
+        getXml(s"/$tenant/organisations/$organisationKey/users/$userId6")
+
+      respGet.status mustBe OK
+
+      val xmlGet = respGet.xml
+
+      (xmlGet \ "lastUpdate").head.text mustBe yesterday.toString(
+        DateUtils.utcDateFormatter)
     }
 
   }
