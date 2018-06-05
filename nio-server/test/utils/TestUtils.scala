@@ -170,6 +170,7 @@ trait TestUtils
   }
 
   def readLastNKafkaEvents(n: Int): Seq[JsValue] = {
+    Thread.sleep(1000)
 
     val partition = new TopicPartition(kafkaTopic, 0)
 
