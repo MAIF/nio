@@ -105,7 +105,7 @@ class S3 @Inject()(val conf: S3Configuration,
                           val keys = task.states.flatMap { state =>
                             state.files.map { f =>
                               new DeleteObjectsRequest.KeyVersion(
-                                s"$tenant/${task.orgKey}/${task.userId}/${task._id}/${state.appId}/$f.name"
+                                s"$tenant/${task.orgKey}/${task.userId}/${task._id}/${state.appId}/${f.name}"
                               )
                             }
                           }.toSeq
