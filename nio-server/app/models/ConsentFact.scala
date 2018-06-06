@@ -126,7 +126,8 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
       (__ \ "version").read[Int] and
       (__ \ "groups").read[Seq[ConsentGroup]] and
       (__ \ "lastUpdate").read[DateTime](DateUtils.utcDateTimeReads) and
-      (__ \ "lastUpdateSystem").read[DateTime](DateUtils.utcDateTimeReads) and
+      (__ \ "lastUpdateSystem").readWithDefault[DateTime](
+        DateTime.now(DateTimeZone.UTC))(DateUtils.utcDateTimeReads) and
       (__ \ "orgKey").readNullable[String] and
       (__ \ "metaData").readNullable[Map[String, String]]
   )(ConsentFact.apply _)
