@@ -30,8 +30,7 @@ class DeletionController @Inject()(
 
   def startDeletionTask(tenant: String, orgKey: String, userId: String) =
     AuthAction.async(parse.anyContent) { implicit req =>
-      val parsed = parseMethod[DeletionTaskInput](DeletionTaskInput)
-      parsed match {
+      parseMethod[AppIds](AppIds) match {
         case Left(error) =>
           Logger.error(s"Unable to parse deletion task input due to $error")
           Future.successful(BadRequest(error))
@@ -40,14 +39,14 @@ class DeletionController @Inject()(
           deletionTaskStore.insert(tenant, task).map { _ =>
             task.appIds.foreach { appId =>
               broker.publish(
-                DeletionTaskStarted(tenant = tenant,
-                                    author = req.authInfo.sub,
-                                    payload = DeletionTaskInfoPerApp(
-                                      orgKey = orgKey,
-                                      userId = userId,
-                                      appId = appId,
-                                      deletionTaskId = task._id
-                                    ))
+                DeletionStarted(tenant = tenant,
+                                author = req.authInfo.sub,
+                                payload = DeletionTaskInfoPerApp(
+                                  orgKey = orgKey,
+                                  userId = userId,
+                                  appId = appId,
+                                  deletionTaskId = task._id
+                                ))
               )
             }
             renderMethod(task, Created)
@@ -90,21 +89,19 @@ class DeletionController @Inject()(
         deletionTaskStore
           .updateById(tenant, deletionId, updatedDeletionTask)
           .map { _ =>
+            broker.publish(
+              DeletionAppDone(
+                tenant = tenant,
+                author = request.authInfo.sub,
+                payload = AppDone(orgKey, updatedDeletionTask.userId, appId)
+              )
+            )
             if (updatedDeletionTask.status == DeletionTaskStatus.Done) {
               broker.publish(
-                DeletionTaskDone(
+                DeletionFinished(
                   tenant = tenant,
                   author = request.authInfo.sub,
                   payload = updatedDeletionTask
-                )
-              )
-            } else {
-              broker.publish(
-                DeletionTaskUpdated(
-                  tenant = tenant,
-                  author = request.authInfo.sub,
-                  payload = updatedDeletionTask,
-                  oldValue = deletionTask
                 )
               )
             }

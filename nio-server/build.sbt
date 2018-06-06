@@ -25,6 +25,9 @@ libraryDependencies ++= Seq(
   "org.typelevel" %% "cats-core" % "1.1.0", // MIT
   // https://mvnrepository.com/artifact/com.amazonaws/aws-java-sdk-s3
   "com.amazonaws" % "aws-java-sdk-s3" % "1.11.224", // Apache 2.0
+
+  // S3 client for akka-stream
+  "com.lightbend.akka" %% "akka-stream-alpakka-s3" % "0.14",
   "org.scalatestplus.play" %% "scalatestplus-play" % "3.1.0" % Test
 )
 

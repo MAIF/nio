@@ -39,7 +39,7 @@ class S3Manager @Inject()(env: Env) extends FSManager {
     )
     .withPathStyleAccessEnabled(true)
     .withEndpointConfiguration(
-      new AwsClientBuilder.EndpointConfiguration(s3Config.host,
+      new AwsClientBuilder.EndpointConfiguration(s3Config.endpoint,
                                                  Regions.DEFAULT_REGION.getName)
     )
     .build()

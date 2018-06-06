@@ -21,6 +21,19 @@ POST        /api/:tenant/organisations/:orgKey/users/:userId/deletion/_start    
 
 POST        /api/:tenant/organisations/:orgKey/users/deletions/:deletionTaskId/apps/:appId/_done    controllers.DeletionController.updateDeletionTask(tenant: String, orgKey: String, deletionTaskId: String, appId: String)
 
+# Extractions
+
+GET         /api/:tenant/organisations/:orgKey/users/extractions                                                  controllers.ExtractionController.allExtractionTasksByOrgKey(tenant: String, orgKey: String)
+
+GET         /api/:tenant/organisations/:orgKey/users/extractions/:extractionTaskId                                controllers.ExtractionController.findExtractedTask(tenant: String, orgKey: String, extractionTaskId: String)
+
+POST        /api/:tenant/organisations/:orgKey/users/:userId/extraction/_start                                    controllers.ExtractionController.startExtractionTask(tenant: String, orgKey: String, userId: String)
+
+POST        /api/:tenant/organisations/:orgKey/users/extractions/:extractionTaskId/apps/:appId/_setFilesMetadata  controllers.ExtractionController.setFilesMetadata(tenant: String, orgKey: String, extractionTaskId: String, appId: String)
+
+POST        /api/:tenant/organisations/:orgKey/users/extractions/:extractionTaskId/apps/:appId/files/*name        controllers.ExtractionController.uploadFile(tenant: String, orgKey: String, extractionTaskId: String, appId: String, name: String)
+
+# Organisations
 
 GET         /api/:tenant/organisations                              controllers.OrganisationController.list(tenant: String)
 

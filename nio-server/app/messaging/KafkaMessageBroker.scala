@@ -5,12 +5,12 @@ import java.security.MessageDigest
 
 import akka.actor.ActorSystem
 import akka.kafka.ConsumerMessage.CommittableOffsetBatch
-import akka.kafka.Subscriptions
 import akka.kafka.scaladsl.Consumer
+import akka.kafka.Subscriptions
 import akka.stream.Materializer
 import akka.stream.scaladsl.Keep.both
-import akka.stream.scaladsl.{Flow, Source}
 import akka.{Done, NotUsed}
+import akka.stream.scaladsl.{Flow, Source}
 import configuration.{Env, KafkaConfig}
 import javax.inject.{Inject, Singleton}
 import models.{Digest, NioEvent, SecuredEvent}
@@ -94,8 +94,6 @@ class KafkaMessageBroker @Inject()(actorSystem: ActorSystem)(
 
     val topicsAndDate =
       Subscriptions.assignmentOffsetsForTimes(partitions.map(_ -> lastDate): _*)
-
-    Logger.info("----> topicsAndDate " + topicsAndDate)
 
     Consumer
       .plainSource[Array[Byte], String](consumerSettings, topicsAndDate)
