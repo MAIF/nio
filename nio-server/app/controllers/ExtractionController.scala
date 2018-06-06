@@ -157,17 +157,17 @@ class ExtractionController @Inject()(val AuthAction: AuthAction,
                  oldUpload(tenant, req.task, appId, name)
                }).flatMap { location =>
                 // Check all files are done for this app
-                (if (req.task.allFilesDone(appId)) {
+                if (req.task.allFilesDone(appId)) {
                    val updatedTask =
                      req.task.copyWithFileUploadHandled(appId, appState)
                    updatedTask.storeAndEmitEvents(tenant,
                                                   appId,
-                                                  req.authInfo.sub)
+                                                  req.authInfo.sub).map { _ =>
+                     Ok(location)
+                   }
                  } else {
-                   Future.successful()
-                 }).map { _ =>
-                  Ok(location)
-                }
+                   Future.successful(Ok(location))
+                 }
               }
           }
         }
