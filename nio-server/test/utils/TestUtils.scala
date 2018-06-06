@@ -12,7 +12,10 @@ import akka.stream.scaladsl.Sink
 import com.amazonaws.services.s3.model.PutObjectResult
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.common.TopicPartition
-import org.apache.kafka.common.serialization.{ByteArrayDeserializer, StringDeserializer}
+import org.apache.kafka.common.serialization.{
+  ByteArrayDeserializer,
+  StringDeserializer
+}
 import org.scalatest._
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
@@ -183,10 +186,13 @@ trait TestUtils
     val lastOffset: Long = partitionToLong.get(partition)
 
     val topicsAndDate =
-      Subscriptions.assignmentWithOffset(new TopicPartition(kafkaTopic, 0) -> (lastOffset - n ))
+      Subscriptions.assignmentWithOffset(
+        new TopicPartition(kafkaTopic, 0) -> (lastOffset - n))
     val lastEvents: Future[Seq[JsValue]] = Consumer
       .plainSource[Array[Byte], String](consumerSettings, topicsAndDate)
-      .map{r => Json.parse(r.value())}
+      .map { r =>
+        Json.parse(r.value())
+      }
       .take(n)
       .runWith(Sink.seq)
 

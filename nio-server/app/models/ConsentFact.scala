@@ -65,8 +65,9 @@ case class ConsentFact(_id: String = BSONObjectID.generate().stringify,
                        doneBy: DoneBy,
                        version: Int,
                        groups: Seq[ConsentGroup],
-                       lastUpdate: Option[DateTime] = Some(
-                         DateTime.now(DateTimeZone.UTC)),
+                       lastUpdate: DateTime = DateTime.now(DateTimeZone.UTC),
+                       lastUpdateSystem: DateTime =
+                         DateTime.now(DateTimeZone.UTC),
                        orgKey: Option[String] = None,
                        metaData: Option[Map[String, String]] = None)
     extends ModelTransformAs {
@@ -82,7 +83,7 @@ case class ConsentFact(_id: String = BSONObjectID.generate().stringify,
       </doneBy>
       <version>{version}</version>
       <groups>{groups.map(_.asXml)}</groups>
-      <lastUpdate>{lastUpdate.getOrElse(DateTime.now(DateTimeZone.UTC)).toString(DateUtils.utcDateFormatter)}</lastUpdate>
+      <lastUpdate>{lastUpdate.toString(DateUtils.utcDateFormatter)}</lastUpdate>
       <orgKey>{orgKey.getOrElse("")}</orgKey>{if (metaData.isDefined) { metaData.map{md => <metaData>{md.map{ e => <metaDataEntry key={e._1} value={e._2}/>}}</metaData>} }.get }
     </consentFact>
   }
@@ -92,8 +93,8 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
                                 doneBy: DoneBy,
                                 version: Int,
                                 groups: Seq[ConsentGroup],
-                                lastUpdate: Option[DateTime] = Some(
-                                  DateTime.now(DateTimeZone.UTC)),
+                                lastUpdate: DateTime =
+                                  DateTime.now(DateTimeZone.UTC),
                                 orgKey: Option[String] = None,
                                 metaData: Option[Map[String, String]] = None) =
     ConsentFact(
@@ -112,7 +113,8 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
       (__ \ "doneBy").read[DoneBy] and
       (__ \ "version").read[Int] and
       (__ \ "groups").read[Seq[ConsentGroup]] and
-      (__ \ "lastUpdate").readNullable[DateTime](DateUtils.utcDateTimeReads) and
+      (__ \ "lastUpdate").readWithDefault[DateTime](
+        DateTime.now(DateTimeZone.UTC))(DateUtils.utcDateTimeReads) and
       (__ \ "orgKey").readNullable[String] and
       (__ \ "metaData").readNullable[Map[String, String]]
   )(ConsentFact.newWithoutIdAndLastUpdate _)
@@ -123,7 +125,8 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
       (__ \ "doneBy").read[DoneBy] and
       (__ \ "version").read[Int] and
       (__ \ "groups").read[Seq[ConsentGroup]] and
-      (__ \ "lastUpdate").readNullable[DateTime](DateUtils.utcDateTimeReads) and
+      (__ \ "lastUpdate").read[DateTime](DateUtils.utcDateTimeReads) and
+      (__ \ "lastUpdateSystem").read[DateTime](DateUtils.utcDateTimeReads) and
       (__ \ "orgKey").readNullable[String] and
       (__ \ "metaData").readNullable[Map[String, String]]
   )(ConsentFact.apply _)
@@ -135,7 +138,9 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
       (JsPath \ "version").write[Int] and
       (JsPath \ "groups").write[Seq[ConsentGroup]] and
       (JsPath \ "lastUpdate")
-        .writeNullable[DateTime](DateUtils.utcDateTimeWrites) and
+        .write[DateTime](DateUtils.utcDateTimeWrites) and
+      (JsPath \ "lastUpdateSystem")
+        .write[DateTime](DateUtils.utcDateTimeWrites) and
       (JsPath \ "orgKey").writeNullable[String] and
       (JsPath \ "metaData").writeNullable[Map[String, String]]
   )(unlift(ConsentFact.unapply))
@@ -147,7 +152,10 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
       (JsPath \ "version").write[Int] and
       (JsPath \ "groups").write[Seq[ConsentGroup]] and
       (JsPath \ "lastUpdate")
-        .writeNullable[DateTime](DateUtils.utcDateTimeWrites) and
+        .write[DateTime](DateUtils.utcDateTimeWrites) and
+      (JsPath \ "lastUpdateSystem")
+        .writeNullable[DateTime](DateUtils.utcDateTimeWrites)
+        .contramap((_: DateTime) => None) and
       (JsPath \ "orgKey").writeNullable[String] and
       (JsPath \ "metaData").writeNullable[Map[String, String]]
   )(unlift(ConsentFact.unapply))
@@ -161,7 +169,8 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
       doneBy = DoneBy("fill", "fill"),
       version = orgVerNum,
       groups = groups,
-      lastUpdate = Some(DateTime.now(DateTimeZone.UTC)),
+      lastUpdate = DateTime.now(DateTimeZone.UTC),
+      lastUpdateSystem = null,
       orgKey = Some(orgKey)
     )
 
@@ -189,8 +198,7 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
         userId = userId,
         doneBy = DoneBy(doneByUserId, doneByRole),
         version = version,
-        lastUpdate =
-          Option(lastUpdate.getOrElse(DateTime.now(DateTimeZone.UTC))),
+        lastUpdate = lastUpdate.getOrElse(DateTime.now(DateTimeZone.UTC)),
         groups = groups,
         metaData = metaData
       )

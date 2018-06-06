@@ -20,7 +20,7 @@ class ConsentFactSpec extends PlaySpec with WordSpecLike with MustMatchers {
         ConsentGroup("a", "a", Seq(Consent("a", "a", false))),
         ConsentGroup("b", "b", Seq(Consent("b", "b", false)))
       ),
-      lastUpdate = Some(DateTime.now(DateTimeZone.UTC)),
+      lastUpdate = DateTime.now(DateTimeZone.UTC),
       metaData = Some(Map(mdKey1 -> mdVal1, "tata" -> "val2"))
     )
 

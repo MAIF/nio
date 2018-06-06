@@ -451,7 +451,7 @@ class ConsentControllerSpec extends TestUtils {
                 Consent("sms", "Par SMS / MMS / VMS", false))
           )
         ),
-        lastUpdate = Some(DateTime.now(DateTimeZone.UTC))
+        lastUpdate = DateTime.now(DateTimeZone.UTC)
       )
 
       val consentFactAsXml = consentFact.asXml
@@ -499,7 +499,7 @@ class ConsentControllerSpec extends TestUtils {
                 Consent("sms", "Par SMS / MMS / VMS", false))
           )
         ),
-        lastUpdate = Some(yesterday)
+        lastUpdate = yesterday
       )
 
       val resp =
@@ -586,7 +586,7 @@ class ConsentControllerSpec extends TestUtils {
                 Consent("sms", "Par SMS / MMS / VMS", false))
           )
         ),
-        lastUpdate = Some(yesterday)
+        lastUpdate = yesterday
       )
 
       val resp =
