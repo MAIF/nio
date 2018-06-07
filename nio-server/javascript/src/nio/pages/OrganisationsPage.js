@@ -46,7 +46,7 @@ export class OrganisationsPage extends Component {
       content: item => item.label,
       cell: (v, item) => {
         return <Link to={`/organisations/${item.key}/users`} style={{cursor: 'pointer'}}><i
-          className="glyphicon glyphicon-eye-open"/></Link>
+          className="glyphicon glyphicon-eye-open consultColor"/></Link>
       }
     }
   ];
@@ -114,10 +114,14 @@ export class OrganisationsPage extends Component {
         <div className="col-md-12">
           <h1>Organisations</h1>
         </div>
+        <div className="col-md-12" style={{marginBottom: 20}}>
+          <Link className="btn btn-success pull-right" to="/organisations/new" style={{cursor: 'pointer'}}>Nouvelle
+            organisation</Link>
+        </div>
         <div className="row">
           <div className="col-md-12">
             <ReactTable
-              className="fulltable -striped -highlight"
+              className="fulltable -striped -highlight organisations"
               data={this.state.organisations}
               filterable={true}
               filterAll={true}
@@ -141,10 +145,6 @@ export class OrganisationsPage extends Component {
               }}
             />
           </div>
-        </div>
-        <div className="col-md-2">
-          <Link className="btn btn-success" to="/organisations/new" style={{cursor: 'pointer'}}>Nouvelle
-            organisation</Link>
         </div>
       </div>
     );

@@ -94,7 +94,7 @@ export class OrganisationPage extends Component {
       };
 
       const groups = [...this.state.organisation.groups];
-      groups.push(group);
+      groups.unshift(group);
 
       this.setState({organisation: {...this.state.organisation, groups}});
     }
@@ -242,7 +242,9 @@ export class OrganisationPage extends Component {
     }
 
     const actionButtons = (
-      <div className="form-buttons pull-right">
+      <div className="form-buttons pull-right btnsNewOrga">
+      <button className="btn btn-danger" onClick={this.cancel}><i className="glyphicon glyphicon-remove"/></button>
+
         <button className="btn btn-primary" onClick={this.toggleVisualize}>
           {
             this.state.visualizeConsents ?
@@ -251,8 +253,10 @@ export class OrganisationPage extends Component {
               <i className="glyphicon glyphicon-eye-open"/>
           }
         </button>
-
-        <button className="btn btn-primary" onClick={this.save}>
+        <button className="btn btn-success" onClick={this.release}>
+          Définir comme version courante
+        </button>
+        <button className="btn btn-success" onClick={this.save}>
           {
             this.props.organisationKey ?
               <i className="glyphicon glyphicon-hdd"/>
@@ -260,13 +264,7 @@ export class OrganisationPage extends Component {
               <i className="fa fa-floppy-o"/>
           }
         </button>
-
-        <button className="btn btn-primary" onClick={this.release}>
-          Définir comme version courante
-        </button>
-
-        <button className="btn btn-danger" onClick={this.cancel}><i className="glyphicon glyphicon-remove"/></button>
-      </div>
+        </div>
 
     );
 
@@ -289,7 +287,7 @@ export class OrganisationPage extends Component {
           </div>
         }
 
-        <div className="col-md-12">
+        <div className="col-md-12 blocOrganisation">
           {
             this.props.readOnlyMode ?
               <LabelInput label={"Version"} value={this.state.organisation.version.num || "1"}/>
@@ -332,9 +330,10 @@ export class OrganisationPage extends Component {
                      prefixe={"organisation."} errors={this.state.errors}/>
             )
           }
+
+                  {!this.props.readOnlyMode && actionButtons}
         </div>
 
-        {!this.props.readOnlyMode && actionButtons}
 
         <div className="col-md-12">
           {
@@ -411,7 +410,7 @@ class Group extends Component {
       };
 
       const permissions = [...this.state.group.permissions];
-      permissions.push(permission);
+      permissions.unshift(permission);
 
       this.setState({group: {...this.state.group, permissions}}, () => {
         this.props.onChange(this.props.index, this.state.group);
@@ -449,18 +448,20 @@ class Group extends Component {
   render() {
     return (
 
-      <div className="row">
-        <hr/>
+      <div className="groupContent">
+        <hr />
         <div className="form-group">
-          <label className="col-sm-2 control-label"/>
-          <div className="col-sm-10">
-            <span className="groupe">Groupe</span>
-            {
-              !this.props.readOnlyMode &&
-              <button type="button" className="btn btn-danger pull-right btn-xs" onClick={this.props.onRemove}>
-                <i className="glyphicon glyphicon-trash"/>
-              </button>
-            }
+          <div className="row">
+            <label className="col-sm-2 control-label"/>
+            <div className="col-sm-10">
+              <span className="groupe">Groupe</span>
+              {
+                !this.props.readOnlyMode &&
+                <button type="button" className="btn btn-danger pull-right btn-xs" onClick={this.props.onRemove}>
+                  <i className="glyphicon glyphicon-trash"/>
+                </button>
+              }
+            </div>
           </div>
         </div>
 
@@ -476,16 +477,18 @@ class Group extends Component {
                    errorKey={`${this.props.prefixe}groups.${this.props.index}.label.required`}/>
 
         <div className="form-group">
-          <label className="col-sm-2 control-label"/>
-          <div className="col-sm-10" style={{'marginTop': '40px'}}>
-            <span className="groupe">Permissions</span>
-            {
-              !this.props.readOnlyMode &&
-              <button type="button" className="btn btn-primary btn-xs" style={{'marginLeft': '10px'}}
-                      onClick={this.addPermission}>
-                <i className="glyphicon glyphicon-plus"/>
-              </button>
-            }
+          <div className="row">
+            <label className="col-sm-2 control-label"/>
+            <div className="col-sm-10" style={{'marginTop': '40px'}}>
+              <span className="groupe">Permissions</span>
+              {
+                !this.props.readOnlyMode &&
+                <button type="button" className="btn btn-primary btn-xs" style={{'marginLeft': '10px'}}
+                        onClick={this.addPermission}>
+                  <i className="glyphicon glyphicon-plus"/>
+                </button>
+              }
+            </div>
           </div>
         </div>
 
@@ -539,16 +542,18 @@ class Permission extends Component {
 
   render() {
     return (
-      <div>
+      <div className="blocOnePermission">
         <div className="form-group">
-          <label className="col-sm-2 control-label"/>
-          <div className="col-sm-10" style={{'marginTop': '10px'}}>
-            {
-              !this.props.readOnlyMode &&
-              <button className="btn btn-danger pull-right btn-xs" onClick={this.props.onRemove}>
-                <i className="glyphicon glyphicon-trash"/>
-              </button>
-            }
+        <div className="row">
+            <label className="col-sm-2 control-label"/>
+            <div className="col-sm-10" style={{'marginTop': '10px'}}>
+              {
+                !this.props.readOnlyMode &&
+                <button className="btn btn-danger pull-right btn-xs" onClick={this.props.onRemove}>
+                  <i className="glyphicon glyphicon-trash"/>
+                </button>
+              }
+            </div>
           </div>
         </div>
         <TextInput label={"Clé de la permission"} value={this.state.permission.key}

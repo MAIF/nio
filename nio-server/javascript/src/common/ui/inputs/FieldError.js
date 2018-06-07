@@ -14,19 +14,20 @@ export const FieldError = (props) => {
   let errors = (props.errorMessage || []).filter(message => compare(message));
 
   return (
-    <div className={`form-group ${errors.length ? "has-error" : ""}`}>
-      {props.children}
+    <div className={`form-group blocFieldError ${errors.length ? "has-error" : ""}`}>
+      <div className={`row`}>
+        {props.children}
 
-      {
-        errors.map((err, index) =>
-          <div key={index}>
-            <label className="control-label col-md-offset-2 paddingLabelError">
-              {errorManager.translate(err)}
-            </label>
-          </div>
-        )
-      }
-
+        {
+          errors.map((err, index) =>
+            <div key={index}>
+              <label className="control-label col-md-offset-2 paddingLabelError">
+                {errorManager.translate(err)}
+              </label>
+            </div>
+          )
+        }
+      </div>
     </div>
   );
 
