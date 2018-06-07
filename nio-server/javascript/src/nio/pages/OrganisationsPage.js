@@ -114,7 +114,7 @@ export class OrganisationsPage extends Component {
         <div className="col-md-12">
           <h1>Organisations</h1>
         </div>
-        <div className="col-md-12" style={{marginBottom: 20}}>
+        <div className="col-md-12 clearfix" style={{marginBottom: 20}}>
           <Link className="btn btn-success pull-right" to="/organisations/new" style={{cursor: 'pointer'}}>Nouvelle
             organisation</Link>
         </div>
