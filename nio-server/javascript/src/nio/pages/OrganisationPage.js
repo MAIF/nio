@@ -243,9 +243,9 @@ export class OrganisationPage extends Component {
 
     const actionButtons = (
       <div className="form-buttons pull-right btnsNewOrga">
-      <button className="btn btn-danger" onClick={this.cancel}><i className="glyphicon glyphicon-remove"/></button>
+      <button className="btn btn-danger" title="cancel" onClick={this.cancel}><i className="glyphicon glyphicon-remove"/></button>
 
-        <button className="btn btn-primary" onClick={this.toggleVisualize}>
+        <button className="btn btn-primary" title="display consents" onClick={this.toggleVisualize}>
           {
             this.state.visualizeConsents ?
               <i className="glyphicon glyphicon-eye-close"/>
@@ -253,10 +253,10 @@ export class OrganisationPage extends Component {
               <i className="glyphicon glyphicon-eye-open"/>
           }
         </button>
-        <button className="btn btn-success" onClick={this.release}>
+        <button className="btn btn-success" title="define as currently version" onClick={this.release}>
           Définir comme version courante
         </button>
-        <button className="btn btn-success" onClick={this.save}>
+        <button className="btn btn-success" title="save" onClick={this.save}>
           {
             this.props.organisationKey ?
               <i className="glyphicon glyphicon-hdd"/>
