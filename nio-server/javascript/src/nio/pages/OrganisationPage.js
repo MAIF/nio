@@ -199,7 +199,7 @@ export class OrganisationPage extends Component {
       const organisation = {...this.state.organisation};
 
       if (this.props.organisationKey) {
-        organisationService.createOrganisationRelease(this.props.tenant, this.props.organisationKey, organisation)
+        organisationService.createOrganisationRelease(this.props.tenant, this.props.organisationKey)
           .then(() => {
             if (this.props.onSave)
               this.props.onSave();
@@ -214,7 +214,7 @@ export class OrganisationPage extends Component {
 
         organisationService.createOrganisation(this.props.tenant, organisation)
           .then(organisationCreated => {
-            return organisationService.createOrganisationRelease(this.props.tenant, this.state.organisation.key, organisationCreated)
+            return organisationService.createOrganisationRelease(this.props.tenant, this.state.organisation.key)
               .then(() => {
                 if (this.props.onSave)
                   this.props.onSave();

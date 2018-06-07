@@ -1,5 +1,6 @@
 package models
 
+import models.OrganisationUser.{read, write}
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
 import play.api.libs.json._
@@ -10,9 +11,9 @@ object EventType extends Enumeration {
   val TenantCreated, TenantDeleted, OrganisationCreated, OrganisationUpdated,
   OrganisationReleased, OrganisationDeleted, ConsentFactCreated,
   ConsentFactUpdated, AccountCreated, AccountUpdated, AccountDeleted,
-  SecuredEvent, DeletionTaskStarted, DeletionTaskUpdated, DeletionTaskDone,
-  Unknown =
-    Value
+  SecuredEvent, DeletionStarted, DeletionAppDone, DeletionFinished,
+  ExtractionStarted, ExtractionAppFilesMetadataReceived, ExtractionAppDone,
+  ExtractionFinished, Unknown = Value
 
   def from(name: String): Value =
     values.find(_.toString.toLowerCase == name.toLowerCase()).getOrElse(Unknown)
@@ -348,18 +349,6 @@ case class AccountUpdated(tenant: String,
   )
 }
 
-case class Digest(digest: String) extends AnyVal
-
-object Digest {
-
-  def fromJson(jsValue: JsValue): Either[String, Digest] = {
-    jsValue match {
-      case JsString(str) => Right(Digest(str))
-      case _             => Left("invalid.format")
-    }
-  }
-}
-
 case class SecuredEvent(id: Long = NioEvent.gen.nextId(),
                         date: DateTime = DateTime.now(DateTimeZone.UTC),
                         payload: Digest)
@@ -379,14 +368,14 @@ case class SecuredEvent(id: Long = NioEvent.gen.nextId(),
   override def shardId: String = "NA"
 }
 
-case class DeletionTaskStarted(tenant: String,
-                               author: String,
-                               id: Long = NioEvent.gen.nextId(),
-                               date: DateTime = DateTime.now(DateTimeZone.UTC),
-                               payload: DeletionTaskInfoPerApp)
+case class DeletionStarted(tenant: String,
+                           author: String,
+                           id: Long = NioEvent.gen.nextId(),
+                           date: DateTime = DateTime.now(DateTimeZone.UTC),
+                           payload: DeletionTaskInfoPerApp)
     extends NioEvent {
   def shardId = payload.userId
-  def tYpe = EventType.DeletionTaskStarted
+  def tYpe = EventType.DeletionStarted
   def asJson = Json.obj(
     "type" -> tYpe,
     "tenant" -> tenant,
@@ -397,34 +386,105 @@ case class DeletionTaskStarted(tenant: String,
   )
 }
 
-case class DeletionTaskUpdated(tenant: String,
-                               author: String,
-                               id: Long = NioEvent.gen.nextId(),
-                               date: DateTime = DateTime.now(DateTimeZone.UTC),
-                               payload: DeletionTask,
-                               oldValue: DeletionTask)
+case class DeletionAppDone(tenant: String,
+                           author: String,
+                           id: Long = NioEvent.gen.nextId(),
+                           date: DateTime = DateTime.now(DateTimeZone.UTC),
+                           payload: AppDone)
     extends NioEvent {
   def shardId = payload.userId
-  def tYpe = EventType.DeletionTaskUpdated
+  def tYpe = EventType.DeletionAppDone
   def asJson = Json.obj(
     "type" -> tYpe,
     "tenant" -> tenant,
     "author" -> author,
     "date" -> date.toString(DateUtils.utcDateFormatter),
     "id" -> id,
-    "payload" -> payload.asJson,
-    "oldValue" -> oldValue.asJson
+    "payload" -> payload.asJson
   )
 }
 
-case class DeletionTaskDone(tenant: String,
+case class DeletionFinished(tenant: String,
                             author: String,
                             id: Long = NioEvent.gen.nextId(),
                             date: DateTime = DateTime.now(DateTimeZone.UTC),
                             payload: DeletionTask)
     extends NioEvent {
   def shardId = payload.userId
-  def tYpe = EventType.DeletionTaskDone
+  def tYpe = EventType.DeletionFinished
+  def asJson = Json.obj(
+    "type" -> tYpe,
+    "tenant" -> tenant,
+    "author" -> author,
+    "date" -> date.toString(DateUtils.utcDateFormatter),
+    "id" -> id,
+    "payload" -> payload.asJson
+  )
+}
+
+case class ExtractionStarted(tenant: String,
+                             author: String,
+                             id: Long = NioEvent.gen.nextId(),
+                             date: DateTime = DateTime.now(DateTimeZone.UTC),
+                             payload: ExtractionTaskInfoPerApp)
+    extends NioEvent {
+  def shardId = payload.userId
+  def tYpe = EventType.ExtractionStarted
+  def asJson = Json.obj(
+    "type" -> tYpe,
+    "tenant" -> tenant,
+    "author" -> author,
+    "date" -> date.toString(DateUtils.utcDateFormatter),
+    "id" -> id,
+    "payload" -> payload.asJson
+  )
+}
+
+case class ExtractionAppDone(tenant: String,
+                             author: String,
+                             id: Long = NioEvent.gen.nextId(),
+                             date: DateTime = DateTime.now(DateTimeZone.UTC),
+                             payload: AppDone)
+    extends NioEvent {
+  def shardId = payload.userId
+  def tYpe = EventType.ExtractionAppDone
+  def asJson = Json.obj(
+    "type" -> tYpe,
+    "tenant" -> tenant,
+    "author" -> author,
+    "date" -> date.toString(DateUtils.utcDateFormatter),
+    "id" -> id,
+    "payload" -> payload.asJson
+  )
+}
+
+case class ExtractionAppFilesMetadataReceived(tenant: String,
+                                              author: String,
+                                              id: Long = NioEvent.gen.nextId(),
+                                              date: DateTime =
+                                                DateTime.now(DateTimeZone.UTC),
+                                              payload: AppFilesMetadata)
+    extends NioEvent {
+  def shardId = payload.userId
+  def tYpe = EventType.ExtractionAppFilesMetadataReceived
+  def asJson = Json.obj(
+    "type" -> tYpe,
+    "tenant" -> tenant,
+    "author" -> author,
+    "date" -> date.toString(DateUtils.utcDateFormatter),
+    "id" -> id,
+    "payload" -> payload.asJson
+  )
+}
+
+case class ExtractionFinished(tenant: String,
+                              author: String,
+                              id: Long = NioEvent.gen.nextId(),
+                              date: DateTime = DateTime.now(DateTimeZone.UTC),
+                              payload: ExtractionTask)
+    extends NioEvent {
+  def shardId = payload.userId
+  def tYpe = EventType.ExtractionFinished
   def asJson = Json.obj(
     "type" -> tYpe,
     "tenant" -> tenant,

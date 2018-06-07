@@ -10,3 +10,4 @@ nio-server/javascript/node_modules
 /project/project/
 /project/target/
 data/
+/nio-server/javascript/yarn.lock

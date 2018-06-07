@@ -2,19 +2,17 @@ package messaging
 
 import java.io.Closeable
 import java.security.MessageDigest
-import java.time.format.DateTimeFormatter
-import java.time.temporal.ChronoUnit
 
-import akka.{Done, NotUsed}
-import javax.inject.{Inject, Singleton}
 import akka.actor.ActorSystem
 import akka.kafka.ConsumerMessage.CommittableOffsetBatch
 import akka.kafka.scaladsl.Consumer
-import akka.kafka.{ConsumerSettings, ProducerMessage, Subscriptions}
+import akka.kafka.Subscriptions
 import akka.stream.Materializer
 import akka.stream.scaladsl.Keep.both
-import akka.stream.scaladsl.{Flow, Keep, RestartSource, Sink, Source}
+import akka.{Done, NotUsed}
+import akka.stream.scaladsl.{Flow, Source}
 import configuration.{Env, KafkaConfig}
+import javax.inject.{Inject, Singleton}
 import models.{Digest, NioEvent, SecuredEvent}
 import org.apache.kafka.clients.producer.{
   Callback,
@@ -24,20 +22,20 @@ import org.apache.kafka.clients.producer.{
 }
 import org.apache.kafka.common.TopicPartition
 import play.api.Logger
-import play.api.libs.json.{JsString, Json}
-import utils.{S3ExecutionContext, S3Manager}
+import play.api.libs.json.Json
+import utils.{FSManager, S3ExecutionContext}
 
+import scala.collection.JavaConverters._
+import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.Failure
 import scala.util.control.NonFatal
-import scala.collection.JavaConverters._
-import scala.concurrent.duration.{DurationDouble, FiniteDuration}
 
 @Singleton
 class KafkaMessageBroker @Inject()(actorSystem: ActorSystem)(
     implicit context: ExecutionContext,
     env: Env,
-    s3Manager: S3Manager)
+    s3Manager: FSManager)
     extends Closeable {
 
   implicit val s3ExecutionContext: S3ExecutionContext = S3ExecutionContext(
@@ -97,8 +95,6 @@ class KafkaMessageBroker @Inject()(actorSystem: ActorSystem)(
     val topicsAndDate =
       Subscriptions.assignmentOffsetsForTimes(partitions.map(_ -> lastDate): _*)
 
-    Logger.info("----> topicsAndDate " + topicsAndDate)
-
     Consumer
       .plainSource[Array[Byte], String](consumerSettings, topicsAndDate)
       .map(_.value())
@@ -129,21 +125,10 @@ class KafkaMessageBroker @Inject()(actorSystem: ActorSystem)(
       implicit m: Materializer)
     : Source[Done, (Consumer.Control, Future[Done])] = {
 
-    val consumerSettingsS3 =
-      KafkaSettings.consumerSettings(actorSystem, kafka, true)
-    val partitionsS3: Seq[TopicPartition] = consumerSettingsS3
-      .createKafkaConsumer()
-      .partitionsFor(kafka.topic)
-      .asScala
-      .map { t =>
-        Logger.info(
-          s"------> Found topic: ${kafka.topic} partition: ${t.partition()}")
-        new TopicPartition(kafka.topic, t.partition())
-      }
     val source: Source[Done, (Consumer.Control, Future[Done])] = Consumer
-      .committableSource(consumerSettingsS3,
+      .committableSource(consumerSettings,
                          Subscriptions.topics(env.config.kafka.topic))
-      .groupBy(partitionsS3.size, _.record.partition())
+      .groupBy(partitions.size, _.record.partition())
       .groupedWithin(groupIn, groupDuration)
       .filter(_.nonEmpty)
       .mapAsync(1) { messages =>

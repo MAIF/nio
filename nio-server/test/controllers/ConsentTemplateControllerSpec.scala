@@ -7,7 +7,6 @@ import utils.TestUtils
 import play.api.test.Helpers._
 
 class ConsentTemplateControllerSpec extends TestUtils {
-  val tenant: String = "sandbox"
   val org1Key = "orgTest1"
 
   val org1 = Organisation(
@@ -164,6 +163,8 @@ class ConsentTemplateControllerSpec extends TestUtils {
       (updateConsentUser1Value \ "groups" \ 0 \ "consents" \ 0 \ "checked")
         .as[Boolean] must be(true)
 
+      putJson(s"/$tenant/organisations/$org1Key/draft", org1ToUpdate.asJson).status mustBe OK
+
       // released a new organisation
       postJson(s"/$tenant/organisations/$org1Key/draft/_release",
                org1ToUpdate.asJson).status must be(OK)
@@ -302,6 +303,9 @@ class ConsentTemplateControllerSpec extends TestUtils {
         .as[Boolean] must be(true)
 
       // Release a new organisation version
+      putJson(s"/$tenant/organisations/$org1Key/draft", org1ToUpdate2.asJson).status must be(
+        OK)
+
       postJson(s"/$tenant/organisations/$org1Key/draft/_release",
                org1ToUpdate2.asJson).status must be(OK)
 

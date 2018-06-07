@@ -9,6 +9,8 @@ import auth.AuthActionWithEmail
 import db.TenantMongoDataStore
 import play.api.mvc.{AbstractController, ControllerComponents}
 
+import scala.collection.JavaConverters._
+
 import scala.concurrent.{ExecutionContext, Future}
 
 class HomeController @Inject()(val AuthAction: AuthActionWithEmail,
@@ -18,6 +20,15 @@ class HomeController @Inject()(val AuthAction: AuthActionWithEmail,
                                val actorSystem: ActorSystem,
                                implicit val ec: ExecutionContext)
     extends AbstractController(cc) {
+
+  lazy val swaggerContent: String = Files
+    .readAllLines(env.environment.getFile("conf/swagger/swagger.json").toPath)
+    .asScala
+    .mkString("\n")
+    .replace("$CLIENT_ID",
+             env.config.filter.otoroshi.headerGatewayHeaderClientId)
+    .replace("$CLIENT_SECRET",
+             env.config.filter.otoroshi.headerGatewayHeaderClientSecret)
 
   def index(tenant: String) = AuthAction.async { req =>
     if (req.authInfo.isAdmin) {
@@ -41,17 +52,6 @@ class HomeController @Inject()(val AuthAction: AuthActionWithEmail,
   }
 
   def swagger() = AuthAction { req =>
-    import scala.collection.JavaConverters._
-
-    val value: String = Files
-      .readAllLines(env.environment.getFile("conf/swagger/swagger.json").toPath)
-      .asScala
-      .mkString("\n")
-      .replace("$CLIENT_ID",
-               env.config.filter.otoroshi.headerGatewayHeaderClientId)
-      .replace("$CLIENT_SECRET",
-               env.config.filter.otoroshi.headerGatewayHeaderClientSecret)
-
-    Ok(value).as("application/json")
+    Ok(swaggerContent).as("application/json")
   }
 }

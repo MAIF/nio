@@ -61,6 +61,6 @@ case class TenantConfiguration(admin: AdminConfig)
 case class AdminConfig(secret: String, header: String)
 
 case class S3Config(bucketName: String,
-                    host: String,
+                    endpoint: String,
                     accessKey: String,
                     secretKey: String)
