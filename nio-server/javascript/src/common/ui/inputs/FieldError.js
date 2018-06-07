@@ -20,8 +20,8 @@ export const FieldError = (props) => {
 
         {
           errors.map((err, index) =>
-            <div key={index}>
-              <label className="control-label col-md-offset-2 paddingLabelError">
+            <div className="col-xs-12 col-sm-offset-2" key={index}>
+              <label className="control-label paddingLabelError">
                 {errorManager.translate(err)}
               </label>
             </div>
