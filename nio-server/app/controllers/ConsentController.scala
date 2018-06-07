@@ -4,17 +4,14 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.util.ByteString
 import auth.AuthAction
-import db.{
-  ConsentFactMongoDataStore,
-  OrganisationMongoDataStore,
-  UserMongoDataStore
-}
+import db.{ConsentFactMongoDataStore, OrganisationMongoDataStore, UserMongoDataStore}
 import javax.inject.{Inject, Singleton}
 import messaging.KafkaMessageBroker
 import models.{ConsentFact, _}
 import play.api.Logger
 import play.api.http.HttpEntity
 import play.api.mvc.{ControllerComponents, ResponseHeader, Result}
+import utils.Import
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -362,4 +359,12 @@ class ConsentController @Inject()(
       )
     }
   }
+
+  def upload(tenant: String) = AuthAction.async(Import.ndJson) { implicit req =>
+
+    req.request.body.
+
+  }
+
+
 }

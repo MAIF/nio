@@ -1,12 +1,15 @@
 package db
 
+import akka.NotUsed
+import akka.stream.scaladsl.{Flow, Source}
 import javax.inject.{Inject, Singleton}
 import models._
 import play.api.libs.json.{Format, JsObject, Json}
 import play.modules.reactivemongo.ReactiveMongoApi
 import play.modules.reactivemongo.json.ImplicitBSONHandlers._
-import reactivemongo.play.json.collection.JSONCollection
+import reactivemongo.play.json.collection.{JSONBatchCommands, JSONCollection}
 import reactivemongo.api.{Cursor, QueryOpts, ReadPreference}
+import reactivemongo.play.json.collection.JSONBatchCommands.JSONUpdateCommand
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -91,5 +94,54 @@ class ConsentFactMongoDataStore @Inject()(reactiveMongoApi: ReactiveMongoApi)(
       col.remove(Json.obj("orgKey" -> orgKey))
     }
   }
+
+  def bulkInsert(tenant: String, bulkSize: Int, parallelisation: Int): Flow[ConsentFact, NioEvent, NotUsed] =
+    Flow[ConsentFact]
+      .grouped(bulkSize)
+      .flatMapMerge(10, { group =>
+
+        Source.fromFuture(storedCollection(tenant))
+        .flatMapConcat { collection =>
+          val userIds = group.map(_.userId)
+          Source.fromFuture(
+            collection.find(Json.obj("userId" -> Json.obj("$in" -> userIds)))
+              .cursor[ConsentFact](ReadPreference.primaryPreferred)
+              .collect[Seq](-1, Cursor.FailOnError[Seq[ConsentFact]]())
+          )
+            .map { existing =>
+              val existingIds = existing.map(_.userId)
+
+              val toUpdate = group.filter(c => existingIds.contains(c.userId))
+              val toInsert = group.filter(c => !existingIds.contains(c.userId))
+
+              (toUpdate, toInsert)
+            }
+            .flatMapConcat {
+              case (toUpdate, toInsert) =>
+
+                val inserted = Source
+                  .fromFuture(collection.insert(false).many(toInsert))
+                  .flatMapConcat { _ =>
+                    Source(toInsert.map(i => ConsentFactCreated(tenant, ...)))
+                  }
+
+                val update = collection.update(false)
+
+                val updated =
+                  Source(toUpdate)
+                    .mapAsync(4) { u =>
+                      update.element(Json.obj("userId" -> u.userId), Json.obj("$set" -> format.writes(u)), upsert = false, multi = false)
+                    }
+                    .fold(Seq.empty) { _ :+ _ }
+                    .mapAsync(1) { update.many }
+                    .flatMapConcat { _ =>
+
+                      Source(toUpdate.map { u => ConsentFactUpdated() })
+                    }
+
+                inserted.merge(updated)
+            }
+        }
+      })
 
 }
