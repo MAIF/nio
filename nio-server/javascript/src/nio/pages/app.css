@@ -71,6 +71,9 @@ body {
       top: 91px;
       width: 100%;
   }
+  .backoffice-container{
+        margin-top: 56px;
+  }
 }
 
 .menu {
@@ -78,9 +81,7 @@ body {
     color: #fff;
 }
 
-.backoffice-container{
-      margin-top: 56px;
-}
+
 
 .navbar-inverse .navbar-nav>li>a:focus, .navbar-inverse .navbar-nav>li>a:hover, .nav>li>a.active {
   color: #75b94e;
@@ -150,7 +151,7 @@ input[type=search]::-webkit-search-cancel-button {
 
 .form-control:focus {
   border-color: #75b94e;
-  box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075), 0 0 8px rgba(249, 176, 0, .6);
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075), 0 0 8px rgba(117, 185, 77, .6);
 }
 
 .table-striped>tbody>tr:nth-of-type(odd) {
@@ -335,6 +336,7 @@ footer {
 
 .btnsNewOrga{
   margin-top: 10px;
+  margin-bottom: 10px;
 }
 .fa-check-square-o,.fa-square-o{
   margin-right: 10px;
@@ -364,7 +366,7 @@ tr:nth-child(even) {background: #424241;}
 }
 
 .groupContent{
-      overflow: auto;
+      /* overflow: auto; */
 }
 
 .selectContent{
