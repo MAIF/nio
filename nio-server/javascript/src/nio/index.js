@@ -28,6 +28,13 @@ export class NioApp extends Component {
     );
   };
 
+  componentDidMount() {
+      this.props.history.listen(() => {
+          $('#sidebar').collapse('hide');
+          $('#navbar').collapse('hide');
+      });
+  }
+
   goToOrganisations = () => {
     this.props.history.push("/organisations");
   };
