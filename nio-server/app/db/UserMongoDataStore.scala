@@ -131,6 +131,7 @@ class UserMongoDataStore @Inject()(reactiveMongoApi: ReactiveMongoApi)(
           ),
           col.indexesManager.ensure(
             Index(Seq("orgKey" -> IndexType.Ascending),
+                  name = Some("orgKey"),
                   unique = false,
                   sparse = true)
           )
