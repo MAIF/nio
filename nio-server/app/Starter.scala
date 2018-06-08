@@ -5,8 +5,7 @@ import akka.stream.ActorMaterializer
 import javax.inject.{Inject, Singleton}
 import db._
 import models.Tenant
-
-import play.api.Configuration
+import play.api.{Configuration, Logger}
 import play.api.inject.ApplicationLifecycle
 import s3.S3
 import utils.{DefaultLoader, SecureEvent}
@@ -62,6 +61,27 @@ class Starter @Inject()(
       Duration(60, TimeUnit.SECONDS)
     )
   }
+
+  Await.result(
+    tenantStore.findAll().flatMap { tenants =>
+      Future.sequence(
+        tenants.map { t =>
+          Future.sequence(
+            Seq(
+              {
+                Logger.info(s"Ensuring indices for users on ${t.key}")
+                userStore.ensureIndices(t.key)
+              }, {
+                Logger.info(s"Ensuring indices for consents on ${t.key}")
+                consentFactStore.ensureIndices(t.key)
+              }
+            )
+          )
+        }
+      )
+    },
+    Duration(5, TimeUnit.MINUTES)
+  )
 
   applicationLifecycle.addStopHook { () =>
     Future.sequence(

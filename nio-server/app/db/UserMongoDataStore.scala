@@ -9,6 +9,7 @@ import reactivemongo.play.json.collection.JSONCollection
 import reactivemongo.api.{Cursor, QueryOpts, ReadPreference}
 import akka.stream.Materializer
 import reactivemongo.akkastream.cursorProducer
+import reactivemongo.api.indexes.{Index, IndexType}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -114,6 +115,28 @@ class UserMongoDataStore @Inject()(reactiveMongoApi: ReactiveMongoApi)(
   def removeByOrgKey(tenant: String, orgKey: String) = {
     storedCollection(tenant).flatMap { col =>
       col.remove(Json.obj("orgKey" -> orgKey))
+    }
+  }
+
+  def ensureIndices(tenant: String) = {
+    storedCollection(tenant).flatMap { col =>
+      Future.sequence(
+        Seq(
+          col.indexesManager.ensure(
+            Index(key = Seq("orgKey" -> IndexType.Ascending,
+                            "userId" -> IndexType.Ascending),
+                  name = Some("orgKey_userId"),
+                  unique = true,
+                  sparse = true)
+          ),
+          col.indexesManager.ensure(
+            Index(Seq("orgKey" -> IndexType.Ascending),
+                  name = Some("orgKey"),
+                  unique = false,
+                  sparse = true)
+          )
+        )
+      )
     }
   }
 

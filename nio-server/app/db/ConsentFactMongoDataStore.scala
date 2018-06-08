@@ -5,6 +5,7 @@ import models._
 import play.api.libs.json.{Format, JsObject, Json}
 import play.modules.reactivemongo.ReactiveMongoApi
 import play.modules.reactivemongo.json.ImplicitBSONHandlers._
+import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.play.json.collection.JSONCollection
 import reactivemongo.api.{Cursor, QueryOpts, ReadPreference}
 
@@ -89,6 +90,34 @@ class ConsentFactMongoDataStore @Inject()(reactiveMongoApi: ReactiveMongoApi)(
   def removeByOrgKey(tenant: String, orgKey: String) = {
     storedCollection(tenant).flatMap { col =>
       col.remove(Json.obj("orgKey" -> orgKey))
+    }
+  }
+
+  def ensureIndices(tenant: String) = {
+    storedCollection(tenant).flatMap { col =>
+      Future.sequence(
+        Seq(
+          col.indexesManager.ensure(
+            Index(Seq("orgKey" -> IndexType.Ascending,
+                      "userId" -> IndexType.Ascending),
+                  name = Some("orgKey_userId"),
+                  unique = false,
+                  sparse = true)
+          ),
+          col.indexesManager.ensure(
+            Index(Seq("orgKey" -> IndexType.Ascending),
+                  name = Some("orgKey"),
+                  unique = false,
+                  sparse = true)
+          ),
+          col.indexesManager.ensure(
+            Index(Seq("userId" -> IndexType.Ascending),
+                  name = Some("userId"),
+                  unique = false,
+                  sparse = true)
+          )
+        )
+      )
     }
   }
 
