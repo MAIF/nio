@@ -129,7 +129,7 @@ class S3 @Inject()(val conf: S3Configuration,
           )
           handledTenantsResults <- Future.sequence(handledTenants)
         } yield {
-          Logger.info("Checked for expired files  " + handledTenantsResults)
+          //Logger.info("Checked for expired files  " + handledTenantsResults)
         }
       }
   }
