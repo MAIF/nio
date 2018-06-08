@@ -8,6 +8,7 @@ import play.modules.reactivemongo.json.ImplicitBSONHandlers._
 import reactivemongo.play.json.collection.JSONCollection
 import reactivemongo.api.{Cursor, QueryOpts, ReadPreference}
 import akka.stream.Materializer
+import play.api.Logger
 import reactivemongo.akkastream.cursorProducer
 import reactivemongo.api.indexes.{Index, IndexType}
 
@@ -119,25 +120,42 @@ class UserMongoDataStore @Inject()(reactiveMongoApi: ReactiveMongoApi)(
   }
 
   def ensureIndices(tenant: String) = {
-    storedCollection(tenant).flatMap { col =>
-      Future.sequence(
-        Seq(
-          col.indexesManager.ensure(
-            Index(key = Seq("orgKey" -> IndexType.Ascending,
-                            "userId" -> IndexType.Ascending),
-                  name = Some("orgKey_userId"),
-                  unique = true,
-                  sparse = true)
-          ),
-          col.indexesManager.ensure(
-            Index(Seq("orgKey" -> IndexType.Ascending),
-                  name = Some("orgKey"),
-                  unique = false,
-                  sparse = true)
-          )
+    reactiveMongoApi.database
+      .map(_.collectionNames)
+      .flatMap(collectionNames => {
+        collectionNames.flatMap(
+          cols =>
+            cols.find(c => c == s"$tenant-users") match {
+              case Some(_) =>
+                storedCollection(tenant).flatMap {
+                  col =>
+                    Future.sequence(
+                      Seq(
+                        col.indexesManager.ensure(
+                          Index(key = Seq("orgKey" -> IndexType.Ascending,
+                                          "userId" -> IndexType.Ascending),
+                                name = Some("orgKey_userId"),
+                                unique = true,
+                                sparse = true)
+                        ),
+                        col.indexesManager.ensure(
+                          Index(Seq("orgKey" -> IndexType.Ascending),
+                                name = Some("orgKey"),
+                                unique = false,
+                                sparse = true)
+                        )
+                      )
+                    )
+                }
+              case None =>
+                Logger.error(s"unknow collection $tenant -users")
+                Future {
+                  Seq()
+                }
+          }
         )
-      )
-    }
+      })
+
   }
 
 }

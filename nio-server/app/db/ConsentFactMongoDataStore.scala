@@ -2,6 +2,7 @@ package db
 
 import javax.inject.{Inject, Singleton}
 import models._
+import play.api.Logger
 import play.api.libs.json.{Format, JsObject, Json}
 import play.modules.reactivemongo.ReactiveMongoApi
 import play.modules.reactivemongo.json.ImplicitBSONHandlers._
@@ -94,31 +95,48 @@ class ConsentFactMongoDataStore @Inject()(reactiveMongoApi: ReactiveMongoApi)(
   }
 
   def ensureIndices(tenant: String) = {
-    storedCollection(tenant).flatMap { col =>
-      Future.sequence(
-        Seq(
-          col.indexesManager.ensure(
-            Index(Seq("orgKey" -> IndexType.Ascending,
-                      "userId" -> IndexType.Ascending),
-                  name = Some("orgKey_userId"),
-                  unique = false,
-                  sparse = true)
-          ),
-          col.indexesManager.ensure(
-            Index(Seq("orgKey" -> IndexType.Ascending),
-                  name = Some("orgKey"),
-                  unique = false,
-                  sparse = true)
-          ),
-          col.indexesManager.ensure(
-            Index(Seq("userId" -> IndexType.Ascending),
-                  name = Some("userId"),
-                  unique = false,
-                  sparse = true)
-          )
+    reactiveMongoApi.database
+      .map(_.collectionNames)
+      .flatMap(collectionNames => {
+        collectionNames.flatMap(
+          cols =>
+            cols.find(c => c == s"$tenant-consentFacts") match {
+              case Some(_) =>
+                storedCollection(tenant).flatMap {
+                  col =>
+                    Future.sequence(
+                      Seq(
+                        col.indexesManager.ensure(
+                          Index(Seq("orgKey" -> IndexType.Ascending,
+                                    "userId" -> IndexType.Ascending),
+                                name = Some("orgKey_userId"),
+                                unique = false,
+                                sparse = true)
+                        ),
+                        col.indexesManager.ensure(
+                          Index(Seq("orgKey" -> IndexType.Ascending),
+                                name = Some("orgKey"),
+                                unique = false,
+                                sparse = true)
+                        ),
+                        col.indexesManager.ensure(
+                          Index(Seq("userId" -> IndexType.Ascending),
+                                name = Some("userId"),
+                                unique = false,
+                                sparse = true)
+                        )
+                      )
+                    )
+                }
+              case None =>
+                Logger.error(s"unknow collection $tenant -consentFacts")
+                Future {
+                  Seq()
+                }
+          }
         )
-      )
-    }
+      })
+
   }
 
 }
