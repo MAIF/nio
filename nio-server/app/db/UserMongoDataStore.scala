@@ -123,14 +123,16 @@ class UserMongoDataStore @Inject()(reactiveMongoApi: ReactiveMongoApi)(
       Future.sequence(
         Seq(
           col.indexesManager.ensure(
-            Index(Seq("orgKey" -> IndexType.Ascending, "userId" -> IndexType.Ascending),
+            Index(key = Seq("orgKey" -> IndexType.Ascending,
+                            "userId" -> IndexType.Ascending),
+                  name = Some("orgKey_userId"),
                   unique = true,
                   sparse = true)
           ),
           col.indexesManager.ensure(
             Index(Seq("orgKey" -> IndexType.Ascending),
-              unique = false,
-              sparse = true)
+                  unique = false,
+                  sparse = true)
           )
         )
       )

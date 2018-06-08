@@ -64,22 +64,21 @@ class Starter @Inject()(
 
   Await.result(
     tenantStore.findAll().flatMap { tenants =>
-      for {
-        _ <- Future.sequence(
-          tenants.map { t =>
-            Logger.info(s"Ensuring indices for users on ${t.key}")
-            userStore.ensureIndices(t.key)
-          }
-        )
-        _ <- Future.sequence(
-          tenants.map { t =>
-            Logger.info(s"Ensuring indices for consents on ${t.key}")
-            consentFactStore.ensureIndices(t.key)
-          }
-        )
-      } yield {
-        ()
-      }
+      Future.sequence(
+        tenants.map { t =>
+          Future.sequence(
+            Seq(
+              {
+                Logger.info(s"Ensuring indices for users on ${t.key}")
+                userStore.ensureIndices(t.key)
+              }, {
+                Logger.info(s"Ensuring indices for consents on ${t.key}")
+                consentFactStore.ensureIndices(t.key)
+              }
+            )
+          )
+        }
+      )
     },
     Duration(5, TimeUnit.MINUTES)
   )
