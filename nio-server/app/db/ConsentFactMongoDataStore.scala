@@ -98,6 +98,11 @@ class ConsentFactMongoDataStore @Inject()(reactiveMongoApi: ReactiveMongoApi)(
       Future.sequence(
         Seq(
           col.indexesManager.ensure(
+            Index(Seq("orgKey" -> IndexType.Ascending, "userId" -> IndexType.Ascending),
+              unique = false,
+              sparse = true)
+          ),
+          col.indexesManager.ensure(
             Index(Seq("orgKey" -> IndexType.Ascending),
                   unique = false,
                   sparse = true)
