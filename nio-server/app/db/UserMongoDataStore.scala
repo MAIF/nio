@@ -28,9 +28,7 @@ class UserMongoDataStore @Inject()(reactiveMongoApi: ReactiveMongoApi)(
       _.insert(format.writes(user).as[JsObject]).map(_.ok))
 
   def findByOrgKeyAndUserId(tenant: String, orgKey: String, userId: String) = {
-    val query = Json.obj(
-      "$and" -> Json.arr(Json.obj("orgKey" -> orgKey),
-                         Json.obj("userId" -> userId)))
+    val query = Json.obj("orgKey" -> orgKey, "userId" -> userId)
     storedCollection(tenant).flatMap(_.find(query).one[User])
   }
 
