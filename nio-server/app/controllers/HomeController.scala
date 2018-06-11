@@ -41,6 +41,14 @@ class HomeController @Inject()(val AuthAction: AuthActionWithEmail,
     }
   }
 
+  def indexNoTenant = AuthAction { req =>
+    if (req.authInfo.isAdmin) {
+      Ok(views.html.indexNoTenant(env, req.email))
+    } else {
+      Forbidden("error.forbidden.backoffice.access")
+    }
+  }
+
   def indexOther(tenant: String) = index(tenant)
 
   def otherRoutes(tenant: String, route: String) = AuthAction { req =>

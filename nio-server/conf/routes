@@ -11,6 +11,8 @@ GET         /assets/*file                                           controllers.
 GET         /:tenant/bo                                             controllers.HomeController.index(tenant: String)
 GET         /:tenant/bo/                                            controllers.HomeController.indexOther(tenant: String)
 
+GET         /                                                       controllers.HomeController.indexNoTenant
+
 # Deletions
 
 GET         /api/:tenant/organisations/:orgKey/users/deletions                                      controllers.DeletionController.allDeletionTasksByOrgKey(tenant: String, orgKey: String)
