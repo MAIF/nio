@@ -1,6 +1,6 @@
 package controllers
 
-import models.{Organisation, Permission, PermissionGroup}
+import models.{Organisation, Permission, PermissionGroup, VersionInfo}
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json.{JsArray, JsValue, Json}
 import play.api.libs.ws.WSResponse
@@ -484,6 +484,59 @@ class OrganisationControllerSpec extends TestUtils {
       val releaseResponse: WSResponse =
         postJson(s"/$tenant/organisations/$orgKey/draft/_release", org.asJson)
       releaseResponse.status mustBe OK
+    }
+  }
+
+  "check version number cannot be change by client" should {
+
+    "validate version" in {
+      val orgKey = "orgTest6"
+      val org = Organisation(
+        key = orgKey,
+        label = "lbl",
+        version = VersionInfo(
+          num = 5,
+          status = "RELEASED"
+        ),
+        groups = Seq(
+          PermissionGroup(key = "group1",
+                          label = "blalba",
+                          permissions =
+                            Seq(Permission("sms", "Please accept sms")))
+        )
+      )
+
+      // Create organisation with wrong version num/ version status
+      val createResponse: WSResponse =
+        postJson(s"/$tenant/organisations", org.asJson)
+      createResponse.status mustBe CREATED
+
+      val createOrganisationJson: JsValue = createResponse.json
+
+      (createOrganisationJson \ "version" \ "num").as[Int] mustBe 1
+      (createOrganisationJson \ "version" \ "status").as[String] mustBe "DRAFT"
+
+      val get1Response: WSResponse =
+        getJson(s"/$tenant/organisations/$orgKey/draft")
+      get1Response.status mustBe OK
+      (get1Response.json \ "version" \ "num").as[Int] mustBe 1
+      (get1Response.json \ "version" \ "status").as[String] mustBe "DRAFT"
+
+      // Update organisation with wrong version num/ version status
+      val updateResponse: WSResponse =
+        putJson(s"/$tenant/organisations/$orgKey/draft", org.asJson)
+      updateResponse.status mustBe OK
+
+      val updateOrganisationJson: JsValue = updateResponse.json
+
+      (updateOrganisationJson \ "version" \ "num").as[Int] mustBe 1
+      (updateOrganisationJson \ "version" \ "status").as[String] mustBe "DRAFT"
+
+      val get2Response: WSResponse =
+        getJson(s"/$tenant/organisations/$orgKey/draft")
+      get2Response.status mustBe OK
+      (get2Response.json \ "version" \ "num").as[Int] mustBe 1
+      (get2Response.json \ "version" \ "status").as[String] mustBe "DRAFT"
     }
   }
 }
