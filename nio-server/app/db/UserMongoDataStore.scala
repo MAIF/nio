@@ -146,7 +146,7 @@ class UserMongoDataStore @Inject()(reactiveMongoApi: ReactiveMongoApi)(
                     )
                 }
               case None =>
-                Logger.error(s"unknow collection $tenant -users")
+                Logger.error(s"unknow collection $tenant-users")
                 Future {
                   Seq()
                 }

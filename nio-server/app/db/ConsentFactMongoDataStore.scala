@@ -129,7 +129,7 @@ class ConsentFactMongoDataStore @Inject()(reactiveMongoApi: ReactiveMongoApi)(
                     )
                 }
               case None =>
-                Logger.error(s"unknow collection $tenant -consentFacts")
+                Logger.error(s"unknow collection $tenant-consentFacts")
                 Future {
                   Seq()
                 }

@@ -3,12 +3,14 @@ package db
 import akka.stream.Materializer
 import javax.inject.{Inject, Singleton}
 import models._
+import play.api.Logger
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoApi
 import play.modules.reactivemongo.json.ImplicitBSONHandlers._
 import reactivemongo.api.{Cursor, ReadPreference}
 import reactivemongo.play.json.collection.JSONCollection
 import reactivemongo.akkastream.cursorProducer
+import reactivemongo.api.indexes.{Index, IndexType}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -167,6 +169,45 @@ class OrganisationMongoDataStore @Inject()(reactiveMongoApi: ReactiveMongoApi)(
         .cursor[JsValue]()
         .documentSource()
     }
+  }
+
+  def ensureIndices(tenant: String) = {
+    reactiveMongoApi.database
+      .map(_.collectionNames)
+      .flatMap(collectionNames => {
+        collectionNames.flatMap(
+          cols =>
+            cols.find(c => c == s"$tenant-organisations") match {
+              case Some(_) =>
+                storedCollection(tenant).flatMap {
+                  col =>
+                    Future.sequence(
+                      Seq(
+                        col.indexesManager.ensure(
+                          Index(Seq("orgKey" -> IndexType.Ascending),
+                                name = Some("orgKey"),
+                                unique = false,
+                                sparse = true)
+                        ),
+                        col.indexesManager.ensure(
+                          Index(Seq("orgKey" -> IndexType.Ascending,
+                                    "version.num" -> IndexType.Ascending),
+                                name = Some("orgKey_versionNum"),
+                                unique = false,
+                                sparse = true)
+                        )
+                      )
+                    )
+                }
+              case None =>
+                Logger.error(s"unknow collection $tenant-organisations")
+                Future {
+                  Seq()
+                }
+          }
+        )
+      })
+
   }
 
 }

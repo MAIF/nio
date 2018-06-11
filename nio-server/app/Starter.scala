@@ -65,18 +65,32 @@ class Starter @Inject()(
   Await.result(
     tenantStore.findAll().flatMap { tenants =>
       Future.sequence(
-        tenants.map { t =>
-          Future.sequence(
-            Seq(
-              {
-                Logger.info(s"Ensuring indices for users on ${t.key}")
-                userStore.ensureIndices(t.key)
-              }, {
-                Logger.info(s"Ensuring indices for consents on ${t.key}")
-                consentFactStore.ensureIndices(t.key)
-              }
+        tenants.map {
+          t =>
+            Future.sequence(
+              Seq(
+                {
+                  Logger.info(s"Ensuring indices for users on ${t.key}")
+                  userStore.ensureIndices(t.key)
+                }, {
+                  Logger.info(s"Ensuring indices for consents on ${t.key}")
+                  consentFactStore.ensureIndices(t.key)
+                }, {
+                  Logger.info(s"Ensuring indices for organisations on ${t.key}")
+                  organisationStore.ensureIndices(t.key)
+                }, {
+                  Logger.info(s"Ensuring indices for accounts on ${t.key}")
+                  accountMongoDataStore.ensureIndices(t.key)
+                }, {
+                  Logger.info(s"Ensuring indices for destroy task on ${t.key}")
+                  destroyTaskMongoDataStore.ensureIndices(t.key)
+                }, {
+                  Logger.info(
+                    s"Ensuring indices for extraction task on ${t.key}")
+                  extractionTaskMongoDataStore.ensureIndices(t.key)
+                }
+              )
             )
-          )
         }
       )
     },
