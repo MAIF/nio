@@ -4,6 +4,7 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.util.ByteString
 import auth.AuthAction
+import com.codahale.metrics.{Meter, MetricRegistry, Timer}
 import db.{
   ConsentFactMongoDataStore,
   OrganisationMongoDataStore,
@@ -25,105 +26,127 @@ class ConsentController @Inject()(
     val userStore: UserMongoDataStore,
     val consentFactStore: ConsentFactMongoDataStore,
     val organisationStore: OrganisationMongoDataStore,
+    metrics: MetricRegistry,
     val broker: KafkaMessageBroker)(implicit val ec: ExecutionContext,
                                     system: ActorSystem)
     extends ControllerUtils(cc) {
 
   implicit val materializer = ActorMaterializer()(system)
 
+  private lazy val timerGetConsentFact: Timer = metrics.timer("consentFact.get")
+  private lazy val timerGetConsentFactTemplate: Timer =
+    metrics.timer("consentFact.getTemplate")
+  private lazy val timerPutConsentFact: Timer = metrics.timer("consentFact.put")
+
   def getTemplate(tenant: String, orgKey: String, maybeUserId: Option[String]) =
     AuthAction.async { implicit req =>
-      organisationStore.findLastReleasedByKey(tenant, orgKey).flatMap {
-        case None =>
-          Logger.error(s"Organisation $orgKey not found")
-          Future.successful(NotFound("error.unknown.organisation"))
-        case Some(organisation) =>
-          val groups = organisation.groups.map { pg =>
-            ConsentGroup(
-              key = pg.key,
-              label = pg.label,
-              consents = pg.permissions.map { p =>
-                Consent(key = p.key, label = p.label, checked = false)
-              })
-          }
-          Logger.info(
-            s"Using default consents template in organisation $orgKey")
+      {
+        val context: Timer.Context = timerGetConsentFactTemplate.time()
 
-          val template =
-            ConsentFact.template(organisation.version.num, groups, orgKey)
+        organisationStore.findLastReleasedByKey(tenant, orgKey).flatMap {
+          case None =>
+            Logger.error(s"Organisation $orgKey not found")
+            Future.successful(NotFound("error.unknown.organisation"))
+          case Some(organisation) =>
+            val groups = organisation.groups.map { pg =>
+              ConsentGroup(
+                key = pg.key,
+                label = pg.label,
+                consents = pg.permissions.map { p =>
+                  Consent(key = p.key, label = p.label, checked = false)
+                })
+            }
+            Logger.info(
+              s"Using default consents template in organisation $orgKey")
 
-          maybeUserId match {
-            case Some(userId) =>
-              Logger.info(
-                s"userId is defined with ${maybeUserId.getOrElse("not defined")}")
+            val template =
+              ConsentFact.template(organisation.version.num, groups, orgKey)
 
-              userStore.findByOrgKeyAndUserId(tenant, orgKey, userId).flatMap {
-                case Some(user) =>
-                  consentFactStore
-                    .findById(tenant, user.latestConsentFactId)
-                    .map {
-                      case Some(consentFact) =>
-                        Logger.info(s"consent fact exist")
+            maybeUserId match {
+              case Some(userId) =>
+                Logger.info(
+                  s"userId is defined with ${maybeUserId.getOrElse("not defined")}")
 
-                        val groupsUpdated: Seq[ConsentGroup] =
-                          template.groups.map(
-                            group => {
-                              val maybeGroup = consentFact.groups.find(cg =>
-                                cg.key == group.key && cg.label == group.label)
-                              maybeGroup match {
-                                case Some(consentGroup) =>
-                                  group.copy(consents = group.consents.map {
-                                    consent =>
-                                      val maybeConsent =
-                                        consentGroup.consents.find(c =>
-                                          c.key == consent.key && c.label == consent.label)
-                                      maybeConsent match {
-                                        case Some(consentValue) =>
-                                          consent.copy(
-                                            checked = consentValue.checked)
-                                        case None =>
-                                          consent
-                                      }
-                                  })
-                                case None => group
-                              }
-                            }
-                          )
-                        renderMethod(
-                          ConsentFact
-                            .template(organisation.version.num,
-                                      groupsUpdated,
-                                      orgKey)
-                            .copy(userId = userId))
-                      case None =>
-                        Logger.info(s"consent fact unknow")
-                        renderMethod(template)
-                    }
-                case None => Future.successful(renderMethod(template))
-              }
+                userStore
+                  .findByOrgKeyAndUserId(tenant, orgKey, userId)
+                  .flatMap {
+                    case Some(user) =>
+                      consentFactStore
+                        .findById(tenant, user.latestConsentFactId)
+                        .map {
+                          case Some(consentFact) =>
+                            Logger.info(s"consent fact exist")
 
-            case None =>
-              Future.successful(renderMethod(template))
-          }
+                            val groupsUpdated: Seq[ConsentGroup] =
+                              template.groups.map(
+                                group => {
+                                  val maybeGroup = consentFact.groups.find(cg =>
+                                    cg.key == group.key && cg.label == group.label)
+                                  maybeGroup match {
+                                    case Some(consentGroup) =>
+                                      group.copy(consents = group.consents.map {
+                                        consent =>
+                                          val maybeConsent =
+                                            consentGroup.consents.find(c =>
+                                              c.key == consent.key && c.label == consent.label)
+                                          maybeConsent match {
+                                            case Some(consentValue) =>
+                                              consent.copy(
+                                                checked = consentValue.checked)
+                                            case None =>
+                                              consent
+                                          }
+                                      })
+                                    case None => group
+                                  }
+                                }
+                              )
+
+                            context.stop()
+                            renderMethod(
+                              ConsentFact
+                                .template(organisation.version.num,
+                                          groupsUpdated,
+                                          orgKey)
+                                .copy(userId = userId))
+                          case None =>
+                            context.stop()
+                            Logger.info(s"consent fact unknow")
+                            renderMethod(template)
+                        }
+                    case None =>
+                      context.stop()
+                      Future.successful(renderMethod(template))
+                  }
+
+              case None =>
+                context.stop()
+                Future.successful(renderMethod(template))
+            }
+        }
       }
     }
 
   def find(tenant: String, orgKey: String, userId: String) = AuthAction.async {
     implicit req =>
-      userStore.findByOrgKeyAndUserId(tenant, orgKey, userId).flatMap {
-        case None =>
-          Future.successful(NotFound("error.unknown.user.or.organisation"))
-        case Some(user) =>
-          Logger.info(s"Found user $userId in organisation $orgKey")
-          consentFactStore.findById(tenant, user.latestConsentFactId).map {
-            case None =>
-              // if this occurs it means a user is known but it has no consents, this is a BUG
-              InternalServerError("error.unknown.consents")
-            case Some(consentFact) =>
-              // TODO: later handle here new version template version check
-
-              renderMethod(consentFact)
-          }
+      {
+        val context: Timer.Context = timerGetConsentFact.time()
+        userStore.findByOrgKeyAndUserId(tenant, orgKey, userId).flatMap {
+          case None =>
+            Future.successful(NotFound("error.unknown.user.or.organisation"))
+          case Some(user) =>
+            Logger.info(s"Found user $userId in organisation $orgKey")
+            consentFactStore.findById(tenant, user.latestConsentFactId).map {
+              case None =>
+                // if this occurs it means a user is known but it has no consents, this is a BUG
+                context.stop()
+                InternalServerError("error.unknown.consents")
+              case Some(consentFact) =>
+                // TODO: later handle here new version template version check
+                context.stop()
+                renderMethod(consentFact)
+            }
+        }
       }
   }
 
@@ -147,14 +170,18 @@ class ConsentController @Inject()(
   // create or replace if exists
   def createOrReplaceIfExists(tenant: String, orgKey: String, userId: String) =
     AuthAction.async(parse.anyContent) { implicit req =>
+      val context = timerPutConsentFact.time()
+
       val parsed: Either[String, ConsentFact] =
         parseMethod[ConsentFact](ConsentFact)
 
       parsed match {
         case Left(error) =>
+          context.stop()
           Logger.error("Unable to parse consentFact: " + error)
           Future.successful(BadRequest(error))
         case Right(o) if o.userId != userId =>
+          context.stop()
           Future.successful(BadRequest("error.userId.is.immutable"))
         case Right(consentFact) if consentFact.userId == userId =>
           val cf: ConsentFact = ConsentFact.addOrgKey(consentFact, orgKey)
@@ -164,15 +191,19 @@ class ConsentController @Inject()(
               // first time user check that the version of consent facts is the latest
               organisationStore.findLastReleasedByKey(tenant, orgKey).flatMap {
                 case None =>
+                  context.stop()
                   Future.successful(
                     BadRequest("error.specified.org.never.released"))
                 case Some(latestOrg) if latestOrg.version.num != cf.version =>
+                  context.stop()
                   Future.successful(
                     BadRequest("error.specified.version.not.latest"))
                 case Some(latestOrg) =>
                   latestOrg.isValidWith(cf) match {
-                    case Some(error) => Future.successful(BadRequest(error))
-                    case None        =>
+                    case Some(error) =>
+                      context.stop()
+                      Future.successful(BadRequest(error))
+                    case None =>
                       // Ok store consentFact and store user
                       val storedConsentFactFut =
                         consentFactStore.insert(tenant, cf)
@@ -191,23 +222,28 @@ class ConsentController @Inject()(
                       Future
                         .sequence(Seq(storedConsentFactFut, storedUserFut))
                         .map { _ =>
+                          context.stop()
                           renderMethod(cf)
                         }
                   }
               }
             case Some(user) if cf.version < user.orgVersion =>
+              context.stop()
               Future.successful(BadRequest("error.version.lower.than.stored"))
             case Some(user) if cf.version == user.orgVersion =>
               organisationStore
                 .findReleasedByKeyAndVersionNum(tenant, orgKey, cf.version)
                 .flatMap {
                   case None =>
+                    context.stop()
                     Future.successful(
                       InternalServerError("internal.error.org.not.found"))
                   case Some(specificOrg) =>
                     specificOrg.isValidWith(cf) match {
-                      case Some(error) => Future.successful(BadRequest(error))
-                      case None        =>
+                      case Some(error) =>
+                        context.stop()
+                        Future.successful(BadRequest(error))
+                      case None =>
                         // Ok store new consent fact and update user
                         val storedConsentFactFut =
                           consentFactStore.insert(tenant, cf)
@@ -236,6 +272,7 @@ class ConsentController @Inject()(
                         Future
                           .sequence(Seq(storedConsentFactFut, storedUserFut))
                           .map { _ =>
+                            context.stop()
                             renderMethod(cf)
                           }
                     }
@@ -243,15 +280,19 @@ class ConsentController @Inject()(
             case Some(user) if cf.version > user.orgVersion =>
               organisationStore.findLastReleasedByKey(tenant, orgKey).flatMap {
                 case None =>
+                  context.stop()
                   Future.successful(InternalServerError(
                     "internal.error.last.org.release.not.found"))
                 case Some(latestOrg) if cf.version > latestOrg.version.num =>
+                  context.stop()
                   Future.successful(
                     BadRequest("error.version.higher.than.release"))
                 case Some(latestOrg) if cf.version == latestOrg.version.num =>
                   latestOrg.isValidWith(cf) match {
-                    case Some(error) => Future.successful(BadRequest(error))
-                    case None        =>
+                    case Some(error) =>
+                      context.stop()
+                      Future.successful(BadRequest(error))
+                    case None =>
                       // Ok store new consent fact and update user
                       val storedConsentFactFut =
                         consentFactStore.insert(tenant, cf)
@@ -282,6 +323,7 @@ class ConsentController @Inject()(
                       Future
                         .sequence(Seq(storedConsentFactFut, storedUserFut))
                         .map { _ =>
+                          context.stop()
                           renderMethod(cf)
                         }
                   }
@@ -290,11 +332,13 @@ class ConsentController @Inject()(
                     .findReleasedByKeyAndVersionNum(tenant, orgKey, cf.version)
                     .flatMap {
                       case None =>
+                        context.stop()
                         Future.successful(
                           BadRequest("error.unknown.org.version"))
                       case Some(specificVersionOrg) =>
                         specificVersionOrg.isValidWith(cf) match {
                           case Some(error) =>
+                            context.stop()
                             Future.successful(BadRequest(error))
                           case None =>
                             // Ok store new consent fact and update user
@@ -329,6 +373,7 @@ class ConsentController @Inject()(
                               .sequence(
                                 Seq(storedConsentFactFut, storedUserFut))
                               .map { _ =>
+                                context.stop()
                                 renderMethod(cf)
                               }
                         }

@@ -91,4 +91,6 @@ POST        /api/tenants                                            controllers.
 
 DELETE      /api/tenants/:tenantKey                                 controllers.TenantController.deleteTenant(tenantKey)
 
+GET         /api/metrics                                            controllers.MetricsController.metrics
+
 GET         /:tenant/bo/*other                                      controllers.HomeController.otherRoutes(tenant: String, other: String)
