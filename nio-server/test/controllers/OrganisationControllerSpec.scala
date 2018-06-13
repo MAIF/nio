@@ -539,4 +539,33 @@ class OrganisationControllerSpec extends TestUtils {
       (get2Response.json \ "version" \ "status").as[String] mustBe "DRAFT"
     }
   }
+
+  "tenant must be existed to create a new organisation" should {
+
+    "if we create a new organisation on a inexisting tenant" in {
+
+      val orgKey = "orgTest6"
+      val org = Organisation(
+        key = orgKey,
+        label = "lbl",
+        version = VersionInfo(
+          num = 5,
+          status = "RELEASED"
+        ),
+        groups = Seq(
+          PermissionGroup(key = "group1",
+                          label = "blalba",
+                          permissions =
+                            Seq(Permission("sms", "Please accept sms")))
+        )
+      )
+
+      // Create organisation with wrong version num/ version status
+      val createResponse: WSResponse =
+        postJson(s"/tenantunknow/organisations", org.asJson)
+      createResponse.status mustBe NOT_FOUND
+
+    }
+
+  }
 }

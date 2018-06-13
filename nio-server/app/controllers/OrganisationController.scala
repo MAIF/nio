@@ -7,6 +7,7 @@ import auth.AuthAction
 import db.{
   ConsentFactMongoDataStore,
   OrganisationMongoDataStore,
+  TenantMongoDataStore,
   UserMongoDataStore
 }
 import javax.inject.Inject
@@ -26,6 +27,7 @@ class OrganisationController @Inject()(
     val ds: OrganisationMongoDataStore,
     val consentFactDataStore: ConsentFactMongoDataStore,
     val userDataStore: UserMongoDataStore,
+    val tenantDataStore: TenantMongoDataStore,
     val broker: KafkaMessageBroker)(implicit val ec: ExecutionContext,
                                     system: ActorSystem)
     extends ControllerUtils(cc) {
@@ -34,42 +36,48 @@ class OrganisationController @Inject()(
 
   def create(tenant: String) = AuthAction.async(parse.anyContent) {
     implicit req =>
-      val parsed: Either[String, Organisation] =
-        parseMethod(Organisation)
+      tenantDataStore.findByKey(tenant).flatMap {
+        case Some(t) => {
+          val parsed: Either[String, Organisation] =
+            parseMethod(Organisation)
 
-      parsed match {
-        case Left(error) =>
-          Logger.error("Unable to parse organisation  " + error)
-          Future.successful(BadRequest(error))
-        case Right(receivedOrg) =>
-          val o = receivedOrg.copy(version = VersionInfo())
-          OrganisationValidator.validateOrganisation(o) match {
+          parsed match {
             case Left(error) =>
-              Logger.error("Organisation is not valid  " + error)
+              Logger.error("Unable to parse organisation  " + error)
+              Future.successful(BadRequest(error))
+            case Right(receivedOrg) =>
+              val o = receivedOrg.copy(version = VersionInfo())
+              OrganisationValidator.validateOrganisation(o) match {
+                case Left(error) =>
+                  Logger.error("Organisation is not valid  " + error)
 
-              Future.successful(
-                BadRequest(
-                  Json.obj(
-                    "messages" -> error
+                  Future.successful(
+                    BadRequest(
+                      Json.obj(
+                        "messages" -> error
+                      )
+                    )
                   )
-                )
-              )
-            case Right(_) =>
-              // check for duplicate key
-              ds.findByKey(tenant, o.key).flatMap {
-                case None =>
-                  ds.insert(tenant, o).map { _ =>
-                    broker.publish(
-                      OrganisationCreated(tenant = tenant,
-                                          payload = o,
-                                          author = req.authInfo.sub))
+                case Right(_) =>
+                  // check for duplicate key
+                  ds.findByKey(tenant, o.key).flatMap {
+                    case None =>
+                      ds.insert(tenant, o).map { _ =>
+                        broker.publish(
+                          OrganisationCreated(tenant = tenant,
+                                              payload = o,
+                                              author = req.authInfo.sub))
 
-                    renderMethod(o, Created)
+                        renderMethod(o, Created)
+                      }
+                    case Some(_) =>
+                      Future.successful(Conflict("error.key.already.used"))
                   }
-                case Some(_) =>
-                  Future.successful(Conflict("error.key.already.used"))
               }
           }
+        }
+        case None =>
+          Future.successful(NotFound("error.tenant.not.found"))
       }
   }
 
