@@ -14,6 +14,8 @@ class Env @Inject()(
 
   val tenantConfig = TenantConfiguration(configuration)
 
+  val healthCheckConfig = HealthCheckConfiguration(configuration)
+
   val env: String = environment.mode match {
     case Mode.Dev  => "dev"
     case Mode.Prod => "prod"
