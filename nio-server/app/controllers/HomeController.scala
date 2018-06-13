@@ -51,11 +51,14 @@ class HomeController @Inject()(val AuthAction: AuthActionWithEmail,
 
   def indexOther(tenant: String) = index(tenant)
 
-  def otherRoutes(tenant: String, route: String) = AuthAction { req =>
+  def otherRoutes(tenant: String, route: String) = AuthAction.async { req =>
     if (req.authInfo.isAdmin) {
-      Ok(views.html.index(env, tenant, req.email))
+      tenantStore.findByKey(tenant).map {
+        case Some(_) => Ok(views.html.index(env, tenant, req.email))
+        case None    => NotFound("error.tenant.not.found")
+      }
     } else {
-      Forbidden("error.forbidden.backoffice.access")
+      Future.successful(Forbidden("error.forbidden.backoffice.access"))
     }
   }
 
