@@ -58,6 +58,18 @@ object TenantConfiguration {
 
 case class TenantConfiguration(admin: AdminConfig)
 
+object HealthCheckConfiguration {
+  implicit def hint[T] =
+    ProductHint[T](ConfigFieldMapping(CamelCase, CamelCase))
+
+  def apply(config: Configuration): HealthCheckConfiguration = {
+    loadConfigOrThrow[HealthCheckConfiguration](config.underlying,
+                                                "healthcheck")
+  }
+}
+
+case class HealthCheckConfiguration(secret: String, header: String)
+
 case class AdminConfig(secret: String, header: String)
 
 case class S3Config(bucketName: String,

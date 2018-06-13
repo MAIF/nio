@@ -13,7 +13,7 @@ import messaging.KafkaSettings
 import org.apache.kafka.clients.consumer.Consumer
 import play.api.mvc.ControllerComponents
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 import scala.collection.JavaConverters._
 
 class MetricsController @Inject()(
@@ -38,24 +38,29 @@ class MetricsController @Inject()(
     stringWriter.toString
   }
 
-  def healthCheck() = AuthAction.async { req =>
-    tenantStore
-      .findAll()
-      .map { _ =>
-        val kafka = env.config.kafka
+  def healthCheck() = Action.async { req =>
+    req.headers.get(env.healthCheckConfig.header) match {
+      case Some(secret) if secret == env.healthCheckConfig.secret =>
+        tenantStore
+          .findAll()
+          .map { _ =>
+            val kafka = env.config.kafka
 
-        val kafkaConsumer: Consumer[Array[Byte], String] = KafkaSettings
-          .consumerSettings(actorSystem, kafka)
-          .createKafkaConsumer()
+            val kafkaConsumer: Consumer[Array[Byte], String] = KafkaSettings
+              .consumerSettings(actorSystem, kafka)
+              .createKafkaConsumer()
 
-        kafkaConsumer
-          .partitionsFor(kafka.topic)
-          .asScala
+            kafkaConsumer
+              .partitionsFor(kafka.topic)
+              .asScala
 
-        kafkaConsumer.close()
+            kafkaConsumer.close()
 
-        Ok
-      }
+            Ok
+          }
+      case None =>
+        Future.successful(Unauthorized("error.missing.secret"))
+    }
   }
 
 }
