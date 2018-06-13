@@ -9,8 +9,8 @@ export class UsersPage extends Component {
     columns = [
         {
             title: 'Identifiant utilisateur',
-            notFilterable: true,
             content: item => item.userId,
+            filteredState: "filterUserId",
             cell: (v, item) => {
                 return <Link to={`/organisations/${item.orgKey}/users/${item.userId}`}
                              style={{cursor: 'pointer'}}>{item.userId}</Link>
@@ -45,9 +45,9 @@ export class UsersPage extends Component {
     fetchData = (state, instance) => {
         this.setState({loading: true});
         ((this.state.organisationKey) ?
-                userService.getUsersByOrganisations(this.state.tenant, this.state.organisationKey, state.page, state.pageSize)
+                userService.getUsersByOrganisations(this.state.tenant, this.state.organisationKey, state.page, state.pageSize, this.state.filterUserId)
                 :
-                userService.getUsers(this.state.tenant, state.page, state.pageSize)
+                userService.getUsers(this.state.tenant, state.page, state.pageSize, this.state.filterUserId)
         ).then(pagedUsers => this.setState({
             items: pagedUsers.items,
             count: pagedUsers.count,

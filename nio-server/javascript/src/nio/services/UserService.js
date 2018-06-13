@@ -1,5 +1,6 @@
-export function getUsers(tenant, page, pageSize) {
-  return fetch(`/api/${tenant}/users?page=${page}&pageSize=${pageSize}`, {
+export function getUsers(tenant, page, pageSize, userId) {
+
+  return fetch(`/api/${tenant}/users?page=${page}&pageSize=${pageSize}${userId ? `&userId=${userId}`: ""}`, {
     method: "GET",
     credentials: 'include',
     headers: {
@@ -9,8 +10,8 @@ export function getUsers(tenant, page, pageSize) {
   }).then(r => r.json());
 }
 
-export function getUsersByOrganisations(tenant, organisationKey, page, pageSize) {
-  return fetch(`/api/${tenant}/organisations/${organisationKey}/users?page=${page}&pageSize=${pageSize}`, {
+export function getUsersByOrganisations(tenant, organisationKey, page, pageSize, userId) {
+  return fetch(`/api/${tenant}/organisations/${organisationKey}/users?page=${page}&pageSize=${pageSize}${userId ? `&userId=${userId}`: ""}`, {
     method: "GET",
     credentials: 'include',
     headers: {

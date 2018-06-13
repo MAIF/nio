@@ -3,6 +3,7 @@ package db
 import akka.stream.Materializer
 import javax.inject.{Inject, Singleton}
 import models._
+import play.api.Logger
 import play.api.libs.json.{Format, JsObject, JsValue, Json}
 import play.modules.reactivemongo.ReactiveMongoApi
 import play.modules.reactivemongo.json.ImplicitBSONHandlers._
@@ -51,12 +52,32 @@ class UserMongoDataStore @Inject()(val reactiveMongoApi: ReactiveMongoApi)(
   def findAllByOrgKey(tenant: String,
                       orgKey: String,
                       page: Int,
-                      pageSize: Int) = {
-    findAllByQuery(tenant, Json.obj("orgKey" -> orgKey), page, pageSize)
+                      pageSize: Int,
+                      maybeUserId: Option[String]) = {
+
+    val query = maybeUserId match {
+      case Some(userId) =>
+        Json.obj(
+          "userId" -> Json.obj("$regex" -> s".*$userId.*", "$options" -> "i"),
+          "orgKey" -> orgKey)
+      case None => Json.obj("orgKey" -> orgKey)
+    }
+    findAllByQuery(tenant, query, page, pageSize)
   }
 
-  def findAll(tenant: String, page: Int, pageSize: Int) = {
-    findAllByQuery(tenant, Json.obj(), page, pageSize)
+  def findAll(tenant: String,
+              page: Int,
+              pageSize: Int,
+              maybeUserId: Option[String]) = {
+
+    val query = maybeUserId match {
+      case Some(userId) =>
+        Json.obj(
+          "userId" -> Json.obj("$regex" -> s".*$userId.*", "$options" -> "i"))
+      case None => Json.obj()
+    }
+
+    findAllByQuery(tenant, query, page, pageSize)
   }
 
   def streamAll(tenant: String)(implicit m: Materializer) = {

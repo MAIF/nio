@@ -25,9 +25,10 @@ class UserController @Inject()(val AuthAction: AuthAction,
   def listByOrganisation(tenant: String,
                          orgKey: String,
                          page: Int = 0,
-                         pageSize: Int = 10) = AuthAction.async {
+                         pageSize: Int = 10,
+                         maybeUserId: Option[String]) = AuthAction.async {
     implicit req =>
-      ds.findAllByOrgKey(tenant, orgKey, page, pageSize).map {
+      ds.findAllByOrgKey(tenant, orgKey, page, pageSize, maybeUserId).map {
         case (users, count) =>
           val pagedUsers = PagedUsers(page, pageSize, count, users)
 
@@ -35,9 +36,12 @@ class UserController @Inject()(val AuthAction: AuthAction,
       }
   }
 
-  def listAll(tenant: String, page: Int = 0, pageSize: Int = 10) =
+  def listAll(tenant: String,
+              page: Int = 0,
+              pageSize: Int = 10,
+              maybeUserId: Option[String]) =
     AuthAction.async { implicit req =>
-      ds.findAll(tenant, page, pageSize).map {
+      ds.findAll(tenant, page, pageSize, maybeUserId).map {
         case (users, count) =>
           val pagedUsers = PagedUsers(page, pageSize, count, users)
 

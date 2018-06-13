@@ -51,7 +51,7 @@ GET         /api/:tenant/organisations/:orgKey/last                 controllers.
 
 GET         /api/:tenant/organisations/:orgKey/draft                controllers.OrganisationController.findDraftByKey(tenant: String, orgKey: String)
 
-GET         /api/:tenant/organisations/:orgKey/users                controllers.UserController.listByOrganisation(tenant: String, orgKey: String, page: Int ?= 0, pageSize: Int ?= 10)
+GET         /api/:tenant/organisations/:orgKey/users                controllers.UserController.listByOrganisation(tenant: String, orgKey: String, page: Int ?= 0, pageSize: Int ?= 10, userId: Option[String] ?= None)
 
 GET         /api/:tenant/organisations/:orgKey/:versionNum          controllers.OrganisationController.findReleasedByKeyAndVersionNum(tenant: String, orgKey: String, versionNum: Int)
 
@@ -77,7 +77,7 @@ PUT         /api/:tenant/accounts/:accountId                        controllers.
 
 DELETE      /api/:tenant/accounts/:accountId                        controllers.AccountController.delete(tenant: String, accountId: String)
 
-GET         /api/:tenant/users                                      controllers.UserController.listAll(tenant: String, page: Int ?= 0, pageSize: Int ?= 10)
+GET         /api/:tenant/users                                      controllers.UserController.listAll(tenant: String, page: Int ?= 0, pageSize: Int ?= 10, userId: Option[String] ?= None)
 
 GET         /api/:tenant/users.ndjson                               controllers.UserController.download(tenant: String)
 
