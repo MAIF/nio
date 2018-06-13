@@ -2,12 +2,7 @@ package controllers
 
 import auth.AuthAction
 import configuration.Env
-import db.{
-  ConsentFactMongoDataStore,
-  OrganisationMongoDataStore,
-  TenantMongoDataStore,
-  UserMongoDataStore
-}
+import db._
 import javax.inject.Inject
 import models.{Tenant, TenantCreated, TenantDeleted, Tenants}
 import play.api.mvc.ControllerComponents
@@ -19,9 +14,12 @@ import scala.concurrent.{ExecutionContext, Future}
 class TenantController @Inject()(
     AuthAction: AuthAction,
     tenantStore: TenantMongoDataStore,
+    accountMongoDataStore: AccountMongoDataStore,
     consentFactStore: ConsentFactMongoDataStore,
     organisationDataStore: OrganisationMongoDataStore,
     userDataStore: UserMongoDataStore,
+    extractionTaskDataStore: ExtractionTaskMongoDataStore,
+    deletionTaskDataStore: DeletionTaskMongoDataStore,
     conf: Configuration,
     cc: ControllerComponents,
     env: Env,
@@ -46,10 +44,47 @@ class TenantController @Inject()(
               case Some(_) =>
                 Future.successful(Conflict("error.key.already.used"))
               case None =>
-                tenantStore.insert(tenant).map { _ =>
+                tenantStore.insert(tenant).flatMap { _ =>
                   broker.publish(
                     TenantCreated(tenant = tenant.key, payload = tenant))
-                  renderMethod(tenant, Created)
+
+                  Future
+                    .sequence(
+                      Seq(
+                        accountMongoDataStore
+                          .init(tenant.key)
+                          .map(
+                            _ => accountMongoDataStore.ensureIndices(tenant.key)
+                          ),
+                        consentFactStore
+                          .init(tenant.key)
+                          .map(
+                            _ => consentFactStore.ensureIndices(tenant.key)
+                          ),
+                        organisationDataStore
+                          .init(tenant.key)
+                          .map(
+                            _ => organisationDataStore.ensureIndices(tenant.key)
+                          ),
+                        userDataStore
+                          .init(tenant.key)
+                          .map(
+                            _ => userDataStore.ensureIndices(tenant.key)
+                          ),
+                        extractionTaskDataStore
+                          .init(tenant.key)
+                          .map(
+                            _ =>
+                              extractionTaskDataStore.ensureIndices(tenant.key)
+                          ),
+                        deletionTaskDataStore
+                          .init(tenant.key)
+                          .map(
+                            _ => deletionTaskDataStore.ensureIndices(tenant.key)
+                          )
+                      )
+                    )
+                    .map(_ => renderMethod(tenant, Created))
                 }
             }
         }
