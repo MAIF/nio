@@ -57,9 +57,7 @@ class UserMongoDataStore @Inject()(val reactiveMongoApi: ReactiveMongoApi)(
 
     val query = maybeUserId match {
       case Some(userId) =>
-        Json.obj(
-          "userId" -> Json.obj("$regex" -> s".*$userId.*", "$options" -> "i"),
-          "orgKey" -> orgKey)
+        Json.obj("userId" -> userId, "orgKey" -> orgKey)
       case None => Json.obj("orgKey" -> orgKey)
     }
     findAllByQuery(tenant, query, page, pageSize)
@@ -72,8 +70,7 @@ class UserMongoDataStore @Inject()(val reactiveMongoApi: ReactiveMongoApi)(
 
     val query = maybeUserId match {
       case Some(userId) =>
-        Json.obj(
-          "userId" -> Json.obj("$regex" -> s".*$userId.*", "$options" -> "i"))
+        Json.obj("userId" -> userId)
       case None => Json.obj()
     }
 
