@@ -34,12 +34,12 @@ trait DataStoreUtils {
       cName = collectionName(tenant)
       foundName <- db.collectionNames.map(names => names.contains(cName))
       _ <- if (foundName) {
-          Logger.info(s"Ensuring indices for $cName")
-          val col = db.collection[JSONCollection](cName)
-          Future.sequence(indices.map(i => col.indexesManager.ensure(i)))
-        } else {
-          Future.successful()
-        }
+        Logger.info(s"Ensuring indices for $cName")
+        val col = db.collection[JSONCollection](cName)
+        Future.sequence(indices.map(i => col.indexesManager.ensure(i)))
+      } else {
+        Future.successful(Seq.empty[Boolean])
+      }
     } yield { () }
 
 }
