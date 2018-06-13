@@ -38,7 +38,7 @@ class MetricsController @Inject()(
     stringWriter.toString
   }
 
-  def healthCheck() = AuthAction.async { req =>
+  def healthCheck() = Action.async { req =>
     tenantStore
       .findAll()
       .map { _ =>
