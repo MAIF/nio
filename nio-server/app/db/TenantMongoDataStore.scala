@@ -22,7 +22,14 @@ class TenantMongoDataStore @Inject()(val reactiveMongoApi: ReactiveMongoApi)(
 
   implicit def format: Format[Tenant] = Tenant.tenantFormats
 
-  def init() = super.init("")
+  def init() = {
+    storedCollection.flatMap { col =>
+      for {
+        _ <- col.drop(failIfNotFound = false)
+        _ <- col.create()
+      } yield ()
+    }
+  }
 
   def storedCollection: Future[JSONCollection] =
     reactiveMongoApi.database.map(_.collection("tenants"))
