@@ -1,25 +1,35 @@
 package db
 
+import akka.stream.Materializer
 import javax.inject.{Inject, Singleton}
 import models._
 import play.api.libs.json.{Format, JsObject, JsValue, Json}
 import play.modules.reactivemongo.ReactiveMongoApi
 import play.modules.reactivemongo.json.ImplicitBSONHandlers._
-import reactivemongo.play.json.collection.JSONCollection
-import reactivemongo.api.{Cursor, QueryOpts, ReadPreference}
-import akka.stream.Materializer
-import play.api.Logger
 import reactivemongo.akkastream.cursorProducer
 import reactivemongo.api.indexes.{Index, IndexType}
+import reactivemongo.api.{Cursor, QueryOpts, ReadPreference}
 
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class UserMongoDataStore @Inject()(reactiveMongoApi: ReactiveMongoApi)(
-    implicit val ec: ExecutionContext) {
+class UserMongoDataStore @Inject()(val reactiveMongoApi: ReactiveMongoApi)(
+    implicit val ec: ExecutionContext)
+    extends DataStoreUtils {
 
-  def storedCollection(tenant: String): Future[JSONCollection] =
-    reactiveMongoApi.database.map(_.collection(s"$tenant-users"))
+  override def collectionName(tenant: String) = s"$tenant-users"
+
+  override def indices = Seq(
+    Index(key = Seq("orgKey" -> IndexType.Ascending,
+                    "userId" -> IndexType.Ascending),
+          name = Some("orgKey_userId"),
+          unique = true,
+          sparse = true),
+    Index(Seq("orgKey" -> IndexType.Ascending),
+          name = Some("orgKey"),
+          unique = false,
+          sparse = true)
+  )
 
   implicit def format: Format[User] = User.formats
 
@@ -96,15 +106,6 @@ class UserMongoDataStore @Inject()(reactiveMongoApi: ReactiveMongoApi)(
     }
   }
 
-  def init(tenant: String) = {
-    storedCollection(tenant).flatMap { col =>
-      for {
-        _ <- col.drop(failIfNotFound = false)
-        _ <- col.create()
-      } yield ()
-    }
-  }
-
   def deleteUserByTenant(tenant: String) = {
     storedCollection(tenant).flatMap { col =>
       col.drop(failIfNotFound = false)
@@ -115,45 +116,6 @@ class UserMongoDataStore @Inject()(reactiveMongoApi: ReactiveMongoApi)(
     storedCollection(tenant).flatMap { col =>
       col.remove(Json.obj("orgKey" -> orgKey))
     }
-  }
-
-  def ensureIndices(tenant: String) = {
-    reactiveMongoApi.database
-      .map(_.collectionNames)
-      .flatMap(collectionNames => {
-        collectionNames.flatMap(
-          cols =>
-            cols.find(c => c == s"$tenant-users") match {
-              case Some(_) =>
-                storedCollection(tenant).flatMap {
-                  col =>
-                    Future.sequence(
-                      Seq(
-                        col.indexesManager.ensure(
-                          Index(key = Seq("orgKey" -> IndexType.Ascending,
-                                          "userId" -> IndexType.Ascending),
-                                name = Some("orgKey_userId"),
-                                unique = true,
-                                sparse = true)
-                        ),
-                        col.indexesManager.ensure(
-                          Index(Seq("orgKey" -> IndexType.Ascending),
-                                name = Some("orgKey"),
-                                unique = false,
-                                sparse = true)
-                        )
-                      )
-                    )
-                }
-              case None =>
-                Logger.error(s"unknow collection $tenant-users")
-                Future {
-                  Seq()
-                }
-          }
-        )
-      })
-
   }
 
 }

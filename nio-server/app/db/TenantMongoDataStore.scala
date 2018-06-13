@@ -5,19 +5,27 @@ import models._
 import play.api.libs.json.{Format, JsObject, Json}
 import play.modules.reactivemongo.ReactiveMongoApi
 import play.modules.reactivemongo.json.ImplicitBSONHandlers._
+import reactivemongo.api.indexes.Index
 import reactivemongo.api.{Cursor, ReadPreference}
 import reactivemongo.play.json.collection.JSONCollection
 
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class TenantMongoDataStore @Inject()(reactiveMongoApi: ReactiveMongoApi)(
-    implicit val ec: ExecutionContext) {
+class TenantMongoDataStore @Inject()(val reactiveMongoApi: ReactiveMongoApi)(
+    implicit val ec: ExecutionContext)
+    extends DataStoreUtils {
+
+  override def collectionName(tenant: String) = "tenants"
+
+  override def indices = Seq.empty[Index]
+
+  implicit def format: Format[Tenant] = Tenant.tenantFormats
+
+  def init() = super.init("")
 
   def storedCollection: Future[JSONCollection] =
     reactiveMongoApi.database.map(_.collection("tenants"))
-
-  implicit def format: Format[Tenant] = Tenant.tenantFormats
 
   def insert(tenant: Tenant) =
     storedCollection.flatMap(
@@ -34,15 +42,6 @@ class TenantMongoDataStore @Inject()(reactiveMongoApi: ReactiveMongoApi)(
       _.find(Json.obj("key" -> key))
         .one[Tenant]
     )
-
-  def init() = {
-    storedCollection.flatMap { col =>
-      for {
-        _ <- col.drop(failIfNotFound = false)
-        _ <- col.create()
-      } yield ()
-    }
-  }
 
   def removeByKey(key: String) = {
     storedCollection.flatMap { col =>

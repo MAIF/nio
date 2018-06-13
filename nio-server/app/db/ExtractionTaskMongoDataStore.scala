@@ -4,23 +4,32 @@ import akka.stream.Materializer
 import javax.inject.{Inject, Singleton}
 import models.ExtractionTask
 import models.ExtractionTaskStatus.ExtractionTaskStatus
-import play.api.Logger
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoApi
 import play.modules.reactivemongo.json.ImplicitBSONHandlers._
-import reactivemongo.api.{Cursor, QueryOpts, ReadPreference}
-import reactivemongo.play.json.collection.JSONCollection
 import reactivemongo.akkastream.cursorProducer
 import reactivemongo.api.indexes.{Index, IndexType}
+import reactivemongo.api.{Cursor, QueryOpts, ReadPreference}
 
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class ExtractionTaskMongoDataStore @Inject()(reactiveMongoApi: ReactiveMongoApi)(
-    implicit val ec: ExecutionContext) {
+class ExtractionTaskMongoDataStore @Inject()(
+    val reactiveMongoApi: ReactiveMongoApi)(implicit val ec: ExecutionContext)
+    extends DataStoreUtils {
 
-  def storedCollection(tenant: String): Future[JSONCollection] =
-    reactiveMongoApi.database.map(_.collection(s"$tenant-extractionTasks"))
+  override def collectionName(tenant: String) = s"$tenant-extractionTasks"
+
+  override def indices = Seq(
+    Index(Seq("orgKey" -> IndexType.Ascending),
+          name = Some("orgKey"),
+          unique = false,
+          sparse = true),
+    Index(Seq("userId" -> IndexType.Ascending),
+          name = Some("userId"),
+          unique = false,
+          sparse = true)
+  )
 
   implicit def format: Format[ExtractionTask] = ExtractionTask.fmt
 
@@ -80,15 +89,6 @@ class ExtractionTaskMongoDataStore @Inject()(reactiveMongoApi: ReactiveMongoApi)
     }
   }
 
-  def init(tenant: String) = {
-    storedCollection(tenant).flatMap { col =>
-      for {
-        _ <- col.drop(failIfNotFound = false)
-        _ <- col.create()
-      } yield ()
-    }
-  }
-
   def streamAllByState(tenant: String, status: ExtractionTaskStatus)(
       implicit m: Materializer) = {
     storedCollection(tenant).map { col =>
@@ -98,43 +98,4 @@ class ExtractionTaskMongoDataStore @Inject()(reactiveMongoApi: ReactiveMongoApi)
         .documentSource()
     }
   }
-
-  def ensureIndices(tenant: String) = {
-    reactiveMongoApi.database
-      .map(_.collectionNames)
-      .flatMap(collectionNames => {
-        collectionNames.flatMap(
-          cols =>
-            cols.find(c => c == s"$tenant-extractionTasks") match {
-              case Some(_) =>
-                storedCollection(tenant).flatMap {
-                  col =>
-                    Future.sequence(
-                      Seq(
-                        col.indexesManager.ensure(
-                          Index(Seq("orgKey" -> IndexType.Ascending),
-                                name = Some("orgKey"),
-                                unique = false,
-                                sparse = true)
-                        ),
-                        col.indexesManager.ensure(
-                          Index(Seq("userId" -> IndexType.Ascending),
-                                name = Some("userId"),
-                                unique = false,
-                                sparse = true)
-                        )
-                      )
-                    )
-                }
-              case None =>
-                Logger.error(s"unknow collection $tenant-extractionTasks")
-                Future {
-                  Seq()
-                }
-          }
-        )
-      })
-
-  }
-
 }

@@ -3,23 +3,33 @@ package db
 import akka.stream.Materializer
 import javax.inject.{Inject, Singleton}
 import models._
-import play.api.Logger
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoApi
 import play.modules.reactivemongo.json.ImplicitBSONHandlers._
-import reactivemongo.api.{Cursor, ReadPreference}
-import reactivemongo.play.json.collection.JSONCollection
 import reactivemongo.akkastream.cursorProducer
 import reactivemongo.api.indexes.{Index, IndexType}
+import reactivemongo.api.{Cursor, ReadPreference}
 
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class OrganisationMongoDataStore @Inject()(reactiveMongoApi: ReactiveMongoApi)(
-    implicit val ec: ExecutionContext) {
+class OrganisationMongoDataStore @Inject()(
+    val reactiveMongoApi: ReactiveMongoApi)(implicit val ec: ExecutionContext)
+    extends DataStoreUtils {
 
-  def storedCollection(tenant: String): Future[JSONCollection] =
-    reactiveMongoApi.database.map(_.collection(s"$tenant-organisations"))
+  override def collectionName(tenant: String) = s"$tenant-organisations"
+
+  override def indices = Seq(
+    Index(Seq("orgKey" -> IndexType.Ascending),
+          name = Some("orgKey"),
+          unique = false,
+          sparse = true),
+    Index(Seq("orgKey" -> IndexType.Ascending,
+              "version.num" -> IndexType.Ascending),
+          name = Some("orgKey_versionNum"),
+          unique = false,
+          sparse = true)
+  )
 
   implicit def format: Format[Organisation] = Organisation.formats
 
@@ -100,15 +110,6 @@ class OrganisationMongoDataStore @Inject()(reactiveMongoApi: ReactiveMongoApi)(
         .cursor[Organisation](ReadPreference.primaryPreferred)
         .collect[Seq](-1, Cursor.FailOnError[Seq[Organisation]]()))
 
-  def init(tenant: String) = {
-    storedCollection(tenant).flatMap { col =>
-      for {
-        _ <- col.drop(failIfNotFound = false)
-        _ <- col.create()
-      } yield ()
-    }
-  }
-
   def deleteOrganisationByTenant(tenant: String) = {
     storedCollection(tenant).flatMap { col =>
       col.drop(failIfNotFound = false)
@@ -170,44 +171,4 @@ class OrganisationMongoDataStore @Inject()(reactiveMongoApi: ReactiveMongoApi)(
         .documentSource()
     }
   }
-
-  def ensureIndices(tenant: String) = {
-    reactiveMongoApi.database
-      .map(_.collectionNames)
-      .flatMap(collectionNames => {
-        collectionNames.flatMap(
-          cols =>
-            cols.find(c => c == s"$tenant-organisations") match {
-              case Some(_) =>
-                storedCollection(tenant).flatMap {
-                  col =>
-                    Future.sequence(
-                      Seq(
-                        col.indexesManager.ensure(
-                          Index(Seq("orgKey" -> IndexType.Ascending),
-                                name = Some("orgKey"),
-                                unique = false,
-                                sparse = true)
-                        ),
-                        col.indexesManager.ensure(
-                          Index(Seq("orgKey" -> IndexType.Ascending,
-                                    "version.num" -> IndexType.Ascending),
-                                name = Some("orgKey_versionNum"),
-                                unique = false,
-                                sparse = true)
-                        )
-                      )
-                    )
-                }
-              case None =>
-                Logger.error(s"unknow collection $tenant-organisations")
-                Future {
-                  Seq()
-                }
-          }
-        )
-      })
-
-  }
-
 }
