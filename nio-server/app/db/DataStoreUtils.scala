@@ -33,9 +33,13 @@ trait DataStoreUtils {
       db <- reactiveMongoApi.database
       cName = collectionName(tenant)
       foundName <- db.collectionNames.map(names => names.contains(cName))
-      xxx = db.collection[JSONCollection](cName) if foundName
-      _ = Logger.info(s"Ensuring indices for $cName")
-      _ <- Future.sequence(indices.map(i => xxx.indexesManager.ensure(i)))
+      _ <- if (foundName) {
+          Logger.info(s"Ensuring indices for $cName")
+          val col = db.collection[JSONCollection](cName)
+          Future.sequence(indices.map(i => col.indexesManager.ensure(i)))
+        } else {
+          Future.successful()
+        }
     } yield { () }
 
 }
