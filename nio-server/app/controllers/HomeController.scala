@@ -7,8 +7,6 @@ import auth.AuthActionWithEmail
 import configuration.Env
 import db.TenantMongoDataStore
 import javax.inject.Inject
-import messaging.KafkaSettings
-import org.apache.kafka.clients.consumer.Consumer
 import play.api.mvc.{AbstractController, ControllerComponents}
 
 import scala.collection.JavaConverters._
@@ -65,25 +63,5 @@ class HomeController @Inject()(val AuthAction: AuthActionWithEmail,
 
   def swagger() = AuthAction { req =>
     Ok(swaggerContent).as("application/json")
-  }
-
-  def healthCheck() = AuthAction.async { req =>
-    tenantStore
-      .findAll()
-      .map { _ =>
-        val kafka = env.config.kafka
-
-        val kafkaConsumer: Consumer[Array[Byte], String] = KafkaSettings
-          .consumerSettings(actorSystem, kafka)
-          .createKafkaConsumer()
-
-        kafkaConsumer
-          .partitionsFor(kafka.topic)
-          .asScala
-
-        kafkaConsumer.close()
-
-        Ok
-      }
   }
 }

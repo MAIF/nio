@@ -93,6 +93,6 @@ DELETE      /api/tenants/:tenantKey                                 controllers.
 
 GET         /api/metrics                                            controllers.MetricsController.metrics
 
-GET         /api/_healthCheck                                       controllers.HomeController.healthCheck
+GET         /api/_healthCheck                                       controllers.MetricsController.healthCheck
 
 GET         /:tenant/bo/*other                                      controllers.HomeController.otherRoutes(tenant: String, other: String)
