@@ -3,11 +3,10 @@ package db
 import akka.stream.Materializer
 import javax.inject.{Inject, Singleton}
 import models._
-import play.api.Logger
 import play.api.libs.json.{Format, JsObject, JsValue, Json}
 import play.modules.reactivemongo.ReactiveMongoApi
 import play.modules.reactivemongo.json.ImplicitBSONHandlers._
-import reactivemongo.akkastream.cursorProducer
+import reactivemongo.akkastream.{AkkaStreamCursor, cursorProducer}
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.api.{Cursor, QueryOpts, ReadPreference}
 
@@ -101,6 +100,22 @@ class UserMongoDataStore @Inject()(val reactiveMongoApi: ReactiveMongoApi)(
                 "latestConsentFactId" -> 1
               ))
         .cursor[JsValue]()
+        .documentSource()
+    }
+  }
+
+  def streamAllUsersConsentFacts(tenant: String)(implicit m: Materializer) = {
+    storedCollection(tenant).map { users =>
+      import users.BatchCommands.AggregationFramework.Lookup
+
+      users
+        .aggregatorContext[JsValue](
+          Lookup(s"$tenant-consentFacts",
+                 "latestConsentFactId",
+                 "_id",
+                 "consentFact"))
+        .prepared[AkkaStreamCursor]
+        .cursor
         .documentSource()
     }
   }

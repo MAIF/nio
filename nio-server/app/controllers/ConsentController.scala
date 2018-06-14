@@ -15,6 +15,7 @@ import messaging.KafkaMessageBroker
 import models.{ConsentFact, _}
 import play.api.Logger
 import play.api.http.HttpEntity
+import play.api.libs.json.{JsArray, Json}
 import play.api.mvc.{ControllerComponents, ResponseHeader, Result}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -384,17 +385,11 @@ class ConsentController @Inject()(
     }
 
   def download(tenant: String) = AuthAction.async { implicit req =>
-    userStore.streamAllConsentFactIds(tenant).map { source =>
+    userStore.streamAllUsersConsentFacts(tenant).map { source =>
       val src = source
-        .mapAsync(1) { json =>
-          val latestConsentFactId = (json \ "latestConsentFactId").as[String]
-          consentFactStore.findById(tenant, latestConsentFactId).map {
-            case None =>
-              Logger.error(
-                s"Unable to find latest consent fact id $latestConsentFactId")
-              ""
-            case Some(consentFact) => consentFact.asJson.toString
-          }
+        .map { json =>
+          val cs = (json \ "consentFact").as[JsArray].value.head
+          Json.stringify(cs)
         }
         .intersperse("", "\n", "\n")
         .map(ByteString.apply)
@@ -407,4 +402,5 @@ class ConsentController @Inject()(
       )
     }
   }
+
 }
