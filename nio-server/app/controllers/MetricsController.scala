@@ -38,7 +38,7 @@ class MetricsController @Inject()(
     stringWriter.toString
   }
 
-  def healthCheck() = Action.async { req =>
+  def healthCheck() = AuthAction.async { req =>
     req.headers.get(env.healthCheckConfig.header) match {
       case Some(secret) if secret == env.healthCheckConfig.secret =>
         tenantStore
