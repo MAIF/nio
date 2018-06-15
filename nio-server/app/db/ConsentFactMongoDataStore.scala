@@ -60,7 +60,7 @@ class ConsentFactMongoDataStore @Inject()(
         count <- coll.count(Some(query))
         queryRes <- coll
           .find(query)
-          .sort(Json.obj("lastUpdate" -> -1))
+          .sort(Json.obj("lastUpdateSystem" -> -1))
           .options(options)
           .cursor[ConsentFact](ReadPreference.primaryPreferred)
           .collect[Seq](maxDocs = pageSize,
