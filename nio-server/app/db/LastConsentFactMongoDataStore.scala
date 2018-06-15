@@ -102,15 +102,15 @@ class LastConsentFactMongoDataStore @Inject()(
     }
   }
 
-  def streamAll(tenant: String)(implicit m: Materializer) = {
+  def streamAll(tenant: String, page: Int, pageSize: Int)(
+      implicit m: Materializer) = {
+    val options = QueryOpts(skipN = page * pageSize, pageSize)
     storedCollection(tenant).map { col =>
       col
-        .find(Json.obj(),
-              Json.obj(
-                "_id" -> 0,
-              ))
-        .cursor[JsValue]()
-        .documentSource()
+        .find(Json.obj())
+        .options(options)
+        .cursor[JsValue](ReadPreference.primaryPreferred)
+        .documentSource(maxDocs = pageSize)
     }
   }
 }

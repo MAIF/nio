@@ -81,7 +81,7 @@ GET         /api/:tenant/users                                      controllers.
 
 GET         /api/:tenant/users.ndjson                               controllers.UserController.download(tenant: String)
 
-GET         /api/:tenant/consents.ndjson                            controllers.ConsentController.download(tenant: String)
+GET         /api/:tenant/consents.ndjson                            controllers.ConsentController.download(tenant: String, page: Int ?= 0, pageSize: Int ?= 100000)
 
 GET         /api/:tenant/events                                     controllers.EventController.events(tenant: String)
 

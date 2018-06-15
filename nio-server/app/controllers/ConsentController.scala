@@ -413,20 +413,22 @@ class ConsentController @Inject()(
       }
     }
 
-  def download(tenant: String) = AuthAction.async { implicit req =>
-    lastConsentFactMongoDataStore.streamAll(tenant).map { source =>
-      val src = source
-        .map(Json.stringify)
-        .intersperse("", "\n", "\n")
-        .map(ByteString.apply)
+  def download(tenant: String, page: Int, pageSize: Int) = AuthAction.async {
+    implicit req =>
+      lastConsentFactMongoDataStore.streamAll(tenant, page, pageSize).map {
+        source =>
+          val src = source
+            .map(Json.stringify)
+            .intersperse("", "\n", "\n")
+            .map(ByteString.apply)
 
-      Result(
-        header = ResponseHeader(OK,
-                                Map(CONTENT_DISPOSITION -> "attachment",
-                                    "filename" -> "consents.ndjson")),
-        body = HttpEntity.Streamed(src, None, Some("application/json"))
-      )
-    }
+          Result(
+            header = ResponseHeader(OK,
+                                    Map(CONTENT_DISPOSITION -> "attachment",
+                                        "filename" -> "consents.ndjson")),
+            body = HttpEntity.Streamed(src, None, Some("application/json"))
+          )
+      }
   }
 
 }
