@@ -135,6 +135,7 @@ trait TestUtils
       "nio.kafka.port" -> s"$kafkaPort",
       "nio.kafka.servers" -> s"127.0.0.1:$kafkaPort",
       "nio.kafka.topic" -> kafkaTopic,
+      "nio.kafka.eventsGroupIn" -> s"10000",
       "nio.s3ManagementEnabled" -> "true",
       "db.tenants" -> List(tenant)
     )
