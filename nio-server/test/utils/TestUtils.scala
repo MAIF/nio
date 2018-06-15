@@ -96,6 +96,8 @@ trait TestUtils
       .flatMap(_.drop(failIfNotFound = false))
     getStoredCollection(reactiveMongoApi, s"$tenant-consentFacts")
       .flatMap(_.drop(failIfNotFound = false))
+    getStoredCollection(reactiveMongoApi, s"$tenant-lastConsentFacts")
+      .flatMap(_.drop(failIfNotFound = false))
     getStoredCollection(reactiveMongoApi, s"$tenant-deletionTasks")
       .flatMap(_.drop(failIfNotFound = false))
     getStoredCollection(reactiveMongoApi, s"$tenant-extractionTasks")

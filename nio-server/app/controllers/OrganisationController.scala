@@ -4,12 +4,7 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.util.ByteString
 import auth.AuthAction
-import db.{
-  ConsentFactMongoDataStore,
-  OrganisationMongoDataStore,
-  TenantMongoDataStore,
-  UserMongoDataStore
-}
+import db._
 import javax.inject.Inject
 import models._
 import messaging.KafkaMessageBroker
@@ -26,6 +21,7 @@ class OrganisationController @Inject()(
     val cc: ControllerComponents,
     val ds: OrganisationMongoDataStore,
     val consentFactDataStore: ConsentFactMongoDataStore,
+    val lastConsentFactMongoDataStore: LastConsentFactMongoDataStore,
     val userDataStore: UserMongoDataStore,
     val tenantDataStore: TenantMongoDataStore,
     val broker: KafkaMessageBroker)(implicit val ec: ExecutionContext,
@@ -248,8 +244,9 @@ class OrganisationController @Inject()(
           case Some(org) =>
             import cats.implicits._
             (consentFactDataStore.removeByOrgKey(tenant, orgKey),
+             lastConsentFactMongoDataStore.removeByOrgKey(tenant, orgKey),
              userDataStore.removeByOrgKey(tenant, orgKey),
-             ds.removeByKey(tenant, orgKey)).mapN { (_, _, _) =>
+             ds.removeByKey(tenant, orgKey)).mapN { (_, _, _, _) =>
               broker.publish(
                 OrganisationDeleted(tenant = tenant,
                                     payload = org,

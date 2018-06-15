@@ -1,26 +1,28 @@
 package db
 
+import akka.stream.Materializer
 import javax.inject.{Inject, Singleton}
 import models._
-import play.api.libs.json.{Format, JsObject, Json}
+import play.api.libs.json.{Format, JsObject, JsValue, Json}
 import play.modules.reactivemongo.ReactiveMongoApi
 import play.modules.reactivemongo.json.ImplicitBSONHandlers._
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.api.{Cursor, QueryOpts, ReadPreference}
+import reactivemongo.akkastream.cursorProducer
 
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class ConsentFactMongoDataStore @Inject()(
+class LastConsentFactMongoDataStore @Inject()(
     val reactiveMongoApi: ReactiveMongoApi)(implicit val ec: ExecutionContext)
     extends DataStoreUtils {
 
-  override def collectionName(tenant: String) = s"$tenant-consentFacts"
+  override def collectionName(tenant: String) = s"$tenant-lastConsentFacts"
 
   override def indices = Seq(
     Index(Seq("orgKey" -> IndexType.Ascending, "userId" -> IndexType.Ascending),
           name = Some("orgKey_userId"),
-          unique = false,
+          unique = true,
           sparse = true),
     Index(Seq("orgKey" -> IndexType.Ascending),
           name = Some("orgKey"),
@@ -40,6 +42,11 @@ class ConsentFactMongoDataStore @Inject()(
 
   def findById(tenant: String, id: String) = {
     val query = Json.obj("_id" -> id)
+    storedCollection(tenant).flatMap(_.find(query).one[ConsentFact])
+  }
+
+  def findByOrgKeyAndUserId(tenant: String, orgKey: String, userId: String) = {
+    val query = Json.obj("orgKey" -> orgKey, "userId" -> userId)
     storedCollection(tenant).flatMap(_.find(query).one[ConsentFact])
   }
 
@@ -86,6 +93,24 @@ class ConsentFactMongoDataStore @Inject()(
   def removeByOrgKey(tenant: String, orgKey: String) = {
     storedCollection(tenant).flatMap { col =>
       col.remove(Json.obj("orgKey" -> orgKey))
+    }
+  }
+
+  def removeById(tenant: String, id: String) = {
+    storedCollection(tenant).flatMap { col =>
+      col.remove(Json.obj("_id" -> id))
+    }
+  }
+
+  def streamAll(tenant: String)(implicit m: Materializer) = {
+    storedCollection(tenant).map { col =>
+      col
+        .find(Json.obj(),
+              Json.obj(
+                "_id" -> 0,
+              ))
+        .cursor[JsValue]()
+        .documentSource()
     }
   }
 }

@@ -15,6 +15,7 @@ class TenantController @Inject()(
     AuthAction: AuthAction,
     tenantStore: TenantMongoDataStore,
     accountMongoDataStore: AccountMongoDataStore,
+    lastConsentFactMongoDataStore: LastConsentFactMongoDataStore,
     consentFactStore: ConsentFactMongoDataStore,
     organisationDataStore: OrganisationMongoDataStore,
     userDataStore: UserMongoDataStore,
@@ -61,6 +62,13 @@ class TenantController @Inject()(
                           .map(
                             _ => consentFactStore.ensureIndices(tenant.key)
                           ),
+                        lastConsentFactMongoDataStore
+                          .init(tenant.key)
+                          .map(
+                            _ =>
+                              lastConsentFactMongoDataStore.ensureIndices(
+                                tenant.key)
+                          ),
                         organisationDataStore
                           .init(tenant.key)
                           .map(
@@ -101,10 +109,12 @@ class TenantController @Inject()(
             import cats.implicits._
             (
               consentFactStore.deleteConsentFactByTenant(tenantKey),
+              lastConsentFactMongoDataStore.deleteConsentFactByTenant(
+                tenantKey),
               organisationDataStore.deleteOrganisationByTenant(tenantKey),
               userDataStore.deleteUserByTenant(tenantKey),
               tenantStore.removeByKey(tenantKey)
-            ).mapN { (_, _, _, _) =>
+            ).mapN { (_, _, _, _, _) =>
               broker.publish(TenantDeleted(tenant = tenantToDelete.key,
                                            payload = tenantToDelete))
               Ok

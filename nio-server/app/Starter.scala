@@ -20,6 +20,7 @@ class Starter @Inject()(
     organisationStore: OrganisationMongoDataStore,
     userStore: UserMongoDataStore,
     consentFactStore: ConsentFactMongoDataStore,
+    lastConsentFactMongoDataStore: LastConsentFactMongoDataStore,
     accountMongoDataStore: AccountMongoDataStore,
     destroyTaskMongoDataStore: DeletionTaskMongoDataStore,
     extractionTaskMongoDataStore: ExtractionTaskMongoDataStore,
@@ -48,6 +49,7 @@ class Starter @Inject()(
               _ <- organisationStore.init(tenant)
               _ <- userStore.init(tenant)
               _ <- consentFactStore.init(tenant)
+              _ <- lastConsentFactMongoDataStore.init(tenant)
               _ <- accountMongoDataStore.init(tenant)
               _ <- destroyTaskMongoDataStore.init(tenant)
               _ <- extractionTaskMongoDataStore.init(tenant)
@@ -75,6 +77,9 @@ class Starter @Inject()(
                 }, {
                   Logger.info(s"Ensuring indices for consents on ${t.key}")
                   consentFactStore.ensureIndices(t.key)
+                }, {
+                  Logger.info(s"Ensuring indices for last consents on ${t.key}")
+                  lastConsentFactMongoDataStore.ensureIndices(t.key)
                 }, {
                   Logger.info(s"Ensuring indices for organisations on ${t.key}")
                   organisationStore.ensureIndices(t.key)

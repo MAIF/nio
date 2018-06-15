@@ -4,9 +4,10 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.util.ByteString
 import auth.AuthAction
-import com.codahale.metrics.{Meter, MetricRegistry, Timer}
+import com.codahale.metrics.{MetricRegistry, Timer}
 import db.{
   ConsentFactMongoDataStore,
+  LastConsentFactMongoDataStore,
   OrganisationMongoDataStore,
   UserMongoDataStore
 }
@@ -15,7 +16,7 @@ import messaging.KafkaMessageBroker
 import models.{ConsentFact, _}
 import play.api.Logger
 import play.api.http.HttpEntity
-import play.api.libs.json.{JsArray, Json}
+import play.api.libs.json.Json
 import play.api.mvc.{ControllerComponents, ResponseHeader, Result}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -26,8 +27,9 @@ class ConsentController @Inject()(
     val cc: ControllerComponents,
     val userStore: UserMongoDataStore,
     val consentFactStore: ConsentFactMongoDataStore,
+    val lastConsentFactMongoDataStore: LastConsentFactMongoDataStore,
     val organisationStore: OrganisationMongoDataStore,
-    metrics: MetricRegistry,
+    val metrics: MetricRegistry,
     val broker: KafkaMessageBroker)(implicit val ec: ExecutionContext,
                                     system: ActorSystem)
     extends ControllerUtils(cc) {
@@ -132,22 +134,18 @@ class ConsentController @Inject()(
     implicit req =>
       {
         val context: Timer.Context = timerGetConsentFact.time()
-        userStore.findByOrgKeyAndUserId(tenant, orgKey, userId).flatMap {
-          case None =>
-            Future.successful(NotFound("error.unknown.user.or.organisation"))
-          case Some(user) =>
-            Logger.info(s"Found user $userId in organisation $orgKey")
-            consentFactStore.findById(tenant, user.latestConsentFactId).map {
-              case None =>
-                // if this occurs it means a user is known but it has no consents, this is a BUG
-                context.stop()
-                InternalServerError("error.unknown.consents")
-              case Some(consentFact) =>
-                // TODO: later handle here new version template version check
-                context.stop()
-                renderMethod(consentFact)
-            }
-        }
+        lastConsentFactMongoDataStore
+          .findByOrgKeyAndUserId(tenant, orgKey, userId)
+          .map {
+            case None =>
+              // if this occurs it means a user is known but it has no consents, this is a BUG
+              context.stop()
+              NotFound("error.unknown.user.or.organisation")
+            case Some(consentFact) =>
+              // TODO: later handle here new version template version check
+              context.stop()
+              renderMethod(consentFact)
+          }
       }
   }
 
@@ -208,6 +206,8 @@ class ConsentController @Inject()(
                       // Ok store consentFact and store user
                       val storedConsentFactFut =
                         consentFactStore.insert(tenant, cf)
+                      val storedLastConsentFactFut =
+                        lastConsentFactMongoDataStore.insert(tenant, cf)
                       val storedUserFut = userStore
                         .insert(tenant,
                                 User(userId = userId,
@@ -221,7 +221,10 @@ class ConsentController @Inject()(
                                                author = req.authInfo.sub))
                         }
                       Future
-                        .sequence(Seq(storedConsentFactFut, storedUserFut))
+                        .sequence(
+                          Seq(storedConsentFactFut,
+                              storedUserFut,
+                              storedLastConsentFactFut))
                         .map { _ =>
                           context.stop()
                           renderMethod(cf)
@@ -249,6 +252,12 @@ class ConsentController @Inject()(
                         val storedConsentFactFut =
                           consentFactStore.insert(tenant, cf)
                         val previousConsentFactId = user.latestConsentFactId
+                        val storedLastConsentFactFut =
+                          lastConsentFactMongoDataStore
+                            .removeById(tenant, previousConsentFactId)
+                            .flatMap { _ =>
+                              lastConsentFactMongoDataStore.insert(tenant, cf)
+                            }
                         val storedUserFut = userStore
                           .updateById(tenant,
                                       user._id,
@@ -271,7 +280,10 @@ class ConsentController @Inject()(
 
                           }
                         Future
-                          .sequence(Seq(storedConsentFactFut, storedUserFut))
+                          .sequence(
+                            Seq(storedConsentFactFut,
+                                storedUserFut,
+                                storedLastConsentFactFut))
                           .map { _ =>
                             context.stop()
                             renderMethod(cf)
@@ -298,6 +310,12 @@ class ConsentController @Inject()(
                       val storedConsentFactFut =
                         consentFactStore.insert(tenant, cf)
                       val previousConsentFactId = user.latestConsentFactId
+                      val storedLastConsentFactFut =
+                        lastConsentFactMongoDataStore
+                          .removeById(tenant, previousConsentFactId)
+                          .flatMap { _ =>
+                            lastConsentFactMongoDataStore.insert(tenant, cf)
+                          }
                       val storedUserFut = userStore
                         .updateById(
                           tenant,
@@ -322,7 +340,10 @@ class ConsentController @Inject()(
 
                         }
                       Future
-                        .sequence(Seq(storedConsentFactFut, storedUserFut))
+                        .sequence(
+                          Seq(storedConsentFactFut,
+                              storedUserFut,
+                              storedLastConsentFactFut))
                         .map { _ =>
                           context.stop()
                           renderMethod(cf)
@@ -346,6 +367,13 @@ class ConsentController @Inject()(
                             val storedConsentFactFut =
                               consentFactStore.insert(tenant, cf)
                             val previousConsentFactId = user.latestConsentFactId
+                            val storedLastConsentFactFut =
+                              lastConsentFactMongoDataStore
+                                .removeById(tenant, previousConsentFactId)
+                                .flatMap { _ =>
+                                  lastConsentFactMongoDataStore.insert(tenant,
+                                                                       cf)
+                                }
                             val storedUserFut = userStore
                               .updateById(
                                 tenant,
@@ -371,8 +399,9 @@ class ConsentController @Inject()(
 
                               }
                             Future
-                              .sequence(
-                                Seq(storedConsentFactFut, storedUserFut))
+                              .sequence(Seq(storedConsentFactFut,
+                                            storedUserFut,
+                                            storedLastConsentFactFut))
                               .map { _ =>
                                 context.stop()
                                 renderMethod(cf)
@@ -385,12 +414,9 @@ class ConsentController @Inject()(
     }
 
   def download(tenant: String) = AuthAction.async { implicit req =>
-    userStore.streamAllUsersConsentFacts(tenant).map { source =>
+    lastConsentFactMongoDataStore.streamAll(tenant).map { source =>
       val src = source
-        .map { json =>
-          val cs = (json \ "consentFact").as[JsArray].value.head
-          Json.stringify(cs)
-        }
+        .map(Json.stringify)
         .intersperse("", "\n", "\n")
         .map(ByteString.apply)
 
