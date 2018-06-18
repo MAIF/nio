@@ -83,6 +83,8 @@ GET         /api/:tenant/users.ndjson                               controllers.
 
 GET         /api/:tenant/consents.ndjson                            controllers.ConsentController.download(tenant: String)
 
+GET         /api/:tenant/store.consents.ndjson                      controllers.UserController.storeAsTmp(tenant: String)
+
 GET         /api/:tenant/events                                     controllers.EventController.events(tenant: String)
 
 GET         /api/tenants                                            controllers.TenantController.tenants

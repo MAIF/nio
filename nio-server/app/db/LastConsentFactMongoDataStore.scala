@@ -1,7 +1,5 @@
 package db
 
-import akka.NotUsed
-import akka.http.scaladsl.util.FastFuture
 import akka.stream.scaladsl.{Sink, Source}
 import akka.stream._
 import javax.inject.{Inject, Singleton}
@@ -16,6 +14,7 @@ import reactivemongo.api.{Cursor, QueryOpts, ReadPreference}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Try}
+import scala.concurrent.ExecutionContext
 
 @Singleton
 class LastConsentFactMongoDataStore @Inject()(
