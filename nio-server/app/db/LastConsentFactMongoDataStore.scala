@@ -119,7 +119,7 @@ class LastConsentFactMongoDataStore @Inject()(
           (0 until parallelisation)
             .map { idx =>
               val items = count / parallelisation
-              val from = (items * idx) + idx
+              val from = (items * idx)
               val to = from + items
               Logger.info(
                 s"Consuming $items consents with worker $idx: $from => $to")
