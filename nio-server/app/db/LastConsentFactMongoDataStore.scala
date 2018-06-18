@@ -2,7 +2,7 @@ package db
 
 import akka.NotUsed
 import akka.http.scaladsl.util.FastFuture
-import akka.stream.scaladsl.Source
+import akka.stream.scaladsl.{Sink, Source}
 import akka.stream._
 import javax.inject.{Inject, Singleton}
 import models._
@@ -15,7 +15,7 @@ import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.api.{Cursor, QueryOpts, ReadPreference}
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Try
+import scala.util.{Failure, Try}
 
 @Singleton
 class LastConsentFactMongoDataStore @Inject()(
@@ -129,9 +129,16 @@ class LastConsentFactMongoDataStore @Inject()(
                 .find(Json.obj())
                 .options(options)
                 .cursor[JsValue](ReadPreference.primary)
-                .documentSource(maxDocs = items)
+                .documentSource(
+                  maxDocs = items,
+                  err = Cursor.FailOnError((_, e) =>
+                    Logger.error(s"Error while streaming worker $idx", e)))
             }
             .reduce(_.merge(_))
+            .alsoTo(Sink.onComplete {
+              case Failure(e) =>
+                Logger.error("Error while streaming consents", e)
+            })
       }
   }
 }
