@@ -107,18 +107,9 @@ class LastConsentFactMongoDataStore @Inject()(
     }
   }
 
-  // def streamAll(tenant: String)(implicit m: Materializer) = {
-  //   storedCollection(tenant).map { col =>
-  //     col
-  //       .find(Json.obj())
-  //       .cursor[JsValue]()
-  //       .documentSource()
-  //   }
-  // }
-
   def streamAll(tenant: String, pageSize: Int, parallelisation: Int)(
       implicit m: Materializer): Source[JsValue, akka.NotUsed] = {
-    val start = System.currentTimeMillis()
+
     val options = QueryOpts(batchSizeN = pageSize, flagsN = 0)
     Source.fromFuture(storedCollection(tenant)).flatMapConcat {
       implicit collection =>
@@ -128,88 +119,5 @@ class LastConsentFactMongoDataStore @Inject()(
           .cursor[JsValue](ReadPreference.primary)
           .documentSource()
     }
-
-    // FastFuture.successful(
-    //   Source
-    //     .fromFuture(storedCollection(tenant))
-    //     .mapAsync(1)(col => col.count())
-    //     .flatMapConcat { count =>
-    //       val nbPages = count / pageSize
-    //       Source(1 to nbPages)
-    //         .mapAsyncUnordered(parallelisation) { p =>
-    //           readPage(tenant, pageSize, p.toInt, start, nbPages)
-    //         }
-    //         .mapConcat(_.toList)
-    //     })
   }
-
-  import scala.concurrent.duration._
-
-  private def durationToHumanReadable(fdur: FiniteDuration): String = {
-    val duration = fdur.toMillis
-    val milliseconds = duration % 1000L
-    val seconds = (duration / 1000L) % 60L
-    val minutes = (duration / (1000L * 60L)) % 60L
-    val hours = (duration / (1000L * 3600L)) % 24L
-    val days = (duration / (1000L * 86400L)) % 7L
-    val weeks = (duration / (1000L * 604800L)) % 4L
-    val months = (duration / (1000L * 2592000L)) % 52L
-    val years = (duration / (1000L * 31556952L)) % 10L
-    val decades = (duration / (1000L * 31556952L * 10L)) % 10L
-    val centuries = (duration / (1000L * 31556952L * 100L)) % 100L
-    val millenniums = (duration / (1000L * 31556952L * 1000L)) % 1000L
-    val megaannums = duration / (1000L * 31556952L * 1000000L)
-
-    val sb = new scala.collection.mutable.StringBuilder()
-
-    if (megaannums > 0) sb.append(megaannums + " megaannums ")
-    if (millenniums > 0) sb.append(millenniums + " millenniums ")
-    if (centuries > 0) sb.append(centuries + " centuries ")
-    if (decades > 0) sb.append(decades + " decades ")
-    if (years > 0) sb.append(years + " years ")
-    if (months > 0) sb.append(months + " months ")
-    if (weeks > 0) sb.append(weeks + " weeks ")
-    if (days > 0) sb.append(days + " days ")
-    if (hours > 0) sb.append(hours + " hours ")
-    if (minutes > 0) sb.append(minutes + " minutes ")
-    if (seconds > 0) sb.append(seconds + " seconds ")
-    if (minutes < 1 && hours < 1 && days < 1) {
-      if (sb.nonEmpty) sb.append(" ")
-      sb.append(milliseconds + " milliseconds")
-    }
-    sb.toString().trim
-  }
-
-  def readPage(tenant: String,
-               pageSize: Int,
-               page: Int,
-               start: Long,
-               nbPages: Int) = {
-    val from = (page - 1) * pageSize
-    val options =
-      QueryOpts( /*skipN = from, */ batchSizeN = pageSize, flagsN = 0)
-
-    val chunkTime = System.currentTimeMillis()
-    storedCollection(tenant)
-      .flatMap { implicit collection =>
-        collection
-          .find(Json.obj())
-          .options(options)
-          .cursor[JsValue](ReadPreference.primary)
-          .collect[Seq](maxDocs = pageSize, Cursor.FailOnError[Seq[JsValue]]())
-      }
-      .andThen {
-        case _ => {
-          val duration = (System.currentTimeMillis() - chunkTime).millis
-          val currentDuration = durationToHumanReadable(duration)
-          val finishingIn = Try {
-            durationToHumanReadable(
-              ((nbPages - page) * duration.toMillis).millis)
-          }.recover { case e => e.getMessage }.getOrElse("--")
-          Logger.info(
-            s"====> $page/$nbPages ($currentDuration ms. per chunk, finishing in $finishingIn ms.)")
-        }
-      }
-  }
-
 }
