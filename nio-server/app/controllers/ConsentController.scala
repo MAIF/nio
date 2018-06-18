@@ -414,9 +414,9 @@ class ConsentController @Inject()(
     }
 
   lazy val defaultPageSize: Int =
-    sys.env.get("DEFAULT_PAGE_SIZE").map(_.toInt).getOrElse(500)
+    sys.env.get("DEFAULT_PAGE_SIZE").map(_.toInt).getOrElse(200)
   lazy val defaultParSize: Int =
-    sys.env.get("DEFAULT_PAR_SIZE").map(_.toInt).getOrElse(5)
+    sys.env.get("DEFAULT_PAR_SIZE").map(_.toInt).getOrElse(6)
 
   def download(tenant: String) = AuthAction { implicit req =>
     val src = lastConsentFactMongoDataStore

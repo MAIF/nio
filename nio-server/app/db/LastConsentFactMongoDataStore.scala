@@ -110,14 +110,25 @@ class LastConsentFactMongoDataStore @Inject()(
   def streamAll(tenant: String, pageSize: Int, parallelisation: Int)(
       implicit m: Materializer): Source[JsValue, akka.NotUsed] = {
 
-    val options = QueryOpts(batchSizeN = pageSize, flagsN = 0)
-    Source.fromFuture(storedCollection(tenant)).flatMapConcat {
-      implicit collection =>
-        collection
-          .find(Json.obj())
-          .options(options)
-          .cursor[JsValue](ReadPreference.primary)
-          .documentSource()
-    }
+    Source
+      .fromFuture(storedCollection(tenant))
+      .mapAsync(1)(coll => coll.count().map(c => (coll, c)))
+      .flatMapConcat {
+        case (collection, count) =>
+          (0 until parallelisation)
+            .map { idx =>
+              Logger.info(
+                s"Consuming ${count / parallelisation} items with worker ${idx}")
+              val options = QueryOpts(skipN = (count / parallelisation) * idx,
+                                      batchSizeN = pageSize,
+                                      flagsN = 0)
+              collection
+                .find(Json.obj())
+                .options(options)
+                .cursor[JsValue](ReadPreference.primary)
+                .documentSource(maxDocs = count / parallelisation)
+            }
+            .reduce(_.merge(_))
+      }
   }
 }
