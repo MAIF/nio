@@ -413,9 +413,9 @@ class ConsentController @Inject()(
       }
     }
 
-  val defaultPageSize: Int =
+  lazy val defaultPageSize: Int =
     sys.env.get("DEFAULT_PAGE_SIZE").map(_.toInt).getOrElse(500)
-  val defaultParSize: Int =
+  lazy val defaultParSize: Int =
     sys.env.get("DEFAULT_PAR_SIZE").map(_.toInt).getOrElse(5)
 
   def download(tenant: String) = AuthAction { implicit req =>
