@@ -115,18 +115,21 @@ class LastConsentFactMongoDataStore @Inject()(
       .mapAsync(1)(coll => coll.count().map(c => (coll, c)))
       .flatMapConcat {
         case (collection, count) =>
+          Logger.info(s"Will stream a total of $count consents")
           (0 until parallelisation)
             .map { idx =>
+              val items = count / parallelisation
+              val from = (items * idx) + idx
+              val to = from + items
               Logger.info(
-                s"Consuming ${count / parallelisation} items with worker ${idx}")
-              val options = QueryOpts(skipN = (count / parallelisation) * idx,
-                                      batchSizeN = pageSize,
-                                      flagsN = 0)
+                s"Consuming $items consents with worker $idx: $from => $to")
+              val options =
+                QueryOpts(skipN = from, batchSizeN = pageSize, flagsN = 0)
               collection
                 .find(Json.obj())
                 .options(options)
                 .cursor[JsValue](ReadPreference.primary)
-                .documentSource(maxDocs = count / parallelisation)
+                .documentSource(maxDocs = items)
             }
             .reduce(_.merge(_))
       }
