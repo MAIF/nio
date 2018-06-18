@@ -413,28 +413,28 @@ class ConsentController @Inject()(
       }
     }
 
-  val defaultPageSize: Int = sys.env.get("DEFAULT_PAGE_SIZE").map(_.toInt).getOrElse(500)
-  val defaultParSize: Int = sys.env.get("DEFAULT_PAR_SIZE").map(_.toInt).getOrElse(5)
+  val defaultPageSize: Int =
+    sys.env.get("DEFAULT_PAGE_SIZE").map(_.toInt).getOrElse(500)
+  val defaultParSize: Int =
+    sys.env.get("DEFAULT_PAR_SIZE").map(_.toInt).getOrElse(5)
 
-  def download(tenant: String) = AuthAction.async { implicit req =>
-    lastConsentFactMongoDataStore
-      .streamAll(tenant, req.getQueryString("pageSize").map(_.toInt).getOrElse(defaultPageSize), req.getQueryString("par").map(_.toInt).getOrElse(defaultParSize))
-      .map { source =>
-        val src = source
-          .map(Json.stringify)
-          .intersperse("", "\n", "\n")
-          .map(ByteString.apply)
+  def download(tenant: String) = AuthAction { implicit req =>
+    val src = lastConsentFactMongoDataStore
+      .streamAll(
+        tenant,
+        req.getQueryString("pageSize").map(_.toInt).getOrElse(defaultPageSize),
+        req.getQueryString("par").map(_.toInt).getOrElse(defaultParSize)
+      )
+      .map(Json.stringify)
+      .intersperse("", "\n", "\n")
+      .map(ByteString.apply)
 
-        Result(
-          header = ResponseHeader(OK,
-                                  Map(CONTENT_DISPOSITION -> "attachment",
-                                      "filename" -> "consents.ndjson")),
-          body = HttpEntity.Streamed(src, None, Some("application/json"))
-        )
-      }
-      .recover {
-        case e => InternalServerError(Json.obj("error" -> e.getMessage))
-      }
+    Result(
+      header = ResponseHeader(OK,
+                              Map(CONTENT_DISPOSITION -> "attachment",
+                                  "filename" -> "consents.ndjson")),
+      body = HttpEntity.Streamed(src, None, Some("application/json"))
+    )
   }
 
 }

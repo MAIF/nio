@@ -3,6 +3,7 @@ package db
 import akka.NotUsed
 import akka.http.scaladsl.util.FastFuture
 import akka.stream.scaladsl.Source
+import akka.stream._
 import javax.inject.{Inject, Singleton}
 import models._
 import play.api.Logger
@@ -115,22 +116,31 @@ class LastConsentFactMongoDataStore @Inject()(
   //   }
   // }
 
-  def streamAll(tenant: String,
-                pageSize: Int,
-                parallelisation: Int): Future[Source[JsValue, NotUsed]] = {
+  def streamAll(tenant: String, pageSize: Int, parallelisation: Int)(
+      implicit m: Materializer): Source[JsValue, akka.NotUsed] = {
     val start = System.currentTimeMillis()
-    FastFuture.successful(
-      Source
-        .fromFuture(storedCollection(tenant))
-        .mapAsync(1)(col => col.count())
-        .flatMapConcat { count =>
-          val nbPages = count / pageSize
-          Source(1 to nbPages)
-            .mapAsyncUnordered(parallelisation) { p =>
-              readPage(tenant, pageSize, p.toInt, start, nbPages)
-            }
-            .mapConcat(_.toList)
-        })
+    val options = QueryOpts(batchSizeN = pageSize, flagsN = 0)
+    Source.fromFuture(storedCollection(tenant)).flatMapConcat {
+      implicit collection =>
+        collection
+          .find(Json.obj())
+          .options(options)
+          .cursor[JsValue](ReadPreference.primary)
+          .documentSource()
+    }
+
+    // FastFuture.successful(
+    //   Source
+    //     .fromFuture(storedCollection(tenant))
+    //     .mapAsync(1)(col => col.count())
+    //     .flatMapConcat { count =>
+    //       val nbPages = count / pageSize
+    //       Source(1 to nbPages)
+    //         .mapAsyncUnordered(parallelisation) { p =>
+    //           readPage(tenant, pageSize, p.toInt, start, nbPages)
+    //         }
+    //         .mapConcat(_.toList)
+    //     })
   }
 
   import scala.concurrent.duration._
@@ -176,7 +186,8 @@ class LastConsentFactMongoDataStore @Inject()(
                start: Long,
                nbPages: Int) = {
     val from = (page - 1) * pageSize
-    val options = QueryOpts(skipN = from, batchSizeN = pageSize, flagsN = 0)
+    val options =
+      QueryOpts( /*skipN = from, */ batchSizeN = pageSize, flagsN = 0)
 
     val chunkTime = System.currentTimeMillis()
     storedCollection(tenant)
