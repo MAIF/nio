@@ -5,7 +5,12 @@ import akka.stream.ActorMaterializer
 import akka.util.ByteString
 import auth.AuthAction
 import com.codahale.metrics.{MetricRegistry, Timer}
-import db.{ConsentFactMongoDataStore, LastConsentFactMongoDataStore, OrganisationMongoDataStore, UserMongoDataStore}
+import db.{
+  ConsentFactMongoDataStore,
+  LastConsentFactMongoDataStore,
+  OrganisationMongoDataStore,
+  UserMongoDataStore
+}
 import javax.inject.{Inject, Singleton}
 import messaging.KafkaMessageBroker
 import models.{ConsentFact, _}
@@ -408,9 +413,12 @@ class ConsentController @Inject()(
       }
     }
 
+  val defaultPageSize: Int = sys.env.get("DEFAULT_PAGE_SIZE").map(_.toInt).getOrElse(500)
+  val defaultParSize: Int = sys.env.get("DEFAULT_PAR_SIZE").map(_.toInt).getOrElse(5)
+
   def download(tenant: String) = AuthAction.async { implicit req =>
     lastConsentFactMongoDataStore
-      .streamAll(tenant, 1000, 10)
+      .streamAll(tenant, req.getQueryString("pageSize").map(_.toInt).getOrElse(defaultPageSize), req.getQueryString("par").map(_.toInt).getOrElse(defaultParSize))
       .map { source =>
         val src = source
           .map(Json.stringify)
