@@ -5,12 +5,7 @@ import akka.stream.ActorMaterializer
 import akka.util.ByteString
 import auth.AuthAction
 import com.codahale.metrics.{MetricRegistry, Timer}
-import db.{
-  ConsentFactMongoDataStore,
-  LastConsentFactMongoDataStore,
-  OrganisationMongoDataStore,
-  UserMongoDataStore
-}
+import db.{ConsentFactMongoDataStore, LastConsentFactMongoDataStore, OrganisationMongoDataStore, UserMongoDataStore}
 import javax.inject.{Inject, Singleton}
 import messaging.KafkaMessageBroker
 import models.{ConsentFact, _}
@@ -414,19 +409,24 @@ class ConsentController @Inject()(
     }
 
   def download(tenant: String) = AuthAction.async { implicit req =>
-    lastConsentFactMongoDataStore.streamAll(tenant).map { source =>
-      val src = source
-        .map(Json.stringify)
-        .intersperse("", "\n", "\n")
-        .map(ByteString.apply)
+    lastConsentFactMongoDataStore
+      .streamAll(tenant, 1000, 10)
+      .map { source =>
+        val src = source
+          .map(Json.stringify)
+          .intersperse("", "\n", "\n")
+          .map(ByteString.apply)
 
-      Result(
-        header = ResponseHeader(OK,
-                                Map(CONTENT_DISPOSITION -> "attachment",
-                                    "filename" -> "consents.ndjson")),
-        body = HttpEntity.Streamed(src, None, Some("application/json"))
-      )
-    }
+        Result(
+          header = ResponseHeader(OK,
+                                  Map(CONTENT_DISPOSITION -> "attachment",
+                                      "filename" -> "consents.ndjson")),
+          body = HttpEntity.Streamed(src, None, Some("application/json"))
+        )
+      }
+      .recover {
+        case e => InternalServerError(Json.obj("error" -> e.getMessage))
+      }
   }
 
 }
