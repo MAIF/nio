@@ -166,13 +166,14 @@ class LastConsentFactMongoDataStore @Inject()(
                 .find(BSONDocument())
                 .options(options)
                 .cursor[BSONDocument](ReadPreference.primary)
-                .documentSource(
+                .bulkSource(
                   maxDocs = items,
                   err = Cursor.FailOnError((_, e) =>
                     Logger.error(s"Error while streaming worker $idx", e)))
             }
             .reduce(_.merge(_))
-            .map(doc => ByteString(BSONUtils.stringify(doc)))
+            .map(docs =>
+              ByteString(docs.map(BSONUtils.stringify).mkString("\n")))
             .alsoTo(Sink.onComplete {
               case Failure(e) =>
                 Logger.error("Error while streaming consents", e)
