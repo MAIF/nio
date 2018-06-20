@@ -2,6 +2,7 @@ package db
 
 import play.api.Logger
 import play.modules.reactivemongo.ReactiveMongoApi
+import reactivemongo.api.collections.bson.BSONCollection
 import reactivemongo.api.indexes.Index
 import reactivemongo.play.json.collection.JSONCollection
 
@@ -16,6 +17,10 @@ trait DataStoreUtils {
 
   def storedCollection(tenant: String): Future[JSONCollection] =
     reactiveMongoApi.database.map(_.collection(collectionName(tenant)))
+
+  def storedBSONCollection(tenant: String): Future[BSONCollection] =
+    reactiveMongoApi.database.map(
+      _.collection[BSONCollection](collectionName(tenant)))
 
   def init(tenant: String) = {
     storedCollection(tenant).flatMap { col =>
