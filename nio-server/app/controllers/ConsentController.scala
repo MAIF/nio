@@ -2,6 +2,7 @@ package controllers
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
+import akka.stream.scaladsl.Source
 import akka.util.ByteString
 import auth.AuthAction
 import com.codahale.metrics.{MetricRegistry, Timer}
@@ -16,8 +17,10 @@ import messaging.KafkaMessageBroker
 import models.{ConsentFact, _}
 import play.api.Logger
 import play.api.http.HttpEntity
-import play.api.libs.json.Json
 import play.api.mvc.{ControllerComponents, ResponseHeader, Result}
+import reactivemongo.api.{Cursor, QueryOpts}
+import reactivemongo.bson.BSONDocument
+import utils.BSONUtils
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -427,6 +430,40 @@ class ConsentController @Inject()(
       )
       .intersperse(ByteString.empty, ByteString("\n"), ByteString("\n"))
 
+    Result(
+      header = ResponseHeader(OK,
+                              Map(CONTENT_DISPOSITION -> "attachment",
+                                  "filename" -> "consents.ndjson")),
+      body = HttpEntity.Streamed(src, None, Some("application/json"))
+    )
+  }
+
+  def downloadBulked(tenant: String) = AuthAction { implicit req =>
+    Logger.info(
+      s"Downloading consents (using bulked reads) from tenant $tenant")
+    import reactivemongo.akkastream.cursorProducer
+    import play.modules.reactivemongo.json.ImplicitBSONHandlers._
+
+    val src = Source
+      .fromFutureSource {
+        lastConsentFactMongoDataStore.storedBSONCollection(tenant).map { col =>
+          col
+            .find(reactivemongo.bson.BSONDocument())
+            .options(QueryOpts(batchSizeN = 300))
+            .cursor[BSONDocument]()
+            .bulkSource(err = Cursor.FailOnError((_, e) =>
+              Logger.error(s"Error while streaming worker", e)))
+        }
+      }
+      .mapAsync(10) { d =>
+        Future {
+          val bld = new StringBuilder()
+          d.foreach { doc =>
+            bld.append(s"${BSONUtils.stringify(doc)}\n")
+          }
+          ByteString(bld.toString())
+        }
+      }
     Result(
       header = ResponseHeader(OK,
                               Map(CONTENT_DISPOSITION -> "attachment",

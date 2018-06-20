@@ -12,26 +12,12 @@ import play.modules.reactivemongo.json.ImplicitBSONHandlers._
 import reactivemongo.akkastream.cursorProducer
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.api.{Cursor, QueryOpts, ReadPreference}
-import reactivemongo.bson.{
-  BSONArray,
-  BSONBoolean,
-  BSONDecimal,
-  BSONDocument,
-  BSONDouble,
-  BSONElement,
-  BSONInteger,
-  BSONLong,
-  BSONMaxKey,
-  BSONMinKey,
-  BSONObjectID,
-  BSONString,
-  BSONTimestamp,
-  BSONUndefined
-}
+import reactivemongo.bson.BSONDocument
+
 import utils.BSONUtils
 
-import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success, Try}
+import scala.concurrent.ExecutionContext
+import scala.util.Failure
 
 @Singleton
 class LastConsentFactMongoDataStore @Inject()(
