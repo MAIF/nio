@@ -4,6 +4,7 @@ import akka.NotUsed
 import akka.http.scaladsl.util.FastFuture
 import akka.stream.scaladsl.{Sink, Source}
 import akka.stream._
+import akka.util.ByteString
 import javax.inject.{Inject, Singleton}
 import models._
 import play.api.Logger
@@ -13,9 +14,26 @@ import play.modules.reactivemongo.json.ImplicitBSONHandlers._
 import reactivemongo.akkastream.cursorProducer
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.api.{Cursor, QueryOpts, ReadPreference}
+import reactivemongo.bson.{
+  BSONArray,
+  BSONBoolean,
+  BSONDecimal,
+  BSONDocument,
+  BSONDouble,
+  BSONElement,
+  BSONInteger,
+  BSONLong,
+  BSONMaxKey,
+  BSONMinKey,
+  BSONObjectID,
+  BSONString,
+  BSONTimestamp,
+  BSONUndefined
+}
+import utils.BSONUtils
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Try}
+import scala.util.{Failure, Success, Try}
 
 @Singleton
 class LastConsentFactMongoDataStore @Inject()(
@@ -135,6 +153,42 @@ class LastConsentFactMongoDataStore @Inject()(
                     Logger.error(s"Error while streaming worker $idx", e)))
             }
             .reduce(_.merge(_))
+            .alsoTo(Sink.onComplete {
+              case Failure(e) =>
+                Logger.error("Error while streaming consents", e)
+            })
+      }
+  }
+
+  def streamAllBSON(tenant: String, pageSize: Int, parallelisation: Int)(
+      implicit m: Materializer): Source[ByteString, akka.NotUsed] = {
+
+    Source
+      .fromFuture(storedBSONCollection(tenant))
+      .mapAsync(1)(coll => coll.count().map(c => (coll, c)))
+      .flatMapConcat {
+        case (collection, count) =>
+          Logger.info(s"Will stream a total of $count consents")
+          (0 until parallelisation)
+            .map { idx =>
+              val items = count / parallelisation
+              val from = (items * idx)
+              val to = from + items
+              Logger.info(
+                s"Consuming $items consents with worker $idx: $from => $to")
+              val options =
+                QueryOpts(skipN = from, batchSizeN = pageSize, flagsN = 0)
+              collection
+                .find(BSONDocument())
+                .options(options)
+                .cursor[BSONDocument](ReadPreference.primary)
+                .documentSource(
+                  maxDocs = items,
+                  err = Cursor.FailOnError((_, e) =>
+                    Logger.error(s"Error while streaming worker $idx", e)))
+            }
+            .reduce(_.merge(_))
+            .map(doc => ByteString(BSONUtils.stringify(doc)))
             .alsoTo(Sink.onComplete {
               case Failure(e) =>
                 Logger.error("Error while streaming consents", e)

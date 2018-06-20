@@ -420,14 +420,12 @@ class ConsentController @Inject()(
 
   def download(tenant: String) = AuthAction { implicit req =>
     val src = lastConsentFactMongoDataStore
-      .streamAll(
+      .streamAllBSON(
         tenant,
         req.getQueryString("pageSize").map(_.toInt).getOrElse(defaultPageSize),
         req.getQueryString("par").map(_.toInt).getOrElse(defaultParSize)
       )
-      .map(Json.stringify)
-      .intersperse("", "\n", "\n")
-      .map(ByteString.apply)
+      .intersperse(ByteString.empty, ByteString("\n"), ByteString("\n"))
 
     Result(
       header = ResponseHeader(OK,
