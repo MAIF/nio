@@ -3,6 +3,7 @@ package utils
 import reactivemongo.bson.{
   BSONArray,
   BSONBoolean,
+  BSONDateTime,
   BSONDecimal,
   BSONDocument,
   BSONDouble,
@@ -11,6 +12,7 @@ import reactivemongo.bson.{
   BSONLong,
   BSONMaxKey,
   BSONMinKey,
+  BSONNull,
   BSONObjectID,
   BSONString,
   BSONTimestamp,
@@ -48,26 +50,27 @@ object BSONUtils {
               s"${prefix}$i"
 
             case BSONLong(l) =>
-              s"${prefix}NumberLong($l)"
+              s"${prefix}$l"
 
             case d @ BSONDecimal(_, _) =>
-              s"${prefix}NumberDecimal($d)"
+              s"${prefix}$d"
 
             case BSONString(s) =>
               prefix + '"' + s.replaceAll("\"", "\\\"") + '"'
 
             case oid @ BSONObjectID(_) =>
-              s"${prefix}Object(${oid.stringify})"
+              prefix + '"' + oid.stringify.replaceAll("\"", "\\\"") + '"'
+
+            case dt @ BSONDateTime(_) =>
+              s"${prefix}${dt.value}"
 
             case ts @ BSONTimestamp(_) =>
-              s"${prefix}Timestamp(${ts.time}, ${ts.ordinal})"
+              prefix + s"""{"time":${ts.time},"ordinal":${ts.ordinal}"}"""
 
             case BSONUndefined => s"${prefix}undefined"
-            case BSONMinKey    => s"${prefix}MinKey"
-            case BSONMaxKey    => s"${prefix}MaxKey"
-
+            case BSONNull      => s"${prefix}null"
             case _ =>
-              s"${prefix}$value"
+              prefix + '"' + value.toString.replaceAll("\"", "\\\"") + '"'
           }
         }
         case Failure(e) => s"ERROR[${e.getMessage()}]"
