@@ -175,8 +175,6 @@ class ConsentController @Inject()(
     AuthAction.async(parse.anyContent) { implicit req =>
       val context = timerPutConsentFact.time()
 
-      Logger.info(s"body : ${req.body.asText}")
-      
       val parsed: Either[String, ConsentFact] =
         parseMethod[ConsentFact](ConsentFact)
 
