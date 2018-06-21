@@ -55,7 +55,7 @@ abstract class ControllerUtils(val controller: ControllerComponents)
       case Some(MimeTypes.JSON) =>
         req.body.asJson match {
           case Some(value) =>
-            Logger.info(s"XML body : $value")
+            Logger.info(s"JSON body : $value")
             readable.fromJson(value)
           case _ =>
             Logger.error(s"error.invalid.json.format ${req.body.asText}")
@@ -69,12 +69,12 @@ abstract class ControllerUtils(val controller: ControllerComponents)
             readable.fromXml(value.head.asInstanceOf[Elem])
           case _ =>
             Logger.error(s"error.invalid.xml.format ${req.body.asText}")
-            Logger.error(s"error.invalid.json.format ${req.body.asRaw}")
+            Logger.error(s"error.invalid.xml.format ${req.body.asRaw}")
             Left("error.invalid.xml.format")
         }
       case _ =>
         Logger.error(s"error.missing.content.type ${req.body.asText}")
-        Logger.error(s"error.invalid.json.format ${req.body.asRaw}")
+        Logger.error(s"error.missing.content.type ${req.body.asRaw}")
         Left("error.missing.content.type")
     }
   }
