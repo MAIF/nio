@@ -2,6 +2,7 @@ package controllers
 
 import auth.AuthContext
 import models.ModelTransformAs
+import play.api.Logger
 import play.api.http.{HeaderNames, MimeTypes}
 import play.api.libs.json.JsValue
 import play.api.mvc._
@@ -55,15 +56,20 @@ abstract class ControllerUtils(val controller: ControllerComponents)
         req.body.asJson match {
           case Some(value) =>
             readable.fromJson(value)
-          case _ => Left("error.invalid.json.format")
+          case _ =>
+            Logger.error(s"error.invalid.json.format ${req.body.asText}")
+            Left("error.invalid.json.format")
         }
       case Some(MimeTypes.XML) =>
         req.body.asXml match {
           case Some(value) =>
             readable.fromXml(value.head.asInstanceOf[Elem])
-          case _ => Left("error.invalid.xml.format")
+          case _ =>
+            Logger.error(s"error.invalid.xml.format ${req.body.asText}")
+            Left("error.invalid.xml.format")
         }
       case _ =>
+        Logger.error(s"error.missing.content.type ${req.body.asText}")
         Left("error.missing.content.type")
     }
   }

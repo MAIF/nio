@@ -17,6 +17,7 @@ import messaging.KafkaMessageBroker
 import models.{ConsentFact, _}
 import play.api.Logger
 import play.api.http.HttpEntity
+import play.api.libs.json.Json
 import play.api.mvc.{ControllerComponents, ResponseHeader, Result}
 import reactivemongo.api.{Cursor, QueryOpts}
 import reactivemongo.bson.BSONDocument
@@ -180,10 +181,12 @@ class ConsentController @Inject()(
       parsed match {
         case Left(error) =>
           context.stop()
-          Logger.error("Unable to parse consentFact: " + error)
+          Logger.error(s"Unable to parse consentFact: $error")
           Future.successful(BadRequest(error))
         case Right(o) if o.userId != userId =>
           context.stop()
+          Logger.error(
+            s"error.userId.is.immutable : userId in path $userId // userId on body ${o.userId}")
           Future.successful(BadRequest("error.userId.is.immutable"))
         case Right(consentFact) if consentFact.userId == userId =>
           val cf: ConsentFact = ConsentFact.addOrgKey(consentFact, orgKey)
@@ -194,16 +197,23 @@ class ConsentController @Inject()(
               organisationStore.findLastReleasedByKey(tenant, orgKey).flatMap {
                 case None =>
                   context.stop()
+                  Logger.error(
+                    s"error.specified.org.never.released : tenant $tenant -> organisation key $orgKey")
                   Future.successful(
                     BadRequest("error.specified.org.never.released"))
                 case Some(latestOrg) if latestOrg.version.num != cf.version =>
                   context.stop()
+                  Logger.error(
+                    s"error.specified.version.not.latest : latest version ${latestOrg.version.num} -> version specified ${cf.version}")
                   Future.successful(
                     BadRequest("error.specified.version.not.latest"))
                 case Some(latestOrg) =>
                   latestOrg.isValidWith(cf) match {
                     case Some(error) =>
                       context.stop()
+                      Logger.error(
+                        s"invalid consent fact (compare with latest organisation version) : $error // ${Json
+                          .stringify(cf.asJson)}")
                       Future.successful(BadRequest(error))
                     case None =>
                       // Ok store consentFact and store user
@@ -236,6 +246,8 @@ class ConsentController @Inject()(
               }
             case Some(user) if cf.version < user.orgVersion =>
               context.stop()
+              Logger.error(
+                s"error.version.lower.than.stored : last version saved ${user.orgVersion} -> version specified ${cf.version}")
               Future.successful(BadRequest("error.version.lower.than.stored"))
             case Some(user) if cf.version == user.orgVersion =>
               organisationStore
@@ -249,6 +261,9 @@ class ConsentController @Inject()(
                     specificOrg.isValidWith(cf) match {
                       case Some(error) =>
                         context.stop()
+                        Logger.error(
+                          s"invalid consent fact (compare with latest organisation version) : $error // ${Json
+                            .stringify(cf.asJson)}")
                         Future.successful(BadRequest(error))
                       case None =>
                         // Ok store new consent fact and update user
@@ -301,6 +316,8 @@ class ConsentController @Inject()(
                     "internal.error.last.org.release.not.found"))
                 case Some(latestOrg) if cf.version > latestOrg.version.num =>
                   context.stop()
+                  Logger.error(
+                    s"error.version.higher.than.release : last version saved ${user.orgVersion} -> version specified ${cf.version}")
                   Future.successful(
                     BadRequest("error.version.higher.than.release"))
                 case Some(latestOrg) if cf.version == latestOrg.version.num =>
@@ -358,6 +375,8 @@ class ConsentController @Inject()(
                     .flatMap {
                       case None =>
                         context.stop()
+                        Logger.error(
+                          s"error.unknown.org.version : organisation key $orgKey -> version specified ${cf.version}")
                         Future.successful(
                           BadRequest("error.unknown.org.version"))
                       case Some(specificVersionOrg) =>
