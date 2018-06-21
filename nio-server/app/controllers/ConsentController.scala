@@ -173,6 +173,7 @@ class ConsentController @Inject()(
   // create or replace if exists
   def createOrReplaceIfExists(tenant: String, orgKey: String, userId: String) =
     AuthAction.async(parse.anyContent) { implicit req =>
+      Logger.info("body" : req.body.asText)
       val context = timerPutConsentFact.time()
 
       val parsed: Either[String, ConsentFact] =
