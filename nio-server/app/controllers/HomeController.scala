@@ -6,18 +6,17 @@ import akka.actor.ActorSystem
 import auth.AuthActionWithEmail
 import configuration.Env
 import db.TenantMongoDataStore
-import javax.inject.Inject
 import play.api.mvc.{AbstractController, ControllerComponents}
 
 import scala.collection.JavaConverters._
 import scala.concurrent.{ExecutionContext, Future}
 
-class HomeController @Inject()(val AuthAction: AuthActionWithEmail,
-                               val cc: ControllerComponents,
-                               val tenantStore: TenantMongoDataStore,
-                               val env: Env,
-                               val actorSystem: ActorSystem,
-                               implicit val ec: ExecutionContext)
+class HomeController(val AuthAction: AuthActionWithEmail,
+                     val cc: ControllerComponents,
+                     val tenantStore: TenantMongoDataStore,
+                     val env: Env,
+                     val actorSystem: ActorSystem,
+                     implicit val ec: ExecutionContext)
     extends AbstractController(cc) {
 
   lazy val swaggerContent: String = Files

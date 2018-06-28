@@ -1,7 +1,6 @@
 package db
 
 import akka.stream.Materializer
-import javax.inject.{Inject, Singleton}
 import models._
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoApi
@@ -12,9 +11,8 @@ import reactivemongo.api.{Cursor, ReadPreference}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-@Singleton
-class OrganisationMongoDataStore @Inject()(
-    val reactiveMongoApi: ReactiveMongoApi)(implicit val ec: ExecutionContext)
+class OrganisationMongoDataStore(val reactiveMongoApi: ReactiveMongoApi)(
+    implicit val ec: ExecutionContext)
     extends DataStoreUtils {
 
   override def collectionName(tenant: String) = s"$tenant-organisations"

@@ -1,11 +1,8 @@
 package configuration
 
-import javax.inject.{Inject, Singleton}
-
 import play.api.{Configuration, Environment, Mode}
 
-@Singleton
-class Env @Inject()(
+class Env(
     configuration: Configuration,
     val environment: Environment
 ) {

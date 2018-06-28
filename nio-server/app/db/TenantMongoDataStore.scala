@@ -1,6 +1,5 @@
 package db
 
-import javax.inject.{Inject, Singleton}
 import models._
 import play.api.libs.json.{Format, JsObject, Json}
 import play.modules.reactivemongo.ReactiveMongoApi
@@ -11,8 +10,7 @@ import reactivemongo.play.json.collection.JSONCollection
 
 import scala.concurrent.{ExecutionContext, Future}
 
-@Singleton
-class TenantMongoDataStore @Inject()(val reactiveMongoApi: ReactiveMongoApi)(
+class TenantMongoDataStore(val reactiveMongoApi: ReactiveMongoApi)(
     implicit val ec: ExecutionContext)
     extends DataStoreUtils {
 

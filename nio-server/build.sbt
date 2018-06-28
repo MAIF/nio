@@ -10,7 +10,6 @@ lazy val `nio-server` = (project in file(".")).enablePlugins(PlayScala)
 scalaVersion := "2.12.4"
 
 libraryDependencies ++= Seq(
-  guice,
   ws,
   "com.typesafe.play" %% "play-json" % "2.6.9",
   "com.typesafe.play" %% "play-json-joda" % "2.6.9",
@@ -23,6 +22,7 @@ libraryDependencies ++= Seq(
   "org.scalactic" %% "scalactic" % "3.0.4", // Apache 2.0
   "org.webjars" % "swagger-ui" % "3.12.1",
   "org.typelevel" %% "cats-core" % "1.1.0", // MIT
+  "com.softwaremill.macwire" %% "macros" % "2.3.1" % "provided",
   // https://mvnrepository.com/artifact/com.amazonaws/aws-java-sdk-s3
   "com.amazonaws" % "aws-java-sdk-s3" % "1.11.224", // Apache 2.0
   "io.dropwizard.metrics" % "metrics-core" % "4.0.2", // Apache 2.0

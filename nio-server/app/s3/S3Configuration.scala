@@ -1,10 +1,8 @@
 package s3
 
-import javax.inject.{Inject, Singleton}
 import play.api.Configuration
 
-@Singleton
-class S3Configuration @Inject()(val configuration: Configuration) {
+class S3Configuration(val configuration: Configuration) {
 
   lazy val bucketName = configuration.get[String]("nio.s3Config.bucketName")
 

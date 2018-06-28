@@ -8,7 +8,6 @@ import db.{
   OrganisationMongoDataStore,
   UserMongoDataStore
 }
-import javax.inject.{Inject, Singleton}
 import messaging.KafkaMessageBroker
 import models._
 import play.api.Logger
@@ -16,16 +15,15 @@ import play.api.mvc.ControllerComponents
 
 import scala.concurrent.{ExecutionContext, Future}
 
-@Singleton
-class DeletionController @Inject()(
-    val AuthAction: AuthAction,
-    val cc: ControllerComponents,
-    val userStore: UserMongoDataStore,
-    val consentFactStore: ConsentFactMongoDataStore,
-    val organisationStore: OrganisationMongoDataStore,
-    val deletionTaskStore: DeletionTaskMongoDataStore,
-    val broker: KafkaMessageBroker)(implicit val ec: ExecutionContext,
-                                    system: ActorSystem)
+class DeletionController(val AuthAction: AuthAction,
+                         val cc: ControllerComponents,
+                         val userStore: UserMongoDataStore,
+                         val consentFactStore: ConsentFactMongoDataStore,
+                         val organisationStore: OrganisationMongoDataStore,
+                         val deletionTaskStore: DeletionTaskMongoDataStore,
+                         val broker: KafkaMessageBroker)(
+    implicit val ec: ExecutionContext,
+    system: ActorSystem)
     extends ControllerUtils(cc) {
 
   def startDeletionTask(tenant: String, orgKey: String, userId: String) =

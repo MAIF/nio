@@ -1,7 +1,6 @@
 package db
 
 import akka.stream.Materializer
-import javax.inject.{Inject, Singleton}
 import models.ExtractionTask
 import models.ExtractionTaskStatus.ExtractionTaskStatus
 import play.api.libs.json._
@@ -13,9 +12,8 @@ import reactivemongo.api.{Cursor, QueryOpts, ReadPreference}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-@Singleton
-class ExtractionTaskMongoDataStore @Inject()(
-    val reactiveMongoApi: ReactiveMongoApi)(implicit val ec: ExecutionContext)
+class ExtractionTaskMongoDataStore(val reactiveMongoApi: ReactiveMongoApi)(
+    implicit val ec: ExecutionContext)
     extends DataStoreUtils {
 
   override def collectionName(tenant: String) = s"$tenant-extractionTasks"

@@ -12,7 +12,6 @@ import db.{
   OrganisationMongoDataStore,
   UserMongoDataStore
 }
-import javax.inject.{Inject, Singleton}
 import messaging.KafkaMessageBroker
 import models.{ConsentFact, _}
 import play.api.Logger
@@ -25,8 +24,7 @@ import utils.BSONUtils
 
 import scala.concurrent.{ExecutionContext, Future}
 
-@Singleton
-class ConsentController @Inject()(
+class ConsentController(
     val AuthAction: AuthAction,
     val cc: ControllerComponents,
     val userStore: UserMongoDataStore,

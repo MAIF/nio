@@ -2,7 +2,6 @@ package controllers
 
 import auth.AuthAction
 import db.AccountMongoDataStore
-import javax.inject.{Inject, Singleton}
 import messaging.KafkaMessageBroker
 import models._
 import play.api.Logger
@@ -10,8 +9,7 @@ import play.api.mvc.ControllerComponents
 
 import scala.concurrent.{ExecutionContext, Future}
 
-@Singleton
-class AccountController @Inject()(
+class AccountController(
     val AuthAction: AuthAction,
     val cc: ControllerComponents,
     val accountStore: AccountMongoDataStore,

@@ -1,7 +1,6 @@
 package db
 
 import akka.stream.Materializer
-import javax.inject.{Inject, Singleton}
 import models._
 import play.api.libs.json.{Format, JsObject, JsValue, Json}
 import play.modules.reactivemongo.ReactiveMongoApi
@@ -12,8 +11,7 @@ import reactivemongo.api.{Cursor, QueryOpts, ReadPreference}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-@Singleton
-class UserMongoDataStore @Inject()(val reactiveMongoApi: ReactiveMongoApi)(
+class UserMongoDataStore(val reactiveMongoApi: ReactiveMongoApi)(
     implicit val ec: ExecutionContext)
     extends DataStoreUtils {
 

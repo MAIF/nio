@@ -16,7 +16,6 @@ import com.amazonaws.services.s3.model.lifecycle.{
   LifecycleTagPredicate
 }
 import db.{ExtractionTaskMongoDataStore, TenantMongoDataStore}
-import javax.inject.{Inject, Singleton}
 import models.{ExtractionTask, ExtractionTaskStatus}
 import org.joda.time.{DateTime, DateTimeZone, Days}
 import play.api.Logger
@@ -25,10 +24,9 @@ import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
-@Singleton
-class S3 @Inject()(val conf: S3Configuration,
-                   val system: ActorSystem,
-                   val tenantStore: TenantMongoDataStore)(
+class S3(val conf: S3Configuration,
+         val system: ActorSystem,
+         val tenantStore: TenantMongoDataStore)(
     implicit ec: ExecutionContext,
     store: ExtractionTaskMongoDataStore) {
 

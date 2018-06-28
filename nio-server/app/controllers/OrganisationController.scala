@@ -5,7 +5,6 @@ import akka.stream.ActorMaterializer
 import akka.util.ByteString
 import auth.AuthAction
 import db._
-import javax.inject.Inject
 import models._
 import messaging.KafkaMessageBroker
 import play.api.Logger
@@ -16,7 +15,7 @@ import reactivemongo.bson.BSONObjectID
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class OrganisationController @Inject()(
+class OrganisationController(
     val AuthAction: AuthAction,
     val cc: ControllerComponents,
     val ds: OrganisationMongoDataStore,

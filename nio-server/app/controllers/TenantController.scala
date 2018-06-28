@@ -3,7 +3,6 @@ package controllers
 import auth.AuthAction
 import configuration.Env
 import db._
-import javax.inject.Inject
 import models.{Tenant, TenantCreated, TenantDeleted, Tenants}
 import play.api.mvc.ControllerComponents
 import messaging.KafkaMessageBroker
@@ -11,7 +10,7 @@ import play.api.{Configuration, Logger}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class TenantController @Inject()(
+class TenantController(
     AuthAction: AuthAction,
     tenantStore: TenantMongoDataStore,
     accountMongoDataStore: AccountMongoDataStore,

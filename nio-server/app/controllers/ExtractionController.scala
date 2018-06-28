@@ -13,30 +13,22 @@ import com.amazonaws.services.s3.model.{
   UploadPartRequest,
   UploadPartResult
 }
-import db.{
-  ConsentFactMongoDataStore,
-  ExtractionTaskMongoDataStore,
-  OrganisationMongoDataStore,
-  UserMongoDataStore
-}
-import javax.inject.{Inject, Singleton}
+import db.ExtractionTaskMongoDataStore
 import messaging.KafkaMessageBroker
 import models._
 import play.api.Logger
-import play.api.libs.json.Json
 import play.api.libs.streams.Accumulator
-import play.api.mvc.{BodyParser, ControllerComponents, Result}
+import play.api.mvc.{BodyParser, ControllerComponents}
 import s3.{S3, S3Configuration, S3FileDataStore}
 import utils.UploadTracker
 
 import scala.concurrent.{ExecutionContext, Future}
 
-@Singleton
-class ExtractionController @Inject()(val AuthAction: AuthAction,
-                                     val cc: ControllerComponents,
-                                     val s3Conf: S3Configuration,
-                                     val s3: S3,
-                                     val s3FileDataStore: S3FileDataStore)(
+class ExtractionController(val AuthAction: AuthAction,
+                           val cc: ControllerComponents,
+                           val s3Conf: S3Configuration,
+                           val s3: S3,
+                           val s3FileDataStore: S3FileDataStore)(
     implicit val ec: ExecutionContext,
     val system: ActorSystem,
     val store: ExtractionTaskMongoDataStore,

@@ -1,6 +1,5 @@
 package db
 
-import javax.inject.{Inject, Singleton}
 import models._
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoApi
@@ -11,9 +10,8 @@ import reactivemongo.api.{Cursor, QueryOpts, ReadPreference}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-@Singleton
-class DeletionTaskMongoDataStore @Inject()(
-    val reactiveMongoApi: ReactiveMongoApi)(implicit val ec: ExecutionContext)
+class DeletionTaskMongoDataStore(val reactiveMongoApi: ReactiveMongoApi)(
+    implicit val ec: ExecutionContext)
     extends DataStoreUtils {
 
   override def collectionName(tenant: String) = s"$tenant-deletionTasks"

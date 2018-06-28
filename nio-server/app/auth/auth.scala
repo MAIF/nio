@@ -7,7 +7,6 @@ import filters.OtoroshiFilter
 import play.api.mvc.Results.Unauthorized
 
 import scala.concurrent.{ExecutionContext, Future}
-import javax.inject.Inject
 import models.ExtractionTask
 
 case class AuthInfo(sub: String,
@@ -19,7 +18,7 @@ case class AuthContextWithEmail[A](request: Request[A],
                                    authInfo: AuthInfo)
     extends WrappedRequest[A](request)
 
-class AuthActionWithEmail @Inject()(val parser: BodyParsers.Default)(
+class AuthActionWithEmail(val parser: BodyParsers.Default)(
     implicit val executionContext: ExecutionContext)
     extends ActionBuilder[AuthContextWithEmail, AnyContent]
     with ActionFunction[Request, AuthContextWithEmail] {
@@ -43,7 +42,7 @@ class AuthActionWithEmail @Inject()(val parser: BodyParsers.Default)(
 case class AuthContext[A](request: Request[A], authInfo: AuthInfo)
     extends WrappedRequest[A](request)
 
-class AuthAction @Inject()(val parser: BodyParsers.Default)(
+class AuthAction(val parser: BodyParsers.Default)(
     implicit val executionContext: ExecutionContext)
     extends ActionBuilder[AuthContext, AnyContent]
     with ActionFunction[Request, AuthContext] {
@@ -82,7 +81,7 @@ class ExtractionAction[A](val tenant: String,
 
   override def invokeBlock[A](
       request: Request[A],
-      block: (ReqWithExtractionTask[A]) => Future[Result]): Future[Result] = {
+      block: ReqWithExtractionTask[A] => Future[Result]): Future[Result] = {
     store.findById(tenant, taskId).flatMap {
       case Some(task) =>
         request.attrs

@@ -1,6 +1,5 @@
 package db
 
-import javax.inject.{Inject, Singleton}
 import models._
 import play.api.libs.json.{Format, JsObject, Json}
 import play.modules.reactivemongo.ReactiveMongoApi
@@ -8,11 +7,10 @@ import play.modules.reactivemongo.json.ImplicitBSONHandlers._
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.api.{Cursor, QueryOpts, ReadPreference}
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 
-@Singleton
-class ConsentFactMongoDataStore @Inject()(
-    val reactiveMongoApi: ReactiveMongoApi)(implicit val ec: ExecutionContext)
+class ConsentFactMongoDataStore(val reactiveMongoApi: ReactiveMongoApi)(
+    implicit val ec: ExecutionContext)
     extends DataStoreUtils {
 
   override def collectionName(tenant: String) = s"$tenant-consentFacts"

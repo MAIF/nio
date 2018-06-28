@@ -1,9 +1,8 @@
 package db
 
-import akka.stream.scaladsl.{Sink, Source}
 import akka.stream._
+import akka.stream.scaladsl.{Sink, Source}
 import akka.util.ByteString
-import javax.inject.{Inject, Singleton}
 import models._
 import play.api.Logger
 import play.api.libs.json.{Format, JsObject, JsValue, Json}
@@ -13,15 +12,13 @@ import reactivemongo.akkastream.cursorProducer
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.api.{Cursor, QueryOpts, ReadPreference}
 import reactivemongo.bson.BSONDocument
-
 import utils.BSONUtils
 
 import scala.concurrent.ExecutionContext
 import scala.util.Failure
 
-@Singleton
-class LastConsentFactMongoDataStore @Inject()(
-    val reactiveMongoApi: ReactiveMongoApi)(implicit val ec: ExecutionContext)
+class LastConsentFactMongoDataStore(val reactiveMongoApi: ReactiveMongoApi)(
+    implicit val ec: ExecutionContext)
     extends DataStoreUtils {
 
   override def collectionName(tenant: String) = s"$tenant-lastConsentFacts"

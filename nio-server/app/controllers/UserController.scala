@@ -3,7 +3,6 @@ package controllers
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.util.ByteString
-import javax.inject.Inject
 import auth.AuthAction
 import db.UserMongoDataStore
 import models.PagedUsers
@@ -13,9 +12,9 @@ import play.api.mvc.{ControllerComponents, ResponseHeader, Result}
 
 import scala.concurrent.ExecutionContext
 
-class UserController @Inject()(val AuthAction: AuthAction,
-                               val cc: ControllerComponents,
-                               val ds: UserMongoDataStore)(
+class UserController(val AuthAction: AuthAction,
+                     val cc: ControllerComponents,
+                     val ds: UserMongoDataStore)(
     implicit val ec: ExecutionContext,
     system: ActorSystem)
     extends ControllerUtils(cc) {
