@@ -22,6 +22,7 @@ import play.modules.reactivemongo.{
 }
 import router.Routes
 import s3._
+import service.ConsentManagerService
 import utils.{DefaultLoader, S3Manager, SecureEvent}
 
 class NioLoader extends ApplicationLoader {
@@ -65,6 +66,10 @@ class NioComponents(context: Context)
     wire[TenantMongoDataStore]
   implicit lazy val userDataStore: UserMongoDataStore =
     wire[UserMongoDataStore]
+
+  // wire service
+  implicit lazy val consentManagerService: ConsentManagerService =
+    wire[ConsentManagerService]
 
   // wire Kafka
   implicit lazy val kafkaMessageBroker: KafkaMessageBroker =

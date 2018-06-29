@@ -9,12 +9,13 @@ import play.api.libs.json.{Format, JsObject, JsValue, Json}
 import play.modules.reactivemongo.ReactiveMongoApi
 import play.modules.reactivemongo.json.ImplicitBSONHandlers._
 import reactivemongo.akkastream.cursorProducer
+import reactivemongo.api.commands.UpdateWriteResult
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.api.{Cursor, QueryOpts, ReadPreference}
 import reactivemongo.bson.BSONDocument
 import utils.BSONUtils
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Failure
 
 class LastConsentFactMongoDataStore(val reactiveMongoApi: ReactiveMongoApi)(
@@ -103,6 +104,16 @@ class LastConsentFactMongoDataStore(val reactiveMongoApi: ReactiveMongoApi)(
   def removeById(tenant: String, id: String) = {
     storedCollection(tenant).flatMap { col =>
       col.remove(Json.obj("_id" -> id))
+    }
+  }
+
+  def update(tenant: String,
+             orgKey: String,
+             userId: String,
+             consentFact: ConsentFact): Future[UpdateWriteResult] = {
+    storedCollection(tenant).flatMap { col =>
+      col.update(Json.obj("orgKey" -> orgKey, "userId" -> userId),
+                 format.writes(consentFact).as[JsObject])
     }
   }
 
