@@ -42,7 +42,9 @@ class SecureEvent(env: Env,
 
   }
 
-  if (env.config.recordManagementEnabled && env.config.s3ManagementEnabled) {
-    run()
+  def initialize() = {
+    if (env.config.recordManagementEnabled && env.config.s3ManagementEnabled) {
+      run()
+    }
   }
 }
