@@ -124,8 +124,8 @@ class ExtractionControllerSpec extends TestUtils {
     }
 
     "upload a file during an extraction task" in {
-      val s3Client = app.injector.instanceOf[S3]
-      val s3Conf = app.injector.instanceOf[S3Configuration]
+      val s3Client = nioComponents.s3
+      val s3Conf = nioComponents.s3Configuration
 
       createBucketIfNotExist(s3Client.client, s3Conf.bucketName)
 

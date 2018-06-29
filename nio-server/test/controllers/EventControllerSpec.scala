@@ -27,7 +27,7 @@ class EventControllerSpec extends TestUtils {
   "EventController" should {
 
     "listen events, create a new tenant then check that the received event is valid" ignore {
-      val system = app.injector.instanceOf[ActorSystem]
+      val system = nioComponents.actorSystem
 
       implicit val materializer = ActorMaterializer()(system)
 
