@@ -24,7 +24,7 @@ class AuthActionWithEmail @Inject()(val parser: BodyParsers.Default)(
 
   override def invokeBlock[A](
       request: Request[A],
-      block: (AuthContextWithEmail[A]) => Future[Result]): Future[Result] = {
+      block: AuthContextWithEmail[A] => Future[Result]): Future[Result] = {
     (
       request.attrs.get(OtoroshiFilter.Email),
       request.attrs.get(OtoroshiFilter.AuthInfo)
@@ -48,7 +48,7 @@ class AuthAction @Inject()(val parser: BodyParsers.Default)(
 
   override def invokeBlock[A](
       request: Request[A],
-      block: (AuthContext[A]) => Future[Result]): Future[Result] = {
+      block: AuthContext[A] => Future[Result]): Future[Result] = {
 
     Logger.info(
       s"Request ${request.method} : ${request.uri} \n ${request.body}")
