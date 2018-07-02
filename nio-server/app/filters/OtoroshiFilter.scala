@@ -1,12 +1,12 @@
 package filters
 
 import javax.inject.Inject
-
 import configuration._
 import akka.stream.Materializer
 import auth.AuthInfo
 import com.auth0.jwt._
 import com.auth0.jwt.algorithms.Algorithm
+import com.auth0.jwt.interfaces.Claim
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util._
@@ -14,6 +14,8 @@ import play.api.libs.json.Json
 import play.api.Logger
 import play.api.libs.typedmap.TypedKey
 import play.api.mvc._
+
+import scala.collection.mutable
 
 object OtoroshiFilter {
   val Email: TypedKey[String] = TypedKey("email")
@@ -83,40 +85,42 @@ class OtoroshiFilter @Inject()(env: Env)(implicit ec: ExecutionContext,
 
           import scala.collection.JavaConverters._
           val claims = decoded.getClaims.asScala
-          val requestWithAuthInfo = for {
-            sub <- claims.get("sub").map(_.asString)
-            name = claims.get("name").map(_.asString)
-            email = claims.get("email").map(_.asString)
-            isAdmin = claims
-              .get("nio_admin")
-              .map(_.asString)
-              .flatMap(str => Try(str.toBoolean).toOption)
-              .getOrElse(false)
-          } yield {
-            logger.info(s"Request from sub: $sub, name:$name, isAdmin:$isAdmin")
-            email
-              .map { email =>
-                requestHeader.addAttr(OtoroshiFilter.Email, email)
-              }
-              .getOrElse(requestHeader)
-              .addAttr(OtoroshiFilter.AuthInfo, AuthInfo(sub, isAdmin))
-          }
 
-          nextFilter(requestWithAuthInfo.getOrElse(requestHeader)).map {
-            result =>
-              val requestTime = System.currentTimeMillis - startTime
-              maybeReqId.foreach {
-                id =>
-                  logger.debug(
-                    s"Request from Gateway with id : $id => ${requestHeader.method} ${requestHeader.uri} with request headers ${requestHeader.headers.headers
-                      .map(h => s"""   "${h._1}": "${h._2}"\n""")
-                      .mkString(",")} took ${requestTime}ms and returned ${result.header.status} hasBody ${requestHeader.hasBody}"
+          val maybeSub = claims.get("sub").map(_.asString())
+          val isAdmin = claims
+            .get("nio_admin")
+            .map(_.asString)
+            .flatMap(str => Try(str.toBoolean).toOption)
+            .getOrElse(false)
+
+          maybeSub match {
+            // with a user admin
+            case Some(sub) if sub.startsWith("pa:") && isAdmin =>
+              validateOtoroshiHeaders(claims,
+                                      maybeReqId,
+                                      maybeState,
+                                      startTime,
+                                      nextFilter)(requestHeader)
+            // with api
+            case Some(sub) if sub.startsWith("apikey:") =>
+              validateOtoroshiHeaders(claims,
+                                      maybeReqId,
+                                      maybeState,
+                                      startTime,
+                                      nextFilter)(requestHeader)
+            // fail other case
+            case _ =>
+              Future.successful(
+                Results
+                  .Unauthorized(
+                    Json.obj("error" -> "You are not admin !!!")
                   )
-              }
-              result.withHeaders(
-                config.headerGatewayStateResp -> maybeState.getOrElse("--")
+                  .withHeaders(
+                    config.headerGatewayStateResp -> maybeState.getOrElse("--")
+                  )
               )
           }
+
         } recoverWith {
           case e =>
             Success(
@@ -171,5 +175,45 @@ class OtoroshiFilter @Inject()(env: Env)(implicit ec: ExecutionContext,
           e.getCause)
     }
     result
+  }
+
+  def validateOtoroshiHeaders(claims: mutable.Map[String, Claim],
+                              maybeReqId: Option[String],
+                              maybeState: Option[String],
+                              startTime: Long,
+                              nextFilter: RequestHeader => Future[Result])(
+      requestHeader: RequestHeader): Future[Result] = {
+    val requestWithAuthInfo = for {
+      sub <- claims.get("sub").map(_.asString)
+      name = claims.get("name").map(_.asString)
+      email = claims.get("email").map(_.asString)
+      isAdmin = claims
+        .get("nio_admin")
+        .map(_.asString)
+        .flatMap(str => Try(str.toBoolean).toOption)
+        .getOrElse(false)
+    } yield {
+      logger.info(s"Request from sub: $sub, name:$name, isAdmin:$isAdmin")
+      email
+        .map { email =>
+          requestHeader.addAttr(OtoroshiFilter.Email, email)
+        }
+        .getOrElse(requestHeader)
+        .addAttr(OtoroshiFilter.AuthInfo, AuthInfo(sub, isAdmin))
+    }
+
+    nextFilter(requestWithAuthInfo.getOrElse(requestHeader)).map { result =>
+      val requestTime = System.currentTimeMillis - startTime
+      maybeReqId.foreach { id =>
+        logger.debug(
+          s"Request from Gateway with id : $id => ${requestHeader.method} ${requestHeader.uri} with request headers ${requestHeader.headers.headers
+            .map(h => s"""   "${h._1}": "${h._2}"\n""")
+            .mkString(",")} took ${requestTime}ms and returned ${result.header.status} hasBody ${requestHeader.hasBody}"
+        )
+      }
+      result.withHeaders(
+        config.headerGatewayStateResp -> maybeState.getOrElse("--")
+      )
+    }
   }
 }

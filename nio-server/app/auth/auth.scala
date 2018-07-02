@@ -50,8 +50,8 @@ class AuthAction @Inject()(val parser: BodyParsers.Default)(
       request: Request[A],
       block: (AuthContext[A]) => Future[Result]): Future[Result] = {
 
-    Logger.info(s"Request ${request.method} : ${request.uri} \n ${request.body}")
-
+    Logger.info(
+      s"Request ${request.method} : ${request.uri} \n ${request.body}")
 
     request.attrs
       .get(OtoroshiFilter.AuthInfo)
