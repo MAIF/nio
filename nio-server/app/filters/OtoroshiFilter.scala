@@ -93,6 +93,8 @@ class OtoroshiFilter @Inject()(env: Env)(implicit ec: ExecutionContext,
             .flatMap(str => Try(str.toBoolean).toOption)
             .getOrElse(false)
 
+          val path: String = requestHeader.path
+
           maybeSub match {
             // with a user admin
             case Some(sub) if sub.startsWith("pa:") && isAdmin =>
@@ -108,6 +110,17 @@ class OtoroshiFilter @Inject()(env: Env)(implicit ec: ExecutionContext,
                                       maybeState,
                                       startTime,
                                       nextFilter)(requestHeader)
+
+            // with path to ignore
+            case _
+                if path.startsWith("/docs") || path
+                  .startsWith("/assets") || path.startsWith("/_healthCheck") =>
+              validateOtoroshiHeaders(claims,
+                                      maybeReqId,
+                                      maybeState,
+                                      startTime,
+                                      nextFilter)(requestHeader)
+
             // fail other case
             case _ =>
               Future.successful(
