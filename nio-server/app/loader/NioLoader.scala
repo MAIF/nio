@@ -16,6 +16,7 @@ import play.api.mvc.BodyParsers.Default
 import play.api.mvc.EssentialFilter
 import play.api.routing.Router
 import play.filters.HttpFiltersComponents
+import play.filters.gzip._
 import play.modules.reactivemongo.{
   ReactiveMongoApi,
   ReactiveMongoApiFromContext
@@ -39,7 +40,8 @@ class NioComponents(context: Context)
     extends ReactiveMongoApiFromContext(context)
     with AhcWSComponents
     with HttpFiltersComponents
-    with AssetsComponents {
+    with AssetsComponents
+    with GzipFilterComponents {
 
   implicit val system: ActorSystem = actorSystem
 
@@ -116,7 +118,7 @@ class NioComponents(context: Context)
   }
 
   override def httpFilters: Seq[EssentialFilter] = {
-    Seq(new OtoroshiFilter(env))
+    Seq(new OtoroshiFilter(env), gzipFilter)
   }
 
   implicit val config: Configuration = context.initialConfiguration

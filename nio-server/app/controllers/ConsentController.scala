@@ -1,6 +1,7 @@
 package controllers
 
 import akka.actor.ActorSystem
+import akka.http.scaladsl.util.FastFuture
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
@@ -71,7 +72,7 @@ class ConsentController(
 
             maybeUserId match {
               case Some(userId) =>
-                Logger.info(s"userId is defined with ${userId}")
+                Logger.info(s"userId is defined with $userId")
 
                 lastConsentFactMongoDataStore
                   .findByOrgKeyAndUserId(tenant, orgKey, userId)
@@ -175,12 +176,12 @@ class ConsentController(
         case Left(error) =>
           context.stop()
           Logger.error(s"Unable to parse consentFact: $error")
-          Future.successful(BadRequest(error))
+          FastFuture.successful(BadRequest(error))
         case Right(o) if o.userId != userId =>
           context.stop()
           Logger.error(
             s"error.userId.is.immutable : userId in path $userId // userId on body ${o.userId}")
-          Future.successful(BadRequest("error.userId.is.immutable"))
+          FastFuture.successful(BadRequest("error.userId.is.immutable"))
         case Right(consentFact) if consentFact.userId == userId =>
           val cf: ConsentFact = ConsentFact.addOrgKey(consentFact, orgKey)
 
@@ -442,8 +443,10 @@ class ConsentController(
             .saveConsents(tenant, req.authInfo.sub, orgKey, userId, cf)
             .map {
               case Right(consentFact) =>
+                context.stop()
                 renderMethod(consentFact)
               case Left(error) =>
+                context.stop()
                 BadRequest(error)
             }
           >>>>>>> rewrite put consent method
