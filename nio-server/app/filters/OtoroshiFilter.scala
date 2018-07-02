@@ -1,29 +1,27 @@
 package filters
 
-import javax.inject.Inject
-import configuration._
 import akka.stream.Materializer
 import auth.AuthInfo
 import com.auth0.jwt._
 import com.auth0.jwt.algorithms.Algorithm
 import com.auth0.jwt.interfaces.Claim
-
-import scala.concurrent.{ExecutionContext, Future}
-import scala.util._
-import play.api.libs.json.Json
+import configuration._
 import play.api.Logger
+import play.api.libs.json.Json
 import play.api.libs.typedmap.TypedKey
 import play.api.mvc._
 
 import scala.collection.mutable
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util._
 
 object OtoroshiFilter {
   val Email: TypedKey[String] = TypedKey("email")
   val AuthInfo: TypedKey[AuthInfo] = TypedKey("authInfo")
 }
 
-class OtoroshiFilter @Inject()(env: Env)(implicit ec: ExecutionContext,
-                                         val mat: Materializer)
+class OtoroshiFilter(env: Env)(implicit ec: ExecutionContext,
+                               val mat: Materializer)
     extends Filter {
 
   val config: OtoroshiFilterConfig = env.config.filter.otoroshi
