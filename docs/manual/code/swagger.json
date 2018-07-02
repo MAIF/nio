@@ -38,6 +38,7 @@
       "description": "La suppression des données des utilisateurs est à la charge des applications, Nio offre une API pour démmarrer une suppression, obtenir le deétails d'une suppression, lister toutes les suppressions ainsi que de mettre a jour l'état d'une suppression."
     }
   ],
+  "host" : "nio.foo.bar",
   "paths": {
     "/api/{tenant}/organisations": {
       "get": {
