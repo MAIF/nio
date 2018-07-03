@@ -1,11 +1,11 @@
 package db
 
+import db.MongoOpsDataStore.MongoDataStore
 import play.api.Logger
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoApi
 import play.modules.reactivemongo.json.ImplicitBSONHandlers._
 import reactivemongo.api.indexes.Index
-import reactivemongo.api.{Cursor, QueryOpts, ReadPreference}
 import reactivemongo.play.json.collection.JSONCollection
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -48,7 +48,7 @@ abstract class AbstractMongoDataStore[T](mongoApi: ReactiveMongoApi)(
 
   def insertOne(tenant: String, objToInsert: T): Future[Boolean] = {
     storedCollection(tenant).flatMap(
-      _.insert[T](objToInsert).map(_.ok)
+      _.insertOne[T](objToInsert)
     )
   }
 
@@ -66,7 +66,7 @@ abstract class AbstractMongoDataStore[T](mongoApi: ReactiveMongoApi)(
                         query: JsObject,
                         objToUpdate: T): Future[Boolean] = {
     storedCollection(tenant).flatMap {
-      _.update(query, objToUpdate).map(_.ok)
+      _.updateOneByQuery(query, objToUpdate)
     }
   }
 
@@ -97,19 +97,8 @@ abstract class AbstractMongoDataStore[T](mongoApi: ReactiveMongoApi)(
                                    sort: JsObject = Json.obj("_id" -> 1),
                                    page: Int,
                                    pageSize: Int): Future[(Seq[T], Int)] = {
-    val options = QueryOpts(skipN = page * pageSize, pageSize)
-    storedCollection(tenant).flatMap { coll =>
-      for {
-        count <- coll.count(Some(query))
-        queryRes <- coll
-          .find(query)
-          .sort(sort)
-          .options(options)
-          .cursor[T](ReadPreference.primaryPreferred)
-          .collect[Seq](maxDocs = pageSize, Cursor.FailOnError[Seq[T]]())
-      } yield {
-        (queryRes, count)
-      }
+    storedCollection(tenant).flatMap {
+      _.findManyByQueryPaginateCount(tenant, query, sort, page, pageSize)
     }
   }
 
@@ -118,21 +107,14 @@ abstract class AbstractMongoDataStore[T](mongoApi: ReactiveMongoApi)(
                               sort: JsObject = Json.obj("_id" -> -1),
                               page: Int,
                               pageSize: Int): Future[Seq[T]] = {
-    val options = QueryOpts(skipN = page * pageSize, pageSize)
     storedCollection(tenant).flatMap {
-      _.find(query)
-        .sort(sort)
-        .options(options)
-        .cursor[T](ReadPreference.primaryPreferred)
-        .collect[Seq](maxDocs = pageSize, Cursor.FailOnError[Seq[T]]())
+      _.findManyByQueryPaginate(tenant, query, sort, page, pageSize)
     }
   }
 
   private def find(tenant: String, query: JsObject): Future[Seq[T]] = {
     storedCollection(tenant).flatMap {
-      _.find(query)
-        .cursor[T](ReadPreference.primaryPreferred)
-        .collect[Seq](maxDocs = -1, Cursor.FailOnError[Seq[T]]())
+      _.findByQuery(query)
     }
   }
 
@@ -146,7 +128,7 @@ abstract class AbstractMongoDataStore[T](mongoApi: ReactiveMongoApi)(
 
   private def delete(tenant: String, query: JsObject): Future[Boolean] = {
     storedCollection(tenant).flatMap(
-      _.remove(query).map(_.ok)
+      _.delete(query)
     )
   }
 }
