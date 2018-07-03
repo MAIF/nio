@@ -12,7 +12,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class DeletionTaskMongoDataStore(val reactiveMongoApi: ReactiveMongoApi)(
     implicit val ec: ExecutionContext)
-    extends DataStoreUtils {
+    extends AbstractMongoDataStore[DeletionTask](reactiveMongoApi) {
 
   override def collectionName(tenant: String) = s"$tenant-deletionTasks"
 
@@ -27,62 +27,45 @@ class DeletionTaskMongoDataStore(val reactiveMongoApi: ReactiveMongoApi)(
           sparse = true)
   )
 
-  implicit def format: Format[DeletionTask] = DeletionTask.deletionTaskFormats
-
-  def insert(tenant: String, deletionTask: DeletionTask) =
-    storedCollection(tenant).flatMap(
-      _.insert(format.writes(deletionTask).as[JsObject]).map(_.ok))
+  def insert(tenant: String, deletionTask: DeletionTask): Future[Boolean] =
+    insertOne(tenant, deletionTask)
 
   def updateById(tenant: String,
                  id: String,
                  deletionTask: DeletionTask): Future[Boolean] = {
-    storedCollection(tenant).flatMap(
-      _.update(Json.obj("_id" -> id), deletionTask.asJson)
-        .map(_.ok))
+    updateOne(tenant, id, deletionTask)
   }
 
-  def findById(tenant: String, id: String) = {
-    val query = Json.obj("_id" -> id)
-    storedCollection(tenant).flatMap(_.find(query).one[DeletionTask])
+  def findById(tenant: String, id: String): Future[Option[DeletionTask]] = {
+    findOneById(tenant, id)
   }
 
-  def findAll(tenant: String, page: Int, pageSize: Int) = {
-    findAllByQuery(tenant, Json.obj(), page, pageSize)
+  def findAll(tenant: String,
+              page: Int,
+              pageSize: Int): Future[(Seq[DeletionTask], Int)] = {
+    findManyByQueryPaginateCount(tenant = tenant,
+                                 query = Json.obj(),
+                                 page = page,
+                                 pageSize = pageSize)
   }
 
   def findAllByOrgKey(tenant: String,
                       orgKey: String,
                       page: Int,
-                      pageSize: Int) = {
-    findAllByQuery(tenant, Json.obj("orgKey" -> orgKey), page, pageSize)
+                      pageSize: Int): Future[(Seq[DeletionTask], Int)] = {
+    findManyByQueryPaginateCount(tenant = tenant,
+                                 query = Json.obj("orgKey" -> orgKey),
+                                 page = page,
+                                 pageSize = pageSize)
   }
 
   def findAllByUserId(tenant: String,
                       userId: String,
                       page: Int,
-                      pageSize: Int) = {
-    findAllByQuery(tenant, Json.obj("userId" -> userId), page, pageSize)
-  }
-
-  private def findAllByQuery(tenant: String,
-                             query: JsObject,
-                             page: Int,
-                             pageSize: Int) = {
-
-    val options = QueryOpts(skipN = page * pageSize, pageSize)
-    storedCollection(tenant).flatMap { coll =>
-      for {
-        count <- coll.count(Some(query))
-        queryRes <- coll
-          .find(query)
-          .sort(Json.obj("lastUpdate" -> -1))
-          .options(options)
-          .cursor[DeletionTask](ReadPreference.primaryPreferred)
-          .collect[Seq](maxDocs = pageSize,
-                        Cursor.FailOnError[Seq[DeletionTask]]())
-      } yield {
-        (queryRes, count)
-      }
-    }
+                      pageSize: Int): Future[(Seq[DeletionTask], Int)] = {
+    findManyByQueryPaginateCount(tenant = tenant,
+                                 query = Json.obj("userId" -> userId),
+                                 page = page,
+                                 pageSize = pageSize)
   }
 }
