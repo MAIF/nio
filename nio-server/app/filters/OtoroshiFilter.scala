@@ -37,6 +37,7 @@ class OtoroshiFilter @Inject()(env: Env)(implicit ec: ExecutionContext,
     val maybeState = requestHeader.headers.get(config.headerGatewayState)
     val maybeClaim: Option[String] =
       requestHeader.headers.get(config.headerClaim)
+    val excludeCheckingPath = Seq("/docs", "/assets", "/_healthCheck")
 
     val t = Try(env.env match {
       case devOrTest if devOrTest == "dev" || devOrTest == "test" =>
@@ -112,9 +113,7 @@ class OtoroshiFilter @Inject()(env: Env)(implicit ec: ExecutionContext,
                                       nextFilter)(requestHeader)
 
             // with path to ignore
-            case _
-                if path.startsWith("/docs") || path
-                  .startsWith("/assets") || path.startsWith("/_healthCheck") =>
+            case _ if excludeCheckingPath.exists(pathPrefix => path.startsWith(pathPrefix)) =>
               validateOtoroshiHeaders(claims,
                                       maybeReqId,
                                       maybeState,
