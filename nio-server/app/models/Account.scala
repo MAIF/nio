@@ -82,6 +82,7 @@ object Account extends ReadableEntity[Account] {
   )(unlift(Account.unapply))
 
   implicit val format: Format[Account] = Format(read, write)
+  implicit val oformat: OFormat[Account] = OFormat(read, write)
 
   override def fromXml(xml: Elem): Either[String, Account] = {
     Try {
