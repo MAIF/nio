@@ -161,7 +161,23 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
       (JsPath \ "metaData").writeNullable[Map[String, String]]
   )(unlift(ConsentFact.unapply))
 
+  val consentFactOWrites: OWrites[ConsentFact] = (
+    (JsPath \ "_id").write[String] and
+      (JsPath \ "userId").write[String] and
+      (JsPath \ "doneBy").write[DoneBy](DoneBy.doneByFormats) and
+      (JsPath \ "version").write[Int] and
+      (JsPath \ "groups").write[Seq[ConsentGroup]] and
+      (JsPath \ "lastUpdate")
+        .write[DateTime](DateUtils.utcDateTimeWrites) and
+      (JsPath \ "lastUpdateSystem")
+        .write[DateTime](DateUtils.utcDateTimeWrites) and
+      (JsPath \ "orgKey").writeNullable[String] and
+      (JsPath \ "metaData").writeNullable[Map[String, String]]
+  )(unlift(ConsentFact.unapply))
+
   val consentFactFormats = Format(consentFactReads, consentFactWrites)
+  implicit val consentFactOFormats =
+    OFormat(consentFactReads, consentFactOWrites)
 
   def template(orgVerNum: Int, groups: Seq[ConsentGroup], orgKey: String) =
     ConsentFact(

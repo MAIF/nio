@@ -68,6 +68,7 @@ class DeletionTaskMongoDataStore(val reactiveMongoApi: ReactiveMongoApi)(
                              query: JsObject,
                              page: Int,
                              pageSize: Int) = {
+
     val options = QueryOpts(skipN = page * pageSize, pageSize)
     storedCollection(tenant).flatMap { coll =>
       for {

@@ -5,11 +5,11 @@ import akka.stream.scaladsl.{Sink, Source}
 import akka.util.ByteString
 import models._
 import play.api.Logger
-import play.api.libs.json.{Format, JsObject, JsValue, Json}
+import play.api.libs.json.{JsValue, Json}
 import play.modules.reactivemongo.ReactiveMongoApi
 import play.modules.reactivemongo.json.ImplicitBSONHandlers._
 import reactivemongo.akkastream.cursorProducer
-import reactivemongo.api.commands.UpdateWriteResult
+import reactivemongo.api.collections.bson.BSONCollection
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.api.{Cursor, QueryOpts, ReadPreference}
 import reactivemongo.bson.BSONDocument
@@ -20,7 +20,7 @@ import scala.util.Failure
 
 class LastConsentFactMongoDataStore(val reactiveMongoApi: ReactiveMongoApi)(
     implicit val ec: ExecutionContext)
-    extends DataStoreUtils {
+    extends AbstractMongoDataStore[ConsentFact](reactiveMongoApi) {
 
   override def collectionName(tenant: String) = s"$tenant-lastConsentFacts"
 
@@ -39,82 +39,53 @@ class LastConsentFactMongoDataStore(val reactiveMongoApi: ReactiveMongoApi)(
           sparse = true)
   )
 
-  implicit def format: Format[ConsentFact] = ConsentFact.consentFactFormats
+  def insert(tenant: String, consentFact: ConsentFact): Future[Boolean] =
+    insertOne(tenant, consentFact)
 
-  def insert(tenant: String, consentFact: ConsentFact) =
-    storedCollection(tenant).flatMap(
-      _.insert(format.writes(consentFact).as[JsObject]).map(_.ok))
-
-  def findById(tenant: String, id: String) = {
-    val query = Json.obj("_id" -> id)
-    storedCollection(tenant).flatMap(_.find(query).one[ConsentFact])
+  def findById(tenant: String, id: String): Future[Option[ConsentFact]] = {
+    findOneById(tenant, id)
   }
 
-  def findByOrgKeyAndUserId(tenant: String, orgKey: String, userId: String) = {
-    val query = Json.obj("orgKey" -> orgKey, "userId" -> userId)
-    storedCollection(tenant).flatMap(_.find(query).one[ConsentFact])
+  def findByOrgKeyAndUserId(tenant: String,
+                            orgKey: String,
+                            userId: String): Future[Option[ConsentFact]] = {
+    findOneByQuery(tenant, Json.obj("orgKey" -> orgKey, "userId" -> userId))
   }
 
   def findAllByUserId(tenant: String,
                       userId: String,
                       page: Int,
-                      pageSize: Int) = {
-    findAllByQuery(tenant, Json.obj("userId" -> userId), page, pageSize)
+                      pageSize: Int): Future[(Seq[ConsentFact], Int)] = {
+    findManyByQueryPaginateCount(tenant = tenant,
+                                 query = Json.obj("userId" -> userId),
+                                 page = page,
+                                 pageSize = pageSize)
   }
 
-  private def findAllByQuery(tenant: String,
-                             query: JsObject,
-                             page: Int,
-                             pageSize: Int) = {
-    val options = QueryOpts(skipN = page * pageSize, pageSize)
-    storedCollection(tenant).flatMap { coll =>
-      for {
-        count <- coll.count(Some(query))
-        queryRes <- coll
-          .find(query)
-          .sort(Json.obj("lastUpdate" -> -1))
-          .options(options)
-          .cursor[ConsentFact](ReadPreference.primaryPreferred)
-          .collect[Seq](maxDocs = pageSize,
-                        Cursor.FailOnError[Seq[ConsentFact]]())
-      } yield {
-        (queryRes, count)
-      }
-    }
-  }
+  def findAll(tenant: String): Future[Seq[ConsentFact]] =
+    findMany(tenant)
 
-  def findAll(tenant: String) =
-    storedCollection(tenant).flatMap(
-      _.find(Json.obj())
-        .cursor[ConsentFact](ReadPreference.primaryPreferred)
-        .collect[Seq](-1, Cursor.FailOnError[Seq[ConsentFact]]()))
-
-  def deleteConsentFactByTenant(tenant: String) = {
+  def deleteConsentFactByTenant(tenant: String): Future[Boolean] = {
     storedCollection(tenant).flatMap { col =>
       col.drop(failIfNotFound = false)
     }
   }
 
-  def removeByOrgKey(tenant: String, orgKey: String) = {
-    storedCollection(tenant).flatMap { col =>
-      col.remove(Json.obj("orgKey" -> orgKey))
-    }
+  def removeByOrgKey(tenant: String, orgKey: String): Future[Boolean] = {
+    deleteByQuery(tenant, Json.obj("orgKey" -> orgKey))
   }
 
-  def removeById(tenant: String, id: String) = {
-    storedCollection(tenant).flatMap { col =>
-      col.remove(Json.obj("_id" -> id))
-    }
+  def removeById(tenant: String, id: String): Future[Boolean] = {
+    deleteOneById(tenant, id)
   }
 
   def update(tenant: String,
              orgKey: String,
              userId: String,
-             consentFact: ConsentFact): Future[UpdateWriteResult] = {
-    storedCollection(tenant).flatMap { col =>
-      col.update(Json.obj("orgKey" -> orgKey, "userId" -> userId),
-                 format.writes(consentFact).as[JsObject])
-    }
+             consentFact: ConsentFact): Future[Boolean] = {
+    updateOneByQuery(tenant,
+                     Json.obj("orgKey" -> orgKey, "userId" -> userId),
+                     consentFact)
   }
 
   def streamAll(tenant: String, pageSize: Int, parallelisation: Int)(
@@ -151,6 +122,10 @@ class LastConsentFactMongoDataStore(val reactiveMongoApi: ReactiveMongoApi)(
             })
       }
   }
+
+  def storedBSONCollection(tenant: String): Future[BSONCollection] =
+    reactiveMongoApi.database.map(
+      _.collection[BSONCollection](collectionName(tenant)))
 
   def streamAllBSON(tenant: String, pageSize: Int, parallelisation: Int)(
       implicit m: Materializer): Source[ByteString, akka.NotUsed] = {

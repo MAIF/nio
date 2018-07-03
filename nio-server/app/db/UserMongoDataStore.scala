@@ -1,19 +1,19 @@
 package db
 
 import akka.stream.Materializer
+import akka.stream.scaladsl.Source
 import models._
-import play.api.libs.json.{Format, JsObject, JsValue, Json}
+import play.api.libs.json.{JsValue, Json}
 import play.modules.reactivemongo.ReactiveMongoApi
 import play.modules.reactivemongo.json.ImplicitBSONHandlers._
-import reactivemongo.akkastream.{AkkaStreamCursor, cursorProducer}
+import reactivemongo.akkastream.{AkkaStreamCursor, State, cursorProducer}
 import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.api.{Cursor, QueryOpts, ReadPreference}
 
 import scala.concurrent.{ExecutionContext, Future}
 
 class UserMongoDataStore(val reactiveMongoApi: ReactiveMongoApi)(
     implicit val ec: ExecutionContext)
-    extends DataStoreUtils {
+    extends AbstractMongoDataStore[User](reactiveMongoApi) {
 
   override def collectionName(tenant: String) = s"$tenant-users"
 
@@ -29,52 +29,54 @@ class UserMongoDataStore(val reactiveMongoApi: ReactiveMongoApi)(
           sparse = true)
   )
 
-  implicit def format: Format[User] = User.formats
+  def insert(tenant: String, user: User): Future[Boolean] =
+    insertOne(tenant, user)
 
-  def insert(tenant: String, user: User) =
-    storedCollection(tenant).flatMap(
-      _.insert(format.writes(user).as[JsObject]).map(_.ok))
-
-  def findByOrgKeyAndUserId(tenant: String, orgKey: String, userId: String) = {
+  def findByOrgKeyAndUserId(tenant: String,
+                            orgKey: String,
+                            userId: String): Future[Option[User]] = {
     val query = Json.obj("orgKey" -> orgKey, "userId" -> userId)
-    storedCollection(tenant).flatMap(_.find(query).one[User])
+    findOneByQuery(tenant, query)
   }
 
   def updateById(tenant: String, id: String, user: User): Future[Boolean] = {
-    storedCollection(tenant).flatMap(
-      _.update(Json.obj("_id" -> id), format.writes(user).as[JsObject])
-        .map(_.ok))
+    updateOne(tenant, id, user)
   }
 
   def findAllByOrgKey(tenant: String,
                       orgKey: String,
                       page: Int,
                       pageSize: Int,
-                      maybeUserId: Option[String]) = {
+                      maybeUserId: Option[String]): Future[(Seq[User], Int)] = {
 
     val query = maybeUserId match {
       case Some(userId) =>
         Json.obj("userId" -> userId, "orgKey" -> orgKey)
       case None => Json.obj("orgKey" -> orgKey)
     }
-    findAllByQuery(tenant, query, page, pageSize)
+    findManyByQueryPaginateCount(tenant,
+                                 query = query,
+                                 page = page,
+                                 pageSize = pageSize)
   }
 
   def findAll(tenant: String,
               page: Int,
               pageSize: Int,
-              maybeUserId: Option[String]) = {
-
+              maybeUserId: Option[String]): Future[(Seq[User], Int)] = {
     val query = maybeUserId match {
       case Some(userId) =>
         Json.obj("userId" -> userId)
       case None => Json.obj()
     }
-
-    findAllByQuery(tenant, query, page, pageSize)
+    findManyByQueryPaginateCount(tenant,
+                                 query = query,
+                                 page = page,
+                                 pageSize = pageSize)
   }
 
-  def streamAll(tenant: String)(implicit m: Materializer) = {
+  def streamAll(tenant: String)(
+      implicit m: Materializer): Future[Source[JsValue, Future[State]]] = {
     storedCollection(tenant).map { col =>
       col
         .find(Json.obj(),
@@ -89,7 +91,8 @@ class UserMongoDataStore(val reactiveMongoApi: ReactiveMongoApi)(
     }
   }
 
-  def streamAllConsentFactIds(tenant: String)(implicit m: Materializer) = {
+  def streamAllConsentFactIds(tenant: String)(
+      implicit m: Materializer): Future[Source[JsValue, Future[State]]] = {
     storedCollection(tenant).map { col =>
       col
         .find(Json.obj(),
@@ -102,7 +105,8 @@ class UserMongoDataStore(val reactiveMongoApi: ReactiveMongoApi)(
     }
   }
 
-  def streamAllUsersConsentFacts(tenant: String)(implicit m: Materializer) = {
+  def streamAllUsersConsentFacts(tenant: String)(
+      implicit m: Materializer): Future[Source[JsValue, Future[State]]] = {
     storedCollection(tenant).map { users =>
       import users.BatchCommands.AggregationFramework.Lookup
 
@@ -118,35 +122,14 @@ class UserMongoDataStore(val reactiveMongoApi: ReactiveMongoApi)(
     }
   }
 
-  private def findAllByQuery(tenant: String,
-                             query: JsObject,
-                             page: Int,
-                             pageSize: Int) = {
-    val options = QueryOpts(skipN = page * pageSize, pageSize)
-    storedCollection(tenant).flatMap { coll =>
-      for {
-        count <- coll.count(Some(query))
-        queryRes <- coll
-          .find(query)
-          .options(options)
-          .cursor[User](ReadPreference.primaryPreferred)
-          .collect[Seq](maxDocs = pageSize, Cursor.FailOnError[Seq[User]]())
-      } yield {
-        (queryRes, count)
-      }
-    }
-  }
-
-  def deleteUserByTenant(tenant: String) = {
+  def deleteUserByTenant(tenant: String): Future[Boolean] = {
     storedCollection(tenant).flatMap { col =>
       col.drop(failIfNotFound = false)
     }
   }
 
-  def removeByOrgKey(tenant: String, orgKey: String) = {
-    storedCollection(tenant).flatMap { col =>
-      col.remove(Json.obj("orgKey" -> orgKey))
-    }
+  def removeByOrgKey(tenant: String, orgKey: String): Future[Boolean] = {
+    deleteByQuery(tenant, Json.obj("orgKey" -> orgKey))
   }
 
 }

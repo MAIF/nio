@@ -94,7 +94,7 @@ abstract class AbstractMongoDataStore[T](mongoApi: ReactiveMongoApi)(
 
   def findManyByQueryPaginateCount(tenant: String,
                                    query: JsObject,
-                                   sort: JsObject = Json.obj("_id" -> -1),
+                                   sort: JsObject = Json.obj("_id" -> 1),
                                    page: Int,
                                    pageSize: Int): Future[(Seq[T], Int)] = {
     val options = QueryOpts(skipN = page * pageSize, pageSize)

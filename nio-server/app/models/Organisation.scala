@@ -108,7 +108,16 @@ object Organisation extends ReadableEntity[Organisation] {
       (JsPath \ "groups").write[Seq[PermissionGroup]]
   )(unlift(Organisation.unapply))
 
+  implicit val organisationOWrites: OWrites[Organisation] = (
+    (JsPath \ "_id").write[String] and
+      (JsPath \ "key").write[String] and
+      (JsPath \ "label").write[String] and
+      (JsPath \ "version").write[VersionInfo] and
+      (JsPath \ "groups").write[Seq[PermissionGroup]]
+  )(unlift(Organisation.unapply))
+
   implicit val formats = Format(organisationReads, organisationWrites)
+  implicit val oFormats = OFormat(organisationReads, organisationOWrites)
 
   implicit val organisationWritesWithoutId: Writes[Organisation] = Writes {
     org =>
