@@ -64,3 +64,14 @@ case class AppFilesMetadata(orgKey: String,
 object AppFilesMetadata {
   implicit val appFilesMetadataFormats = Json.format[AppFilesMetadata]
 }
+
+object XmlUtil {
+
+  implicit class XmlCleaner(val elem: Elem) extends AnyVal {
+
+    def clean(): Elem =
+      scala.xml.Utility.trim(elem) match {
+        case res if res.isInstanceOf[Elem] => res.asInstanceOf[Elem]
+      }
+  }
+}

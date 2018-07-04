@@ -5,6 +5,7 @@ import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json._
 import reactivemongo.bson.BSONObjectID
 import utils.DateUtils
+import XmlUtil.XmlCleaner
 
 object DeletionTaskStatus extends Enumeration {
   type DeletionTaskStatus = Value
@@ -27,7 +28,7 @@ case class AppDeletionState(appId: String, status: DeletionTaskStatus) {
     <appDestroyState>
       <appId>{appId}</appId>
       <status>{status.toString}</status>
-    </appDestroyState>
+    </appDestroyState>.clean()
   }
 }
 object AppDeletionState {
@@ -87,7 +88,7 @@ case class DeletionTask(_id: String,
       <states>{states.map(_.asXml)}</states>
       <status>{status.toString}</status>
       <lastUpdate>{lastUpdate.toString(DateUtils.utcDateFormatter)}</lastUpdate>
-    </destroyTask>
+    </destroyTask>.clean()
   }
 }
 
@@ -129,6 +130,6 @@ case class PagedDeletionTasks(page: Int,
       <pageSize>{pageSize}</pageSize>
       <count>{count}</count>
       <items>{items.map(_.asXml)}</items>
-    </pagedDeletionTasks>
+    </pagedDeletionTasks>.clean()
 
 }

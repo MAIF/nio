@@ -3,13 +3,14 @@ package models
 import play.api.libs.json.Json
 
 import scala.xml.Elem
+import XmlUtil.XmlCleaner
 
 case class Permission(key: String, label: String) {
   def asXml = {
     <permission>
       <key>{key}</key>
       <label>{label}</label>
-    </permission>
+    </permission>.clean()
   }
 }
 

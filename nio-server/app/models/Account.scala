@@ -11,13 +11,14 @@ import utils.DateUtils
 
 import scala.util.{Failure, Success, Try}
 import scala.xml.{Elem, Node}
+import XmlUtil.XmlCleaner
 
 case class OrganisationUser(userId: String, orgKey: String)
     extends ModelTransformAs {
   override def asXml(): Elem = <organisationUser>
     <userId>{userId}</userId>
     <orgKey>{orgKey}</orgKey>
-  </organisationUser>
+  </organisationUser>.clean()
 
   override def asJson(): JsValue = OrganisationUser.write.writes(this)
 }
@@ -59,7 +60,7 @@ case class Account(accountId: String,
     <accountId>{accountId}</accountId>
     <lastUpdate>{lastUpdate.toString(DateUtils.utcDateFormatter)}</lastUpdate>
     <organisationsUsers>{organisationsUsers.map(_.asXml())}</organisationsUsers>
-  </account>
+  </account>.clean()
 
   override def asJson(): JsValue = Account.write.writes(this)
 }
@@ -105,7 +106,8 @@ object Account extends ReadableEntity[Account] {
 }
 
 case class Accounts(accounts: Seq[Account]) extends ModelTransformAs {
-  override def asXml(): Elem = <accounts>{accounts.map(_.asXml())}</accounts>
+  override def asXml(): Elem =
+    <accounts>{accounts.map(_.asXml())}</accounts>.clean()
 
   override def asJson(): JsValue = JsArray(accounts.map(_.asJson()))
 }

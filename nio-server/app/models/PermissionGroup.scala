@@ -3,6 +3,7 @@ package models
 import play.api.libs.json.Json
 
 import scala.xml.Elem
+import XmlUtil.XmlCleaner
 
 case class PermissionGroup(key: String,
                            label: String,
@@ -12,7 +13,7 @@ case class PermissionGroup(key: String,
       <key>{key}</key>
       <label>{label}</label>
       <permissions>{permissions.map(_.asXml)}</permissions>
-    </permissionGroup>
+    </permissionGroup>.clean()
   }
 }
 

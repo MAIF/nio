@@ -15,6 +15,7 @@ import controllers.ReadableEntity
 import org.joda.time.{DateTime, DateTimeZone}
 import utils.DateUtils
 import utils.Result.{AppErrors, ErrorMessage, Result}
+import XmlUtil.XmlCleaner
 
 case class VersionInfo(status: String = "DRAFT",
                        num: Int = 1,
@@ -58,7 +59,7 @@ case class Organisation(_id: String = BSONObjectID.generate().stringify,
         <latest>{version.latest}</latest>
       </version>
       <groups>{groups.map(_.asXml)}</groups>
-    </organisation>
+    </organisation>.clean()
   }
 
   def newWith(version: VersionInfo) =
@@ -170,7 +171,7 @@ object Organisation extends ReadableEntity[Organisation] {
 case class Organisations(organisations: Seq[Organisation])
     extends ModelTransformAs {
   override def asXml(): Elem =
-    (<organisations>{organisations.map(_.asXml)}</organisations>)
+    <organisations>{organisations.map(_.asXml)}</organisations>.clean()
 
   override def asJson(): JsValue = JsArray(organisations.map(_.asJson))
 }
@@ -191,7 +192,7 @@ case class OrganisationLight(key: String,
         <num>{version.num}</num>
         <lastUpdate>{version.lastUpdate.toString(DateUtils.utcDateFormatter)}</lastUpdate>
       </version>
-    </organisationLight>
+    </organisationLight>.clean()
   }
 
   def asJson = {
@@ -219,7 +220,8 @@ object OrganisationLight {
 case class OrganisationsLights(organisations: Seq[OrganisationLight])
     extends ModelTransformAs {
   override def asXml(): Elem =
-    (<organisationLights>{organisations.map(_.asXml)}</organisationLights>)
+    <organisationLights>{organisations.map(_.asXml)}</organisationLights>
+      .clean()
 
   override def asJson(): JsValue = JsArray(organisations.map(_.asJson))
 }

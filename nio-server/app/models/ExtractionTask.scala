@@ -13,6 +13,7 @@ import utils.{DateUtils, UploadTracker}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 import scala.xml.Elem
+import XmlUtil.XmlCleaner
 
 object ExtractionTaskStatus extends Enumeration {
   type ExtractionTaskStatus = Value
@@ -40,7 +41,7 @@ case class FileMetadata(name: String, contentType: String, size: Long) {
       <name>{name}</name>
       <contentType>{contentType}</contentType>
       <size>{size}</size>
-    </fileMetadata>
+    </fileMetadata>.clean()
   }
 }
 
@@ -61,7 +62,7 @@ case class FilesMetadata(files: Seq[FileMetadata]) {
   def asXml =
     <filesMetadata>
       {files.map(_.asXml)}
-    </filesMetadata>
+    </filesMetadata>.clean()
 }
 
 object FilesMetadata extends ReadableEntity[FilesMetadata] {
@@ -114,7 +115,7 @@ case class AppState(appId: String,
       <files>{files.map(_.asXml)}</files>
       <totalBytes>{totalBytes}</totalBytes>
       <status>{status.toString}</status>
-    </appState>
+    </appState>.clean()
   }
 }
 
@@ -159,7 +160,7 @@ case class ExtractionTask(_id: String,
       <progress>{progress}</progress>
       <lastUpdate>{lastUpdate.toString(DateUtils.utcDateFormatter)}</lastUpdate>
       <done>{done}</done>
-    </extractionTask>
+    </extractionTask>.clean()
   }
 
   def progress: Double = {
@@ -299,6 +300,6 @@ case class PagedExtractionTasks(page: Int,
       <pageSize>{pageSize}</pageSize>
       <count>{count}</count>
       <items>{items.map(_.asXml)}</items>
-    </pagedDeletionTasks>
+    </pagedDeletionTasks>.clean()
 
 }

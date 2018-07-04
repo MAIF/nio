@@ -1,6 +1,7 @@
 package models
 
 import play.api.libs.json.{JsArray, Json}
+import XmlUtil.XmlCleaner
 
 case class PagedConsentFacts(page: Int,
                              pageSize: Int,
@@ -20,6 +21,6 @@ case class PagedConsentFacts(page: Int,
       <pageSize>{pageSize}</pageSize>
       <count>{count}</count>
       <items>{items.map(_.asXml)}</items>
-    </pagedConsentFacts>
+    </pagedConsentFacts>.clean()
 
 }

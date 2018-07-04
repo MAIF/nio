@@ -5,6 +5,7 @@ import play.api.libs.json._
 
 import scala.util.{Failure, Success, Try}
 import scala.xml.Elem
+import XmlUtil.XmlCleaner
 
 case class Tenant(key: String, description: String) extends ModelTransformAs {
   def asJson = Tenant.tenantFormats.writes(this)
@@ -12,7 +13,7 @@ case class Tenant(key: String, description: String) extends ModelTransformAs {
     <tenant>
       <key>{key}</key>
       <description>{description}</description>
-    </tenant>
+    </tenant>.clean()
   }
 }
 
@@ -39,7 +40,7 @@ object Tenant extends ReadableEntity[Tenant] {
 }
 
 case class Tenants(tenants: Seq[Tenant]) extends ModelTransformAs {
-  override def asXml(): Elem = (<tenants>{tenants.map(_.asXml)}</tenants>)
+  override def asXml(): Elem = <tenants>{tenants.map(_.asXml)}</tenants>.clean()
 
   override def asJson(): JsValue = JsArray(tenants.map(_.asJson))
 }

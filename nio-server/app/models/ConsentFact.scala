@@ -10,6 +10,7 @@ import utils.DateUtils
 
 import scala.util.{Failure, Success, Try}
 import scala.xml.Elem
+import XmlUtil.XmlCleaner
 
 case class DoneBy(userId: String, role: String)
 object DoneBy {
@@ -22,7 +23,7 @@ case class Consent(key: String, label: String, checked: Boolean) {
       <key>{key}</key>
       <label>{label}</label>
       <checked>{checked}</checked>
-    </consent>
+    </consent>.clean()
   }
 }
 object Consent {
@@ -42,7 +43,7 @@ case class ConsentGroup(key: String, label: String, consents: Seq[Consent]) {
       <key>{key}</key>
       <label>{label}</label>
       <consents>{consents.map(_.asXml)}</consents>
-    </consentGroup>
+    </consentGroup>.clean()
   }
 }
 object ConsentGroup {
@@ -74,18 +75,38 @@ case class ConsentFact(_id: String = BSONObjectID.generate().stringify,
 
   def asJson = ConsentFact.consentFactWritesWithoutId.writes(this)
 
-  def asXml = {
+  def asXml: Elem = {
     <consentFact>
-      <userId>{userId}</userId>
+      <userId>
+        {userId}
+      </userId>
       <doneBy>
-        <userId>{doneBy.userId}</userId>
-        <role>{doneBy.role}</role>
+        <userId>
+          {doneBy.userId}
+        </userId>
+        <role>
+          {doneBy.role}
+        </role>
       </doneBy>
-      <version>{version}</version>
-      <groups>{groups.map(_.asXml)}</groups>
-      <lastUpdate>{lastUpdate.toString(DateUtils.utcDateFormatter)}</lastUpdate>
-      <orgKey>{orgKey.getOrElse("")}</orgKey>{if (metaData.isDefined) { metaData.map{md => <metaData>{md.map{ e => <metaDataEntry key={e._1} value={e._2}/>}}</metaData>} }.get }
-    </consentFact>
+      <version>
+        {version}
+      </version>
+      <groups>
+        {groups.map(_.asXml)}
+      </groups>
+      <lastUpdate>
+        {lastUpdate.toString(DateUtils.utcDateFormatter)}
+      </lastUpdate>
+      <orgKey>
+        {orgKey.getOrElse("")}
+      </orgKey>
+      {if (metaData.isDefined) {
+        metaData.map { md => <metaData>
+          {md.map { e => <metaDataEntry key={e._1} value={e._2}/> }}
+        </metaData>
+        }
+      }.get}
+    </consentFact>.clean()
   }
 }
 object ConsentFact extends ReadableEntity[ConsentFact] {
