@@ -46,35 +46,47 @@ abstract class AbstractMongoDataStore[T](mongoApi: ReactiveMongoApi)(
     }
 
   def insertOne(tenant: String, objToInsert: T): Future[Boolean] = {
-    val function: JSONCollection => Future[Boolean] = col =>
+    request[Boolean](tenant) { col =>
       col.insertOne[T](objToInsert)
-    request[Boolean](tenant, function)
+    }
   }
 
   def updateOne(tenant: String, id: String, objToUpdate: T): Future[Boolean] = {
-    request[Boolean](tenant, col => col.updateOne(id, objToUpdate))
+    request[Boolean](tenant) { col =>
+      col.updateOne(id, objToUpdate)
+    }
   }
 
   def updateOneByQuery(tenant: String,
                        query: JsObject,
                        objToUpdate: T): Future[Boolean] = {
-    request[Boolean](tenant, col => col.updateOneByQuery(query, objToUpdate))
+    request[Boolean](tenant) { col =>
+      col.updateOneByQuery(query, objToUpdate)
+    }
   }
 
   def findOneById(tenant: String, id: String): Future[Option[T]] = {
-    request[Option[T]](tenant, col => col.findOneById(id))
+    request[Option[T]](tenant) { col =>
+      col.findOneById(id)
+    }
   }
 
   def findOneByQuery(tenant: String, query: JsObject): Future[Option[T]] = {
-    request[Option[T]](tenant, col => col.findOneByQuery(query))
+    request[Option[T]](tenant) { col =>
+      col.findOneByQuery(query)
+    }
   }
 
   def findMany(tenant: String): Future[Seq[T]] = {
-    request[Seq[T]](tenant, col => col.findMany())
+    request[Seq[T]](tenant) { col =>
+      col.findMany()
+    }
   }
 
   def findManyByQuery(tenant: String, query: JsObject): Future[Seq[T]] = {
-    request[Seq[T]](tenant, col => col.findManyByQuery(query))
+    request[Seq[T]](tenant) { col =>
+      col.findManyByQuery(query)
+    }
   }
 
   def findManyByQueryPaginateCount(tenant: String,
@@ -82,10 +94,9 @@ abstract class AbstractMongoDataStore[T](mongoApi: ReactiveMongoApi)(
                                    sort: JsObject = Json.obj("_id" -> 1),
                                    page: Int,
                                    pageSize: Int): Future[(Seq[T], Int)] = {
-    request[(Seq[T], Int)](
-      tenant,
-      col =>
-        col.findManyByQueryPaginateCount(tenant, query, sort, page, pageSize))
+    request[(Seq[T], Int)](tenant) { col =>
+      col.findManyByQueryPaginateCount(tenant, query, sort, page, pageSize)
+    }
 
   }
 
@@ -94,22 +105,26 @@ abstract class AbstractMongoDataStore[T](mongoApi: ReactiveMongoApi)(
                               sort: JsObject = Json.obj("_id" -> -1),
                               page: Int,
                               pageSize: Int): Future[Seq[T]] = {
-    request[Seq[T]](
-      tenant,
-      col => col.findManyByQueryPaginate(tenant, query, sort, page, pageSize))
+    request[Seq[T]](tenant) { col =>
+      col.findManyByQueryPaginate(tenant, query, sort, page, pageSize)
+    }
   }
 
   def deleteOneById(tenant: String, id: String): Future[Boolean] = {
-    request[Boolean](tenant, col => col.deleteOneById(id))
+    request[Boolean](tenant) { col =>
+      col.deleteOneById(id)
+    }
   }
 
   def deleteByQuery(tenant: String, query: JsObject): Future[Boolean] = {
-    request[Boolean](tenant, col => col.deleteByQuery(query))
+    request[Boolean](tenant) { col =>
+      col.deleteByQuery(query)
+    }
 
   }
 
-  def request[A](tenant: String,
-                 function: JSONCollection => Future[A]): Future[A] = {
+  def request[A](tenant: String)(
+      function: JSONCollection => Future[A]): Future[A] = {
     storedCollection(tenant).flatMap { col =>
       function(col)
     }
