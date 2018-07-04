@@ -47,8 +47,7 @@ object MongoOpsDataStore {
       coll.find(query).one[T]
     }
 
-    def findMany[T](tenant: String)(
-        implicit oformat: OFormat[T]): Future[Seq[T]] = {
+    def findMany[T]()(implicit oformat: OFormat[T]): Future[Seq[T]] = {
       findByQuery(Json.obj())
     }
 
@@ -92,7 +91,7 @@ object MongoOpsDataStore {
         .collect[Seq](maxDocs = pageSize, Cursor.FailOnError[Seq[T]]())
     }
 
-    def findByQuery[T](query: JsObject)(
+    private def findByQuery[T](query: JsObject)(
         implicit oformat: OFormat[T]): Future[Seq[T]] = {
       coll
         .find(query)
@@ -110,7 +109,7 @@ object MongoOpsDataStore {
       delete(query)
     }
 
-    def delete[T](query: JsObject)(
+    private def delete[T](query: JsObject)(
         implicit oformat: OFormat[T]): Future[Boolean] = {
       coll.remove(query).map(_.ok)
     }

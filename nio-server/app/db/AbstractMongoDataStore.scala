@@ -53,43 +53,41 @@ abstract class AbstractMongoDataStore[T](mongoApi: ReactiveMongoApi)(
   }
 
   def updateOne(tenant: String, id: String, objToUpdate: T): Future[Boolean] = {
-    updateOne(tenant, Json.obj("_id" -> id), objToUpdate)
+    storedCollection(tenant).flatMap {
+      _.updateOne(id, objToUpdate)
+    }
   }
 
   def updateOneByQuery(tenant: String,
                        query: JsObject,
                        objToUpdate: T): Future[Boolean] = {
-    updateOne(tenant, query, objToUpdate)
-  }
-
-  private def updateOne(tenant: String,
-                        query: JsObject,
-                        objToUpdate: T): Future[Boolean] = {
     storedCollection(tenant).flatMap {
       _.updateOneByQuery(query, objToUpdate)
     }
   }
 
   def findOneById(tenant: String, id: String): Future[Option[T]] = {
-    findOne(tenant, Json.obj("_id" -> id))
+    storedCollection(tenant).flatMap {
+      _.findOneById(id)
+    }
   }
 
   def findOneByQuery(tenant: String, query: JsObject): Future[Option[T]] = {
-    findOne(tenant, query)
-  }
-
-  private def findOne(tenant: String, query: JsObject): Future[Option[T]] = {
-    storedCollection(tenant).flatMap(
-      _.find(query).one[T]
-    )
+    storedCollection(tenant).flatMap {
+      _.findOneByQuery(query)
+    }
   }
 
   def findMany(tenant: String): Future[Seq[T]] = {
-    find(tenant, Json.obj())
+    storedCollection(tenant).flatMap {
+      _.findMany()
+    }
   }
 
   def findManyByQuery(tenant: String, query: JsObject): Future[Seq[T]] = {
-    find(tenant, query)
+    storedCollection(tenant).flatMap {
+      _.findManyByQuery(query)
+    }
   }
 
   def findManyByQueryPaginateCount(tenant: String,
@@ -114,21 +112,20 @@ abstract class AbstractMongoDataStore[T](mongoApi: ReactiveMongoApi)(
 
   private def find(tenant: String, query: JsObject): Future[Seq[T]] = {
     storedCollection(tenant).flatMap {
-      _.findByQuery(query)
+      _.findManyByQuery(query)
     }
   }
 
   def deleteOneById(tenant: String, id: String): Future[Boolean] = {
-    delete(tenant, Json.obj("_id" -> id))
+    storedCollection(tenant).flatMap {
+      _.deleteOneById(id)
+    }
   }
 
   def deleteByQuery(tenant: String, query: JsObject): Future[Boolean] = {
-    delete(tenant, query)
+    storedCollection(tenant).flatMap {
+      _.deleteByQuery(query)
+    }
   }
 
-  private def delete(tenant: String, query: JsObject): Future[Boolean] = {
-    storedCollection(tenant).flatMap(
-      _.delete(query)
-    )
-  }
 }
