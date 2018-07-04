@@ -50,8 +50,9 @@ class AccountController(
               accountStore.create(tenant, account).map { _ =>
                 broker.publish(
                   AccountCreated(tenant,
-                                 payload = account,
-                                 metadata = req.authInfo.metadatas)
+                                 req.authInfo.sub,
+                                 metadata = req.authInfo.metadatas,
+                                 payload = account)
                 )
                 renderMethod(account, Created)
 
@@ -73,6 +74,7 @@ class AccountController(
               accountStore.update(tenant, accountId, account).map { _ =>
                 broker.publish(
                   AccountUpdated(tenant,
+                                 author = req.authInfo.sub,
                                  payload = account,
                                  oldValue = oldAccount,
                                  metadata = req.authInfo.metadatas)
@@ -97,6 +99,7 @@ class AccountController(
             .map(_ => {
               broker.publish(
                 AccountDeleted(tenant,
+                               author = req.authInfo.sub,
                                payload = account,
                                metadata = req.authInfo.metadatas)
               )

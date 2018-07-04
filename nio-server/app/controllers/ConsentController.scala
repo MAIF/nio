@@ -1,7 +1,6 @@
 package controllers
 
 import akka.actor.ActorSystem
-import akka.http.scaladsl.util.FastFuture
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
@@ -72,7 +71,7 @@ class ConsentController(
 
             maybeUserId match {
               case Some(userId) =>
-                Logger.info(s"userId is defined with $userId")
+                Logger.info(s"userId is defined with ${userId}")
 
                 lastConsentFactMongoDataStore
                   .findByOrgKeyAndUserId(tenant, orgKey, userId)
@@ -176,280 +175,23 @@ class ConsentController(
         case Left(error) =>
           context.stop()
           Logger.error(s"Unable to parse consentFact: $error")
-          FastFuture.successful(BadRequest(error))
+          Future.successful(BadRequest(error))
         case Right(o) if o.userId != userId =>
           context.stop()
           Logger.error(
             s"error.userId.is.immutable : userId in path $userId // userId on body ${o.userId}")
-          FastFuture.successful(BadRequest("error.userId.is.immutable"))
+          Future.successful(BadRequest("error.userId.is.immutable"))
         case Right(consentFact) if consentFact.userId == userId =>
           val cf: ConsentFact = ConsentFact.addOrgKey(consentFact, orgKey)
 
-          <<<<<<< HEAD
-            userStore.findByOrgKeyAndUserId(tenant, orgKey, userId).flatMap {
-              case None =>
-                // first time user check that the version of consent facts is the latest
-                organisationStore
-                  .findLastReleasedByKey(tenant, orgKey)
-                  .flatMap {
-                    case None =>
-                      context.stop()
-                      Logger.error(
-                        s"error.specified.org.never.released : tenant $tenant -> organisation key $orgKey")
-                      Future.successful(
-                        BadRequest("error.specified.org.never.released"))
-                    case Some(latestOrg)
-                        if latestOrg.version.num != cf.version =>
-                      context.stop()
-                      Logger.error(
-                        s"error.specified.version.not.latest : latest version ${latestOrg.version.num} -> version specified ${cf.version}")
-                      Future.successful(
-                        BadRequest("error.specified.version.not.latest"))
-                    case Some(latestOrg) =>
-                      latestOrg.isValidWith(cf) match {
-                        case Some(error) =>
-                          context.stop()
-                          Logger.error(
-                            s"invalid consent fact (compare with latest organisation version) : $error // ${Json
-                              .stringify(cf.asJson)}")
-                          Future.successful(BadRequest(error))
-                        case None =>
-                          // Ok store consentFact and store user
-                          val storedConsentFactFut =
-                            consentFactStore.insert(tenant, cf)
-                          val storedLastConsentFactFut =
-                            lastConsentFactMongoDataStore.insert(tenant, cf)
-                          val storedUserFut = userStore
-                            .insert(tenant,
-                                    User(userId = userId,
-                                         orgKey = orgKey,
-                                         orgVersion = latestOrg.version.num,
-                                         latestConsentFactId = cf._id))
-                            .map { _ =>
-                              broker.publish(
-                                ConsentFactCreated(tenant = tenant,
-                                                   payload = cf,
-                                                   author = req.authInfo.sub,
-                                                   metadata =
-                                                     req.authInfo.metadatas))
-                            }
-                          Future
-                            .sequence(Seq(storedConsentFactFut,
-                                          storedUserFut,
-                                          storedLastConsentFactFut))
-                            .map { _ =>
-                              context.stop()
-                              renderMethod(cf)
-                            }
-                      }
-                  }
-              case Some(user) if cf.version < user.orgVersion =>
-                context.stop()
-                Logger.error(
-                  s"error.version.lower.than.stored : last version saved ${user.orgVersion} -> version specified ${cf.version}")
-                Future.successful(BadRequest("error.version.lower.than.stored"))
-              case Some(user) if cf.version == user.orgVersion =>
-                organisationStore
-                  .findReleasedByKeyAndVersionNum(tenant, orgKey, cf.version)
-                  .flatMap {
-                    case None =>
-                      context.stop()
-                      Future.successful(
-                        InternalServerError("internal.error.org.not.found"))
-                    case Some(specificOrg) =>
-                      specificOrg.isValidWith(cf) match {
-                        case Some(error) =>
-                          context.stop()
-                          Logger.error(
-                            s"invalid consent fact (compare with latest organisation version) : $error // ${Json
-                              .stringify(cf.asJson)}")
-                          Future.successful(BadRequest(error))
-                        case None =>
-                          // Ok store new consent fact and update user
-                          val storedConsentFactFut =
-                            consentFactStore.insert(tenant, cf)
-                          val previousConsentFactId = user.latestConsentFactId
-                          val storedLastConsentFactFut =
-                            lastConsentFactMongoDataStore
-                              .removeById(tenant, previousConsentFactId)
-                              .flatMap { _ =>
-                                lastConsentFactMongoDataStore.insert(tenant, cf)
-                              }
-                          val storedUserFut = userStore
-                            .updateById(tenant,
-                                        user._id,
-                                        user.copy(latestConsentFactId = cf._id))
-                            .map { _ =>
-                              consentFactStore
-                                .findById(tenant, previousConsentFactId)
-                                .map {
-                                  case Some(previousConsentFact) =>
-                                    broker.publish(
-                                      ConsentFactUpdated(
-                                        tenant = tenant,
-                                        oldValue = previousConsentFact,
-                                        payload = cf,
-                                        author = req.authInfo.sub,
-                                        metadata = req.authInfo.metadatas))
-                                  case None =>
-                                    Logger.error(
-                                      s"Unable to retrieve the previous consent fact of user $userId in org $orgKey thus unable to emit kafka event")
-                                }
-
-                            }
-                          Future
-                            .sequence(Seq(storedConsentFactFut,
-                                          storedUserFut,
-                                          storedLastConsentFactFut))
-                            .map { _ =>
-                              context.stop()
-                              renderMethod(cf)
-                            }
-                      }
-                  }
-              case Some(user) if cf.version > user.orgVersion =>
-                organisationStore
-                  .findLastReleasedByKey(tenant, orgKey)
-                  .flatMap {
-                    case None =>
-                      context.stop()
-                      Future.successful(InternalServerError(
-                        "internal.error.last.org.release.not.found"))
-                    case Some(latestOrg)
-                        if cf.version > latestOrg.version.num =>
-                      context.stop()
-                      Logger.error(
-                        s"error.version.higher.than.release : last version saved ${user.orgVersion} -> version specified ${cf.version}")
-                      Future.successful(
-                        BadRequest("error.version.higher.than.release"))
-                    case Some(latestOrg)
-                        if cf.version == latestOrg.version.num =>
-                      latestOrg.isValidWith(cf) match {
-                        case Some(error) =>
-                          context.stop()
-                          Future.successful(BadRequest(error))
-                        case None =>
-                          // Ok store new consent fact and update user
-                          val storedConsentFactFut =
-                            consentFactStore.insert(tenant, cf)
-                          val previousConsentFactId = user.latestConsentFactId
-                          val storedLastConsentFactFut =
-                            lastConsentFactMongoDataStore
-                              .removeById(tenant, previousConsentFactId)
-                              .flatMap { _ =>
-                                lastConsentFactMongoDataStore.insert(tenant, cf)
-                              }
-                          val storedUserFut = userStore
-                            .updateById(tenant,
-                                        user._id,
-                                        user.copy(latestConsentFactId = cf._id,
-                                                  orgVersion =
-                                                    latestOrg.version.num))
-                            .map { _ =>
-                              consentFactStore
-                                .findById(tenant, previousConsentFactId)
-                                .map {
-                                  case Some(previousConsentFact) =>
-                                    broker.publish(
-                                      ConsentFactUpdated(
-                                        tenant = tenant,
-                                        oldValue = previousConsentFact,
-                                        payload = cf,
-                                        author = req.authInfo.sub,
-                                        metadata = req.authInfo.metadatas))
-                                  case None =>
-                                    Logger.error(
-                                      s"Unable to retrieve the previous consent fact of user $userId in org $orgKey thus unable to emit kafka event")
-                                }
-
-                            }
-                          Future
-                            .sequence(Seq(storedConsentFactFut,
-                                          storedUserFut,
-                                          storedLastConsentFactFut))
-                            .map { _ =>
-                              context.stop()
-                              renderMethod(cf)
-                            }
-                      }
-                    case Some(_) =>
-                      organisationStore
-                        .findReleasedByKeyAndVersionNum(tenant,
-                                                        orgKey,
-                                                        cf.version)
-                        .flatMap {
-                          case None =>
-                            context.stop()
-                            Logger.error(
-                              s"error.unknown.org.version : organisation key $orgKey -> version specified ${cf.version}")
-                            Future.successful(
-                              BadRequest("error.unknown.org.version"))
-                          case Some(specificVersionOrg) =>
-                            specificVersionOrg.isValidWith(cf) match {
-                              case Some(error) =>
-                                context.stop()
-                                Future.successful(BadRequest(error))
-                              case None =>
-                                // Ok store new consent fact and update user
-                                val storedConsentFactFut =
-                                  consentFactStore.insert(tenant, cf)
-                                val previousConsentFactId =
-                                  user.latestConsentFactId
-                                val storedLastConsentFactFut =
-                                  lastConsentFactMongoDataStore
-                                    .removeById(tenant, previousConsentFactId)
-                                    .flatMap { _ =>
-                                      lastConsentFactMongoDataStore
-                                        .insert(tenant, cf)
-                                    }
-                                val storedUserFut = userStore
-                                  .updateById(
-                                    tenant,
-                                    user._id,
-                                    user.copy(latestConsentFactId = cf._id,
-                                              orgVersion =
-                                                specificVersionOrg.version.num))
-                                  .map { _ =>
-                                    consentFactStore
-                                      .findById(tenant, previousConsentFactId)
-                                      .map {
-                                        case Some(previousConsentFact) =>
-                                          broker.publish(ConsentFactUpdated(
-                                            tenant = tenant,
-                                            oldValue = previousConsentFact,
-                                            payload = cf,
-                                            author = req.authInfo.sub,
-                                            metadata = req.authInfo.metadatas))
-                                        case None =>
-                                          Logger.error(
-                                            s"Unable to retrieve the previous consent fact of user $userId in org $orgKey thus unable to emit kafka event")
-                                      }
-
-                                  }
-                                Future
-                                  .sequence(Seq(storedConsentFactFut,
-                                                storedUserFut,
-                                                storedLastConsentFactFut))
-                                  .map { _ =>
-                                    context.stop()
-                                    renderMethod(cf)
-                                  }
-                            }
-                        }
-                  }
-            }
-          =======
           consentManagerService
             .saveConsents(tenant, req.authInfo.sub, orgKey, userId, cf)
             .map {
-              case Right(consentFact) =>
-                context.stop()
-                renderMethod(consentFact)
+              case Right(consentFactSaved) =>
+                renderMethod(consentFactSaved)
               case Left(error) =>
-                context.stop()
                 BadRequest(error)
             }
-          >>>>>>> rewrite put consent method
       }
     }
 
