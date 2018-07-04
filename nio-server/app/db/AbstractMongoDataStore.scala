@@ -4,7 +4,6 @@ import db.MongoOpsDataStore.MongoDataStore
 import play.api.Logger
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoApi
-import play.modules.reactivemongo.json.ImplicitBSONHandlers._
 import reactivemongo.api.indexes.Index
 import reactivemongo.play.json.collection.JSONCollection
 
@@ -107,12 +106,6 @@ abstract class AbstractMongoDataStore[T](mongoApi: ReactiveMongoApi)(
                               pageSize: Int): Future[Seq[T]] = {
     storedCollection(tenant).flatMap {
       _.findManyByQueryPaginate(tenant, query, sort, page, pageSize)
-    }
-  }
-
-  private def find(tenant: String, query: JsObject): Future[Seq[T]] = {
-    storedCollection(tenant).flatMap {
-      _.findManyByQuery(query)
     }
   }
 
