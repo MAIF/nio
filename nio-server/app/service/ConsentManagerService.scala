@@ -178,4 +178,55 @@ class ConsentManagerService(
       }
   }
 
+  def mergeTemplateWithConsentFact(
+      tenant: String,
+      orgKey: String,
+      orgVersion: Int,
+      template: ConsentFact,
+      maybeUserId: Option[String]): Future[ConsentFact] = {
+    maybeUserId match {
+      case Some(userId) =>
+        Logger.info(s"userId is defined with $userId")
+
+        lastConsentFactMongoDataStore
+          .findByOrgKeyAndUserId(tenant, orgKey, userId)
+          .map {
+            case Some(consentFact) =>
+              Logger.info(s"consent fact exist")
+
+              val groupsUpdated: Seq[ConsentGroup] =
+                template.groups.map(
+                  group => {
+                    val maybeGroup = consentFact.groups.find(cg =>
+                      cg.key == group.key && cg.label == group.label)
+                    maybeGroup match {
+                      case Some(consentGroup) =>
+                        group.copy(consents = group.consents.map { consent =>
+                          val maybeConsent =
+                            consentGroup.consents.find(c =>
+                              c.key == consent.key && c.label == consent.label)
+                          maybeConsent match {
+                            case Some(consentValue) =>
+                              consent.copy(checked = consentValue.checked)
+                            case None =>
+                              consent
+                          }
+                        })
+                      case None => group
+                    }
+                  }
+                )
+
+              ConsentFact
+                .template(orgVersion, groupsUpdated, orgKey)
+                .copy(userId = userId)
+            case None =>
+              template
+          }
+
+      case None =>
+        Future.successful(template)
+    }
+  }
+
 }

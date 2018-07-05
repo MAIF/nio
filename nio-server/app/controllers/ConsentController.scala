@@ -69,58 +69,16 @@ class ConsentController(
             val template =
               ConsentFact.template(organisation.version.num, groups, orgKey)
 
-            maybeUserId match {
-              case Some(userId) =>
-                Logger.info(s"userId is defined with ${userId}")
-
-                lastConsentFactMongoDataStore
-                  .findByOrgKeyAndUserId(tenant, orgKey, userId)
-                  .map {
-                    case Some(consentFact) =>
-                      Logger.info(s"consent fact exist")
-
-                      val groupsUpdated: Seq[ConsentGroup] =
-                        template.groups.map(
-                          group => {
-                            val maybeGroup = consentFact.groups.find(cg =>
-                              cg.key == group.key && cg.label == group.label)
-                            maybeGroup match {
-                              case Some(consentGroup) =>
-                                group.copy(consents = group.consents.map {
-                                  consent =>
-                                    val maybeConsent =
-                                      consentGroup.consents.find(c =>
-                                        c.key == consent.key && c.label == consent.label)
-                                    maybeConsent match {
-                                      case Some(consentValue) =>
-                                        consent.copy(
-                                          checked = consentValue.checked)
-                                      case None =>
-                                        consent
-                                    }
-                                })
-                              case None => group
-                            }
-                          }
-                        )
-
-                      context.stop()
-                      renderMethod(
-                        ConsentFact
-                          .template(organisation.version.num,
-                                    groupsUpdated,
-                                    orgKey)
-                          .copy(userId = userId))
-                    case None =>
-                      context.stop()
-                      Logger.info(s"consent fact unknow")
-                      renderMethod(template)
-                  }
-
-              case None =>
+            consentManagerService
+              .mergeTemplateWithConsentFact(tenant,
+                                            orgKey,
+                                            organisation.version.num,
+                                            template,
+                                            maybeUserId)
+              .map { consentFact =>
                 context.stop()
-                Future.successful(renderMethod(template))
-            }
+                renderMethod(consentFact)
+              }
         }
       }
     }
