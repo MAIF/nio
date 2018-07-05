@@ -146,8 +146,10 @@ class ConsentController(
             .saveConsents(tenant, req.authInfo.sub, orgKey, userId, cf)
             .map {
               case Right(consentFactSaved) =>
+                context.stop()
                 renderMethod(consentFactSaved)
               case Left(error) =>
+                context.stop()
                 BadRequest(error)
             }
       }
