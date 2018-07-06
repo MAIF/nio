@@ -39,14 +39,17 @@ class DeletionController @Inject()(
           deletionTaskStore.insert(tenant, task).map { _ =>
             task.appIds.foreach { appId =>
               broker.publish(
-                DeletionStarted(tenant = tenant,
-                                author = req.authInfo.sub,
-                                payload = DeletionTaskInfoPerApp(
-                                  orgKey = orgKey,
-                                  userId = userId,
-                                  appId = appId,
-                                  deletionTaskId = task._id
-                                ))
+                DeletionStarted(
+                  tenant = tenant,
+                  author = req.authInfo.sub,
+                  payload = DeletionTaskInfoPerApp(
+                    orgKey = orgKey,
+                    userId = userId,
+                    appId = appId,
+                    deletionTaskId = task._id
+                  ),
+                  metadata = req.authInfo.metadatas
+                )
               )
             }
             renderMethod(task, Created)
@@ -93,6 +96,7 @@ class DeletionController @Inject()(
               DeletionAppDone(
                 tenant = tenant,
                 author = request.authInfo.sub,
+                metadata = request.authInfo.metadatas,
                 payload = AppDone(orgKey, updatedDeletionTask.userId, appId)
               )
             )
@@ -101,7 +105,8 @@ class DeletionController @Inject()(
                 DeletionFinished(
                   tenant = tenant,
                   author = request.authInfo.sub,
-                  payload = updatedDeletionTask
+                  payload = updatedDeletionTask,
+                  metadata = request.authInfo.metadatas
                 )
               )
             }

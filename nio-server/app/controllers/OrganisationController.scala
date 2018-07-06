@@ -60,9 +60,11 @@ class OrganisationController @Inject()(
                     case None =>
                       ds.insert(tenant, o).map { _ =>
                         broker.publish(
-                          OrganisationCreated(tenant = tenant,
-                                              payload = o,
-                                              author = req.authInfo.sub))
+                          OrganisationCreated(
+                            tenant = tenant,
+                            payload = o,
+                            author = req.authInfo.sub,
+                            metadata = req.authInfo.metadatas))
 
                         renderMethod(o, Created)
                       }
@@ -115,7 +117,8 @@ class OrganisationController @Inject()(
                         OrganisationUpdated(tenant = tenant,
                                             oldValue = previousDraft,
                                             payload = newDraft,
-                                            author = req.authInfo.sub))
+                                            author = req.authInfo.sub,
+                                            metadata = req.authInfo.metadatas))
                       renderMethod(newDraft)
                     }
               }
@@ -216,7 +219,8 @@ class OrganisationController @Inject()(
               broker.publish(
                 OrganisationReleased(tenant = tenant,
                                      payload = currentOrganisationReleased,
-                                     author = req.authInfo.sub))
+                                     author = req.authInfo.sub,
+                                     metadata = req.authInfo.metadatas))
             }
           } yield {
             renderMethod(currentOrganisationReleased)
@@ -250,7 +254,8 @@ class OrganisationController @Inject()(
               broker.publish(
                 OrganisationDeleted(tenant = tenant,
                                     payload = org,
-                                    author = req.authInfo.sub))
+                                    author = req.authInfo.sub,
+                                    metadata = req.authInfo.metadatas))
               Ok
             }
           case None =>

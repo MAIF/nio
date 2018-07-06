@@ -51,7 +51,9 @@ class AccountController @Inject()(
               // TODO add validation
               accountStore.create(tenant, account).map { _ =>
                 broker.publish(
-                  AccountCreated(tenant, payload = account)
+                  AccountCreated(tenant,
+                                 payload = account,
+                                 metadata = req.authInfo.metadatas)
                 )
                 renderMethod(account, Created)
 
@@ -74,7 +76,8 @@ class AccountController @Inject()(
                 broker.publish(
                   AccountUpdated(tenant,
                                  payload = account,
-                                 oldValue = oldAccount)
+                                 oldValue = oldAccount,
+                                 metadata = req.authInfo.metadatas)
                 )
                 renderMethod(account)
               }
@@ -95,7 +98,9 @@ class AccountController @Inject()(
             .delete(tenant, accountId)
             .map(_ => {
               broker.publish(
-                AccountDeleted(tenant, payload = account)
+                AccountDeleted(tenant,
+                               payload = account,
+                               metadata = req.authInfo.metadatas)
               )
               Ok
             })

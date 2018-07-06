@@ -43,6 +43,7 @@ case class FileMetadata(name: String, contentType: String, size: Long) {
     </fileMetadata>
   }
 }
+
 object FileMetadata {
   implicit val fileMetadataFormats = Json.format[FileMetadata]
 
@@ -56,11 +57,13 @@ object FileMetadata {
 
 case class FilesMetadata(files: Seq[FileMetadata]) {
   def asJson = FilesMetadata.filesMetadataFormats.writes(this)
+
   def asXml =
     <filesMetadata>
       {files.map(_.asXml)}
     </filesMetadata>
 }
+
 object FilesMetadata extends ReadableEntity[FilesMetadata] {
   implicit val filesMetadataFormats = Json.format[FilesMetadata]
 
@@ -114,6 +117,7 @@ case class AppState(appId: String,
     </appState>
   }
 }
+
 object AppState {
   implicit val appStateFormats = Json.format[AppState]
 }
@@ -159,7 +163,9 @@ case class ExtractionTask(_id: String,
   }
 
   def progress: Double = {
-    if (done == appIds.size) { 100 } else {
+    if (done == appIds.size) {
+      100
+    } else {
       states.size match {
         case 0 => 0.0
         case size =>
@@ -204,7 +210,10 @@ case class ExtractionTask(_id: String,
     )
   }
 
-  def storeAndEmitEvents(tenant: String, appId: String, author: String)(
+  def storeAndEmitEvents(tenant: String,
+                         appId: String,
+                         author: String,
+                         metadata: Option[Seq[(String, String)]] = None)(
       implicit ec: ExecutionContext,
       store: ExtractionTaskMongoDataStore,
       broker: KafkaMessageBroker) = {
@@ -213,12 +222,16 @@ case class ExtractionTask(_id: String,
       broker.publish(
         ExtractionAppDone(tenant = tenant,
                           author = author,
+                          metadata = metadata,
                           payload = AppDone(orgKey, userId, appId)))
 
       if (this.done == appIds.size) {
         UploadTracker.removeApp(this._id, appId)
         broker.publish(
-          ExtractionFinished(tenant = tenant, author = author, payload = this))
+          ExtractionFinished(tenant = tenant,
+                             author = author,
+                             metadata = metadata,
+                             payload = this))
       }
     }
   }

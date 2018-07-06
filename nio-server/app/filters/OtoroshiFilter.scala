@@ -45,7 +45,9 @@ class OtoroshiFilter @Inject()(env: Env)(implicit ec: ExecutionContext,
           requestHeader
             .addAttr(OtoroshiFilter.Email, "test@test.com")
             .addAttr(OtoroshiFilter.AuthInfo,
-                     AuthInfo("test@test.com", isAdmin = true)))
+                     AuthInfo("test@test.com",
+                              isAdmin = true,
+                              Some(Seq(("foo", "bar"), ("foo2", "bar2"))))))
           .map {
             result =>
               val requestTime = System.currentTimeMillis - startTime
@@ -113,7 +115,9 @@ class OtoroshiFilter @Inject()(env: Env)(implicit ec: ExecutionContext,
                                       nextFilter)(requestHeader)
 
             // with path to ignore
-            case _ if excludeCheckingPath.exists(pathPrefix => path.startsWith(pathPrefix)) =>
+            case _
+                if excludeCheckingPath.exists(
+                  pathPrefix => path.startsWith(pathPrefix)) =>
               validateOtoroshiHeaders(claims,
                                       maybeReqId,
                                       maybeState,
@@ -204,6 +208,11 @@ class OtoroshiFilter @Inject()(env: Env)(implicit ec: ExecutionContext,
         .map(_.asString)
         .flatMap(str => Try(str.toBoolean).toOption)
         .getOrElse(false)
+      metadatas = claims
+        .filterKeys(header => header.startsWith("metadata"))
+        .map(header =>
+          (header._1.replaceFirst("metadata.", ""), header._2.asString()))
+        .toSeq
     } yield {
       logger.info(s"Request from sub: $sub, name:$name, isAdmin:$isAdmin")
       email
@@ -211,7 +220,8 @@ class OtoroshiFilter @Inject()(env: Env)(implicit ec: ExecutionContext,
           requestHeader.addAttr(OtoroshiFilter.Email, email)
         }
         .getOrElse(requestHeader)
-        .addAttr(OtoroshiFilter.AuthInfo, AuthInfo(sub, isAdmin))
+        .addAttr(OtoroshiFilter.AuthInfo,
+                 AuthInfo(sub, isAdmin, Some(metadatas)))
     }
 
     nextFilter(requestWithAuthInfo.getOrElse(requestHeader)).map { result =>

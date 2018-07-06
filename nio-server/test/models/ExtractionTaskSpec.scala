@@ -2,6 +2,7 @@ package models
 
 import org.scalatest.WordSpecLike
 import org.scalatestplus.play.PlaySpec
+import play.api.Logger
 import utils.UploadTracker
 
 class ExtractionTaskSpec extends PlaySpec with WordSpecLike {
@@ -15,6 +16,8 @@ class ExtractionTaskSpec extends PlaySpec with WordSpecLike {
             FileMetadata("file1.json", "json", 250)))
       val xml = input.asXml
       val fromXml = FilesMetadata.fromXml(xml)
+
+      Logger.info(s"=======> fromXml $fromXml")
       fromXml.isRight mustBe true
       fromXml.right.get mustBe input
     }

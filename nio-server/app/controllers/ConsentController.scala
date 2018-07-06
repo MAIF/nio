@@ -231,9 +231,11 @@ class ConsentController @Inject()(
                                      latestConsentFactId = cf._id))
                         .map { _ =>
                           broker.publish(
-                            ConsentFactCreated(tenant = tenant,
-                                               payload = cf,
-                                               author = req.authInfo.sub))
+                            ConsentFactCreated(
+                              tenant = tenant,
+                              payload = cf,
+                              author = req.authInfo.sub,
+                              metadata = req.authInfo.metadatas))
                         }
                       Future
                         .sequence(
@@ -292,7 +294,8 @@ class ConsentController @Inject()(
                                       tenant = tenant,
                                       oldValue = previousConsentFact,
                                       payload = cf,
-                                      author = req.authInfo.sub))
+                                      author = req.authInfo.sub,
+                                      metadata = req.authInfo.metadatas))
                                 case None =>
                                   Logger.error(
                                     s"Unable to retrieve the previous consent fact of user $userId in org $orgKey thus unable to emit kafka event")
@@ -350,11 +353,12 @@ class ConsentController @Inject()(
                             .map {
                               case Some(previousConsentFact) =>
                                 broker.publish(
-                                  ConsentFactUpdated(tenant = tenant,
-                                                     oldValue =
-                                                       previousConsentFact,
-                                                     payload = cf,
-                                                     author = req.authInfo.sub))
+                                  ConsentFactUpdated(
+                                    tenant = tenant,
+                                    oldValue = previousConsentFact,
+                                    payload = cf,
+                                    author = req.authInfo.sub,
+                                    metadata = req.authInfo.metadatas))
                               case None =>
                                 Logger.error(
                                   s"Unable to retrieve the previous consent fact of user $userId in org $orgKey thus unable to emit kafka event")
@@ -415,7 +419,8 @@ class ConsentController @Inject()(
                                           tenant = tenant,
                                           oldValue = previousConsentFact,
                                           payload = cf,
-                                          author = req.authInfo.sub))
+                                          author = req.authInfo.sub,
+                                          metadata = req.authInfo.metadatas))
                                     case None =>
                                       Logger.error(
                                         s"Unable to retrieve the previous consent fact of user $userId in org $orgKey thus unable to emit kafka event")

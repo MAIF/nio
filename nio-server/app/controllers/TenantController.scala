@@ -47,7 +47,9 @@ class TenantController @Inject()(
               case None =>
                 tenantStore.insert(tenant).flatMap { _ =>
                   broker.publish(
-                    TenantCreated(tenant = tenant.key, payload = tenant))
+                    TenantCreated(tenant = tenant.key,
+                                  payload = tenant,
+                                  metadata = req.authInfo.metadatas))
 
                   Future
                     .sequence(
@@ -115,8 +117,10 @@ class TenantController @Inject()(
               userDataStore.deleteUserByTenant(tenantKey),
               tenantStore.removeByKey(tenantKey)
             ).mapN { (_, _, _, _, _) =>
-              broker.publish(TenantDeleted(tenant = tenantToDelete.key,
-                                           payload = tenantToDelete))
+              broker.publish(
+                TenantDeleted(tenant = tenantToDelete.key,
+                              payload = tenantToDelete,
+                              metadata = req.authInfo.metadatas))
               Ok
             }
           case None =>

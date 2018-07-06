@@ -161,7 +161,10 @@ class ExtractionController @Inject()(val AuthAction: AuthAction,
                   val updatedTask =
                     req.task.copyWithFileUploadHandled(appId, appState)
                   updatedTask
-                    .storeAndEmitEvents(tenant, appId, req.authInfo.sub)
+                    .storeAndEmitEvents(tenant,
+                                        appId,
+                                        req.authInfo.sub,
+                                        req.authInfo.metadatas)
                     .map { _ =>
                       Ok(location)
                     }

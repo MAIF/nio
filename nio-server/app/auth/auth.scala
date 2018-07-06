@@ -10,7 +10,9 @@ import scala.concurrent.{ExecutionContext, Future}
 import javax.inject.Inject
 import models.ExtractionTask
 
-case class AuthInfo(sub: String, isAdmin: Boolean)
+case class AuthInfo(sub: String,
+                    isAdmin: Boolean,
+                    metadatas: Option[Seq[(String, String)]] = None)
 
 case class AuthContextWithEmail[A](request: Request[A],
                                    email: String,
