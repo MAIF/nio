@@ -384,8 +384,8 @@ case class ConsentFactUpdated(tenant: String,
 }
 
 case class AccountDeleted(tenant: String,
-                          metadata: Option[Seq[(String, String)]] = None,
                           author: String,
+                          metadata: Option[Seq[(String, String)]] = None,
                           id: Long = NioEvent.gen.nextId(),
                           date: DateTime = DateTime.now(DateTimeZone.UTC),
                           payload: Account)
@@ -436,8 +436,8 @@ case class AccountCreated(tenant: String,
 }
 
 case class AccountUpdated(tenant: String,
-                          metadata: Option[Seq[(String, String)]] = None,
                           author: String,
+                          metadata: Option[Seq[(String, String)]] = None,
                           id: Long = NioEvent.gen.nextId(),
                           date: DateTime = DateTime.now(DateTimeZone.UTC),
                           payload: Account,
