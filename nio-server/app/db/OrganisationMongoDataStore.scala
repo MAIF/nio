@@ -11,10 +11,11 @@ import reactivemongo.api.{Cursor, ReadPreference}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class OrganisationMongoDataStore(val reactiveMongoApi: ReactiveMongoApi)(
-    implicit val ec: ExecutionContext)
-    extends AbstractMongoDataStore[Organisation](reactiveMongoApi) {
+class OrganisationMongoDataStore(val mongoApi: ReactiveMongoApi)(
+    implicit val executionContext: ExecutionContext)
+    extends AbstractMongoDataStore[Organisation] {
 
+  val format: OFormat[Organisation] = models.Organisation.oFormats
   override def collectionName(tenant: String) = s"$tenant-organisations"
 
   override def indices = Seq(

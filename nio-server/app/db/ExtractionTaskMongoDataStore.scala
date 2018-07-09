@@ -12,10 +12,11 @@ import reactivemongo.api.indexes.{Index, IndexType}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class ExtractionTaskMongoDataStore(val reactiveMongoApi: ReactiveMongoApi)(
-    implicit val ec: ExecutionContext)
-    extends AbstractMongoDataStore[ExtractionTask](reactiveMongoApi) {
+class ExtractionTaskMongoDataStore(val mongoApi: ReactiveMongoApi)(
+    implicit val executionContext: ExecutionContext)
+    extends AbstractMongoDataStore[ExtractionTask] {
 
+  val format: OFormat[ExtractionTask] = models.ExtractionTask.fmt
   override def collectionName(tenant: String) = s"$tenant-extractionTasks"
 
   override def indices = Seq(

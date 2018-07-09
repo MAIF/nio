@@ -5,7 +5,7 @@ import akka.stream.scaladsl.{Sink, Source}
 import akka.util.ByteString
 import models._
 import play.api.Logger
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json.{JsValue, Json, OFormat}
 import play.modules.reactivemongo.ReactiveMongoApi
 import play.modules.reactivemongo.json.ImplicitBSONHandlers._
 import reactivemongo.akkastream.cursorProducer
@@ -18,9 +18,11 @@ import utils.BSONUtils
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Failure
 
-class LastConsentFactMongoDataStore(val reactiveMongoApi: ReactiveMongoApi)(
-    implicit val ec: ExecutionContext)
-    extends AbstractMongoDataStore[ConsentFact](reactiveMongoApi) {
+class LastConsentFactMongoDataStore(val mongoApi: ReactiveMongoApi)(
+    implicit val executionContext: ExecutionContext)
+    extends AbstractMongoDataStore[ConsentFact] {
+
+  val format: OFormat[ConsentFact] = models.ConsentFact.consentFactOFormats
 
   override def collectionName(tenant: String) = s"$tenant-lastConsentFacts"
 
@@ -124,8 +126,7 @@ class LastConsentFactMongoDataStore(val reactiveMongoApi: ReactiveMongoApi)(
   }
 
   def storedBSONCollection(tenant: String): Future[BSONCollection] =
-    reactiveMongoApi.database.map(
-      _.collection[BSONCollection](collectionName(tenant)))
+    mongoApi.database.map(_.collection[BSONCollection](collectionName(tenant)))
 
   def streamAllBSON(tenant: String, pageSize: Int, parallelisation: Int)(
       implicit m: Materializer): Source[ByteString, akka.NotUsed] = {
@@ -139,7 +140,7 @@ class LastConsentFactMongoDataStore(val reactiveMongoApi: ReactiveMongoApi)(
           (0 until parallelisation)
             .map { idx =>
               val items = count / parallelisation
-              val from = (items * idx)
+              val from = items * idx
               val to = from + items
               Logger.info(
                 s"Consuming $items consents with worker $idx: $from => $to")

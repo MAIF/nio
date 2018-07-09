@@ -7,10 +7,10 @@ import reactivemongo.api.indexes.{Index, IndexType}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class DeletionTaskMongoDataStore(val reactiveMongoApi: ReactiveMongoApi)(
-    implicit val ec: ExecutionContext)
-    extends AbstractMongoDataStore[DeletionTask](reactiveMongoApi) {
-
+class DeletionTaskMongoDataStore(val mongoApi: ReactiveMongoApi)(
+    implicit val executionContext: ExecutionContext)
+    extends AbstractMongoDataStore[DeletionTask] {
+  val format: OFormat[DeletionTask] = models.DeletionTask.deletionTaskFormats
   override def collectionName(tenant: String) = s"$tenant-deletionTasks"
 
   override def indices = Seq(

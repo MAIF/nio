@@ -1,16 +1,17 @@
 package db
 
 import models.ConsentFact
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, OFormat}
 import play.modules.reactivemongo.ReactiveMongoApi
 import reactivemongo.api.indexes.{Index, IndexType}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class ConsentFactMongoDataStore(val reactiveMongoApi: ReactiveMongoApi)(
-    implicit val ec: ExecutionContext)
-    extends AbstractMongoDataStore[ConsentFact](reactiveMongoApi) {
+class ConsentFactMongoDataStore(val mongoApi: ReactiveMongoApi)(
+    implicit val executionContext: ExecutionContext)
+    extends AbstractMongoDataStore[ConsentFact] {
 
+  val format: OFormat[ConsentFact] = models.ConsentFact.consentFactOFormats
   override def collectionName(tenant: String) = s"$tenant-consentFacts"
 
   override def indices = Seq(

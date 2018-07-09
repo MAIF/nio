@@ -20,9 +20,11 @@ object Request {
   }
 }
 
-abstract class AbstractMongoDataStore[T](mongoApi: ReactiveMongoApi)(
-    implicit val format: OFormat[T],
-    executionContext: ExecutionContext) {
+trait AbstractMongoDataStore[T] {
+
+  def mongoApi: ReactiveMongoApi
+  implicit def format: OFormat[T]
+  implicit def executionContext: ExecutionContext
 
   protected def collectionName(tenant: String): String
 

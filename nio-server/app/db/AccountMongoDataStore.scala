@@ -1,16 +1,17 @@
 package db
 
-import models.Account.oformat
 import models._
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, OFormat}
 import play.modules.reactivemongo.ReactiveMongoApi
 import reactivemongo.api.indexes.{Index, IndexType}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class AccountMongoDataStore(val reactiveMongoApi: ReactiveMongoApi)(
-    implicit val ec: ExecutionContext)
-    extends AbstractMongoDataStore[Account](reactiveMongoApi) {
+class AccountMongoDataStore(val mongoApi: ReactiveMongoApi)(
+    implicit val executionContext: ExecutionContext)
+    extends AbstractMongoDataStore[Account] {
+
+  val format: OFormat[Account] = models.Account.oformat
 
   override def collectionName(tenant: String) = s"$tenant-accounts"
 

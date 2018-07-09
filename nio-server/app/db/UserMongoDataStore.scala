@@ -3,7 +3,7 @@ package db
 import akka.stream.Materializer
 import akka.stream.scaladsl.Source
 import models._
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json.{JsValue, Json, OFormat}
 import play.modules.reactivemongo.ReactiveMongoApi
 import play.modules.reactivemongo.json.ImplicitBSONHandlers._
 import reactivemongo.akkastream.{AkkaStreamCursor, State, cursorProducer}
@@ -11,9 +11,11 @@ import reactivemongo.api.indexes.{Index, IndexType}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class UserMongoDataStore(val reactiveMongoApi: ReactiveMongoApi)(
-    implicit val ec: ExecutionContext)
-    extends AbstractMongoDataStore[User](reactiveMongoApi) {
+class UserMongoDataStore(val mongoApi: ReactiveMongoApi)(
+    implicit val executionContext: ExecutionContext)
+    extends AbstractMongoDataStore[User] {
+
+  val format: OFormat[User] = models.User.formats
 
   override def collectionName(tenant: String) = s"$tenant-users"
 
