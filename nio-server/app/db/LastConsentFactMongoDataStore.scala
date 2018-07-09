@@ -20,7 +20,7 @@ import scala.util.Failure
 
 class LastConsentFactMongoDataStore(val mongoApi: ReactiveMongoApi)(
     implicit val executionContext: ExecutionContext)
-    extends AbstractMongoDataStore[ConsentFact] {
+    extends MongoDataStore[ConsentFact] {
 
   val format: OFormat[ConsentFact] = models.ConsentFact.consentFactOFormats
 

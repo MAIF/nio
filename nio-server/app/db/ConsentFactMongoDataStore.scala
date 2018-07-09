@@ -9,7 +9,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class ConsentFactMongoDataStore(val mongoApi: ReactiveMongoApi)(
     implicit val executionContext: ExecutionContext)
-    extends AbstractMongoDataStore[ConsentFact] {
+    extends MongoDataStore[ConsentFact] {
 
   val format: OFormat[ConsentFact] = models.ConsentFact.consentFactOFormats
   override def collectionName(tenant: String) = s"$tenant-consentFacts"

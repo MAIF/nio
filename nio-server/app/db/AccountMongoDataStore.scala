@@ -9,7 +9,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class AccountMongoDataStore(val mongoApi: ReactiveMongoApi)(
     implicit val executionContext: ExecutionContext)
-    extends AbstractMongoDataStore[Account] {
+    extends MongoDataStore[Account] {
 
   val format: OFormat[Account] = models.Account.oformat
 

@@ -20,7 +20,7 @@ object Request {
   }
 }
 
-trait AbstractMongoDataStore[T] {
+trait MongoDataStore[T] {
 
   def mongoApi: ReactiveMongoApi
   implicit def format: OFormat[T]

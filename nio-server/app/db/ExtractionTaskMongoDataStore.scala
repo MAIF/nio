@@ -14,7 +14,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class ExtractionTaskMongoDataStore(val mongoApi: ReactiveMongoApi)(
     implicit val executionContext: ExecutionContext)
-    extends AbstractMongoDataStore[ExtractionTask] {
+    extends MongoDataStore[ExtractionTask] {
 
   val format: OFormat[ExtractionTask] = models.ExtractionTask.fmt
   override def collectionName(tenant: String) = s"$tenant-extractionTasks"

@@ -13,7 +13,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class OrganisationMongoDataStore(val mongoApi: ReactiveMongoApi)(
     implicit val executionContext: ExecutionContext)
-    extends AbstractMongoDataStore[Organisation] {
+    extends MongoDataStore[Organisation] {
 
   val format: OFormat[Organisation] = models.Organisation.oFormats
   override def collectionName(tenant: String) = s"$tenant-organisations"

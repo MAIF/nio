@@ -9,7 +9,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class DeletionTaskMongoDataStore(val mongoApi: ReactiveMongoApi)(
     implicit val executionContext: ExecutionContext)
-    extends AbstractMongoDataStore[DeletionTask] {
+    extends MongoDataStore[DeletionTask] {
   val format: OFormat[DeletionTask] = models.DeletionTask.deletionTaskFormats
   override def collectionName(tenant: String) = s"$tenant-deletionTasks"
 
