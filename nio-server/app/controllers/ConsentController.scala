@@ -6,6 +6,7 @@ import akka.stream.scaladsl.Source
 import akka.util.ByteString
 import auth.AuthAction
 import com.codahale.metrics.{MetricRegistry, Timer}
+import controllers.ErrorManager.{AppErrorManagerResult, ErrorManagerResult}
 import db.{
   ConsentFactMongoDataStore,
   LastConsentFactMongoDataStore,
@@ -16,17 +17,13 @@ import messaging.KafkaMessageBroker
 import models.{ConsentFact, _}
 import play.api.Logger
 import play.api.http.HttpEntity
-import play.api.libs.json.Json
-import play.api.mvc.{ControllerComponents, Request, ResponseHeader, Result}
+import play.api.mvc.{ControllerComponents, ResponseHeader, Result}
 import reactivemongo.api.{Cursor, QueryOpts}
 import reactivemongo.bson.BSONDocument
 import service.ConsentManagerService
 import utils.BSONUtils
 
 import scala.concurrent.{ExecutionContext, Future}
-import ErrorManager.ErrorManagerResult
-import ErrorManager.AppErrorManagerResult
-import utils.Result.AppErrors
 
 class ConsentController(
     val AuthAction: AuthAction,
@@ -150,7 +147,7 @@ class ConsentController(
                 renderMethod(consentFactSaved)
               case Left(error) =>
                 context.stop()
-                BadRequest(error)
+                error.badRequest()
             }
       }
     }
@@ -181,7 +178,6 @@ class ConsentController(
     Logger.info(
       s"Downloading consents (using bulked reads) from tenant $tenant")
     import reactivemongo.akkastream.cursorProducer
-    import play.modules.reactivemongo.json.ImplicitBSONHandlers._
 
     val src = Source
       .fromFutureSource {

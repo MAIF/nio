@@ -11,6 +11,7 @@ import messaging.KafkaMessageBroker
 import models._
 import play.api.Logger
 import play.api.libs.json.{JsString, JsValue}
+import utils.Result.AppErrors
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -27,12 +28,12 @@ class ConsentManagerService(
                       organisation: Organisation,
                       consentFact: ConsentFact,
                       maybeLastConsentFact: Option[ConsentFact] = None)
-    : Future[Either[JsValue, ConsentFact]] = {
+    : Future[Either[AppErrors, ConsentFact]] = {
     organisation.isValidWith(consentFact) match {
       case Some(error) =>
         Logger.error(
           s"invalid consent fact (compare with organisation ${organisation.key} version ${organisation.version}) : $error || ${consentFact.asJson}")
-        FastFuture.successful(Left(JsString(error)))
+        FastFuture.successful(Left(AppErrors.error(error)))
       case None =>
         val organisationKey: String = organisation.key
         val userId: String = consentFact.userId
@@ -93,7 +94,7 @@ class ConsentManagerService(
       author: String,
       organisationKey: String,
       userId: String,
-      consentFact: ConsentFact): Future[Either[JsValue, ConsentFact]] = {
+      consentFact: ConsentFact): Future[Either[AppErrors, ConsentFact]] = {
     lastConsentFactMongoDataStore
       .findByOrgKeyAndUserId(tenant, organisationKey, userId)
       .flatMap {
@@ -106,14 +107,14 @@ class ConsentManagerService(
                 Logger.error(
                   s"error.specified.org.never.released for organisation key $organisationKey")
                 FastFuture.successful(
-                  Left(JsString("error.specified.org.never.released")))
+                  Left(AppErrors.error("error.specified.org.never.released")))
 
               case Some(organisation)
                   if organisation.version.num != consentFact.version =>
                 Logger.error(
                   s"error.specified.version.not.latest : latest version ${organisation.version.num} -> version specified ${consentFact.version}")
                 FastFuture.successful(
-                  Left(JsString("error.specified.version.not.latest")))
+                  Left(AppErrors.error("error.specified.version.not.latest")))
 
               case Some(organisation)
                   if organisation.version.num == consentFact.version =>
@@ -138,7 +139,7 @@ class ConsentManagerService(
                 Logger.error(
                   s"error.unknow.specified.version : version specified ${lastConsentFactStored.version}")
                 FastFuture.successful(
-                  Left(JsString("error.unknow.specified.version")))
+                  Left(AppErrors.error("error.unknow.specified.version")))
             }
 
         // Update consent fact with the new organisation version
@@ -151,14 +152,14 @@ class ConsentManagerService(
                 Logger.error(
                   s"error.specified.org.never.released for organisation key $organisationKey")
                 FastFuture.successful(
-                  Left(JsString("error.specified.org.never.released")))
+                  Left(AppErrors.error("error.specified.org.never.released")))
 
               case Some(organisation)
                   if organisation.version.num < consentFact.version =>
                 Logger.error(
                   s"error.version.higher.than.release : last version saved ${lastConsentFactStored.version} -> version specified ${consentFact.version}")
-                Future.successful(
-                  Left(JsString("error.version.higher.than.release")))
+                FastFuture.successful(
+                  Left(AppErrors.error("error.version.higher.than.release")))
 
               case Some(organisation) =>
                 createOrReplace(tenant,
@@ -174,7 +175,7 @@ class ConsentManagerService(
           Logger.error(
             s"error.version.lower.than.stored : last version saved ${lastConsentFactStored.version} -> version specified ${consentFact.version}")
           FastFuture.successful(
-            Left(JsString("error.version.lower.than.stored")))
+            Left(AppErrors.error("error.version.lower.than.stored")))
       }
   }
 

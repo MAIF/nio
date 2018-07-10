@@ -213,7 +213,7 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
       orgKey = Some(orgKey)
     )
 
-  def fromXml(xml: Elem) = {
+  def fromXml(xml: Elem): Either[AppErrors, ConsentFact] = {
     Try {
       val userId = (xml \ "userId").head.text
       val doneByUserId = (xml \ "doneBy" \ "userId").head.text
