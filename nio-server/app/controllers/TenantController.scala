@@ -2,14 +2,15 @@ package controllers
 
 import auth.AuthAction
 import configuration.Env
+import controllers.ErrorManager._
 import db._
+import messaging.KafkaMessageBroker
 import models.{Tenant, TenantCreated, TenantDeleted, Tenants}
 import play.api.mvc.ControllerComponents
-import messaging.KafkaMessageBroker
 import play.api.{Configuration, Logger}
+import utils.Result.AppErrors
 
 import scala.concurrent.{ExecutionContext, Future}
-
 class TenantController(
     AuthAction: AuthAction,
     tenantStore: TenantMongoDataStore,
@@ -38,11 +39,11 @@ class TenantController(
         parseMethod[Tenant](Tenant) match {
           case Left(error) =>
             Logger.error("Invalid tenant format " + error)
-            Future.successful(BadRequest("error.invalid.tenant.format"))
+            Future.successful("error.invalid.tenant.format".badRequest())
           case Right(tenant) =>
             tenantStore.findByKey(tenant.key).flatMap {
               case Some(_) =>
-                Future.successful(Conflict("error.key.already.used"))
+                Future.successful("error.key.already.used".conflict())
               case None =>
                 tenantStore.insert(tenant).flatMap { _ =>
                   broker.publish(
@@ -98,7 +99,7 @@ class TenantController(
             }
         }
       case _ =>
-        Future.successful(Unauthorized("error.missing.secret"))
+        Future.successful("error.missing.secret".unauthorized())
     }
   }
 
@@ -123,9 +124,9 @@ class TenantController(
               Ok
             }
           case None =>
-            Future.successful(NotFound("error.tenant.not.found"))
+            Future.successful("error.tenant.not.found".notFound())
         }
-      case _ => Future.successful(Unauthorized("error.missing.secret"))
+      case _ => Future.successful("error.missing.secret".unauthorized())
     }
   }
 }

@@ -156,14 +156,14 @@ object Organisation extends ReadableEntity[Organisation] {
                    groups = groups)
     } match {
       case Success(value)     => Right(value)
-      case Failure(throwable) => Left(throwable.getMessage)
+      case Failure(throwable) => Left(AppErrors.fromXmlError(throwable))
     }
   }
 
   def fromJson(json: JsValue) = {
     json.validate[Organisation] match {
       case JsSuccess(o, _) => Right(o)
-      case JsError(errors) => Left(errors.mkString(", "))
+      case JsError(errors) => Left(AppErrors.fromJsError(errors))
     }
   }
 }

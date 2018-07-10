@@ -2,6 +2,7 @@ package models
 
 import controllers.ReadableEntity
 import play.api.libs.json._
+import utils.Result.AppErrors
 
 import scala.util.{Failure, Success, Try}
 import scala.xml.Elem
@@ -30,7 +31,7 @@ object AppIds extends ReadableEntity[AppIds] {
     } match {
       case Success(value) => Right(value)
       case Failure(throwable) => {
-        Left(throwable.getMessage)
+        Left(AppErrors.fromXmlError(throwable))
       }
     }
   }
@@ -38,7 +39,7 @@ object AppIds extends ReadableEntity[AppIds] {
   def fromJson(json: JsValue) = {
     json.validate[AppIds](appIdsFormats) match {
       case JsSuccess(o, _) => Right(o)
-      case JsError(errors) => Left(errors.mkString(", "))
+      case JsError(errors) => Left(AppErrors.fromJsError(errors))
     }
   }
 }

@@ -11,6 +11,7 @@ import utils.DateUtils
 import scala.util.{Failure, Success, Try}
 import scala.xml.Elem
 import XmlUtil.XmlCleaner
+import utils.Result.AppErrors
 
 case class DoneBy(userId: String, role: String)
 object DoneBy {
@@ -243,16 +244,16 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
     } match {
       case Success(value) => Right(value)
       case Failure(throwable) => {
-        Left(throwable.getMessage)
+        Left(AppErrors.fromXmlError(throwable))
       }
     }
   }
 
-  def fromJson(json: JsValue) = {
+  def fromJson(json: JsValue): Either[AppErrors, ConsentFact] = {
     json.validate[ConsentFact](
       ConsentFact.consentFactReadsWithoutIdAndLastUpdate) match {
       case JsSuccess(o, _) => Right(o)
-      case JsError(errors) => Left(errors.mkString(", "))
+      case JsError(errors) => Left(AppErrors.fromJsError(errors))
     }
   }
 

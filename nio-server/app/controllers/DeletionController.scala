@@ -13,6 +13,8 @@ import models._
 import play.api.Logger
 import play.api.mvc.ControllerComponents
 
+import ErrorManager.ErrorManagerResult
+import ErrorManager.AppErrorManagerResult
 import scala.concurrent.{ExecutionContext, Future}
 
 class DeletionController(val AuthAction: AuthAction,
@@ -31,7 +33,7 @@ class DeletionController(val AuthAction: AuthAction,
       parseMethod[AppIds](AppIds) match {
         case Left(error) =>
           Logger.error(s"Unable to parse deletion task input due to $error")
-          Future.successful(BadRequest(error))
+          Future.successful(error.badRequest())
         case Right(o) =>
           val task = DeletionTask.newTask(orgKey, userId, o.appIds.toSet)
           deletionTaskStore.insert(tenant, task).map { _ =>
@@ -71,7 +73,7 @@ class DeletionController(val AuthAction: AuthAction,
   def findDeletionTask(tenant: String, orgKey: String, deletionId: String) =
     AuthAction.async { implicit request =>
       deletionTaskStore.findById(tenant, deletionId).map {
-        case None               => NotFound("error.deletion.task.not.found")
+        case None               => "error.deletion.task.not.found".notFound()
         case Some(deletionTask) => renderMethod(deletionTask)
       }
     }
@@ -82,9 +84,9 @@ class DeletionController(val AuthAction: AuthAction,
                          appId: String) = AuthAction.async { implicit request =>
     deletionTaskStore.findById(tenant, deletionId).flatMap {
       case None =>
-        Future.successful(NotFound("error.deletion.task.not.found"))
+        Future.successful("error.deletion.task.not.found".notFound())
       case Some(deletionTask) if !deletionTask.appIds.contains(appId) =>
-        Future.successful(NotFound("error.unknown.appId"))
+        Future.successful("error.unknown.appId".notFound())
       case Some(deletionTask) =>
         val updatedDeletionTask = deletionTask.copyWithAppDone(appId)
         deletionTaskStore

@@ -1,6 +1,7 @@
 package controllers
 
 import auth.AuthAction
+import controllers.ErrorManager.ErrorManagerResult
 import db.AccountMongoDataStore
 import messaging.KafkaMessageBroker
 import models._
@@ -24,7 +25,7 @@ class AccountController(
           case Some(account) =>
             renderMethod(account)
           case None =>
-            NotFound("error.unknown.account")
+            "error.unknown.account".notFound()
         }
   }
 
@@ -40,11 +41,11 @@ class AccountController(
       parseMethod[Account](Account) match {
         case Left(error) =>
           Logger.error(s"Invalid account format $error")
-          Future.successful(BadRequest("error.invalid.account.format"))
+          Future.successful("error.invalid.account.format".badRequest())
         case Right(account) =>
           accountStore.findByAccountId(tenant, account.accountId).flatMap {
             case Some(_) =>
-              Future.successful(Conflict("error.account.id.already.used"))
+              Future.successful("error.account.id.already.used".conflict())
             case None =>
               // TODO add validation
               accountStore.create(tenant, account).map { _ =>
@@ -66,7 +67,7 @@ class AccountController(
       parseMethod[Account](Account) match {
         case Left(error) =>
           Logger.error(s"Invalid account format $error")
-          Future.successful(BadRequest("error.invalid.account.format"))
+          Future.successful("error.invalid.account.format".badRequest())
         case Right(account) if accountId == account.accountId =>
           accountStore.findByAccountId(tenant, account.accountId).flatMap {
             case Some(oldAccount) =>
@@ -82,11 +83,11 @@ class AccountController(
                 renderMethod(account)
               }
             case None =>
-              Future.successful(NotFound("error.account.not.found"))
+              Future.successful("error.account.not.found".notFound())
           }
 
         case Right(account) if accountId != account.accountId =>
-          Future.successful(BadRequest("error.accountId.is.immutable"))
+          Future.successful("error.accountId.is.immutable".badRequest())
       }
     }
 
@@ -106,7 +107,7 @@ class AccountController(
               Ok
             })
         case None =>
-          Future.successful(NotFound("error.account.not.found"))
+          Future.successful("error.account.not.found".notFound())
       }
   }
 }

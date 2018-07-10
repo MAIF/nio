@@ -24,6 +24,9 @@ import utils.UploadTracker
 
 import scala.concurrent.{ExecutionContext, Future}
 
+import ErrorManager.ErrorManagerResult
+import ErrorManager.AppErrorManagerResult
+
 class ExtractionController(val AuthAction: AuthAction,
                            val cc: ControllerComponents,
                            val s3Conf: S3Configuration,
@@ -47,7 +50,7 @@ class ExtractionController(val AuthAction: AuthAction,
       parsed match {
         case Left(error) =>
           Logger.error(s"Unable to parse extraction task input due to $error")
-          Future.successful(BadRequest(error))
+          Future.successful(error.badRequest())
         case Right(o) =>
           val task = ExtractionTask.newFrom(orgKey, userId, o.appIds.toSet)
           store.insert(tenant, task).map { _ =>
@@ -76,13 +79,13 @@ class ExtractionController(val AuthAction: AuthAction,
       parseMethod[FilesMetadata](FilesMetadata) match {
         case Left(error) =>
           Logger.error(s"Unable to parse extraction task input due to $error")
-          Future.successful(BadRequest(error))
+          Future.successful(error.badRequest())
         case Right(extractedFiles) =>
           store.findById(tenant, extractionTaskId).flatMap {
             case None =>
-              Future.successful(NotFound("error.unknown.extractionTaskId"))
+              Future.successful("error.unknown.extractionTaskId".notFound())
             case Some(task) if !task.appIds.contains(appId) =>
-              Future.successful(NotFound("error.unknown.appId"))
+              Future.successful("error.unknown.appId".notFound())
             case Some(task) =>
               val updatedTask =
                 task.copyWithUpdatedAppState(appId, extractedFiles)
@@ -123,7 +126,7 @@ class ExtractionController(val AuthAction: AuthAction,
                         extractionTaskId: String) =
     AuthAction.async { implicit request =>
       store.findById(tenant, extractionTaskId).map {
-        case None                 => NotFound("error.extraction.task.not.found")
+        case None                 => "error.extraction.task.not.found".notFound()
         case Some(extractionTask) => renderMethod(extractionTask)
       }
     }
@@ -136,12 +139,12 @@ class ExtractionController(val AuthAction: AuthAction,
     ExtractionAction(tenant, extractionTaskId, fileBodyParser).async {
       implicit req =>
         if (!req.task.appIds.contains(appId)) {
-          Future.successful(NotFound("error.unknown.app"))
+          Future.successful("error.unknown.app".notFound())
         } else {
           val appState = req.task.states.find(_.appId == appId).get
           appState.files.find(_.name == name) match {
             case None =>
-              Future.successful(NotFound("error.unknown.appId"))
+              Future.successful("error.unknown.appId".notFound())
             case Some(fileMetadata) =>
               (if (s3Conf.v4auth) {
                  upload(tenant, req.task, appId, name)

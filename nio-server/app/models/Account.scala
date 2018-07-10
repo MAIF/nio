@@ -12,6 +12,7 @@ import utils.DateUtils
 import scala.util.{Failure, Success, Try}
 import scala.xml.{Elem, Node}
 import XmlUtil.XmlCleaner
+import utils.Result.AppErrors
 
 case class OrganisationUser(userId: String, orgKey: String)
     extends ModelTransformAs {
@@ -85,7 +86,7 @@ object Account extends ReadableEntity[Account] {
   implicit val format: Format[Account] = Format(read, write)
   implicit val oformat: OFormat[Account] = OFormat(read, write)
 
-  override def fromXml(xml: Elem): Either[String, Account] = {
+  override def fromXml(xml: Elem): Either[AppErrors, Account] = {
     Try {
       val accountId = (xml \ "accountId").head.text
       val organisationsUsersXml: Node = (xml \ "organisationsUsers").head
@@ -97,12 +98,16 @@ object Account extends ReadableEntity[Account] {
       Account(accountId = accountId, organisationsUsers = organisationsUsers)
     } match {
       case Success(value)     => Right(value)
-      case Failure(throwable) => Left(throwable.getMessage)
+      case Failure(throwable) => Left(AppErrors.fromXmlError(throwable))
     }
   }
 
-  override def fromJson(json: JsValue): Either[String, Account] =
-    json.validate[Account].asEither.left.map(error => error.mkString(", "))
+  override def fromJson(json: JsValue): Either[AppErrors, Account] =
+    json
+      .validate[Account]
+      .asEither
+      .left
+      .map(error => AppErrors.fromJsError(error))
 }
 
 case class Accounts(accounts: Seq[Account]) extends ModelTransformAs {

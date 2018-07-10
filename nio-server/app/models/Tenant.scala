@@ -6,6 +6,7 @@ import play.api.libs.json._
 import scala.util.{Failure, Success, Try}
 import scala.xml.Elem
 import XmlUtil.XmlCleaner
+import utils.Result.AppErrors
 
 case class Tenant(key: String, description: String) extends ModelTransformAs {
   def asJson = Tenant.tenantFormats.writes(this)
@@ -27,14 +28,14 @@ object Tenant extends ReadableEntity[Tenant] {
       Tenant(key, description)
     } match {
       case Success(value)     => Right(value)
-      case Failure(throwable) => Left(throwable.getMessage)
+      case Failure(throwable) => Left(AppErrors.fromXmlError(throwable))
     }
   }
 
-  def fromJson(json: JsValue) = {
+  def fromJson(json: JsValue): Either[AppErrors, Tenant] = {
     json.validate[Tenant] match {
       case JsSuccess(o, _) => Right(o)
-      case JsError(errors) => Left(errors.mkString(", "))
+      case JsError(errors) => Left(AppErrors.fromJsError(errors))
     }
   }
 }

@@ -14,6 +14,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 import scala.xml.Elem
 import XmlUtil.XmlCleaner
+import utils.Result.AppErrors
 
 object ExtractionTaskStatus extends Enumeration {
   type ExtractionTaskStatus = Value
@@ -77,15 +78,15 @@ object FilesMetadata extends ReadableEntity[FilesMetadata] {
     } match {
       case Success(value) => Right(value)
       case Failure(throwable) => {
-        Left(throwable.getMessage)
+        Left(AppErrors.fromXmlError(throwable))
       }
     }
   }
 
-  def fromJson(json: JsValue) = {
+  def fromJson(json: JsValue): Either[AppErrors, FilesMetadata] = {
     json.validate[FilesMetadata](filesMetadataFormats) match {
       case JsSuccess(o, _) => Right(o)
-      case JsError(errors) => Left(errors.mkString(", "))
+      case JsError(errors) => Left(AppErrors.fromJsError(errors))
     }
   }
 }

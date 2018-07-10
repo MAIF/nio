@@ -17,13 +17,16 @@ import models.{ConsentFact, _}
 import play.api.Logger
 import play.api.http.HttpEntity
 import play.api.libs.json.Json
-import play.api.mvc.{ControllerComponents, ResponseHeader, Result}
+import play.api.mvc.{ControllerComponents, Request, ResponseHeader, Result}
 import reactivemongo.api.{Cursor, QueryOpts}
 import reactivemongo.bson.BSONDocument
 import service.ConsentManagerService
 import utils.BSONUtils
 
 import scala.concurrent.{ExecutionContext, Future}
+import ErrorManager.ErrorManagerResult
+import ErrorManager.AppErrorManagerResult
+import utils.Result.AppErrors
 
 class ConsentController(
     val AuthAction: AuthAction,
@@ -53,7 +56,7 @@ class ConsentController(
         organisationStore.findLastReleasedByKey(tenant, orgKey).flatMap {
           case None =>
             Logger.error(s"Organisation $orgKey not found")
-            Future.successful(NotFound("error.unknown.organisation"))
+            Future.successful("error.unknown.organisation".notFound())
           case Some(organisation) =>
             val groups = organisation.groups.map { pg =>
               ConsentGroup(
@@ -93,7 +96,7 @@ class ConsentController(
             case None =>
               // if this occurs it means a user is known but it has no consents, this is a BUG
               context.stop()
-              NotFound("error.unknown.user.or.organisation")
+              "error.unknown.user.or.organisation".notFound()
             case Some(consentFact) =>
               // TODO: later handle here new version template version check
               context.stop()
@@ -126,19 +129,16 @@ class ConsentController(
 
       val context = timerPutConsentFact.time()
 
-      val parsed: Either[String, ConsentFact] =
-        parseMethod[ConsentFact](ConsentFact)
-
-      parsed match {
+      parseMethod[ConsentFact](ConsentFact) match {
         case Left(error) =>
           context.stop()
           Logger.error(s"Unable to parse consentFact: $error")
-          Future.successful(BadRequest(error))
+          Future.successful(error.badRequest())
         case Right(o) if o.userId != userId =>
           context.stop()
           Logger.error(
             s"error.userId.is.immutable : userId in path $userId // userId on body ${o.userId}")
-          Future.successful(BadRequest("error.userId.is.immutable"))
+          Future.successful("error.userId.is.immutable".badRequest())
         case Right(consentFact) if consentFact.userId == userId =>
           val cf: ConsentFact = ConsentFact.addOrgKey(consentFact, orgKey)
 
