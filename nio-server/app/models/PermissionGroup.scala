@@ -3,7 +3,7 @@ package models
 import play.api.libs.json.Json
 
 import scala.xml.Elem
-import XmlUtil.XmlCleaner
+import libs.xml.XmlUtil.XmlCleaner
 
 case class PermissionGroup(key: String,
                            label: String,

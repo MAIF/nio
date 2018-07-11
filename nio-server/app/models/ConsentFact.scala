@@ -10,7 +10,7 @@ import utils.DateUtils
 
 import scala.util.{Failure, Success, Try}
 import scala.xml.Elem
-import XmlUtil.XmlCleaner
+import libs.xml.XmlUtil.XmlCleaner
 import cats.Applicative
 import cats.data.{Validated, ValidatedNel}
 import utils.Result.AppErrors
@@ -232,8 +232,8 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
     )
 
   def fromXml(xml: Elem): Either[AppErrors, ConsentFact] = {
-    import models.XmlParser._
-    import models.XMLReads._
+    import libs.xml.synthax._
+    import libs.xml.implicits._
     import AppErrors._
     import cats._
     import cats.implicits._
@@ -244,7 +244,7 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
       (xml \ "doneBy" \ "userId").validate[String],
       (xml \ "doneBy" \ "role").validate[String],
       (xml \ "lastUpdate")
-        .validateNullable[DateTime](Some(DateTime.now(DateTimeZone.UTC))),
+        .validateNullable[DateTime](DateTime.now(DateTimeZone.UTC)),
       (xml \ "version").validate[Int]
     ).mapN { (userId, doneByUserId, doneByRole, lastUpdate, version) =>
       ConsentFact(
@@ -252,7 +252,7 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
         userId = userId,
         doneBy = DoneBy(doneByUserId, doneByRole),
         version = version,
-        lastUpdate = lastUpdate.getOrElse(DateTime.now()),
+        lastUpdate = lastUpdate,
         groups = Seq.empty, // groups,
         metaData = None // metaData
       )

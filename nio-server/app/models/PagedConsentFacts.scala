@@ -1,7 +1,7 @@
 package models
 
 import play.api.libs.json.{JsArray, Json}
-import XmlUtil.XmlCleaner
+import libs.xml.XmlUtil.XmlCleaner
 
 case class PagedConsentFacts(page: Int,
                              pageSize: Int,

@@ -4,7 +4,7 @@ import cats.Semigroup
 import cats.kernel.Monoid
 import play.api.libs.json._
 import utils.Result.{AppErrors, ErrorMessage, Result}
-import models.XmlUtil.XmlCleaner
+import libs.xml.XmlUtil.XmlCleaner
 
 object Result {
 

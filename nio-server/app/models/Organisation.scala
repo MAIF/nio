@@ -15,7 +15,7 @@ import controllers.ReadableEntity
 import org.joda.time.{DateTime, DateTimeZone}
 import utils.DateUtils
 import utils.Result.{AppErrors, ErrorMessage, Result}
-import XmlUtil.XmlCleaner
+import libs.xml.XmlUtil.XmlCleaner
 
 case class VersionInfo(status: String = "DRAFT",
                        num: Int = 1,

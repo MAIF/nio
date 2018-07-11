@@ -11,7 +11,7 @@ import utils.DateUtils
 
 import scala.util.{Failure, Success, Try}
 import scala.xml.{Elem, Node}
-import XmlUtil.XmlCleaner
+import libs.xml.XmlUtil.XmlCleaner
 import utils.Result.AppErrors
 
 case class OrganisationUser(userId: String, orgKey: String)

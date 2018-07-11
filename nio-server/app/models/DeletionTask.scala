@@ -5,7 +5,7 @@ import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json._
 import reactivemongo.bson.BSONObjectID
 import utils.DateUtils
-import XmlUtil.XmlCleaner
+import libs.xml.XmlUtil.XmlCleaner
 
 object DeletionTaskStatus extends Enumeration {
   type DeletionTaskStatus = Value

@@ -7,7 +7,7 @@ import utils.Result.AppErrors
 import scala.util.{Failure, Success, Try}
 import scala.xml.Elem
 
-import XmlUtil.XmlCleaner
+import libs.xml.XmlUtil.XmlCleaner
 
 case class AppDone(orgKey: String, userId: String, appId: String) {
   def asJson = AppDone.appDoneFormats.writes(this)

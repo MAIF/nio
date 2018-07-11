@@ -13,7 +13,7 @@ import utils.{DateUtils, UploadTracker}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 import scala.xml.Elem
-import XmlUtil.XmlCleaner
+import libs.xml.XmlUtil.XmlCleaner
 import utils.Result.AppErrors
 
 object ExtractionTaskStatus extends Enumeration {
