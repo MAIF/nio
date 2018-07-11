@@ -257,60 +257,7 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
         metaData = None // metaData
       )
 
-    }
-//
-    //    (
-    //      (xml \ "userId").validate[String].toValidatedNel,
-    //      (xml \ "doneBy" \ "userId").validate[String].toValidatedNel,
-    //      (xml \ "doneBy" \ "role").validate[String].toValidatedNel,
-    //      (xml \ "lastUpdate").validateNullable[DateTime](Some(DateTime.now(DateTimeZone.UTC))).toValidatedNel,
-    //      (xml \ "version").validate[Int].toValidatedNel
-    //    ).mapN {
-    //      (userId, doneByUserId, doneByRole, lastUpdate, version) =>
-    //        ConsentFact(
-    //          _id = BSONObjectID.generate().stringify,
-    //          userId = userId,
-    //          doneBy = DoneBy(doneByUserId, doneByRole),
-    //          version = version,
-    //          lastUpdate = lastUpdate,
-    //          groups = Seq.empty, // groups,
-    //          metaData = None // metaData
-    //        )
-    //    }
-
-    Try {
-      val userId = (xml \ "userId").head.text
-      val doneByUserId = (xml \ "doneBy" \ "userId").head.text
-      val doneByRole = (xml \ "doneBy" \ "role").head.text
-
-      val lastUpdate = (xml \ "lastUpdate").headOption.map(h =>
-        DateUtils.utcDateFormatter.parseDateTime(h.text))
-
-      val version = (xml \ "version").head.text.toInt
-      val groupsXml = (xml \ "groups").head
-      val groups = groupsXml.child.collect {
-        case e: Elem => ConsentGroup.fromXml(e)
-      }
-      val metaData = (xml \ "metaData").headOption.map(md =>
-        md.child.collect {
-          case e: Elem => (e \ "@key").text -> (e \ "@value").text
-        }.toMap)
-
-      ConsentFact(
-        _id = BSONObjectID.generate().stringify,
-        userId = userId,
-        doneBy = DoneBy(doneByUserId, doneByRole),
-        version = version,
-        lastUpdate = lastUpdate.getOrElse(DateTime.now(DateTimeZone.UTC)),
-        groups = groups,
-        metaData = metaData
-      )
-    } match {
-      case Success(value) => Right(value)
-      case Failure(throwable) => {
-        Left(AppErrors.fromXmlError(throwable))
-      }
-    }
+    }.toEither
   }
 
   def fromJson(json: JsValue): Either[AppErrors, ConsentFact] = {
