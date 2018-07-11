@@ -7,9 +7,12 @@ import utils.Result.AppErrors
 import scala.util.{Failure, Success, Try}
 import scala.xml.Elem
 
+import XmlUtil.XmlCleaner
+
 case class AppDone(orgKey: String, userId: String, appId: String) {
   def asJson = AppDone.appDoneFormats.writes(this)
 }
+
 object AppDone {
   implicit val appDoneFormats = Json.format[AppDone]
 }
@@ -17,10 +20,13 @@ object AppDone {
 case class AppIds(appIds: Seq[String]) {
   def asXml = {
     <appIds>
-      {appIds.map(appId => <appId>{appId}</appId>)}
-    </appIds>
+      {appIds.map(appId => <appId>
+      {appId}
+    </appId>)}
+    </appIds>.clean()
   }
 }
+
 object AppIds extends ReadableEntity[AppIds] {
   implicit val appIdsFormats = Json.format[AppIds]
 
@@ -62,17 +68,7 @@ case class AppFilesMetadata(orgKey: String,
                             files: Seq[FileMetadata]) {
   def asJson = AppFilesMetadata.appFilesMetadataFormats.writes(this)
 }
+
 object AppFilesMetadata {
   implicit val appFilesMetadataFormats = Json.format[AppFilesMetadata]
-}
-
-object XmlUtil {
-
-  implicit class XmlCleaner(val elem: Elem) extends AnyVal {
-
-    def clean(): Elem =
-      scala.xml.Utility.trim(elem) match {
-        case res if res.isInstanceOf[Elem] => res.asInstanceOf[Elem]
-      }
-  }
 }

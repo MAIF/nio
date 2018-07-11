@@ -11,9 +11,11 @@ import utils.DateUtils
 import scala.util.{Failure, Success, Try}
 import scala.xml.Elem
 import XmlUtil.XmlCleaner
+import cats.Applicative
 import utils.Result.AppErrors
 
 case class DoneBy(userId: String, role: String)
+
 object DoneBy {
   implicit val doneByFormats = Json.format[DoneBy]
 }
@@ -21,12 +23,19 @@ object DoneBy {
 case class Consent(key: String, label: String, checked: Boolean) {
   def asXml = {
     <consent>
-      <key>{key}</key>
-      <label>{label}</label>
-      <checked>{checked}</checked>
+      <key>
+        {key}
+      </key>
+      <label>
+        {label}
+      </label>
+      <checked>
+        {checked}
+      </checked>
     </consent>.clean()
   }
 }
+
 object Consent {
   implicit val consentFormats = Json.format[Consent]
 
@@ -41,12 +50,19 @@ object Consent {
 case class ConsentGroup(key: String, label: String, consents: Seq[Consent]) {
   def asXml = {
     <consentGroup>
-      <key>{key}</key>
-      <label>{label}</label>
-      <consents>{consents.map(_.asXml)}</consents>
+      <key>
+        {key}
+      </key>
+      <label>
+        {label}
+      </label>
+      <consents>
+        {consents.map(_.asXml)}
+      </consents>
     </consentGroup>.clean()
   }
 }
+
 object ConsentGroup {
   implicit val consentGroupFormats = Json.format[ConsentGroup]
 
@@ -100,16 +116,17 @@ case class ConsentFact(_id: String = BSONObjectID.generate().stringify,
       </lastUpdate>
       <orgKey>
         {orgKey.getOrElse("")}
-      </orgKey>
-      {if (metaData.isDefined) {
-        metaData.map { md => <metaData>
+      </orgKey>{if (metaData.isDefined) {
+      metaData.map { md =>
+        <metaData>
           {md.map { e => <metaDataEntry key={e._1} value={e._2}/> }}
         </metaData>
-        }
-      }.get}
+      }
+    }.get}
     </consentFact>.clean()
   }
 }
+
 object ConsentFact extends ReadableEntity[ConsentFact] {
   def newWithoutIdAndLastUpdate(userId: String,
                                 doneBy: DoneBy,
@@ -214,6 +231,31 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
     )
 
   def fromXml(xml: Elem): Either[AppErrors, ConsentFact] = {
+//    import models.XmlParser.XmlSyntax
+//    import models.XMLReads._
+//    import cats.data.ValidatedNel
+//    import cats.implicits._
+//    import cats.data.Validated._
+//
+    //    (
+    //      (xml \ "userId").validate[String].toValidatedNel,
+    //      (xml \ "doneBy" \ "userId").validate[String].toValidatedNel,
+    //      (xml \ "doneBy" \ "role").validate[String].toValidatedNel,
+    //      (xml \ "lastUpdate").validateNullable[DateTime](Some(DateTime.now(DateTimeZone.UTC))).toValidatedNel,
+    //      (xml \ "version").validate[Int].toValidatedNel
+    //    ).mapN {
+    //      (userId, doneByUserId, doneByRole, lastUpdate, version) =>
+    //        ConsentFact(
+    //          _id = BSONObjectID.generate().stringify,
+    //          userId = userId,
+    //          doneBy = DoneBy(doneByUserId, doneByRole),
+    //          version = version,
+    //          lastUpdate = lastUpdate,
+    //          groups = Seq.empty, // groups,
+    //          metaData = None // metaData
+    //        )
+    //    }
+
     Try {
       val userId = (xml \ "userId").head.text
       val doneByUserId = (xml \ "doneBy" \ "userId").head.text
