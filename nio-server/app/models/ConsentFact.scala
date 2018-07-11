@@ -1,20 +1,32 @@
 package models
 
+import cats.data.Validated._
+import cats.implicits._
 import controllers.ReadableEntity
+import libs.xml.XMLRead
+import libs.xml.XmlUtil.XmlCleaner
+import libs.xml.implicits._
+import libs.xml.syntax._
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.functional.syntax.{unlift, _}
 import play.api.libs.json.Reads._
 import play.api.libs.json._
 import reactivemongo.bson.BSONObjectID
 import utils.DateUtils
-
-import scala.util.{Failure, Success, Try}
-import scala.xml.{Elem, NodeSeq}
-import libs.xml.XmlUtil.XmlCleaner
-import cats.Applicative
-import cats.data.{Validated, ValidatedNel}
-import libs.xml.XMLRead
 import utils.Result.AppErrors
+import utils.Result.AppErrors._
+
+import scala.xml.{Elem, NodeSeq}
+
+case class Metadata(key: String, value: String)
+object Metadata {
+
+  implicit val xmlRead: XMLRead[Metadata] = (node: NodeSeq) =>
+    (
+      (node \ "@key").validate[String],
+      (node \ "@value").validate[String]
+    ).mapN(Metadata.apply)
+}
 
 case class DoneBy(userId: String, role: String)
 
@@ -22,12 +34,11 @@ object DoneBy {
   implicit val doneByFormats = Json.format[DoneBy]
 
   implicit val xmlRead: XMLRead[DoneBy] = {
-    import libs.xml.synthax._
-    import libs.xml.implicits._
     import AppErrors._
-    import cats._
-    import cats.implicits._
     import cats.data.Validated._
+    import cats.implicits._
+    import libs.xml.implicits._
+    import libs.xml.syntax._
     (node: NodeSeq) =>
       (
         (node \ "userId").validate[String],
@@ -55,12 +66,14 @@ case class Consent(key: String, label: String, checked: Boolean) {
 object Consent {
   implicit val consentFormats = Json.format[Consent]
 
-  def fromXml(xml: Elem) = {
-    val key = (xml \ "key").head.text
-    val label = (xml \ "label").head.text
-    val checked = (xml \ "checked").head.text.toBoolean
-    Consent(key, label, checked)
+  implicit val xmlRead: XMLRead[Consent] = (xml: NodeSeq) => {
+    (
+      (xml \ "key").validate[String],
+      (xml \ "label").validate[String],
+      (xml \ "checked").validate[Boolean]
+    ).mapN(Consent.apply)
   }
+
 }
 
 case class ConsentGroup(key: String, label: String, consents: Seq[Consent]) {
@@ -82,15 +95,16 @@ case class ConsentGroup(key: String, label: String, consents: Seq[Consent]) {
 object ConsentGroup {
   implicit val consentGroupFormats = Json.format[ConsentGroup]
 
-  def fromXml(xml: Elem) = {
-    val key = (xml \ "key").head.text
-    val label = (xml \ "label").head.text
-    val consentsXml = (xml \ "consents").head
-    val consents = consentsXml.child.collect {
-      case e: Elem => Consent.fromXml(e)
-    }
-    ConsentGroup(key, label, consents)
+  import Consent._
+
+  implicit val xmlRead: XMLRead[ConsentGroup] = (xml: NodeSeq) => {
+    (
+      (xml \ "key").validate[String],
+      (xml \ "label").validate[String],
+      (xml \ "consents").validate[Seq[Consent]]
+    ).mapN(ConsentGroup.apply)
   }
+
 }
 
 // A user will have multiple consent facts
@@ -247,25 +261,26 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
     )
 
   def fromXml(xml: Elem): Either[AppErrors, ConsentFact] = {
-    import libs.xml.synthax._
-    import libs.xml.implicits._
-    import DoneBy._
-    import AppErrors._
-    import cats.implicits._
-    import cats.data.Validated._
-
-    val now = DateTime.now(DateTimeZone.UTC)
     (
       BSONObjectID.generate().stringify.toXmlResult,
       (xml \ "userId").validate[String],
       (xml \ "doneBy").validate[DoneBy],
+      (xml \ "lastUpdate")
+        .validateNullable[DateTime](DateTime.now(DateTimeZone.UTC)),
       (xml \ "version").validate[Int],
-      Seq.empty.toXmlResult, // groups
-      (xml \ "lastUpdate").validateNullable[DateTime](now),
-      now.toXmlResult,
-      None.toXmlResult,
-      None.toXmlResult
-    ).mapN(ConsentFact.apply).toEither
+      (xml \ "groups").validate[Seq[ConsentGroup]],
+      (xml \ "metaData").validateNullable[Seq[Metadata]]
+    ).mapN { (id, userId, doneBy, lastUpdate, version, groups, metadata) =>
+      ConsentFact(
+        _id = id,
+        userId = userId,
+        doneBy = doneBy,
+        version = version,
+        lastUpdate = lastUpdate,
+        groups = groups,
+        metaData = metadata.map(m => m.map(ev => (ev.key, ev.value)).toMap)
+      )
+    }.toEither
   }
 
   def fromJson(json: JsValue): Either[AppErrors, ConsentFact] = {

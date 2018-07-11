@@ -1,7 +1,7 @@
 package libs.xml
 
 import cats.data.Validated
-import libs.xml.synthax.XmlResult
+import libs.xml.syntax.XmlResult
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormatter
 import utils.DateUtils
@@ -10,7 +10,7 @@ import utils.Result.AppErrors
 import scala.util.Try
 import scala.xml.{Elem, NodeSeq}
 
-object synthax {
+object syntax {
   import cats.implicits._
 
   type XmlResult[T] = Validated[AppErrors, T]
@@ -48,6 +48,25 @@ object implicits {
     (xml: NodeSeq) =>
       Try(xml.head.text)
         .map(_.valid)
+        .getOrElse(AppErrors.error("invalid.path").invalid)
+
+  implicit def readBoolean: XMLRead[Boolean] =
+    (xml: NodeSeq) =>
+      Try(xml.head.text.toBoolean)
+        .map(_.valid)
+        .getOrElse(AppErrors.error("invalid.path").invalid)
+
+  implicit def readSeq[T](implicit read: XMLRead[T]): XMLRead[Seq[T]] =
+    (xml: NodeSeq) =>
+      Try(xml.head)
+        .map(n => {
+          n.child
+            .collect {
+              case e: Elem => read.read(e)
+            }
+            .toList
+            .sequence
+        })
         .getOrElse(AppErrors.error("invalid.path").invalid)
 
   implicit def readInt: XMLRead[Int] =
@@ -88,4 +107,5 @@ object XmlUtil {
         case res if res.isInstanceOf[Elem] => res.asInstanceOf[Elem]
       }
   }
+
 }

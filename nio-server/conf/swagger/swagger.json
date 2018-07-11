@@ -1654,11 +1654,11 @@
       "type": "object",
       "description": "definition d'une meta donnée",
       "properties": {
-        "userId": {
+        "key": {
           "type": "string",
           "description": "clé de la meta donnée"
         },
-        "orgKey": {
+        "value": {
           "type": "string",
           "description": "valeur de la meta donnée"
         }
