@@ -12,6 +12,7 @@ import scala.util.{Failure, Success, Try}
 import scala.xml.Elem
 import XmlUtil.XmlCleaner
 import cats.Applicative
+import cats.data.{Validated, ValidatedNel}
 import utils.Result.AppErrors
 
 case class DoneBy(userId: String, role: String)
@@ -231,30 +232,51 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
     )
 
   def fromXml(xml: Elem): Either[AppErrors, ConsentFact] = {
-//    import models.XmlParser.XmlSyntax
-//    import models.XMLReads._
-//    import cats.data.ValidatedNel
-//    import cats.implicits._
-//    import cats.data.Validated._
+    import models.XmlParser._
+    import models.XMLReads._
+    import AppErrors._
+    import cats._
+    import cats.implicits._
+    import cats.data.Validated._
+
+    (
+      (xml \ "userId").validate[String],
+      (xml \ "doneBy" \ "userId").validate[String],
+      (xml \ "doneBy" \ "role").validate[String],
+      (xml \ "lastUpdate")
+        .validateNullable[DateTime](Some(DateTime.now(DateTimeZone.UTC))),
+      (xml \ "version").validate[Int]
+    ).mapN { (userId, doneByUserId, doneByRole, lastUpdate, version) =>
+      ConsentFact(
+        _id = BSONObjectID.generate().stringify,
+        userId = userId,
+        doneBy = DoneBy(doneByUserId, doneByRole),
+        version = version,
+        lastUpdate = lastUpdate.getOrElse(DateTime.now()),
+        groups = Seq.empty, // groups,
+        metaData = None // metaData
+      )
+
+    }
 //
-//    (
-//      (xml \ "userId").validate[String].toValidatedNel,
-//      (xml \ "doneBy" \ "userId").validate[String].toValidatedNel,
-//      (xml \ "doneBy" \ "role").validate[String].toValidatedNel,
-//      (xml \ "lastUpdate").validateNullable[DateTime](Some(DateTime.now(DateTimeZone.UTC))).toValidatedNel,
-//      (xml \ "version").validate[Int].toValidatedNel
-//    ).mapN {
-//      (userId, doneByUserId, doneByRole, lastUpdate, version) =>
-//        ConsentFact(
-//          _id = BSONObjectID.generate().stringify,
-//          userId = userId,
-//          doneBy = DoneBy(doneByUserId, doneByRole),
-//          version = version,
-//          lastUpdate = lastUpdate,
-//          groups = Seq.empty, // groups,
-//          metaData = None // metaData
-//        )
-//    }
+    //    (
+    //      (xml \ "userId").validate[String].toValidatedNel,
+    //      (xml \ "doneBy" \ "userId").validate[String].toValidatedNel,
+    //      (xml \ "doneBy" \ "role").validate[String].toValidatedNel,
+    //      (xml \ "lastUpdate").validateNullable[DateTime](Some(DateTime.now(DateTimeZone.UTC))).toValidatedNel,
+    //      (xml \ "version").validate[Int].toValidatedNel
+    //    ).mapN {
+    //      (userId, doneByUserId, doneByRole, lastUpdate, version) =>
+    //        ConsentFact(
+    //          _id = BSONObjectID.generate().stringify,
+    //          userId = userId,
+    //          doneBy = DoneBy(doneByUserId, doneByRole),
+    //          version = version,
+    //          lastUpdate = lastUpdate,
+    //          groups = Seq.empty, // groups,
+    //          metaData = None // metaData
+    //        )
+    //    }
 
     Try {
       val userId = (xml \ "userId").head.text
