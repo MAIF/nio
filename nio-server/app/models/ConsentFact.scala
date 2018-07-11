@@ -237,24 +237,24 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
 //    import cats.implicits._
 //    import cats.data.Validated._
 //
-    //    (
-    //      (xml \ "userId").validate[String].toValidatedNel,
-    //      (xml \ "doneBy" \ "userId").validate[String].toValidatedNel,
-    //      (xml \ "doneBy" \ "role").validate[String].toValidatedNel,
-    //      (xml \ "lastUpdate").validateNullable[DateTime](Some(DateTime.now(DateTimeZone.UTC))).toValidatedNel,
-    //      (xml \ "version").validate[Int].toValidatedNel
-    //    ).mapN {
-    //      (userId, doneByUserId, doneByRole, lastUpdate, version) =>
-    //        ConsentFact(
-    //          _id = BSONObjectID.generate().stringify,
-    //          userId = userId,
-    //          doneBy = DoneBy(doneByUserId, doneByRole),
-    //          version = version,
-    //          lastUpdate = lastUpdate,
-    //          groups = Seq.empty, // groups,
-    //          metaData = None // metaData
-    //        )
-    //    }
+//    (
+//      (xml \ "userId").validate[String].toValidatedNel,
+//      (xml \ "doneBy" \ "userId").validate[String].toValidatedNel,
+//      (xml \ "doneBy" \ "role").validate[String].toValidatedNel,
+//      (xml \ "lastUpdate").validateNullable[DateTime](Some(DateTime.now(DateTimeZone.UTC))).toValidatedNel,
+//      (xml \ "version").validate[Int].toValidatedNel
+//    ).mapN {
+//      (userId, doneByUserId, doneByRole, lastUpdate, version) =>
+//        ConsentFact(
+//          _id = BSONObjectID.generate().stringify,
+//          userId = userId,
+//          doneBy = DoneBy(doneByUserId, doneByRole),
+//          version = version,
+//          lastUpdate = lastUpdate,
+//          groups = Seq.empty, // groups,
+//          metaData = None // metaData
+//        )
+//    }
 
     Try {
       val userId = (xml \ "userId").head.text

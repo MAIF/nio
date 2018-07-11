@@ -9,7 +9,7 @@ import scala.xml.{Elem, NodeSeq}
 
 object XmlParser {
 
-  implicit class XmlSyntax(val nodeSeq: Elem) extends AnyVal {
+  implicit class XmlSyntax(val nodeSeq: NodeSeq) extends AnyVal {
     def validate[T](implicit read: XMLRead[T]): Either[AppErrors, T] =
       read.read(nodeSeq)
 
@@ -22,41 +22,41 @@ object XmlParser {
 }
 
 trait XMLRead[T] {
-  def read(xml: Elem): Either[AppErrors, T]
+  def read(xml: NodeSeq): Either[AppErrors, T]
 }
 
 trait XMLReadNullable[T] {
-  def readNullable(xml: Elem,
+  def readNullable(xml: NodeSeq,
                    default: Option[T] = None): Either[AppErrors, Option[T]]
 }
 
 object XMLReads {
   implicit def readString: XMLRead[String] =
-    (xml: Elem) =>
+    (xml: NodeSeq) =>
       Try(xml.head.text)
         .map(Right(_))
         .getOrElse(Left(AppErrors.error("invalid.path")))
 
   implicit def readInt: XMLRead[Int] =
-    (xml: Elem) =>
+    (xml: NodeSeq) =>
       Try(xml.head.text.toInt)
         .map(Right(_))
         .getOrElse(Left(AppErrors.error("invalid.path")))
 
   implicit def readNullableString: XMLReadNullable[String] =
-    (xml: Elem, default: Option[String]) =>
+    (xml: NodeSeq, default: Option[String]) =>
       xml.headOption
         .map(v => Right(Some(v.text)))
         .getOrElse(Right(default))
 
   implicit def readNullableInt: XMLReadNullable[Int] =
-    (xml: Elem, default: Option[Int]) =>
+    (xml: NodeSeq, default: Option[Int]) =>
       xml.headOption
         .map(v => Right(Some(v.text.toInt)))
         .getOrElse(Right(default))
 
   implicit def readNullableDateTime: XMLReadNullable[DateTime] =
-    (xml: Elem, default: Option[DateTime]) =>
+    (xml: NodeSeq, default: Option[DateTime]) =>
       xml.headOption
         .map(v =>
           Right(Option(DateUtils.utcDateFormatter.parseDateTime(v.text))))
