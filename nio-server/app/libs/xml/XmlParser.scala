@@ -11,8 +11,13 @@ import scala.util.Try
 import scala.xml.{Elem, NodeSeq}
 
 object synthax {
+  import cats.implicits._
 
   type XmlResult[T] = Validated[AppErrors, T]
+
+  implicit class Conversion[T](any: T) {
+    def toXmlResult: XmlResult[T] = any.valid
+  }
 
   implicit class XmlSyntax(val nodeSeq: NodeSeq) extends AnyVal {
     def validate[T](implicit read: XMLRead[T]): XmlResult[T] =
@@ -68,7 +73,7 @@ object implicits {
   implicit def readOption[T](implicit read: XMLRead[T]): XMLRead[Option[T]] =
     (xml: NodeSeq) => {
       val option: Option[XmlResult[T]] = xml.headOption.map(read.read)
-      val res: XmlResult[Option[T]] = option.sequence
+      val res: XmlResult[Option[T]] = option.sequence[XmlResult, T]
       res
     }
 

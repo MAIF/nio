@@ -9,16 +9,31 @@ import reactivemongo.bson.BSONObjectID
 import utils.DateUtils
 
 import scala.util.{Failure, Success, Try}
-import scala.xml.Elem
+import scala.xml.{Elem, NodeSeq}
 import libs.xml.XmlUtil.XmlCleaner
 import cats.Applicative
 import cats.data.{Validated, ValidatedNel}
+import libs.xml.XMLRead
 import utils.Result.AppErrors
 
 case class DoneBy(userId: String, role: String)
 
 object DoneBy {
   implicit val doneByFormats = Json.format[DoneBy]
+
+  implicit val xmlRead: XMLRead[DoneBy] = {
+    import libs.xml.synthax._
+    import libs.xml.implicits._
+    import AppErrors._
+    import cats._
+    import cats.implicits._
+    import cats.data.Validated._
+    (node: NodeSeq) =>
+      (
+        (node \ "userId").validate[String],
+        (node \ "role").validate[String]
+      ).mapN { DoneBy.apply }
+  }
 }
 
 case class Consent(key: String, label: String, checked: Boolean) {
@@ -234,30 +249,23 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
   def fromXml(xml: Elem): Either[AppErrors, ConsentFact] = {
     import libs.xml.synthax._
     import libs.xml.implicits._
+    import DoneBy._
     import AppErrors._
-    import cats._
     import cats.implicits._
     import cats.data.Validated._
 
+    val now = DateTime.now(DateTimeZone.UTC)
     (
+      BSONObjectID.generate().stringify.toXmlResult,
       (xml \ "userId").validate[String],
-      (xml \ "doneBy" \ "userId").validate[String],
-      (xml \ "doneBy" \ "role").validate[String],
-      (xml \ "lastUpdate")
-        .validateNullable[DateTime](DateTime.now(DateTimeZone.UTC)),
-      (xml \ "version").validate[Int]
-    ).mapN { (userId, doneByUserId, doneByRole, lastUpdate, version) =>
-      ConsentFact(
-        _id = BSONObjectID.generate().stringify,
-        userId = userId,
-        doneBy = DoneBy(doneByUserId, doneByRole),
-        version = version,
-        lastUpdate = lastUpdate,
-        groups = Seq.empty, // groups,
-        metaData = None // metaData
-      )
-
-    }.toEither
+      (xml \ "doneBy").validate[DoneBy],
+      (xml \ "version").validate[Int],
+      Seq.empty.toXmlResult, // groups
+      (xml \ "lastUpdate").validateNullable[DateTime](now),
+      now.toXmlResult,
+      None.toXmlResult,
+      None.toXmlResult
+    ).mapN(ConsentFact.apply).toEither
   }
 
   def fromJson(json: JsValue): Either[AppErrors, ConsentFact] = {
