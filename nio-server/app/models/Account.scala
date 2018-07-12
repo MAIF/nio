@@ -1,24 +1,30 @@
 package models
 
+import cats.data.Validated._
+import cats.implicits._
 import controllers.ReadableEntity
-import org.joda.time.{DateTime, DateTimeZone}
-import play.api.libs.json.JsValue
-import play.api.libs.functional.syntax.unlift
-import play.api.libs.json._
-import play.api.libs.functional.syntax._
-import play.api.libs.json.Reads._
-import utils.DateUtils
-
-import scala.util.{Failure, Success, Try}
-import scala.xml.{Elem, Node}
+import libs.xml.XMLRead
 import libs.xml.XmlUtil.XmlCleaner
+import libs.xml.implicits._
+import libs.xml.syntax._
+import org.joda.time.{DateTime, DateTimeZone}
+import play.api.libs.functional.syntax.{unlift, _}
+import play.api.libs.json.Reads._
+import play.api.libs.json.{JsValue, _}
+import utils.DateUtils
 import utils.Result.AppErrors
+
+import scala.xml.{Elem, NodeSeq}
 
 case class OrganisationUser(userId: String, orgKey: String)
     extends ModelTransformAs {
   override def asXml(): Elem = <organisationUser>
-    <userId>{userId}</userId>
-    <orgKey>{orgKey}</orgKey>
+    <userId>
+      {userId}
+    </userId>
+    <orgKey>
+      {orgKey}
+    </orgKey>
   </organisationUser>.clean()
 
   override def asJson(): JsValue = OrganisationUser.write.writes(this)
@@ -38,12 +44,11 @@ object OrganisationUser {
 
   implicit val format: Format[OrganisationUser] = Format(read, write)
 
-  def fromXml(xml: Elem): OrganisationUser = {
-    val userId = (xml \ "userId").head.text
-    val orgKey = (xml \ "orgKey").head.text
-
-    OrganisationUser(userId, orgKey)
-  }
+  implicit val readXml: XMLRead[OrganisationUser] = (node: NodeSeq) =>
+    (
+      (node \ "userId").validate[String],
+      (node \ "orgKey").validate[String]
+    ).mapN(OrganisationUser.apply)
 
   def fromJson(json: JsValue): Either[String, OrganisationUser] =
     json
@@ -58,9 +63,15 @@ case class Account(accountId: String,
                    organisationsUsers: Seq[OrganisationUser])
     extends ModelTransformAs {
   override def asXml(): Elem = <account>
-    <accountId>{accountId}</accountId>
-    <lastUpdate>{lastUpdate.toString(DateUtils.utcDateFormatter)}</lastUpdate>
-    <organisationsUsers>{organisationsUsers.map(_.asXml())}</organisationsUsers>
+    <accountId>
+      {accountId}
+    </accountId>
+    <lastUpdate>
+      {lastUpdate.toString(DateUtils.utcDateFormatter)}
+    </lastUpdate>
+    <organisationsUsers>
+      {organisationsUsers.map(_.asXml())}
+    </organisationsUsers>
   </account>.clean()
 
   override def asJson(): JsValue = Account.write.writes(this)
@@ -86,20 +97,15 @@ object Account extends ReadableEntity[Account] {
   implicit val format: Format[Account] = Format(read, write)
   implicit val oformat: OFormat[Account] = OFormat(read, write)
 
-  override def fromXml(xml: Elem): Either[AppErrors, Account] = {
-    Try {
-      val accountId = (xml \ "accountId").head.text
-      val organisationsUsersXml: Node = (xml \ "organisationsUsers").head
-      val organisationsUsers: Seq[OrganisationUser] =
-        organisationsUsersXml.child.collect {
-          case e: Elem => OrganisationUser.fromXml(e)
-        }
+  implicit val readXml: XMLRead[Account] = (node: NodeSeq) =>
+    (
+      (node \ "accountId").validate[String],
+      (node \ "organisationsUsers").validate[Seq[OrganisationUser]]
+    ).mapN((accountId, organisationsUsers) =>
+      Account(accountId = accountId, organisationsUsers = organisationsUsers))
 
-      Account(accountId = accountId, organisationsUsers = organisationsUsers)
-    } match {
-      case Success(value)     => Right(value)
-      case Failure(throwable) => Left(AppErrors.fromXmlError(throwable))
-    }
+  override def fromXml(xml: Elem): Either[AppErrors, Account] = {
+    readXml.read(xml).toEither
   }
 
   override def fromJson(json: JsValue): Either[AppErrors, Account] =
@@ -112,7 +118,9 @@ object Account extends ReadableEntity[Account] {
 
 case class Accounts(accounts: Seq[Account]) extends ModelTransformAs {
   override def asXml(): Elem =
-    <accounts>{accounts.map(_.asXml())}</accounts>.clean()
+    <accounts>
+      {accounts.map(_.asXml())}
+    </accounts>.clean()
 
   override def asJson(): JsValue = JsArray(accounts.map(_.asJson()))
 }

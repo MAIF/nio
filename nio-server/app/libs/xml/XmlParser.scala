@@ -75,6 +75,12 @@ object implicits {
         .map(_.valid)
         .getOrElse(AppErrors.error("invalid.path").invalid)
 
+  implicit def readLong: XMLRead[Long] =
+    (xml: NodeSeq) =>
+      Try(xml.head.text.toLong)
+        .map(_.valid)
+        .getOrElse(AppErrors.error("invalid.path").invalid)
+
   implicit def defaultReadDateTime: XMLRead[DateTime] =
     readDateTime(DateUtils.utcDateFormatter)
 

@@ -1,21 +1,23 @@
 package models
 
-import cats.data.ValidatedNel
-import play.api.libs.functional.syntax.unlift
-import reactivemongo.bson.BSONObjectID
-import play.api.libs.json._
-import play.api.libs.functional.syntax._
-import play.api.libs.json.Reads._
-
-import scala.util.{Failure, Success, Try}
-import scala.xml.Elem
 import cats.data.Validated._
+import cats.data.ValidatedNel
 import cats.implicits._
 import controllers.ReadableEntity
+import libs.xml.XMLRead
+import libs.xml.XmlUtil.XmlCleaner
+import libs.xml.implicits._
+import libs.xml.syntax._
 import org.joda.time.{DateTime, DateTimeZone}
+import play.api.libs.functional.syntax.{unlift, _}
+import play.api.libs.json.Reads._
+import play.api.libs.json._
+import reactivemongo.bson.BSONObjectID
 import utils.DateUtils
 import utils.Result.{AppErrors, ErrorMessage, Result}
-import libs.xml.XmlUtil.XmlCleaner
+
+import scala.util.{Failure, Success, Try}
+import scala.xml.{Elem, NodeSeq}
 
 case class VersionInfo(status: String = "DRAFT",
                        num: Int = 1,
@@ -38,6 +40,13 @@ object VersionInfo {
     }
   implicit val utcDateTimeFormats = DateUtils.utcDateTimeFormats
   implicit val formats = Json.format[VersionInfo]
+
+  implicit val readXml: XMLRead[VersionInfo] = (node: NodeSeq) =>
+    (
+      (node \ "status").validate[String],
+      (node \ "num").validate[Int],
+      (node \ "latest").validate[Boolean]
+    ).mapN((status, num, latest) => VersionInfo(status, num, latest, None))
 }
 
 case class Organisation(_id: String = BSONObjectID.generate().stringify,
@@ -131,33 +140,23 @@ object Organisation extends ReadableEntity[Organisation] {
       )
   }
 
-  def fromXml(xml: Elem) = {
-    Try {
-      val key = (xml \ "key").head.text
-      val label = (xml \ "label").head.text
+  implicit val readXml: XMLRead[Organisation] = (node: NodeSeq) =>
+    (
+      (node \ "key").validate[String],
+      (node \ "label").validate[String],
+      (node \ "version").validate[VersionInfo],
+      (node \ "groups").validate[Seq[PermissionGroup]],
+    ).mapN(
+      (key, label, version, groups) =>
+        Organisation(_id = "",
+                     key = key,
+                     label = label,
+                     version = version,
+                     groups = groups)
+  )
 
-      val version = (xml \ "version").headOption
-        .map { versionElem =>
-          val status = (versionElem \ "status").head.text
-          val num = (versionElem \ "num").head.text.toInt
-          val latest = (versionElem \ "latest").head.text.toBoolean
-          VersionInfo(status, num, latest, None)
-        }
-        .getOrElse(VersionInfo())
-
-      val groupsXml = (xml \ "groups").head
-      val groups = groupsXml.child.collect {
-        case e: Elem => PermissionGroup.fromXml(e)
-      }
-      Organisation(_id = "",
-                   key = key,
-                   label = label,
-                   version = version,
-                   groups = groups)
-    } match {
-      case Success(value)     => Right(value)
-      case Failure(throwable) => Left(AppErrors.fromXmlError(throwable))
-    }
+  def fromXml(xml: Elem): Either[AppErrors, Organisation] = {
+    readXml.read(xml).toEither
   }
 
   def fromJson(json: JsValue) = {

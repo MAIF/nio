@@ -260,16 +260,16 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
       orgKey = Some(orgKey)
     )
 
-  def fromXml(xml: Elem): Either[AppErrors, ConsentFact] = {
+  implicit val readXml: XMLRead[ConsentFact] = (node: NodeSeq) =>
     (
       BSONObjectID.generate().stringify.toXmlResult,
-      (xml \ "userId").validate[String],
-      (xml \ "doneBy").validate[DoneBy],
-      (xml \ "lastUpdate")
+      (node \ "userId").validate[String],
+      (node \ "doneBy").validate[DoneBy],
+      (node \ "lastUpdate")
         .validateNullable[DateTime](DateTime.now(DateTimeZone.UTC)),
-      (xml \ "version").validate[Int],
-      (xml \ "groups").validate[Seq[ConsentGroup]],
-      (xml \ "metaData").validateNullable[Seq[Metadata]]
+      (node \ "version").validate[Int],
+      (node \ "groups").validate[Seq[ConsentGroup]],
+      (node \ "metaData").validateNullable[Seq[Metadata]]
     ).mapN { (id, userId, doneBy, lastUpdate, version, groups, metadata) =>
       ConsentFact(
         _id = id,
@@ -280,7 +280,10 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
         groups = groups,
         metaData = metadata.map(m => m.map(ev => (ev.key, ev.value)).toMap)
       )
-    }.toEither
+  }
+
+  def fromXml(xml: Elem): Either[AppErrors, ConsentFact] = {
+    readXml.read(xml).toEither
   }
 
   def fromJson(json: JsValue): Either[AppErrors, ConsentFact] = {

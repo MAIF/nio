@@ -1,9 +1,14 @@
 package models
 
+import cats.data.Validated._
+import cats.implicits._
+import libs.xml.XMLRead
+import libs.xml.XmlUtil.XmlCleaner
+import libs.xml.implicits._
+import libs.xml.syntax._
 import play.api.libs.json.Json
 
-import scala.xml.Elem
-import libs.xml.XmlUtil.XmlCleaner
+import scala.xml.NodeSeq
 
 case class Permission(key: String, label: String) {
   def asXml = {
@@ -17,9 +22,10 @@ case class Permission(key: String, label: String) {
 object Permission {
   implicit val formats = Json.format[Permission]
 
-  def fromXml(xml: Elem) = {
-    val key = (xml \ "key").head.text
-    val label = (xml \ "label").head.text
-    Permission(key, label)
-  }
+  implicit val readXml: XMLRead[Permission] = (node: NodeSeq) =>
+    (
+      (node \ "key").validate[String],
+      (node \ "label").validate[String]
+    ).mapN(Permission.apply)
+
 }

@@ -1,12 +1,16 @@
 package models
 
+import cats.data.Validated._
+import cats.implicits._
 import controllers.ReadableEntity
-import play.api.libs.json._
-
-import scala.util.{Failure, Success, Try}
-import scala.xml.Elem
+import libs.xml.XMLRead
 import libs.xml.XmlUtil.XmlCleaner
+import libs.xml.implicits._
+import libs.xml.syntax._
+import play.api.libs.json._
 import utils.Result.AppErrors
+
+import scala.xml.{Elem, NodeSeq}
 
 case class Tenant(key: String, description: String) extends ModelTransformAs {
   def asJson = Tenant.tenantFormats.writes(this)
@@ -21,15 +25,14 @@ case class Tenant(key: String, description: String) extends ModelTransformAs {
 object Tenant extends ReadableEntity[Tenant] {
   implicit val tenantFormats = Json.format[Tenant]
 
+  implicit val readXml: XMLRead[Tenant] = (node: NodeSeq) =>
+    (
+      (node \ "key").validate[String],
+      (node \ "description").validate[String]
+    ).mapN(Tenant.apply)
+
   def fromXml(xml: Elem) = {
-    Try {
-      val key = (xml \ "key").head.text
-      val description = (xml \ "description").head.text
-      Tenant(key, description)
-    } match {
-      case Success(value)     => Right(value)
-      case Failure(throwable) => Left(AppErrors.fromXmlError(throwable))
-    }
+    readXml.read(xml).toEither
   }
 
   def fromJson(json: JsValue): Either[AppErrors, Tenant] = {

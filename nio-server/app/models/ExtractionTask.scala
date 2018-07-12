@@ -1,20 +1,24 @@
 package models
 
+import cats.data.Validated._
+import cats.implicits._
 import controllers.ReadableEntity
 import db.ExtractionTaskMongoDataStore
+import libs.xml.XMLRead
+import libs.xml.XmlUtil.XmlCleaner
+import libs.xml.implicits._
+import libs.xml.syntax._
 import messaging.KafkaMessageBroker
 import models.ExtractionTaskStatus.ExtractionTaskStatus
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json.Reads._
 import play.api.libs.json._
 import reactivemongo.bson.BSONObjectID
+import utils.Result.AppErrors
 import utils.{DateUtils, UploadTracker}
 
-import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success, Try}
-import scala.xml.Elem
-import libs.xml.XmlUtil.XmlCleaner
-import utils.Result.AppErrors
+import scala.concurrent.ExecutionContext
+import scala.xml.{Elem, NodeSeq}
 
 object ExtractionTaskStatus extends Enumeration {
   type ExtractionTaskStatus = Value
@@ -49,12 +53,12 @@ case class FileMetadata(name: String, contentType: String, size: Long) {
 object FileMetadata {
   implicit val fileMetadataFormats = Json.format[FileMetadata]
 
-  def fromXml(xml: Elem) = {
-    val name = (xml \ "name").head.text
-    val contentType = (xml \ "contentType").head.text
-    val size = (xml \ "size").head.text.toLong
-    FileMetadata(name, contentType, size)
-  }
+  implicit val readXml: XMLRead[FileMetadata] = (node: NodeSeq) =>
+    (
+      (node \ "name").validate[String],
+      (node \ "contentType").validate[String],
+      (node \ "size").validate[Long]
+    ).mapN(FileMetadata.apply)
 }
 
 case class FilesMetadata(files: Seq[FileMetadata]) {
@@ -69,18 +73,11 @@ case class FilesMetadata(files: Seq[FileMetadata]) {
 object FilesMetadata extends ReadableEntity[FilesMetadata] {
   implicit val filesMetadataFormats = Json.format[FilesMetadata]
 
-  def fromXml(xml: Elem) = {
-    Try {
-      val files = xml.child.collect {
-        case e: Elem => FileMetadata.fromXml(e)
-      }
-      FilesMetadata(files)
-    } match {
-      case Success(value) => Right(value)
-      case Failure(throwable) => {
-        Left(AppErrors.fromXmlError(throwable))
-      }
-    }
+  implicit val readXml: XMLRead[FilesMetadata] = (node: NodeSeq) =>
+    node.validate[Seq[FileMetadata]].map(files => FilesMetadata(files))
+
+  def fromXml(xml: Elem): Either[AppErrors, FilesMetadata] = {
+    readXml.read(xml).toEither
   }
 
   def fromJson(json: JsValue): Either[AppErrors, FilesMetadata] = {
