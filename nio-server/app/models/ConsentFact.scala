@@ -267,19 +267,22 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
       (node \ "doneBy").validate[DoneBy],
       (node \ "lastUpdate")
         .validateNullable[DateTime](DateTime.now(DateTimeZone.UTC)),
+      (node \ "orgKey").validateNullable[String],
       (node \ "version").validate[Int],
       (node \ "groups").validate[Seq[ConsentGroup]],
       (node \ "metaData").validateNullable[Seq[Metadata]]
-    ).mapN { (id, userId, doneBy, lastUpdate, version, groups, metadata) =>
-      ConsentFact(
-        _id = id,
-        userId = userId,
-        doneBy = doneBy,
-        version = version,
-        lastUpdate = lastUpdate,
-        groups = groups,
-        metaData = metadata.map(m => m.map(ev => (ev.key, ev.value)).toMap)
-      )
+    ).mapN {
+      (id, userId, doneBy, lastUpdate, orgKey, version, groups, metadata) =>
+        ConsentFact(
+          _id = id,
+          userId = userId,
+          doneBy = doneBy,
+          version = version,
+          lastUpdate = lastUpdate,
+          orgKey = orgKey,
+          groups = groups,
+          metaData = metadata.map(m => m.map(ev => (ev.key, ev.value)).toMap)
+        )
   }
 
   def fromXml(xml: Elem): Either[AppErrors, ConsentFact] = {
