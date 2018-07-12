@@ -16,7 +16,6 @@ import reactivemongo.bson.BSONObjectID
 import utils.DateUtils
 import utils.Result.{AppErrors, ErrorMessage, Result}
 
-import scala.util.{Failure, Success, Try}
 import scala.xml.{Elem, NodeSeq}
 
 case class VersionInfo(status: String = "DRAFT",
@@ -45,8 +44,15 @@ object VersionInfo {
     (
       (node \ "status").validate[String],
       (node \ "num").validate[Int],
-      (node \ "latest").validate[Boolean]
-    ).mapN((status, num, latest) => VersionInfo(status, num, latest, None))
+      (node \ "latest").validate[Boolean],
+      (node \ "lastUpdate").validateNullable[DateTime](
+        DateTime.now(DateTimeZone.UTC))
+    ).mapN { (status, num, latest, lastUpdate) =>
+      VersionInfo(status = status,
+                  num = num,
+                  latest = latest,
+                  lastUpdate = lastUpdate)
+  }
 }
 
 case class Organisation(_id: String = BSONObjectID.generate().stringify,
@@ -66,6 +72,7 @@ case class Organisation(_id: String = BSONObjectID.generate().stringify,
         <status>{version.status}</status>
         <num>{version.num}</num>
         <latest>{version.latest}</latest>
+        <lastUpdate>{version.lastUpdate.toString(DateUtils.utcDateFormatter)}</lastUpdate>
       </version>
       <groups>{groups.map(_.asXml)}</groups>
     </organisation>.clean()
@@ -142,13 +149,15 @@ object Organisation extends ReadableEntity[Organisation] {
 
   implicit val readXml: XMLRead[Organisation] = (node: NodeSeq) =>
     (
+      (node \ "_id").validateNullable[String](
+        BSONObjectID.generate().stringify),
       (node \ "key").validate[String],
       (node \ "label").validate[String],
       (node \ "version").validate[VersionInfo],
       (node \ "groups").validate[Seq[PermissionGroup]],
     ).mapN(
-      (key, label, version, groups) =>
-        Organisation(_id = "",
+      (_id, key, label, version, groups) =>
+        Organisation(_id = _id,
                      key = key,
                      label = label,
                      version = version,
