@@ -64,8 +64,7 @@ case class Organisation(_id: String = BSONObjectID.generate().stringify,
 
   def asJson = Organisation.organisationWritesWithoutId.writes(this)
 
-  def asXml = {
-    <organisation>
+  def asXml = <organisation>
       <key>{key}</key>
       <label>{label}</label>
       <version>
@@ -76,7 +75,6 @@ case class Organisation(_id: String = BSONObjectID.generate().stringify,
       </version>
       <groups>{groups.map(_.asXml)}</groups>
     </organisation>.clean()
-  }
 
   def newWith(version: VersionInfo) =
     this.copy(_id = BSONObjectID.generate().stringify, version = version)
@@ -191,8 +189,7 @@ case class VersionInfoLight(status: String, num: Int, lastUpdate: DateTime)
 case class OrganisationLight(key: String,
                              label: String,
                              version: VersionInfoLight) {
-  def asXml = {
-    <organisationLight>
+  def asXml = <organisationLight>
       <key>{key}</key>
       <label>{label}</label>
       <version>
@@ -201,7 +198,6 @@ case class OrganisationLight(key: String,
         <lastUpdate>{version.lastUpdate.toString(DateUtils.utcDateFormatter)}</lastUpdate>
       </version>
     </organisationLight>.clean()
-  }
 
   def asJson = {
     Json.obj(

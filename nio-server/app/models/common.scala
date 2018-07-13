@@ -18,13 +18,11 @@ object AppDone {
 }
 
 case class AppIds(appIds: Seq[String]) {
-  def asXml = {
-    <appIds>
+  def asXml = <appIds>
       {appIds.map(appId => <appId>
       {appId}
     </appId>)}
     </appIds>.clean()
-  }
 }
 
 object AppIds extends ReadableEntity[AppIds] {

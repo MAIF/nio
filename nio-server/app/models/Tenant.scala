@@ -14,12 +14,10 @@ import scala.xml.{Elem, NodeSeq}
 
 case class Tenant(key: String, description: String) extends ModelTransformAs {
   def asJson = Tenant.tenantFormats.writes(this)
-  def asXml = {
-    <tenant>
+  def asXml = <tenant>
       <key>{key}</key>
       <description>{description}</description>
     </tenant>.clean()
-  }
 }
 
 object Tenant extends ReadableEntity[Tenant] {

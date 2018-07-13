@@ -4,6 +4,7 @@ import cats.data.Validated
 import libs.xml.syntax.XmlResult
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormatter
+import play.api.Logger
 import utils.DateUtils
 import utils.Result.AppErrors
 
@@ -108,10 +109,17 @@ object XmlUtil {
 
   implicit class XmlCleaner(val elem: Elem) extends AnyVal {
 
-    def clean(): Elem =
+    def clean(): Elem = {
+
       scala.xml.Utility.trim(elem) match {
-        case res if res.isInstanceOf[Elem] => res.asInstanceOf[Elem]
+        case res if res.isInstanceOf[Elem] => {
+          val prettyPrinter = new scala.xml.PrettyPrinter(1000, 2)
+          val prettyXml = prettyPrinter.format(res.asInstanceOf[Elem])
+          scala.xml.XML.loadString(prettyXml)
+        }
       }
+    }
+
   }
 
 }

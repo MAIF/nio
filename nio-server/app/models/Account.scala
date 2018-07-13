@@ -117,8 +117,7 @@ object Account extends ReadableEntity[Account] {
 }
 
 case class Accounts(accounts: Seq[Account]) extends ModelTransformAs {
-  override def asXml(): Elem =
-    <accounts>
+  override def asXml(): Elem = <accounts>
       {accounts.map(_.asXml())}
     </accounts>.clean()
 

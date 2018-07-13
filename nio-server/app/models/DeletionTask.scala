@@ -24,12 +24,10 @@ case class AppDeletionState(appId: String, status: DeletionTaskStatus) {
 
   def asJson = Json.obj("appId" -> appId, "status" -> status.toString)
 
-  def asXml = {
-    <appDestroyState>
+  def asXml = <appDestroyState>
       <appId>{appId}</appId>
       <status>{status.toString}</status>
     </appDestroyState>.clean()
-  }
 }
 object AppDeletionState {
   implicit val appDeletionStateFormats = Json.format[AppDeletionState]
@@ -79,8 +77,7 @@ case class DeletionTask(_id: String,
     "lastUpdate" -> startedAt.toString(DateUtils.utcDateFormatter)
   )
 
-  def asXml = {
-    <destroyTask>
+  def asXml = <destroyTask>
       <orgKey>{orgKey}</orgKey>
       <userId>{userId}</userId>
       <startedAt>{startedAt.toString(DateUtils.utcDateFormatter)}</startedAt>
@@ -89,7 +86,6 @@ case class DeletionTask(_id: String,
       <status>{status.toString}</status>
       <lastUpdate>{lastUpdate.toString(DateUtils.utcDateFormatter)}</lastUpdate>
     </destroyTask>.clean()
-  }
 }
 
 object DeletionTask {
@@ -124,8 +120,7 @@ case class PagedDeletionTasks(page: Int,
              "count" -> count,
              "items" -> JsArray(items.map(_.asJson)))
 
-  def asXml =
-    <pagedDeletionTasks>
+  def asXml = <pagedDeletionTasks>
       <page>{page}</page>
       <pageSize>{pageSize}</pageSize>
       <count>{count}</count>

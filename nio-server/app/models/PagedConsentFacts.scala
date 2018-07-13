@@ -1,7 +1,6 @@
 package models
 
 import play.api.libs.json.{JsArray, Json}
-import libs.xml.XmlUtil.XmlCleaner
 
 case class PagedConsentFacts(page: Int,
                              pageSize: Int,
@@ -15,12 +14,11 @@ case class PagedConsentFacts(page: Int,
              "count" -> count,
              "items" -> JsArray(items.map(_.asJson)))
 
-  def asXml =
-    <pagedConsentFacts>
+  def asXml = <pagedConsentFacts>
       <page>{page}</page>
       <pageSize>{pageSize}</pageSize>
       <count>{count}</count>
       <items>{items.map(_.asXml)}</items>
-    </pagedConsentFacts>.clean()
+    </pagedConsentFacts>
 
 }

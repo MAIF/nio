@@ -13,13 +13,11 @@ import scala.xml.NodeSeq
 case class PermissionGroup(key: String,
                            label: String,
                            permissions: Seq[Permission]) {
-  def asXml = {
-    <permissionGroup>
+  def asXml = <permissionGroup>
       <key>{key}</key>
       <label>{label}</label>
       <permissions>{permissions.map(_.asXml)}</permissions>
     </permissionGroup>.clean()
-  }
 }
 
 object PermissionGroup {

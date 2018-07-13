@@ -48,8 +48,7 @@ object DoneBy {
 }
 
 case class Consent(key: String, label: String, checked: Boolean) {
-  def asXml = {
-    <consent>
+  def asXml = <consent>
       <key>
         {key}
       </key>
@@ -60,7 +59,6 @@ case class Consent(key: String, label: String, checked: Boolean) {
         {checked}
       </checked>
     </consent>.clean()
-  }
 }
 
 object Consent {
@@ -77,8 +75,7 @@ object Consent {
 }
 
 case class ConsentGroup(key: String, label: String, consents: Seq[Consent]) {
-  def asXml = {
-    <consentGroup>
+  def asXml = <consentGroup>
       <key>
         {key}
       </key>
@@ -89,7 +86,6 @@ case class ConsentGroup(key: String, label: String, consents: Seq[Consent]) {
         {consents.map(_.asXml)}
       </consents>
     </consentGroup>.clean()
-  }
 }
 
 object ConsentGroup {
@@ -122,8 +118,7 @@ case class ConsentFact(_id: String = BSONObjectID.generate().stringify,
 
   def asJson = ConsentFact.consentFactWritesWithoutId.writes(this)
 
-  def asXml: Elem = {
-    <consentFact>
+  def asXml: Elem = <consentFact>
       <userId>
         {userId}
       </userId>
@@ -154,7 +149,6 @@ case class ConsentFact(_id: String = BSONObjectID.generate().stringify,
       }
     }.get}
     </consentFact>.clean()
-  }
 }
 
 object ConsentFact extends ReadableEntity[ConsentFact] {

@@ -41,13 +41,11 @@ case class FileMetadata(name: String, contentType: String, size: Long) {
     "size" -> size
   )
 
-  def asXml = {
-    <fileMetadata>
+  def asXml = <fileMetadata>
       <name>{name}</name>
       <contentType>{contentType}</contentType>
       <size>{size}</size>
     </fileMetadata>.clean()
-  }
 }
 
 object FileMetadata {
@@ -107,14 +105,12 @@ case class AppState(appId: String,
 
   def asJson = AppState.appStateFormats.writes(this)
 
-  def asXml = {
-    <appState>
+  def asXml = <appState>
       <appId>{appId}</appId>
       <files>{files.map(_.asXml)}</files>
       <totalBytes>{totalBytes}</totalBytes>
       <status>{status.toString}</status>
     </appState>.clean()
-  }
 }
 
 object AppState {
@@ -146,8 +142,7 @@ case class ExtractionTask(_id: String,
     "done" -> done
   )
 
-  def asXml = {
-    <extractionTask>
+  def asXml = <extractionTask>
       <id>{_id}</id>
       <orgKey>{orgKey}</orgKey>
       <userId>{userId}</userId>
@@ -159,7 +154,6 @@ case class ExtractionTask(_id: String,
       <lastUpdate>{lastUpdate.toString(DateUtils.utcDateFormatter)}</lastUpdate>
       <done>{done}</done>
     </extractionTask>.clean()
-  }
 
   def progress: Double = {
     if (done == appIds.size) {

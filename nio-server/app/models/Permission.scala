@@ -11,12 +11,10 @@ import play.api.libs.json.Json
 import scala.xml.NodeSeq
 
 case class Permission(key: String, label: String) {
-  def asXml = {
-    <permission>
+  def asXml = <permission>
       <key>{key}</key>
       <label>{label}</label>
     </permission>.clean()
-  }
 }
 
 object Permission {
