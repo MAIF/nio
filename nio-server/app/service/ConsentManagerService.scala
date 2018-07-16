@@ -197,7 +197,7 @@ class ConsentManagerService(
       built           <- OptionT.pure[Future](buildTemplate(orgKey, orgVersion, template, consentFact, userId))
     } yield built
     // format: on
-    res.value.map(_.getOrElse(template))
+    res.getOrElse(template)
   }
 
   private def buildTemplate(orgKey: String,
