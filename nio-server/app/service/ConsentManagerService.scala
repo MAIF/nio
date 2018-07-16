@@ -1,6 +1,7 @@
 package service
 
 import akka.http.scaladsl.util.FastFuture
+import cats.data.OptionT
 import db.{
   ConsentFactMongoDataStore,
   LastConsentFactMongoDataStore,
@@ -10,8 +11,8 @@ import db.{
 import messaging.KafkaMessageBroker
 import models._
 import play.api.Logger
-import play.api.libs.json.{JsString, JsValue}
 import utils.Result.AppErrors
+import cats.implicits._
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -185,49 +186,55 @@ class ConsentManagerService(
       orgVersion: Int,
       template: ConsentFact,
       maybeUserId: Option[String]): Future[ConsentFact] = {
-    maybeUserId match {
-      case Some(userId) =>
-        Logger.info(s"userId is defined with $userId")
 
-        lastConsentFactMongoDataStore
-          .findByOrgKeyAndUserId(tenant, orgKey, userId)
-          .map {
-            case Some(consentFact) =>
-              Logger.info(s"consent fact exist")
+    import cats.implicits._
 
-              val groupsUpdated: Seq[ConsentGroup] =
-                template.groups.map(
-                  group => {
-                    val maybeGroup = consentFact.groups.find(cg =>
-                      cg.key == group.key && cg.label == group.label)
-                    maybeGroup match {
-                      case Some(consentGroup) =>
-                        group.copy(consents = group.consents.map { consent =>
-                          val maybeConsent =
-                            consentGroup.consents.find(c =>
-                              c.key == consent.key && c.label == consent.label)
-                          maybeConsent match {
-                            case Some(consentValue) =>
-                              consent.copy(checked = consentValue.checked)
-                            case None =>
-                              consent
-                          }
-                        })
-                      case None => group
-                    }
-                  }
-                )
-
-              ConsentFact
-                .template(orgVersion, groupsUpdated, orgKey)
-                .copy(userId = userId)
-            case None =>
-              template
-          }
-
-      case None =>
-        Future.successful(template)
-    }
+    // format: off
+    val res: OptionT[Future, ConsentFact] = for {
+      userId: String  <- OptionT.fromOption[Future](maybeUserId)
+      _               = Logger.info(s"userId is defined with $userId")
+      consentFact     <- OptionT(lastConsentFactMongoDataStore.findByOrgKeyAndUserId(tenant, orgKey, userId))
+      built           <- OptionT.pure[Future](buildTemplate(orgKey, orgVersion, template, consentFact, userId))
+    } yield built
+    // format: on
+    res.value.map(_.getOrElse(template))
   }
 
+  private def buildTemplate(orgKey: String,
+                            orgVersion: Int,
+                            template: ConsentFact,
+                            consentFact: ConsentFact,
+                            userId: String) = {
+    Logger.info(s"consent fact exist")
+
+    val groupsUpdated: Seq[ConsentGroup] =
+      template.groups.map(
+        group => {
+          val maybeGroup = consentFact.groups.find(cg =>
+            cg.key == group.key && cg.label == group.label)
+
+          maybeGroup
+            .map {
+              consentGroup =>
+                val groups: Seq[Consent] = group.consents.map { consent =>
+                  val maybeConsent =
+                    consentGroup.consents.find(c =>
+                      c.key == consent.key && c.label == consent.label)
+                  maybeConsent match {
+                    case Some(consentValue) =>
+                      consent.copy(checked = consentValue.checked)
+                    case None =>
+                      consent
+                  }
+                }
+                group.copy(consents = groups)
+            }
+            .getOrElse(group)
+        }
+      )
+
+    ConsentFact
+      .template(orgVersion, groupsUpdated, orgKey)
+      .copy(userId = userId)
+  }
 }
