@@ -12,7 +12,6 @@ import messaging.KafkaMessageBroker
 import models._
 import play.api.Logger
 import utils.Result.AppErrors
-import cats.implicits._
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -86,6 +85,11 @@ class ConsentManagerService(
               )
             } yield Right(consentFact)
 
+          case Some(lastConsentFactStored) =>
+            Logger.error(
+              s"lastConsentFactStored.version > consentFact.version (${lastConsentFactStored.version} > ${consentFact.version}) for ${lastConsentFactStored._id}")
+            FastFuture.successful(Left(AppErrors.error(
+              "invalid.lastConsentFactStored.version.sup.consentFact.version")))
         }
     }
   }
