@@ -43,11 +43,13 @@ class ExtractionController(val AuthAction: AuthAction,
   val fileBodyParser: BodyParser[Source[ByteString, _]] = BodyParser { _ =>
     Accumulator.source[ByteString].map(s => Right(s))
   }
+  implicit val readable: ReadableEntity[AppIds] = AppIds
+  implicit val readableFileMetadata: ReadableEntity[FilesMetadata] =
+    FilesMetadata
 
   def startExtractionTask(tenant: String, orgKey: String, userId: String) =
-    AuthAction.async(parse.anyContent) { implicit req =>
-      val parsed = parseMethod[AppIds](AppIds)
-      parsed match {
+    AuthAction.async(bodyParser) { implicit req =>
+      req.body.read[AppIds] match {
         case Left(error) =>
           Logger.error(s"Unable to parse extraction task input due to $error")
           Future.successful(error.badRequest())
@@ -74,9 +76,9 @@ class ExtractionController(val AuthAction: AuthAction,
   def setFilesMetadata(tenant: String,
                        orgKey: String,
                        extractionTaskId: String,
-                       appId: String) = AuthAction.async(parse.anyContent) {
+                       appId: String) = AuthAction.async(bodyParser) {
     implicit req =>
-      parseMethod[FilesMetadata](FilesMetadata) match {
+      req.body.read[FilesMetadata] match {
         case Left(error) =>
           Logger.error(s"Unable to parse extraction task input due to $error")
           Future.successful(error.badRequest())

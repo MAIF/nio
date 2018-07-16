@@ -1,7 +1,8 @@
 package libs.xmlorjson
 
-import libs.xml.XMLRead
-import play.api.libs.json.{JsValue, Reads}
+import controllers.ReadableEntity
+import play.api.Logger
+import play.api.libs.json.JsValue
 import play.api.mvc.{AnyContent, BodyParser, PlayBodyParsers}
 import play.mvc.Http.MimeTypes
 import utils.Result.{AppErrors, ErrorMessage}
@@ -11,32 +12,36 @@ import scala.xml.{Elem, NodeSeq}
 
 sealed trait XmlOrJson {
   def read[T](
-      implicit jsonReads: Reads[T],
-      xmlReads: XMLRead[T],
+      implicit readableEntity: ReadableEntity[T],
       ec: ExecutionContext
   ): Either[AppErrors, T] = {
     XmlOrJson.read(this)
   }
 }
+
 case class JsonBody(json: JsValue) extends XmlOrJson
+
 case class XmlBody(json: NodeSeq) extends XmlOrJson
+
 case class Other(anyContent: AnyContent) extends XmlOrJson
 
 object XmlOrJson {
 
-  import cats._
   import cats.implicits._
 
   def read[T](xmlOrJson: XmlOrJson)(
-      implicit jsonReads: Reads[T],
-      xmlReads: XMLRead[T],
+      implicit readableEntity: ReadableEntity[T],
       ec: ExecutionContext
   ): Either[AppErrors, T] = {
     xmlOrJson match {
       case JsonBody(json) =>
-        jsonReads.reads(json).asEither.leftMap(AppErrors.fromJsError)
-      case XmlBody(xml) => xmlReads.read(xml).toEither
+        Logger.info(s"Content type Json : $json")
+        readableEntity.fromJson(json)
+      case XmlBody(xml) =>
+        Logger.info(s"Content type Xml : ${xml.head.asInstanceOf[Elem]}")
+        readableEntity.fromXml(xml.head.asInstanceOf[Elem])
       case Other(other) =>
+        Logger.info(s"Content type Other : $other")
         AppErrors(Seq(ErrorMessage("wrong.content.type")))
           .asLeft[T]
     }
@@ -52,10 +57,12 @@ object XmlOrJson {
             JsonBody(json)
           }
         case Some(MimeTypes.XML) =>
+          Logger.info(s"Content type Xml")
           parse.xml.map { xml =>
             XmlBody(xml)
           }
         case other =>
+          Logger.info(s"Content type Unknow $other")
           parse.anyContent.map { c =>
             Other(c)
           }
@@ -63,19 +70,18 @@ object XmlOrJson {
     }
 
   def bodyparser[T](parse: PlayBodyParsers)(
-      implicit jsonReads: Reads[T],
-      xmlReads: XMLRead[T],
+      implicit readableEntity: ReadableEntity[T],
       ec: ExecutionContext
   ): BodyParser[Either[AppErrors, T]] =
     parse.using { request =>
       request.contentType match {
         case Some(MimeTypes.JSON) =>
           parse.json.map { json =>
-            jsonReads.reads(json).asEither.leftMap(AppErrors.fromJsError)
+            readableEntity.fromJson(json)
           }
         case Some(MimeTypes.XML) =>
           parse.xml.map { xml =>
-            xmlReads.read(xml).toEither
+            readableEntity.fromXml(xml.head.asInstanceOf[Elem])
           }
         case other =>
           parse.anyContent.map { _ =>

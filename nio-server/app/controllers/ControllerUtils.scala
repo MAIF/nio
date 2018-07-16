@@ -1,6 +1,7 @@
 package controllers
 
 import auth.AuthContext
+import libs.xmlorjson.XmlOrJson
 import models.ModelTransformAs
 import play.api.{Logger, mvc}
 import play.api.http.{HeaderNames, MimeTypes}
@@ -9,6 +10,7 @@ import play.api.mvc.Results.Status
 import play.api.mvc._
 import utils.Result.AppErrors
 
+import scala.concurrent.ExecutionContext
 import scala.xml.Elem
 
 trait ReadableEntity[T] {
@@ -18,8 +20,11 @@ trait ReadableEntity[T] {
   def fromJson(json: JsValue): Either[AppErrors, T]
 }
 
-abstract class ControllerUtils(val controller: ControllerComponents)
+abstract class ControllerUtils(val controller: ControllerComponents)(
+    implicit val executionContext: ExecutionContext)
     extends AbstractController(controller) {
+
+  val bodyParser: BodyParser[XmlOrJson] = XmlOrJson.xmlorjson(parse)
 
   def renderMethod(obj: ModelTransformAs, status: Status = Ok)(
       implicit req: Request[Any]): Result = {

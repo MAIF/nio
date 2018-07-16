@@ -38,6 +38,8 @@ class ConsentController(
                                     system: ActorSystem)
     extends ControllerUtils(cc) {
 
+  implicit val readable: ReadableEntity[ConsentFact] = ConsentFact
+
   implicit val materializer = ActorMaterializer()(system)
 
   private lazy val timerGetConsentFact: Timer = metrics.timer("consentFact.get")
@@ -121,12 +123,10 @@ class ConsentController(
 
   // create or replace if exists
   def createOrReplaceIfExists(tenant: String, orgKey: String, userId: String) =
-    AuthAction.async(parse.anyContent) { implicit req =>
-      Logger.error(s"raw.body : ${req.body.asRaw}")
-
+    AuthAction.async(bodyParser) { implicit req =>
       val context = timerPutConsentFact.time()
 
-      parseMethod[ConsentFact](ConsentFact) match {
+      req.body.read[ConsentFact] match {
         case Left(error) =>
           context.stop()
           Logger.error(s"Unable to parse consentFact: $error")

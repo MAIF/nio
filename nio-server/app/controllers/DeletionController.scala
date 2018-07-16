@@ -28,9 +28,11 @@ class DeletionController(val AuthAction: AuthAction,
     system: ActorSystem)
     extends ControllerUtils(cc) {
 
+  implicit val readable: ReadableEntity[AppIds] = AppIds
+
   def startDeletionTask(tenant: String, orgKey: String, userId: String) =
-    AuthAction.async(parse.anyContent) { implicit req =>
-      parseMethod[AppIds](AppIds) match {
+    AuthAction.async(bodyParser) { implicit req =>
+      req.body.read[AppIds] match {
         case Left(error) =>
           Logger.error(s"Unable to parse deletion task input due to $error")
           Future.successful(error.badRequest())

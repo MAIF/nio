@@ -30,51 +30,50 @@ class OrganisationController(
                                     system: ActorSystem)
     extends ControllerUtils(cc) {
 
+  implicit val readable: ReadableEntity[Organisation] = Organisation
   implicit val materializer = ActorMaterializer()(system)
 
-  def create(tenant: String) = AuthAction.async(parse.anyContent) {
-    implicit req =>
-      tenantDataStore.findByKey(tenant).flatMap {
-        case Some(t) => {
-          parseMethod(Organisation) match {
-            case Left(error) =>
-              Logger.error("Unable to parse organisation  " + error)
-              Future.successful(error.badRequest())
-            case Right(receivedOrg) =>
-              val o = receivedOrg.copy(version = VersionInfo())
-              OrganisationValidator.validateOrganisation(o) match {
-                case Left(error) =>
-                  Logger.error("Organisation is not valid  " + error)
-                  Future.successful(error.badRequest())
-                case Right(_) =>
-                  // check for duplicate key
-                  ds.findByKey(tenant, o.key).flatMap {
-                    case None =>
-                      ds.insert(tenant, o).map { _ =>
-                        broker.publish(
-                          OrganisationCreated(
-                            tenant = tenant,
-                            payload = o,
-                            author = req.authInfo.sub,
-                            metadata = req.authInfo.metadatas))
+  def create(tenant: String) = AuthAction.async(bodyParser) { implicit req =>
+    tenantDataStore.findByKey(tenant).flatMap {
+      case Some(t) => {
+        req.body.read[Organisation] match {
+          case Left(error) =>
+            Logger.error("Unable to parse organisation  " + error)
+            Future.successful(error.badRequest())
+          case Right(receivedOrg) =>
+            val o = receivedOrg.copy(version = VersionInfo())
+            OrganisationValidator.validateOrganisation(o) match {
+              case Left(error) =>
+                Logger.error("Organisation is not valid  " + error)
+                Future.successful(error.badRequest())
+              case Right(_) =>
+                // check for duplicate key
+                ds.findByKey(tenant, o.key).flatMap {
+                  case None =>
+                    ds.insert(tenant, o).map { _ =>
+                      broker.publish(
+                        OrganisationCreated(tenant = tenant,
+                                            payload = o,
+                                            author = req.authInfo.sub,
+                                            metadata = req.authInfo.metadatas))
 
-                        renderMethod(o, Created)
-                      }
-                    case Some(_) =>
-                      Future.successful("error.key.already.used".conflict())
-                  }
-              }
-          }
+                      renderMethod(o, Created)
+                    }
+                  case Some(_) =>
+                    Future.successful("error.key.already.used".conflict())
+                }
+            }
         }
-        case None =>
-          Future.successful("error.tenant.not.found".notFound())
       }
+      case None =>
+        Future.successful("error.tenant.not.found".notFound())
+    }
   }
 
   // update if exists
   def replaceDraftIfExists(tenant: String, orgKey: String) =
-    AuthAction.async(parse.anyContent) { implicit req =>
-      parseMethod(Organisation) match {
+    AuthAction.async(bodyParser) { implicit req =>
+      req.body.read[Organisation] match {
         case Left(error) =>
           Logger.error("Unable to parse organisation  " + error)
           Future.successful(error.badRequest())

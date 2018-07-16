@@ -27,16 +27,17 @@ class TenantController(
     broker: KafkaMessageBroker)(implicit ec: ExecutionContext)
     extends ControllerUtils(cc) {
 
+  implicit val readable: ReadableEntity[Tenant] = Tenant
   def tenants = AuthAction.async { implicit req =>
     tenantStore.findAll().map { tenants =>
       renderMethod(Tenants(tenants))
     }
   }
 
-  def createTenant = AuthAction(parse.anyContent).async { implicit req =>
+  def createTenant = AuthAction(bodyParser).async { implicit req =>
     req.headers.get(env.tenantConfig.admin.header) match {
       case Some(secret) if secret == env.tenantConfig.admin.secret =>
-        parseMethod[Tenant](Tenant) match {
+        req.body.read[Tenant] match {
           case Left(error) =>
             Logger.error("Invalid tenant format " + error)
             Future.successful("error.invalid.tenant.format".badRequest())

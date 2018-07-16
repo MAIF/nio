@@ -17,6 +17,8 @@ class AccountController(
     broker: KafkaMessageBroker)(implicit ec: ExecutionContext)
     extends ControllerUtils(cc) {
 
+  implicit val readable: ReadableEntity[Account] = Account
+
   def find(tenant: String, accountId: String) = AuthAction.async {
     implicit req =>
       accountStore
@@ -36,35 +38,34 @@ class AccountController(
         .map(accounts => renderMethod(Accounts(accounts)))
   }
 
-  def create(tenant: String) = AuthAction(parse.anyContent).async {
-    implicit req =>
-      parseMethod[Account](Account) match {
-        case Left(error) =>
-          Logger.error(s"Invalid account format $error")
-          Future.successful("error.invalid.account.format".badRequest())
-        case Right(account) =>
-          accountStore.findByAccountId(tenant, account.accountId).flatMap {
-            case Some(_) =>
-              Future.successful("error.account.id.already.used".conflict())
-            case None =>
-              // TODO add validation
-              accountStore.create(tenant, account).map { _ =>
-                broker.publish(
-                  AccountCreated(tenant,
-                                 req.authInfo.sub,
-                                 metadata = req.authInfo.metadatas,
-                                 payload = account)
-                )
-                renderMethod(account, Created)
+  def create(tenant: String) = AuthAction(bodyParser).async { implicit req =>
+    req.body.read[Account] match {
+      case Left(error) =>
+        Logger.error(s"Invalid account format $error")
+        Future.successful("error.invalid.account.format".badRequest())
+      case Right(account) =>
+        accountStore.findByAccountId(tenant, account.accountId).flatMap {
+          case Some(_) =>
+            Future.successful("error.account.id.already.used".conflict())
+          case None =>
+            // TODO add validation
+            accountStore.create(tenant, account).map { _ =>
+              broker.publish(
+                AccountCreated(tenant,
+                               req.authInfo.sub,
+                               metadata = req.authInfo.metadatas,
+                               payload = account)
+              )
+              renderMethod(account, Created)
 
-              }
-          }
-      }
+            }
+        }
+    }
   }
 
   def update(tenant: String, accountId: String) =
-    AuthAction(parse.anyContent).async { implicit req =>
-      parseMethod[Account](Account) match {
+    AuthAction(bodyParser).async { implicit req =>
+      req.body.read[Account] match {
         case Left(error) =>
           Logger.error(s"Invalid account format $error")
           Future.successful("error.invalid.account.format".badRequest())
