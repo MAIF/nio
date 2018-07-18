@@ -3,7 +3,6 @@ package models
 import org.joda.time.{DateTime, DateTimeZone}
 import org.scalatest.{MustMatchers, WordSpecLike}
 import org.scalatestplus.play.PlaySpec
-import play.api.Logger
 import play.api.libs.json.JsValue
 import utils.DateUtils
 import utils.Result.AppErrors
@@ -80,6 +79,60 @@ class ModelValidationSpec extends PlaySpec with WordSpecLike with MustMatchers {
       checkConsentFact(consentFactFromXml)
     }
 
+    "xml invalid" in {
+      val xml: Elem = invalidConsentFact(consentFact)
+      val consentFactEither: Either[AppErrors, ConsentFact] =
+        ConsentFact.fromXml(xml)
+
+      val appErrors: AppErrors = consentFactEither.left.get
+
+      appErrors.errors.head.message must be("unknow.path.consentFact.userId")
+      appErrors.errors(1).message must be(
+        "unknow.path.consentFact.doneBy.userId")
+      appErrors.errors(2).message must be("unknow.path.consentFact.doneBy.role")
+      appErrors.errors(3).message must be("unknow.path.consentFact.version")
+      appErrors.errors(4).message must be(
+        "unknow.path.consentFact.groups.0.key")
+      appErrors.errors(5).message must be(
+        "unknow.path.consentFact.groups.0.label")
+      appErrors.errors(6).message must be(
+        "unknow.path.consentFact.groups.0.consents.0.key")
+      appErrors.errors(7).message must be(
+        "unknow.path.consentFact.groups.0.consents.0.label")
+      appErrors.errors(8).message must be(
+        "unknow.path.consentFact.groups.0.consents.0.checked")
+      appErrors.errors(9).message must be(
+        "unknow.path.consentFact.groups.0.consents.1.key")
+      appErrors.errors(10).message must be(
+        "unknow.path.consentFact.groups.0.consents.1.label")
+      appErrors.errors(11).message must be(
+        "unknow.path.consentFact.groups.0.consents.1.checked")
+      appErrors.errors(12).message must be(
+        "unknow.path.consentFact.groups.1.key")
+      appErrors.errors(13).message must be(
+        "unknow.path.consentFact.groups.1.label")
+      appErrors.errors(14).message must be(
+        "unknow.path.consentFact.groups.1.consents.0.key")
+      appErrors.errors(15).message must be(
+        "unknow.path.consentFact.groups.1.consents.0.label")
+      appErrors.errors(16).message must be(
+        "unknow.path.consentFact.groups.1.consents.0.checked")
+      appErrors.errors(17).message must be(
+        "unknow.path.consentFact.groups.1.consents.1.key")
+      appErrors.errors(18).message must be(
+        "unknow.path.consentFact.groups.1.consents.1.label")
+      appErrors.errors(19).message must be(
+        "unknow.path.consentFact.groups.1.consents.1.checked")
+      appErrors.errors(20).message must be(
+        "unknow.path.consentFact.metaData.0.@key")
+      appErrors.errors(21).message must be(
+        "unknow.path.consentFact.metaData.0.@value")
+      appErrors.errors(22).message must be(
+        "unknow.path.consentFact.metaData.1.@key")
+      appErrors.errors(23).message must be(
+        "unknow.path.consentFact.metaData.1.@value")
+    }
+
     "json serialize/deserialize" in {
       val json: JsValue = consentFact.asJson
       val consentFactEither: Either[AppErrors, ConsentFact] =
@@ -91,6 +144,37 @@ class ModelValidationSpec extends PlaySpec with WordSpecLike with MustMatchers {
 
       checkConsentFact(consentFactFromJson)
     }
+
+    def invalidConsentFact(consentFact: ConsentFact): Elem = <consentFact>
+      <invalidUserId>{consentFact.userId}</invalidUserId>
+      <doneBy>
+        <invalidUserId>{consentFact.doneBy.userId}</invalidUserId>
+        <invalidRole>{consentFact.doneBy.role}</invalidRole>
+      </doneBy>
+      <invalidVersion>{consentFact.version}</invalidVersion>
+      <groups>
+        {consentFact.groups.map(group => <consentGroup>
+        <invalidKey>{group.key}</invalidKey>
+        <invalidLabel>{group.label}</invalidLabel>
+        <consents>
+          {group.consents.map(consent => <consent>
+          <invalidKey>{consent.key}</invalidKey>
+          <invalidLabel>{consent.label}</invalidLabel>
+          <invalidChecked>{consent.checked}</invalidChecked>
+        </consent>)}
+        </consents>
+      </consentGroup>)}
+      </groups>
+      <invalidLastUpdate>{consentFact.lastUpdate.toString(DateUtils.utcDateFormatter)}</invalidLastUpdate>
+      <invalidOrgKey>{consentFact.orgKey.getOrElse("")}</invalidOrgKey>
+      {if (consentFact.metaData.isDefined) {
+        consentFact.metaData.map { md =>
+          <metaData>
+            {md.map { e => <metaDataEntry invalidKey={e._1} invalidValue={e._2}/> }}
+          </metaData>
+        }
+      }.get}
+    </consentFact>
 
     def checkConsentFact(consentFact: ConsentFact): Unit = {
       consentFact.userId must be("user1")
@@ -158,6 +242,23 @@ class ModelValidationSpec extends PlaySpec with WordSpecLike with MustMatchers {
       checkAccount(accountFromXml)
     }
 
+    "xml invalid" in {
+      val xml: Elem = invalidAccount(account)
+      val accountEither: Either[AppErrors, Account] = Account.fromXml(xml)
+
+      val appErrors: AppErrors = accountEither.left.get
+
+      appErrors.errors.head.message must be("unknow.path.account.accountId")
+      appErrors.errors(1).message must be(
+        "unknow.path.account.organisationsUsers.0.userId")
+      appErrors.errors(2).message must be(
+        "unknow.path.account.organisationsUsers.0.orgKey")
+      appErrors.errors(3).message must be(
+        "unknow.path.account.organisationsUsers.1.userId")
+      appErrors.errors(4).message must be(
+        "unknow.path.account.organisationsUsers.1.orgKey")
+    }
+
     "json serialize/deserialize" in {
       val json: JsValue = account.asJson()
       val accountEither: Either[AppErrors, Account] = Account.fromJson(json)
@@ -168,6 +269,21 @@ class ModelValidationSpec extends PlaySpec with WordSpecLike with MustMatchers {
 
       checkAccount(accountFromJson)
     }
+
+    def invalidAccount(account: Account): Elem = <account>
+    <invalidAccountId>{account.accountId}</invalidAccountId>
+      <invalidLastUpdate>{account.lastUpdate.toString(DateUtils.utcDateFormatter)}</invalidLastUpdate>
+      <organisationsUsers>
+        {account.organisationsUsers.map(ou => <organisationUser>
+        <invalidUserId>
+          {ou.userId}
+        </invalidUserId>
+        <invalidOrgKey>
+          {ou.orgKey}
+        </invalidOrgKey>
+      </organisationUser>)}
+      </organisationsUsers>
+    </account>
 
     def checkAccount(account: Account): Unit = {
       account.accountId must be("1")
@@ -237,27 +353,43 @@ class ModelValidationSpec extends PlaySpec with WordSpecLike with MustMatchers {
 
     "xml invalid" in {
       val xml: Elem = invalidOrganisation(organisation)
-      val organisationEither: Either[AppErrors, Organisation] = Organisation.fromXml(xml)
+      val organisationEither: Either[AppErrors, Organisation] =
+        Organisation.fromXml(xml)
 
       val appErrors: AppErrors = organisationEither.left.get
 
-      appErrors.errors.head.message must be ("unknow.path.organisation.key")
-      appErrors.errors(1).message must be ("unknow.path.organisation.label")
-      appErrors.errors(2).message must be ("unknow.path.organisation.version.status")
-      appErrors.errors(3).message must be ("unknow.path.organisation.version.num")
-      appErrors.errors(4).message must be ("unknow.path.organisation.version.latest")
-      appErrors.errors(5).message must be ("unknow.path.organisation.groups.0.key")
-      appErrors.errors(6).message must be ("unknow.path.organisation.groups.0.label")
-      appErrors.errors(7).message must be ("unknow.path.organisation.groups.0.permissions.0.key")
-      appErrors.errors(8).message must be ("unknow.path.organisation.groups.0.permissions.0.label")
-      appErrors.errors(9).message must be ("unknow.path.organisation.groups.0.permissions.1.key")
-      appErrors.errors(10).message must be ("unknow.path.organisation.groups.0.permissions.1.label")
-      appErrors.errors(11).message must be ("unknow.path.organisation.groups.1.key")
-      appErrors.errors(12).message must be ("unknow.path.organisation.groups.1.label")
-      appErrors.errors(13).message must be ("unknow.path.organisation.groups.1.permissions.0.key")
-      appErrors.errors(14).message must be ("unknow.path.organisation.groups.1.permissions.0.label")
-      appErrors.errors(15).message must be ("unknow.path.organisation.groups.1.permissions.1.key")
-      appErrors.errors(16).message must be ("unknow.path.organisation.groups.1.permissions.1.label")
+      appErrors.errors.head.message must be("unknow.path.organisation.key")
+      appErrors.errors(1).message must be("unknow.path.organisation.label")
+      appErrors.errors(2).message must be(
+        "unknow.path.organisation.version.status")
+      appErrors.errors(3).message must be(
+        "unknow.path.organisation.version.num")
+      appErrors.errors(4).message must be(
+        "unknow.path.organisation.version.latest")
+      appErrors.errors(5).message must be(
+        "unknow.path.organisation.groups.0.key")
+      appErrors.errors(6).message must be(
+        "unknow.path.organisation.groups.0.label")
+      appErrors.errors(7).message must be(
+        "unknow.path.organisation.groups.0.permissions.0.key")
+      appErrors.errors(8).message must be(
+        "unknow.path.organisation.groups.0.permissions.0.label")
+      appErrors.errors(9).message must be(
+        "unknow.path.organisation.groups.0.permissions.1.key")
+      appErrors.errors(10).message must be(
+        "unknow.path.organisation.groups.0.permissions.1.label")
+      appErrors.errors(11).message must be(
+        "unknow.path.organisation.groups.1.key")
+      appErrors.errors(12).message must be(
+        "unknow.path.organisation.groups.1.label")
+      appErrors.errors(13).message must be(
+        "unknow.path.organisation.groups.1.permissions.0.key")
+      appErrors.errors(14).message must be(
+        "unknow.path.organisation.groups.1.permissions.0.label")
+      appErrors.errors(15).message must be(
+        "unknow.path.organisation.groups.1.permissions.1.key")
+      appErrors.errors(16).message must be(
+        "unknow.path.organisation.groups.1.permissions.1.label")
 
     }
 
@@ -272,7 +404,6 @@ class ModelValidationSpec extends PlaySpec with WordSpecLike with MustMatchers {
       checkOrganisation(organisationFromJson)
     }
 
-    
     def invalidOrganisation(organisation: Organisation): Elem = <organisation>
       <invalidKey>{organisation.key}</invalidKey>
       <invalidLabel>{organisation.label}</invalidLabel>
@@ -291,7 +422,7 @@ class ModelValidationSpec extends PlaySpec with WordSpecLike with MustMatchers {
         </permission>)}</permissions>
       </permissionGroup>)}</groups>
     </organisation>
-    
+
     def checkOrganisation(organisation: Organisation): Unit = {
       organisation.key must be("orgKey1")
 
