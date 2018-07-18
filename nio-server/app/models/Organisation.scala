@@ -152,7 +152,7 @@ object Organisation extends ReadableEntity[Organisation] {
       (
         (node \ "_id").validateNullable[String](
           BSONObjectID.generate().stringify,
-          (Some(s"${path.convert()}_id"))),
+          Some(s"${path.convert()}_id")),
         (node \ "key").validate[String](Some(s"${path.convert()}key")),
         (node \ "label").validate[String](Some(s"${path.convert()}label")),
         (node \ "version").validate[VersionInfo](

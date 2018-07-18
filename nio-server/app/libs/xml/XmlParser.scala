@@ -1,5 +1,7 @@
 package libs.xml
 
+import java.util.concurrent.atomic.{AtomicInteger, AtomicReference}
+
 import cats.data.Validated
 import libs.xml.syntax.XmlResult
 import org.joda.time.DateTime
@@ -85,9 +87,14 @@ object implicits {
     (xml: NodeSeq, path: Option[String]) =>
       Try(xml.head)
         .map(n => {
+          val incr = new AtomicInteger(0)
           n.child
             .collect {
-              case e: Elem => read.read(e, None)
+              case e: Elem =>
+                read.read(
+                  e,
+                  Some(
+                    s"${path.map(p => s"$p.${incr.getAndIncrement()}").getOrElse(incr.getAndIncrement())}"))
             }
             .toList
             .sequence

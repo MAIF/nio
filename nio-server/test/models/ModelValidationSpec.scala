@@ -235,6 +235,32 @@ class ModelValidationSpec extends PlaySpec with WordSpecLike with MustMatchers {
       checkOrganisation(organisationFromXml)
     }
 
+    "xml invalid" in {
+      val xml: Elem = invalidOrganisation(organisation)
+      val organisationEither: Either[AppErrors, Organisation] = Organisation.fromXml(xml)
+
+      val appErrors: AppErrors = organisationEither.left.get
+
+      appErrors.errors.head.message must be ("unknow.path.organisation.key")
+      appErrors.errors(1).message must be ("unknow.path.organisation.label")
+      appErrors.errors(2).message must be ("unknow.path.organisation.version.status")
+      appErrors.errors(3).message must be ("unknow.path.organisation.version.num")
+      appErrors.errors(4).message must be ("unknow.path.organisation.version.latest")
+      appErrors.errors(5).message must be ("unknow.path.organisation.groups.0.key")
+      appErrors.errors(6).message must be ("unknow.path.organisation.groups.0.label")
+      appErrors.errors(7).message must be ("unknow.path.organisation.groups.0.permissions.0.key")
+      appErrors.errors(8).message must be ("unknow.path.organisation.groups.0.permissions.0.label")
+      appErrors.errors(9).message must be ("unknow.path.organisation.groups.0.permissions.1.key")
+      appErrors.errors(10).message must be ("unknow.path.organisation.groups.0.permissions.1.label")
+      appErrors.errors(11).message must be ("unknow.path.organisation.groups.1.key")
+      appErrors.errors(12).message must be ("unknow.path.organisation.groups.1.label")
+      appErrors.errors(13).message must be ("unknow.path.organisation.groups.1.permissions.0.key")
+      appErrors.errors(14).message must be ("unknow.path.organisation.groups.1.permissions.0.label")
+      appErrors.errors(15).message must be ("unknow.path.organisation.groups.1.permissions.1.key")
+      appErrors.errors(16).message must be ("unknow.path.organisation.groups.1.permissions.1.label")
+
+    }
+
     "json serialize/deserialize" in {
       val json: JsValue = organisation.asJson
       val organisationEither: Either[AppErrors, Organisation] =
@@ -246,6 +272,26 @@ class ModelValidationSpec extends PlaySpec with WordSpecLike with MustMatchers {
       checkOrganisation(organisationFromJson)
     }
 
+    
+    def invalidOrganisation(organisation: Organisation): Elem = <organisation>
+      <invalidKey>{organisation.key}</invalidKey>
+      <invalidLabel>{organisation.label}</invalidLabel>
+      <version>
+        <invalidStatus>{organisation.version.status}</invalidStatus>
+        <invalidNum>{organisation.version.num}</invalidNum>
+        <invalidLatest>{organisation.version.latest}</invalidLatest>
+        <invalidLastUpdate>{organisation.version.lastUpdate.toString(DateUtils.utcDateFormatter)}</invalidLastUpdate>
+      </version>
+      <groups>{organisation.groups.map(group => <permissionGroup>
+        <invalidKey>{group.key}</invalidKey>
+        <invalidLabel>{group.label}</invalidLabel>
+        <permissions>{group.permissions.map(permission => <permission>
+          <invalidKey>{permission.key}</invalidKey>
+          <invalidLabel>{permission.label}</invalidLabel>
+        </permission>)}</permissions>
+      </permissionGroup>)}</groups>
+    </organisation>
+    
     def checkOrganisation(organisation: Organisation): Unit = {
       organisation.key must be("orgKey1")
 
@@ -295,8 +341,8 @@ class ModelValidationSpec extends PlaySpec with WordSpecLike with MustMatchers {
 
       val appErrors: AppErrors = tenantEither.left.get
 
-      appErrors.errors.head.message must be ("unknow.path.tenant.key")
-      appErrors.errors(1).message must be ("unknow.path.tenant.description")
+      appErrors.errors.head.message must be("unknow.path.tenant.key")
+      appErrors.errors(1).message must be("unknow.path.tenant.description")
     }
 
     "json serialize/deserialize" in {
