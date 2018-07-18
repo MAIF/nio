@@ -23,14 +23,16 @@ case class Tenant(key: String, description: String) extends ModelTransformAs {
 object Tenant extends ReadableEntity[Tenant] {
   implicit val tenantFormats = Json.format[Tenant]
 
-  implicit val readXml: XMLRead[Tenant] = (node: NodeSeq) =>
-    (
-      (node \ "key").validate[String],
-      (node \ "description").validate[String]
-    ).mapN(Tenant.apply)
+  implicit val readXml: XMLRead[Tenant] =
+    (node: NodeSeq, path: Option[String]) =>
+      (
+        (node \ "key").validate[String](Some(s"${path.convert()}key")),
+        (node \ "description").validate[String](
+          Some(s"${path.convert()}description"))
+      ).mapN(Tenant.apply)
 
   def fromXml(xml: Elem) = {
-    readXml.read(xml).toEither
+    readXml.read(xml, Some("tenant")).toEither
   }
 
   def fromJson(json: JsValue): Either[AppErrors, Tenant] = {

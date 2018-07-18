@@ -51,12 +51,14 @@ case class FileMetadata(name: String, contentType: String, size: Long) {
 object FileMetadata {
   implicit val fileMetadataFormats = Json.format[FileMetadata]
 
-  implicit val readXml: XMLRead[FileMetadata] = (node: NodeSeq) =>
-    (
-      (node \ "name").validate[String],
-      (node \ "contentType").validate[String],
-      (node \ "size").validate[Long]
-    ).mapN(FileMetadata.apply)
+  implicit val readXml: XMLRead[FileMetadata] =
+    (node: NodeSeq, path: Option[String]) =>
+      (
+        (node \ "name").validate[String](Some(s"${path.convert()}name")),
+        (node \ "contentType").validate[String](
+          Some(s"${path.convert()}contentType")),
+        (node \ "size").validate[Long](Some(s"${path.convert()}size"))
+      ).mapN(FileMetadata.apply)
 }
 
 case class FilesMetadata(files: Seq[FileMetadata]) {
@@ -71,11 +73,12 @@ case class FilesMetadata(files: Seq[FileMetadata]) {
 object FilesMetadata extends ReadableEntity[FilesMetadata] {
   implicit val filesMetadataFormats = Json.format[FilesMetadata]
 
-  implicit val readXml: XMLRead[FilesMetadata] = (node: NodeSeq) =>
-    node.validate[Seq[FileMetadata]].map(files => FilesMetadata(files))
+  implicit val readXml: XMLRead[FilesMetadata] =
+    (node: NodeSeq, path: Option[String]) =>
+      node.validate[Seq[FileMetadata]].map(files => FilesMetadata(files))
 
   def fromXml(xml: Elem): Either[AppErrors, FilesMetadata] = {
-    readXml.read(xml).toEither
+    readXml.read(xml, Some("filesMetadata")).toEither
   }
 
   def fromJson(json: JsValue): Either[AppErrors, FilesMetadata] = {

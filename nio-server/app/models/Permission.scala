@@ -20,10 +20,11 @@ case class Permission(key: String, label: String) {
 object Permission {
   implicit val formats = Json.format[Permission]
 
-  implicit val readXml: XMLRead[Permission] = (node: NodeSeq) =>
-    (
-      (node \ "key").validate[String],
-      (node \ "label").validate[String]
-    ).mapN(Permission.apply)
+  implicit val readXml: XMLRead[Permission] =
+    (node: NodeSeq, path: Option[String]) =>
+      (
+        (node \ "key").validate[String](Some(s"${path.convert()}key")),
+        (node \ "label").validate[String](Some(s"${path.convert()}label"))
+      ).mapN(Permission.apply)
 
 }

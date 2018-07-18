@@ -3,6 +3,7 @@ package models
 import org.joda.time.{DateTime, DateTimeZone}
 import org.scalatest.{MustMatchers, WordSpecLike}
 import org.scalatestplus.play.PlaySpec
+import play.api.Logger
 import play.api.libs.json.JsValue
 import utils.DateUtils
 import utils.Result.AppErrors
@@ -287,6 +288,14 @@ class ModelValidationSpec extends PlaySpec with WordSpecLike with MustMatchers {
       val tenantFromXml: Tenant = tenantEither.right.get
       checkTenant(tenantFromXml)
     }
+    "xml invalid" in {
+      val xml: Elem = invalidTenant(tenant)
+      val tenantEither: Either[AppErrors, Tenant] = Tenant.fromXml(xml)
+
+      val appErrors: AppErrors = tenantEither.left.get
+
+      Logger.info(s"==> $appErrors")
+    }
 
     "json serialize/deserialize" in {
       val json: JsValue = tenant.asJson
@@ -300,5 +309,10 @@ class ModelValidationSpec extends PlaySpec with WordSpecLike with MustMatchers {
       tenant.key must be("tenant1")
       tenant.description must be("tenant 1")
     }
+
+    def invalidTenant(tenant: Tenant): Elem = <tenant>
+      <invalidKey>{tenant.key}</invalidKey>
+      <invalidDescription>{tenant.description}</invalidDescription>
+    </tenant>
   }
 }

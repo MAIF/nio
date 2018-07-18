@@ -44,11 +44,12 @@ object OrganisationUser {
 
   implicit val format: Format[OrganisationUser] = Format(read, write)
 
-  implicit val readXml: XMLRead[OrganisationUser] = (node: NodeSeq) =>
-    (
-      (node \ "userId").validate[String],
-      (node \ "orgKey").validate[String]
-    ).mapN(OrganisationUser.apply)
+  implicit val readXml: XMLRead[OrganisationUser] =
+    (node: NodeSeq, path: Option[String]) =>
+      (
+        (node \ "userId").validate[String](Some(s"${path.convert()}userId")),
+        (node \ "orgKey").validate[String](Some(s"${path.convert()}orgKey"))
+      ).mapN(OrganisationUser.apply)
 
   def fromJson(json: JsValue): Either[String, OrganisationUser] =
     json
@@ -97,15 +98,17 @@ object Account extends ReadableEntity[Account] {
   implicit val format: Format[Account] = Format(read, write)
   implicit val oformat: OFormat[Account] = OFormat(read, write)
 
-  implicit val readXml: XMLRead[Account] = (node: NodeSeq) =>
-    (
-      (node \ "accountId").validate[String],
-      (node \ "organisationsUsers").validate[Seq[OrganisationUser]]
-    ).mapN((accountId, organisationsUsers) =>
-      Account(accountId = accountId, organisationsUsers = organisationsUsers))
+  implicit val readXml: XMLRead[Account] =
+    (node: NodeSeq, path: Option[String]) =>
+      (
+        (node \ "accountId").validate[String](Some("account.accountId")),
+        (node \ "organisationsUsers").validate[Seq[OrganisationUser]](
+          Some("account.organisationsUsers"))
+      ).mapN((accountId, organisationsUsers) =>
+        Account(accountId = accountId, organisationsUsers = organisationsUsers))
 
   override def fromXml(xml: Elem): Either[AppErrors, Account] = {
-    readXml.read(xml).toEither
+    readXml.read(xml, Some("account")).toEither
   }
 
   override def fromJson(json: JsValue): Either[AppErrors, Account] =

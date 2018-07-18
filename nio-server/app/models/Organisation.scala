@@ -40,19 +40,21 @@ object VersionInfo {
   implicit val utcDateTimeFormats = DateUtils.utcDateTimeFormats
   implicit val formats = Json.format[VersionInfo]
 
-  implicit val readXml: XMLRead[VersionInfo] = (node: NodeSeq) =>
-    (
-      (node \ "status").validate[String],
-      (node \ "num").validate[Int],
-      (node \ "latest").validate[Boolean],
-      (node \ "lastUpdate").validateNullable[DateTime](
-        DateTime.now(DateTimeZone.UTC))
-    ).mapN { (status, num, latest, lastUpdate) =>
-      VersionInfo(status = status,
-                  num = num,
-                  latest = latest,
-                  lastUpdate = lastUpdate)
-  }
+  implicit val readXml: XMLRead[VersionInfo] =
+    (node: NodeSeq, path: Option[String]) =>
+      (
+        (node \ "status").validate[String](Some(s"${path.convert()}status")),
+        (node \ "num").validate[Int](Some(s"${path.convert()}num")),
+        (node \ "latest").validate[Boolean](Some(s"${path.convert()}latest")),
+        (node \ "lastUpdate").validateNullable[DateTime](
+          DateTime.now(DateTimeZone.UTC),
+          Some(s"${path.convert()}lastUpdate"))
+      ).mapN { (status, num, latest, lastUpdate) =>
+        VersionInfo(status = status,
+                    num = num,
+                    latest = latest,
+                    lastUpdate = lastUpdate)
+    }
 }
 
 case class Organisation(_id: String = BSONObjectID.generate().stringify,
@@ -145,25 +147,29 @@ object Organisation extends ReadableEntity[Organisation] {
       )
   }
 
-  implicit val readXml: XMLRead[Organisation] = (node: NodeSeq) =>
-    (
-      (node \ "_id").validateNullable[String](
-        BSONObjectID.generate().stringify),
-      (node \ "key").validate[String],
-      (node \ "label").validate[String],
-      (node \ "version").validate[VersionInfo],
-      (node \ "groups").validate[Seq[PermissionGroup]],
-    ).mapN(
-      (_id, key, label, version, groups) =>
-        Organisation(_id = _id,
-                     key = key,
-                     label = label,
-                     version = version,
-                     groups = groups)
-  )
+  implicit val readXml: XMLRead[Organisation] =
+    (node: NodeSeq, path: Option[String]) =>
+      (
+        (node \ "_id").validateNullable[String](
+          BSONObjectID.generate().stringify,
+          (Some(s"${path.convert()}_id"))),
+        (node \ "key").validate[String](Some(s"${path.convert()}key")),
+        (node \ "label").validate[String](Some(s"${path.convert()}label")),
+        (node \ "version").validate[VersionInfo](
+          Some(s"${path.convert()}version")),
+        (node \ "groups").validate[Seq[PermissionGroup]](
+          Some(s"${path.convert()}groups")),
+      ).mapN(
+        (_id, key, label, version, groups) =>
+          Organisation(_id = _id,
+                       key = key,
+                       label = label,
+                       version = version,
+                       groups = groups)
+    )
 
   def fromXml(xml: Elem): Either[AppErrors, Organisation] = {
-    readXml.read(xml).toEither
+    readXml.read(xml, Some("organisation")).toEither
   }
 
   def fromJson(json: JsValue) = {

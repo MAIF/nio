@@ -23,11 +23,13 @@ case class PermissionGroup(key: String,
 object PermissionGroup {
   implicit val json = Json.format[PermissionGroup]
 
-  implicit val readXml: XMLRead[PermissionGroup] = (node: NodeSeq) =>
-    (
-      (node \ "key").validate[String],
-      (node \ "label").validate[String],
-      (node \ "permissions").validate[Seq[Permission]]
-    ).mapN(PermissionGroup.apply)
+  implicit val readXml: XMLRead[PermissionGroup] =
+    (node: NodeSeq, path: Option[String]) =>
+      (
+        (node \ "key").validate[String](Some(s"${path.convert()}key")),
+        (node \ "label").validate[String](Some(s"${path.convert()}label")),
+        (node \ "permissions").validate[Seq[Permission]](
+          Some(s"${path.convert()}permissions"))
+      ).mapN(PermissionGroup.apply)
 
 }

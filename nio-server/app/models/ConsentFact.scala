@@ -21,11 +21,12 @@ import scala.xml.{Elem, NodeSeq}
 case class Metadata(key: String, value: String)
 object Metadata {
 
-  implicit val xmlRead: XMLRead[Metadata] = (node: NodeSeq) =>
-    (
-      (node \ "@key").validate[String],
-      (node \ "@value").validate[String]
-    ).mapN(Metadata.apply)
+  implicit val xmlRead: XMLRead[Metadata] =
+    (node: NodeSeq, path: Option[String]) =>
+      (
+        (node \ "@key").validate[String](Some(s"${path.convert()}@key")),
+        (node \ "@value").validate[String](Some(s"${path.convert()}@value"))
+      ).mapN(Metadata.apply)
 }
 
 case class DoneBy(userId: String, role: String)
@@ -39,10 +40,10 @@ object DoneBy {
     import cats.implicits._
     import libs.xml.implicits._
     import libs.xml.syntax._
-    (node: NodeSeq) =>
+    (node: NodeSeq, path: Option[String]) =>
       (
-        (node \ "userId").validate[String],
-        (node \ "role").validate[String]
+        (node \ "userId").validate[String](Some(s"${path.convert()}userId")),
+        (node \ "role").validate[String](Some(s"${path.convert()}role"))
       ).mapN { DoneBy.apply }
   }
 }
@@ -64,13 +65,14 @@ case class Consent(key: String, label: String, checked: Boolean) {
 object Consent {
   implicit val consentFormats = Json.format[Consent]
 
-  implicit val xmlRead: XMLRead[Consent] = (xml: NodeSeq) => {
-    (
-      (xml \ "key").validate[String],
-      (xml \ "label").validate[String],
-      (xml \ "checked").validate[Boolean]
-    ).mapN(Consent.apply)
-  }
+  implicit val xmlRead: XMLRead[Consent] =
+    (xml: NodeSeq, path: Option[String]) => {
+      (
+        (xml \ "key").validate[String](Some(s"${path.convert()}key")),
+        (xml \ "label").validate[String](Some(s"${path.convert()}label")),
+        (xml \ "checked").validate[Boolean](Some(s"${path.convert()}checked"))
+      ).mapN(Consent.apply)
+    }
 
 }
 
@@ -93,13 +95,15 @@ object ConsentGroup {
 
   import Consent._
 
-  implicit val xmlRead: XMLRead[ConsentGroup] = (xml: NodeSeq) => {
-    (
-      (xml \ "key").validate[String],
-      (xml \ "label").validate[String],
-      (xml \ "consents").validate[Seq[Consent]]
-    ).mapN(ConsentGroup.apply)
-  }
+  implicit val xmlRead: XMLRead[ConsentGroup] =
+    (xml: NodeSeq, path: Option[String]) => {
+      (
+        (xml \ "key").validate[String](Some(s"${path.convert()}key")),
+        (xml \ "label").validate[String](Some(s"${path.convert()}label")),
+        (xml \ "consents").validate[Seq[Consent]](
+          Some(s"${path.convert()}consents"))
+      ).mapN(ConsentGroup.apply)
+    }
 
 }
 
@@ -254,33 +258,38 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
       orgKey = Some(orgKey)
     )
 
-  implicit val readXml: XMLRead[ConsentFact] = (node: NodeSeq) =>
-    (
-      BSONObjectID.generate().stringify.toXmlResult,
-      (node \ "userId").validate[String],
-      (node \ "doneBy").validate[DoneBy],
-      (node \ "lastUpdate")
-        .validateNullable[DateTime](DateTime.now(DateTimeZone.UTC)),
-      (node \ "orgKey").validateNullable[String],
-      (node \ "version").validate[Int],
-      (node \ "groups").validate[Seq[ConsentGroup]],
-      (node \ "metaData").validateNullable[Seq[Metadata]]
-    ).mapN {
-      (id, userId, doneBy, lastUpdate, orgKey, version, groups, metadata) =>
-        ConsentFact(
-          _id = id,
-          userId = userId,
-          doneBy = doneBy,
-          version = version,
-          lastUpdate = lastUpdate,
-          orgKey = orgKey,
-          groups = groups,
-          metaData = metadata.map(m => m.map(ev => (ev.key, ev.value)).toMap)
-        )
-  }
+  implicit val readXml: XMLRead[ConsentFact] =
+    (node: NodeSeq, path: Option[String]) =>
+      (
+        BSONObjectID.generate().stringify.toXmlResult,
+        (node \ "userId").validate[String](Some(s"${path.convert()}userId")),
+        (node \ "doneBy").validate[DoneBy](Some(s"${path.convert()}doneBy")),
+        (node \ "lastUpdate")
+          .validateNullable[DateTime](DateTime.now(DateTimeZone.UTC),
+                                      Some(s"${path.convert()}lastUpdate")),
+        (node \ "orgKey").validateNullable[String](
+          Some(s"${path.convert()}orgKey")),
+        (node \ "version").validate[Int](Some(s"${path.convert()}version")),
+        (node \ "groups").validate[Seq[ConsentGroup]](
+          Some(s"${path.convert()}groups")),
+        (node \ "metaData").validateNullable[Seq[Metadata]](
+          Some(s"${path.convert()}metaData"))
+      ).mapN {
+        (id, userId, doneBy, lastUpdate, orgKey, version, groups, metadata) =>
+          ConsentFact(
+            _id = id,
+            userId = userId,
+            doneBy = doneBy,
+            version = version,
+            lastUpdate = lastUpdate,
+            orgKey = orgKey,
+            groups = groups,
+            metaData = metadata.map(m => m.map(ev => (ev.key, ev.value)).toMap)
+          )
+    }
 
   def fromXml(xml: Elem): Either[AppErrors, ConsentFact] = {
-    readXml.read(xml).toEither
+    readXml.read(xml, Some("consentFact")).toEither
   }
 
   def fromJson(json: JsValue): Either[AppErrors, ConsentFact] = {
