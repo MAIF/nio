@@ -288,13 +288,15 @@ class ModelValidationSpec extends PlaySpec with WordSpecLike with MustMatchers {
       val tenantFromXml: Tenant = tenantEither.right.get
       checkTenant(tenantFromXml)
     }
+
     "xml invalid" in {
       val xml: Elem = invalidTenant(tenant)
       val tenantEither: Either[AppErrors, Tenant] = Tenant.fromXml(xml)
 
       val appErrors: AppErrors = tenantEither.left.get
 
-      Logger.info(s"==> $appErrors")
+      appErrors.errors.head.message must be ("unknow.path.tenant.key")
+      appErrors.errors(1).message must be ("unknow.path.tenant.description")
     }
 
     "json serialize/deserialize" in {

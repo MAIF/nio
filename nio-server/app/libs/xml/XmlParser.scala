@@ -5,7 +5,7 @@ import libs.xml.syntax.XmlResult
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormatter
 import utils.DateUtils
-import utils.Result.AppErrors
+import utils.Result.{AppErrors, ErrorMessage}
 
 import scala.util.Try
 import scala.xml.{Elem, NodeSeq}
@@ -63,28 +63,23 @@ object implicits {
 
   import cats.implicits._
 
-  lazy val pathError = "unknow.path"
-
-  def toPath(path: Option[String]) =
+  private def toPath(path: Option[String]): String =
     path.map(p => s".$p").getOrElse("")
+
+  private def buildError(path: Option[String]): AppErrors =
+    AppErrors.error(s"unknow.path${toPath(path)}")
 
   implicit def readString: XMLRead[String] =
     (xml: NodeSeq, path: Option[String]) =>
       Try(xml.head.text)
         .map(_.valid)
-        .getOrElse(
-          AppErrors
-            .error(s"$pathError${toPath(path)}")
-            .invalid)
+        .getOrElse(buildError(path).invalid)
 
   implicit def readBoolean: XMLRead[Boolean] =
     (xml: NodeSeq, path: Option[String]) =>
       Try(xml.head.text.toBoolean)
         .map(_.valid)
-        .getOrElse(
-          AppErrors
-            .error(s"$pathError${toPath(path)}")
-            .invalid)
+        .getOrElse(buildError(path).invalid)
 
   implicit def readSeq[T](implicit read: XMLRead[T]): XMLRead[Seq[T]] =
     (xml: NodeSeq, path: Option[String]) =>
@@ -97,27 +92,19 @@ object implicits {
             .toList
             .sequence
         })
-        .getOrElse(AppErrors
-          .error(s"$pathError${toPath(path)}")
-          .invalid)
+        .getOrElse(buildError(path).invalid)
 
   implicit def readInt: XMLRead[Int] =
     (xml: NodeSeq, path: Option[String]) =>
       Try(xml.head.text.toInt)
         .map(_.valid)
-        .getOrElse(
-          AppErrors
-            .error(s"$pathError${toPath(path)}")
-            .invalid)
+        .getOrElse(buildError(path).invalid)
 
   implicit def readLong: XMLRead[Long] =
     (xml: NodeSeq, path: Option[String]) =>
       Try(xml.head.text.toLong)
         .map(_.valid)
-        .getOrElse(
-          AppErrors
-            .error(s"$pathError${toPath(path)}")
-            .invalid)
+        .getOrElse(buildError(path).invalid)
 
   implicit def defaultReadDateTime: XMLRead[DateTime] =
     readDateTime(DateUtils.utcDateFormatter)
@@ -126,14 +113,11 @@ object implicits {
     (xml: NodeSeq, path: Option[String]) =>
       Try(xml.head.text)
         .map(_.valid)
-        .getOrElse(
-          AppErrors
-            .error(s"$pathError${toPath(path)}")
-            .invalid)
+        .getOrElse(buildError(path).invalid)
         .andThen { t =>
           Try(dateTimeFormatter.parseDateTime(t))
             .map(_.valid)
-            .getOrElse(AppErrors.error("parse.error").invalid)
+            .getOrElse(AppErrors.error(s"parse.error${toPath(path)}").invalid)
       }
 
   implicit def readOption[T](implicit read: XMLRead[T]): XMLRead[Option[T]] =
