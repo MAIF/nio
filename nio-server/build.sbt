@@ -16,10 +16,10 @@ libraryDependencies ++= Seq(
   "com.typesafe.play" %% "play-json-joda" % "2.6.9",
   "org.reactivemongo" %% "play2-reactivemongo" % "0.13.0-play26",
   "org.reactivemongo" %% "reactivemongo-akkastream" % "0.13.0",
-  "com.typesafe.akka" %% "akka-stream-kafka" % "0.20",
+  "com.typesafe.akka" %% "akka-stream-kafka" % "0.22",
   "de.svenkubiak" % "jBCrypt" % "0.4.1", //  ISC/BSD
   "com.auth0" % "java-jwt" % "3.1.0", // MIT license
-  "com.github.pureconfig" %% "pureconfig" % "0.8.0", // Apache 2.0
+  "com.github.pureconfig" %% "pureconfig" % "0.9.1", // Apache 2.0
   "org.scalactic" %% "scalactic" % "3.0.4", // Apache 2.0
   "org.webjars" % "swagger-ui" % "3.12.1",
   "org.typelevel" %% "cats-core" % "1.1.0", // MIT
