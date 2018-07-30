@@ -70,7 +70,7 @@ trait TestUtils
     CONTENT_TYPE -> XML
   )
 
-  val kafkaPort = 29092
+  val kafkaPort = 9092
   val mongoPort = 27017
   val tenant = "test"
 
