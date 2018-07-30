@@ -116,8 +116,11 @@ class TenantController(
                 tenantKey),
               organisationDataStore.deleteOrganisationByTenant(tenantKey),
               userDataStore.deleteUserByTenant(tenantKey),
-              tenantStore.removeByKey(tenantKey)
-            ).mapN { (_, _, _, _, _) =>
+              tenantStore.removeByKey(tenantKey),
+              accountMongoDataStore.deleteAccountByTenant(tenantKey),
+              deletionTaskDataStore.deleteDeletionTaskByTenant(tenantKey),
+              extractionTaskDataStore.deleteExtractionTaskByTenant(tenantKey)
+            ).mapN { (_, _, _, _, _, _, _, _) =>
               broker.publish(
                 TenantDeleted(tenant = tenantToDelete.key,
                               payload = tenantToDelete,

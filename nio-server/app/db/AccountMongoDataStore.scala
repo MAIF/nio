@@ -49,4 +49,10 @@ class AccountMongoDataStore(val mongoApi: ReactiveMongoApi)(
   def delete(tenant: String, accountId: String): Future[Boolean] = {
     deleteByQuery(tenant, Json.obj("accountId" -> accountId))
   }
+
+  def deleteAccountByTenant(tenant: String): Future[Boolean] = {
+    storedCollection(tenant).flatMap { col =>
+      col.drop(failIfNotFound = false)
+    }
+  }
 }

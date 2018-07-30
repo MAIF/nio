@@ -81,4 +81,10 @@ class ExtractionTaskMongoDataStore(val mongoApi: ReactiveMongoApi)(
         .documentSource()
     }
   }
+
+  def deleteExtractionTaskByTenant(tenant: String): Future[Boolean] = {
+    storedCollection(tenant).flatMap { col =>
+      col.drop(failIfNotFound = false)
+    }
+  }
 }

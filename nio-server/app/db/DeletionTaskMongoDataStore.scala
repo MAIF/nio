@@ -65,4 +65,10 @@ class DeletionTaskMongoDataStore(val mongoApi: ReactiveMongoApi)(
                                  page = page,
                                  pageSize = pageSize)
   }
+
+  def deleteDeletionTaskByTenant(tenant: String): Future[Boolean] = {
+    storedCollection(tenant).flatMap { col =>
+      col.drop(failIfNotFound = false)
+    }
+  }
 }
