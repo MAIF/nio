@@ -11,7 +11,7 @@ services:
   - docker
 
 before_install:
-  - docker run -d -p 32181:32181 --env ZOOKEEPER_CLIENT_PORT=32181 --env ZOOKEEPER_TICK_TIME=2000 confluentinc/cp-zookeeper:3.2.1
-  - docker run -d -p 29092:29092 --env KAFKA_BROKER_ID=1 --env KAFKA_ZOOKEEPER_CONNECT=127.0.0.1:32181 --env KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:29092 --env KAFKA_AUTO_CREATE_TOPICS_ENABLE="true" --env KAFKA_DELETE_TOPIC_ENABLE="true" --env KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 confluentinc/cp-kafka:3.2.1
+  - docker run -d -p 32181:32181 --net=host --name=zookeeper  --env ZOOKEEPER_CLIENT_PORT=32181 --env ZOOKEEPER_TICK_TIME=2000 confluentinc/cp-zookeeper:3.2.1
+  - docker run -d -p 29092:29092 --env KAFKA_BROKER_ID=1 --env KAFKA_ZOOKEEPER_CONNECT=zookeeper:32181 --env KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:29092 --env KAFKA_AUTO_CREATE_TOPICS_ENABLE="true" --env KAFKA_DELETE_TOPIC_ENABLE="true" --env KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 confluentinc/cp-kafka:3.2.1
   - docker run -d -p 27017:27017 mongo:3.4.3
   - docker run -d -p 8000:8000 --env SCALITY_ACCESS_KEY_ID=newAccessKey --env SCALITY_SECRET_ACCESS_KEY=newSecretKey scality/s3server
