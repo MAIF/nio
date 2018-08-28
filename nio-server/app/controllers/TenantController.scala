@@ -2,16 +2,16 @@ package controllers
 
 import auth.AuthAction
 import configuration.Env
+import controllers.ErrorManager._
 import db._
-import javax.inject.Inject
+import messaging.KafkaMessageBroker
 import models.{Tenant, TenantCreated, TenantDeleted, Tenants}
 import play.api.mvc.ControllerComponents
-import messaging.KafkaMessageBroker
 import play.api.{Configuration, Logger}
+import utils.Result.AppErrors
 
 import scala.concurrent.{ExecutionContext, Future}
-
-class TenantController @Inject()(
+class TenantController(
     AuthAction: AuthAction,
     tenantStore: TenantMongoDataStore,
     accountMongoDataStore: AccountMongoDataStore,
@@ -27,23 +27,24 @@ class TenantController @Inject()(
     broker: KafkaMessageBroker)(implicit ec: ExecutionContext)
     extends ControllerUtils(cc) {
 
+  implicit val readable: ReadableEntity[Tenant] = Tenant
   def tenants = AuthAction.async { implicit req =>
     tenantStore.findAll().map { tenants =>
       renderMethod(Tenants(tenants))
     }
   }
 
-  def createTenant = AuthAction(parse.anyContent).async { implicit req =>
+  def createTenant = AuthAction(bodyParser).async { implicit req =>
     req.headers.get(env.tenantConfig.admin.header) match {
       case Some(secret) if secret == env.tenantConfig.admin.secret =>
-        parseMethod[Tenant](Tenant) match {
+        req.body.read[Tenant] match {
           case Left(error) =>
             Logger.error("Invalid tenant format " + error)
-            Future.successful(BadRequest("error.invalid.tenant.format"))
+            Future.successful("error.invalid.tenant.format".badRequest())
           case Right(tenant) =>
             tenantStore.findByKey(tenant.key).flatMap {
               case Some(_) =>
-                Future.successful(Conflict("error.key.already.used"))
+                Future.successful("error.key.already.used".conflict())
               case None =>
                 tenantStore.insert(tenant).flatMap { _ =>
                   broker.publish(
@@ -99,7 +100,7 @@ class TenantController @Inject()(
             }
         }
       case _ =>
-        Future.successful(Unauthorized("error.missing.secret"))
+        Future.successful("error.missing.secret".unauthorized())
     }
   }
 
@@ -115,8 +116,11 @@ class TenantController @Inject()(
                 tenantKey),
               organisationDataStore.deleteOrganisationByTenant(tenantKey),
               userDataStore.deleteUserByTenant(tenantKey),
-              tenantStore.removeByKey(tenantKey)
-            ).mapN { (_, _, _, _, _) =>
+              tenantStore.removeByKey(tenantKey),
+              accountMongoDataStore.deleteAccountByTenant(tenantKey),
+              deletionTaskDataStore.deleteDeletionTaskByTenant(tenantKey),
+              extractionTaskDataStore.deleteExtractionTaskByTenant(tenantKey)
+            ).mapN { (_, _, _, _, _, _, _, _) =>
               broker.publish(
                 TenantDeleted(tenant = tenantToDelete.key,
                               payload = tenantToDelete,
@@ -124,9 +128,9 @@ class TenantController @Inject()(
               Ok
             }
           case None =>
-            Future.successful(NotFound("error.tenant.not.found"))
+            Future.successful("error.tenant.not.found".notFound())
         }
-      case _ => Future.successful(Unauthorized("error.missing.secret"))
+      case _ => Future.successful("error.missing.secret".unauthorized())
     }
   }
 }

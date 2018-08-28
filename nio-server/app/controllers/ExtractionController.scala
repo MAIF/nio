@@ -13,30 +13,25 @@ import com.amazonaws.services.s3.model.{
   UploadPartRequest,
   UploadPartResult
 }
-import db.{
-  ConsentFactMongoDataStore,
-  ExtractionTaskMongoDataStore,
-  OrganisationMongoDataStore,
-  UserMongoDataStore
-}
-import javax.inject.{Inject, Singleton}
+import db.ExtractionTaskMongoDataStore
 import messaging.KafkaMessageBroker
 import models._
 import play.api.Logger
-import play.api.libs.json.Json
 import play.api.libs.streams.Accumulator
-import play.api.mvc.{BodyParser, ControllerComponents, Result}
+import play.api.mvc.{BodyParser, ControllerComponents}
 import s3.{S3, S3Configuration, S3FileDataStore}
 import utils.UploadTracker
 
 import scala.concurrent.{ExecutionContext, Future}
 
-@Singleton
-class ExtractionController @Inject()(val AuthAction: AuthAction,
-                                     val cc: ControllerComponents,
-                                     val s3Conf: S3Configuration,
-                                     val s3: S3,
-                                     val s3FileDataStore: S3FileDataStore)(
+import ErrorManager.ErrorManagerResult
+import ErrorManager.AppErrorManagerResult
+
+class ExtractionController(val AuthAction: AuthAction,
+                           val cc: ControllerComponents,
+                           val s3Conf: S3Configuration,
+                           val s3: S3,
+                           val s3FileDataStore: S3FileDataStore)(
     implicit val ec: ExecutionContext,
     val system: ActorSystem,
     val store: ExtractionTaskMongoDataStore,
@@ -48,14 +43,16 @@ class ExtractionController @Inject()(val AuthAction: AuthAction,
   val fileBodyParser: BodyParser[Source[ByteString, _]] = BodyParser { _ =>
     Accumulator.source[ByteString].map(s => Right(s))
   }
+  implicit val readable: ReadableEntity[AppIds] = AppIds
+  implicit val readableFileMetadata: ReadableEntity[FilesMetadata] =
+    FilesMetadata
 
   def startExtractionTask(tenant: String, orgKey: String, userId: String) =
-    AuthAction.async(parse.anyContent) { implicit req =>
-      val parsed = parseMethod[AppIds](AppIds)
-      parsed match {
+    AuthAction.async(bodyParser) { implicit req =>
+      req.body.read[AppIds] match {
         case Left(error) =>
           Logger.error(s"Unable to parse extraction task input due to $error")
-          Future.successful(BadRequest(error))
+          Future.successful(error.badRequest())
         case Right(o) =>
           val task = ExtractionTask.newFrom(orgKey, userId, o.appIds.toSet)
           store.insert(tenant, task).map { _ =>
@@ -79,18 +76,18 @@ class ExtractionController @Inject()(val AuthAction: AuthAction,
   def setFilesMetadata(tenant: String,
                        orgKey: String,
                        extractionTaskId: String,
-                       appId: String) = AuthAction.async(parse.anyContent) {
+                       appId: String) = AuthAction.async(bodyParser) {
     implicit req =>
-      parseMethod[FilesMetadata](FilesMetadata) match {
+      req.body.read[FilesMetadata] match {
         case Left(error) =>
           Logger.error(s"Unable to parse extraction task input due to $error")
-          Future.successful(BadRequest(error))
+          Future.successful(error.badRequest())
         case Right(extractedFiles) =>
           store.findById(tenant, extractionTaskId).flatMap {
             case None =>
-              Future.successful(NotFound("error.unknown.extractionTaskId"))
+              Future.successful("error.unknown.extractionTaskId".notFound())
             case Some(task) if !task.appIds.contains(appId) =>
-              Future.successful(NotFound("error.unknown.appId"))
+              Future.successful("error.unknown.appId".notFound())
             case Some(task) =>
               val updatedTask =
                 task.copyWithUpdatedAppState(appId, extractedFiles)
@@ -131,7 +128,7 @@ class ExtractionController @Inject()(val AuthAction: AuthAction,
                         extractionTaskId: String) =
     AuthAction.async { implicit request =>
       store.findById(tenant, extractionTaskId).map {
-        case None                 => NotFound("error.extraction.task.not.found")
+        case None                 => "error.extraction.task.not.found".notFound()
         case Some(extractionTask) => renderMethod(extractionTask)
       }
     }
@@ -144,12 +141,12 @@ class ExtractionController @Inject()(val AuthAction: AuthAction,
     ExtractionAction(tenant, extractionTaskId, fileBodyParser).async {
       implicit req =>
         if (!req.task.appIds.contains(appId)) {
-          Future.successful(NotFound("error.unknown.app"))
+          Future.successful("error.unknown.app".notFound())
         } else {
           val appState = req.task.states.find(_.appId == appId).get
           appState.files.find(_.name == name) match {
             case None =>
-              Future.successful(NotFound("error.unknown.appId"))
+              Future.successful("error.unknown.appId".notFound())
             case Some(fileMetadata) =>
               (if (s3Conf.v4auth) {
                  upload(tenant, req.task, appId, name)

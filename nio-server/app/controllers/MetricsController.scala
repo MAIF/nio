@@ -8,7 +8,6 @@ import com.codahale.metrics.MetricRegistry
 import com.fasterxml.jackson.databind.{ObjectMapper, ObjectWriter}
 import configuration.Env
 import db.TenantMongoDataStore
-import javax.inject.Inject
 import messaging.KafkaSettings
 import org.apache.kafka.clients.consumer.Consumer
 import play.api.mvc.ControllerComponents
@@ -16,7 +15,8 @@ import play.api.mvc.ControllerComponents
 import scala.concurrent.{ExecutionContext, Future}
 import scala.collection.JavaConverters._
 
-class MetricsController @Inject()(
+import ErrorManager.ErrorManagerResult
+class MetricsController(
     val AuthAction: AuthAction,
     tenantStore: TenantMongoDataStore,
     env: Env,
@@ -38,7 +38,7 @@ class MetricsController @Inject()(
     stringWriter.toString
   }
 
-  def healthCheck() = AuthAction.async { req =>
+  def healthCheck() = AuthAction.async { implicit req =>
     req.headers.get(env.healthCheckConfig.header) match {
       case Some(secret) if secret == env.healthCheckConfig.secret =>
         tenantStore
@@ -59,7 +59,7 @@ class MetricsController @Inject()(
             Ok
           }
       case None =>
-        Future.successful(Unauthorized("error.missing.secret"))
+        Future.successful("error.missing.secret".unauthorized())
     }
   }
 

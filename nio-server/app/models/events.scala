@@ -101,12 +101,12 @@ object NioEvent {
           Account
             .fromJson(payload)
             .toOption
-            .map(o => AccountDeleted(tenant, metadata, id, date, o))
+            .map(o => AccountDeleted(tenant, author, metadata, id, date, o))
         case EventType.AccountCreated =>
           Account
             .fromJson(payload)
             .toOption
-            .map(o => AccountCreated(tenant, metadata, id, date, o))
+            .map(o => AccountCreated(tenant, author, metadata, id, date, o))
         case EventType.AccountUpdated =>
           for {
             oldValue <- (json \ "oldValue")
@@ -114,7 +114,13 @@ object NioEvent {
               .flatMap(json => Account.fromJson(json).toOption)
             payload <- Account.fromJson(payload).toOption
           } yield {
-            AccountUpdated(tenant, metadata, id, date, payload, oldValue)
+            AccountUpdated(tenant,
+                           author,
+                           metadata,
+                           id,
+                           date,
+                           payload,
+                           oldValue)
           }
         case EventType.SecuredEvent =>
           Digest
@@ -378,6 +384,7 @@ case class ConsentFactUpdated(tenant: String,
 }
 
 case class AccountDeleted(tenant: String,
+                          author: String,
                           metadata: Option[Seq[(String, String)]] = None,
                           id: Long = NioEvent.gen.nextId(),
                           date: DateTime = DateTime.now(DateTimeZone.UTC),
@@ -392,6 +399,7 @@ case class AccountDeleted(tenant: String,
       .obj(
         "type" -> tYpe,
         "tenant" -> tenant,
+        "author" -> author,
         "metadata" -> buildMetadata(metadata),
         "account" -> payload.accountId,
         "date" -> date.toString(DateUtils.utcDateFormatter),
@@ -402,6 +410,7 @@ case class AccountDeleted(tenant: String,
 }
 
 case class AccountCreated(tenant: String,
+                          author: String,
                           metadata: Option[Seq[(String, String)]] = None,
                           id: Long = NioEvent.gen.nextId(),
                           date: DateTime = DateTime.now(DateTimeZone.UTC),
@@ -416,6 +425,7 @@ case class AccountCreated(tenant: String,
       .obj(
         "type" -> tYpe,
         "tenant" -> tenant,
+        "author" -> author,
         "metadata" -> buildMetadata(metadata),
         "account" -> payload.accountId,
         "date" -> date.toString(DateUtils.utcDateFormatter),
@@ -426,6 +436,7 @@ case class AccountCreated(tenant: String,
 }
 
 case class AccountUpdated(tenant: String,
+                          author: String,
                           metadata: Option[Seq[(String, String)]] = None,
                           id: Long = NioEvent.gen.nextId(),
                           date: DateTime = DateTime.now(DateTimeZone.UTC),
@@ -441,6 +452,7 @@ case class AccountUpdated(tenant: String,
       .obj(
         "type" -> tYpe,
         "tenant" -> tenant,
+        "author" -> author,
         "metadata" -> buildMetadata(metadata),
         "account" -> payload.accountId,
         "date" -> date.toString(DateUtils.utcDateFormatter),

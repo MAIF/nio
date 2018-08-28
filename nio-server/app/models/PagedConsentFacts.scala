@@ -14,8 +14,7 @@ case class PagedConsentFacts(page: Int,
              "count" -> count,
              "items" -> JsArray(items.map(_.asJson)))
 
-  def asXml =
-    <pagedConsentFacts>
+  def asXml = <pagedConsentFacts>
       <page>{page}</page>
       <pageSize>{pageSize}</pageSize>
       <count>{count}</count>

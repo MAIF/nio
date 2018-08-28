@@ -1,6 +1,7 @@
 package controllers
 
 import models._
+import play.api.Logger
 import play.api.libs.json.{JsArray, JsValue}
 import play.api.libs.ws.WSResponse
 import utils.TestUtils

@@ -8,19 +8,16 @@ import com.amazonaws.client.builder.AwsClientBuilder
 import com.amazonaws.regions.Regions
 import com.amazonaws.services.s3.model.PutObjectResult
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
-import com.google.inject.ImplementedBy
 import configuration.{Env, S3Config}
-import javax.inject.Inject
 
 import scala.concurrent.{ExecutionContext, Future}
 
-@ImplementedBy(classOf[S3Manager])
 trait FSManager {
   def addFile(key: String, content: String)(
       implicit s3ExecutionContext: S3ExecutionContext): Future[PutObjectResult]
 }
 
-class S3Manager @Inject()(env: Env) extends FSManager {
+class S3Manager(env: Env) extends FSManager {
 
   private lazy val s3Config: S3Config = env.config.s3Config
 

@@ -1,18 +1,24 @@
 package models
 
+import cats.data.Validated._
+import cats.implicits._
 import controllers.ReadableEntity
 import db.ExtractionTaskMongoDataStore
+import libs.xml.XMLRead
+import libs.xml.XmlUtil.XmlCleaner
+import libs.xml.implicits._
+import libs.xml.syntax._
 import messaging.KafkaMessageBroker
 import models.ExtractionTaskStatus.ExtractionTaskStatus
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json.Reads._
 import play.api.libs.json._
 import reactivemongo.bson.BSONObjectID
+import utils.Result.AppErrors
 import utils.{DateUtils, UploadTracker}
 
-import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success, Try}
-import scala.xml.Elem
+import scala.concurrent.ExecutionContext
+import scala.xml.{Elem, NodeSeq}
 
 object ExtractionTaskStatus extends Enumeration {
   type ExtractionTaskStatus = Value
@@ -35,24 +41,24 @@ case class FileMetadata(name: String, contentType: String, size: Long) {
     "size" -> size
   )
 
-  def asXml = {
-    <fileMetadata>
+  def asXml = <fileMetadata>
       <name>{name}</name>
       <contentType>{contentType}</contentType>
       <size>{size}</size>
-    </fileMetadata>
-  }
+    </fileMetadata>.clean()
 }
 
 object FileMetadata {
   implicit val fileMetadataFormats = Json.format[FileMetadata]
 
-  def fromXml(xml: Elem) = {
-    val name = (xml \ "name").head.text
-    val contentType = (xml \ "contentType").head.text
-    val size = (xml \ "size").head.text.toLong
-    FileMetadata(name, contentType, size)
-  }
+  implicit val readXml: XMLRead[FileMetadata] =
+    (node: NodeSeq, path: Option[String]) =>
+      (
+        (node \ "name").validate[String](Some(s"${path.convert()}name")),
+        (node \ "contentType").validate[String](
+          Some(s"${path.convert()}contentType")),
+        (node \ "size").validate[Long](Some(s"${path.convert()}size"))
+      ).mapN(FileMetadata.apply)
 }
 
 case class FilesMetadata(files: Seq[FileMetadata]) {
@@ -61,30 +67,24 @@ case class FilesMetadata(files: Seq[FileMetadata]) {
   def asXml =
     <filesMetadata>
       {files.map(_.asXml)}
-    </filesMetadata>
+    </filesMetadata>.clean()
 }
 
 object FilesMetadata extends ReadableEntity[FilesMetadata] {
   implicit val filesMetadataFormats = Json.format[FilesMetadata]
 
-  def fromXml(xml: Elem) = {
-    Try {
-      val files = xml.child.collect {
-        case e: Elem => FileMetadata.fromXml(e)
-      }
-      FilesMetadata(files)
-    } match {
-      case Success(value) => Right(value)
-      case Failure(throwable) => {
-        Left(throwable.getMessage)
-      }
-    }
+  implicit val readXml: XMLRead[FilesMetadata] =
+    (node: NodeSeq, path: Option[String]) =>
+      node.validate[Seq[FileMetadata]].map(files => FilesMetadata(files))
+
+  def fromXml(xml: Elem): Either[AppErrors, FilesMetadata] = {
+    readXml.read(xml, Some("filesMetadata")).toEither
   }
 
-  def fromJson(json: JsValue) = {
+  def fromJson(json: JsValue): Either[AppErrors, FilesMetadata] = {
     json.validate[FilesMetadata](filesMetadataFormats) match {
       case JsSuccess(o, _) => Right(o)
-      case JsError(errors) => Left(errors.mkString(", "))
+      case JsError(errors) => Left(AppErrors.fromJsError(errors))
     }
   }
 }
@@ -108,14 +108,12 @@ case class AppState(appId: String,
 
   def asJson = AppState.appStateFormats.writes(this)
 
-  def asXml = {
-    <appState>
+  def asXml = <appState>
       <appId>{appId}</appId>
       <files>{files.map(_.asXml)}</files>
       <totalBytes>{totalBytes}</totalBytes>
       <status>{status.toString}</status>
-    </appState>
-  }
+    </appState>.clean()
 }
 
 object AppState {
@@ -147,8 +145,7 @@ case class ExtractionTask(_id: String,
     "done" -> done
   )
 
-  def asXml = {
-    <extractionTask>
+  def asXml = <extractionTask>
       <id>{_id}</id>
       <orgKey>{orgKey}</orgKey>
       <userId>{userId}</userId>
@@ -159,8 +156,7 @@ case class ExtractionTask(_id: String,
       <progress>{progress}</progress>
       <lastUpdate>{lastUpdate.toString(DateUtils.utcDateFormatter)}</lastUpdate>
       <done>{done}</done>
-    </extractionTask>
-  }
+    </extractionTask>.clean()
 
   def progress: Double = {
     if (done == appIds.size) {
@@ -299,6 +295,6 @@ case class PagedExtractionTasks(page: Int,
       <pageSize>{pageSize}</pageSize>
       <count>{count}</count>
       <items>{items.map(_.asXml)}</items>
-    </pagedDeletionTasks>
+    </pagedDeletionTasks>.clean()
 
 }

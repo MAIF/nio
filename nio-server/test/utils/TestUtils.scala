@@ -10,6 +10,8 @@ import akka.kafka.{ConsumerSettings, Subscriptions}
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Sink
 import com.amazonaws.services.s3.model.PutObjectResult
+import com.typesafe.config.ConfigFactory
+import loader.NioLoader
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.{
@@ -17,14 +19,18 @@ import org.apache.kafka.common.serialization.{
   StringDeserializer
 }
 import org.scalatest._
-import org.scalatestplus.play.PlaySpec
-import org.scalatestplus.play.guice.GuiceOneServerPerSuite
-import play.api.Application
-import play.api.inject.bind
-import play.api.inject.guice.GuiceApplicationBuilder
+import org.scalatestplus.play.{
+  BaseOneServerPerSuite,
+  FakeApplicationFactory,
+  PlaySpec
+}
+import play.api.inject.DefaultApplicationLifecycle
+import play.api.{Application, ApplicationLoader, Configuration, Environment}
 import play.api.libs.json.{JsValue, Json}
 import play.api.libs.ws.{BodyWritable, WSClient, WSResponse}
 import play.api.test.Helpers._
+import play.api.test.WsTestClient
+import play.core.DefaultWebCommands
 import play.modules.reactivemongo.ReactiveMongoApi
 import reactivemongo.play.json.collection.JSONCollection
 
@@ -44,7 +50,8 @@ class MockS3Manager extends FSManager {
 
 trait TestUtils
     extends PlaySpec
-    with GuiceOneServerPerSuite
+    with BaseOneServerPerSuite
+    with FakeApplicationFactory
     with WordSpecLike
     with MustMatchers
     with OptionValues
@@ -68,28 +75,38 @@ trait TestUtils
   val tenant = "test"
 
   private lazy val actorSystem = ActorSystem("test")
-  implicit val materializer = ActorMaterializer()(actorSystem)
+  implicit val materializer: ActorMaterializer =
+    ActorMaterializer()(actorSystem)
 
-  protected def ws: WSClient = app.injector.instanceOf[WSClient]
+  protected lazy val nioComponents: NioSpec = new NioSpec(getContext)
 
-  override def fakeApplication() = {
+  protected def ws: WSClient = nioComponents.wsClient
 
-    val application: Application = new GuiceApplicationBuilder()
-      .overrides(bind[FSManager].to[MockS3Manager])
-      .configure(customConf)
-      .build()
+  private lazy val getContext: ApplicationLoader.Context = {
+    val env = Environment.simple()
+    val configuration = Configuration.load(env)
 
-    application
+    val context = ApplicationLoader.Context(
+      environment = env,
+      sourceMapper = None,
+      webCommands = new DefaultWebCommands(),
+      initialConfiguration = configuration ++ extraConfig,
+      lifecycle = new DefaultApplicationLifecycle()
+    )
+
+    context
+  }
+
+  override def fakeApplication(): Application = {
+    new NioLoader().load(getContext)
   }
 
   override protected def beforeAll(): Unit = {}
 
   override protected def afterAll(): Unit = {
     implicit val executionContext: ExecutionContext =
-      app.injector.instanceOf[ExecutionContext]
-
-    val reactiveMongoApi: ReactiveMongoApi =
-      app.injector.instanceOf[ReactiveMongoApi]
+      nioComponents.executionContext
+    val reactiveMongoApi: ReactiveMongoApi = nioComponents.reactiveMongoApi
 
     // clean mongo data
     getStoredCollection(reactiveMongoApi, s"$tenant-accounts")
@@ -126,20 +143,22 @@ trait TestUtils
 
   val kafkaTopic = "test-nio-consent-events"
 
-  private def customConf: Map[String, Any] = {
-    val mongoUrl = "mongodb://localhost:" + mongoPort + "/nio"
-    Map(
-      "nio.mongo.url" -> mongoUrl,
-      "mongodb.uri" -> mongoUrl,
-      "tenant.admin.secret" -> "secret",
-      "db.flush" -> "true",
-      "nio.s3Config.v4Auth" -> "false",
-      "nio.kafka.port" -> s"$kafkaPort",
-      "nio.kafka.servers" -> s"127.0.0.1:$kafkaPort",
-      "nio.kafka.topic" -> kafkaTopic,
-      "nio.kafka.eventsGroupIn" -> s"10000",
-      "nio.s3ManagementEnabled" -> "true",
-      "db.tenants" -> List(tenant)
+  val extraConfig: Configuration = {
+    val mongoUrl = s"mongodb://localhost:$mongoPort/nio"
+    Configuration(
+      ConfigFactory.parseString(s"""
+           |nio.mongo.url="$mongoUrl"
+           |mongodb.uri="$mongoUrl"
+           |tenant.admin.secret="secret"
+           |db.flush="true"
+           |nio.s3Config.v4Auth="false"
+           |nio.kafka.port=$kafkaPort
+           |nio.kafka.servers="127.0.0.1:$kafkaPort"
+           |nio.kafka.topic=$kafkaTopic
+           |nio.kafka.eventsGroupIn=10000
+           |nio.s3ManagementEnabled=false
+           |db.tenants=["$tenant"]
+       """.stripMargin).resolve()
     )
   }
 

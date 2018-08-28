@@ -11,8 +11,7 @@ import play.api.mvc.ControllerComponents
 
 import scala.concurrent.ExecutionContext
 
-@Singleton
-class EventController @Inject()(
+class EventController(
     val AuthAction: AuthAction,
     val cc: ControllerComponents,
     val broker: KafkaMessageBroker)(implicit val ec: ExecutionContext)

@@ -4,10 +4,21 @@ import cats.Semigroup
 import cats.kernel.Monoid
 import play.api.libs.json._
 import utils.Result.{AppErrors, ErrorMessage, Result}
+import libs.xml.XmlUtil.XmlCleaner
 
 object Result {
 
-  case class ErrorMessage(message: String, args: String*)
+  case class ErrorMessage(message: String, args: String*) {
+    def asXml =
+      <errorMessage>
+        <message>
+          {message}
+        </message>
+        <args>
+          {args.mkString(", ")}
+        </args>
+      </errorMessage>.clean()
+  }
 
   object ErrorMessage {
     implicit val format = Json.format[ErrorMessage]
@@ -28,7 +39,27 @@ object Result {
         case None => AppErrors(errors, fieldErrors + (field -> errors))
       }
 
-    def toJson = Json.toJson(this)(AppErrors.format)
+    def asJson = Json.toJson(this)(AppErrors.format)
+
+    def asXml = {
+      <appErrors>
+        <errors>
+          {errors.map(_.asXml)}
+        </errors>
+        <fieldErrors>
+          {fieldErrors.map(fieldErrorMessage =>
+          <fieldError>
+            <field>
+              {fieldErrorMessage._1}
+            </field>
+            <errorMessage>
+              {fieldErrorMessage._2.map(_.asXml)}
+            </errorMessage>
+          </fieldError>
+        )}
+        </fieldErrors>
+      </appErrors>.clean()
+    }
 
     def isEmpty = errors.isEmpty && fieldErrors.isEmpty
   }
@@ -50,6 +81,10 @@ object Result {
              .toList)
       }.toMap
       AppErrors(fieldErrors = fieldErrors)
+    }
+
+    def fromXmlError(throwable: Throwable): AppErrors = {
+      AppErrors(Seq(ErrorMessage(throwable.getMessage)))
     }
 
     def error(messages: String*): AppErrors =
@@ -104,12 +139,14 @@ case class ImportResult(success: Int = 0, errors: AppErrors = AppErrors()) {
 }
 
 object ImportResult {
+
   import cats.syntax.semigroup._
 
   implicit val format = Json.format[ImportResult]
 
   implicit val monoid = new Monoid[ImportResult] {
     override def empty = ImportResult()
+
     override def combine(x: ImportResult, y: ImportResult) = (x, y) match {
       case (ImportResult(s1, e1), ImportResult(s2, e2)) =>
         ImportResult(s1 + s2, e1 |+| e2)

@@ -1,6 +1,7 @@
 package models
 
 import play.api.libs.json.{JsArray, Json}
+import libs.xml.XmlUtil.XmlCleaner
 
 case class PagedUsers(page: Int, pageSize: Int, count: Int, items: Seq[User])
     extends ModelTransformAs {
@@ -14,13 +15,11 @@ case class PagedUsers(page: Int, pageSize: Int, count: Int, items: Seq[User])
         items.map(u => Json.obj("userId" -> u.userId, "orgKey" -> u.orgKey))))
   }
 
-  def asXml = {
-    <pagedUsers>
+  def asXml = <pagedUsers>
       <page>{page}</page>
       <pageSize>{pageSize}</pageSize>
       <count>{count}</count>
       <items>{items.map{ item => <user><userId>{item.userId}</userId><orgKey>{item.orgKey}</orgKey></user>}}</items>
-    </pagedUsers>
-  }
+    </pagedUsers>.clean()
 
 }

@@ -4,7 +4,6 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{RestartSource, Sink}
 import configuration.Env
-import javax.inject.Inject
 import messaging.KafkaMessageBroker
 import play.api.Logger
 
@@ -13,10 +12,10 @@ import scala.concurrent.duration.DurationDouble
 
 trait TSecureEvent {}
 
-class SecureEvent @Inject()(env: Env,
-                            kafkaMessageBroker: KafkaMessageBroker,
-                            actorSystem: ActorSystem,
-                            implicit val executionContext: ExecutionContext)
+class SecureEvent(env: Env,
+                  kafkaMessageBroker: KafkaMessageBroker,
+                  actorSystem: ActorSystem,
+                  implicit val executionContext: ExecutionContext)
     extends TSecureEvent {
 
   implicit val materializer = ActorMaterializer()(actorSystem)
@@ -43,7 +42,9 @@ class SecureEvent @Inject()(env: Env,
 
   }
 
-  if (env.config.recordManagementEnabled && env.config.s3ManagementEnabled) {
-    run()
+  def initialize() = {
+    if (env.config.recordManagementEnabled && env.config.s3ManagementEnabled) {
+      run()
+    }
   }
 }

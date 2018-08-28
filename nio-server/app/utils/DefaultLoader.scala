@@ -1,15 +1,13 @@
 package utils
 
-import javax.inject.Inject
-
 import db.OrganisationMongoDataStore
 import models._
 import play.api.Configuration
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class DefaultLoader @Inject()(conf: Configuration,
-                              organisationStore: OrganisationMongoDataStore)(
+class DefaultLoader(conf: Configuration,
+                    organisationStore: OrganisationMongoDataStore)(
     implicit ec: ExecutionContext) {
 
   def load(tenant: String) = {

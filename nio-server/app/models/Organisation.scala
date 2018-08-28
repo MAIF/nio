@@ -1,20 +1,22 @@
 package models
 
-import cats.data.ValidatedNel
-import play.api.libs.functional.syntax.unlift
-import reactivemongo.bson.BSONObjectID
-import play.api.libs.json._
-import play.api.libs.functional.syntax._
-import play.api.libs.json.Reads._
-
-import scala.util.{Failure, Success, Try}
-import scala.xml.Elem
 import cats.data.Validated._
+import cats.data.ValidatedNel
 import cats.implicits._
 import controllers.ReadableEntity
+import libs.xml.XMLRead
+import libs.xml.XmlUtil.XmlCleaner
+import libs.xml.implicits._
+import libs.xml.syntax._
 import org.joda.time.{DateTime, DateTimeZone}
+import play.api.libs.functional.syntax.{unlift, _}
+import play.api.libs.json.Reads._
+import play.api.libs.json._
+import reactivemongo.bson.BSONObjectID
 import utils.DateUtils
 import utils.Result.{AppErrors, ErrorMessage, Result}
+
+import scala.xml.{Elem, NodeSeq}
 
 case class VersionInfo(status: String = "DRAFT",
                        num: Int = 1,
@@ -37,6 +39,22 @@ object VersionInfo {
     }
   implicit val utcDateTimeFormats = DateUtils.utcDateTimeFormats
   implicit val formats = Json.format[VersionInfo]
+
+  implicit val readXml: XMLRead[VersionInfo] =
+    (node: NodeSeq, path: Option[String]) =>
+      (
+        (node \ "status").validate[String](Some(s"${path.convert()}status")),
+        (node \ "num").validate[Int](Some(s"${path.convert()}num")),
+        (node \ "latest").validate[Boolean](Some(s"${path.convert()}latest")),
+        (node \ "lastUpdate").validateNullable[DateTime](
+          DateTime.now(DateTimeZone.UTC),
+          Some(s"${path.convert()}lastUpdate"))
+      ).mapN { (status, num, latest, lastUpdate) =>
+        VersionInfo(status = status,
+                    num = num,
+                    latest = latest,
+                    lastUpdate = lastUpdate)
+    }
 }
 
 case class Organisation(_id: String = BSONObjectID.generate().stringify,
@@ -48,18 +66,17 @@ case class Organisation(_id: String = BSONObjectID.generate().stringify,
 
   def asJson = Organisation.organisationWritesWithoutId.writes(this)
 
-  def asXml = {
-    <organisation>
+  def asXml = <organisation>
       <key>{key}</key>
       <label>{label}</label>
       <version>
         <status>{version.status}</status>
         <num>{version.num}</num>
         <latest>{version.latest}</latest>
+        <lastUpdate>{version.lastUpdate.toString(DateUtils.utcDateFormatter)}</lastUpdate>
       </version>
       <groups>{groups.map(_.asXml)}</groups>
-    </organisation>
-  }
+    </organisation>.clean()
 
   def newWith(version: VersionInfo) =
     this.copy(_id = BSONObjectID.generate().stringify, version = version)
@@ -108,7 +125,16 @@ object Organisation extends ReadableEntity[Organisation] {
       (JsPath \ "groups").write[Seq[PermissionGroup]]
   )(unlift(Organisation.unapply))
 
+  implicit val organisationOWrites: OWrites[Organisation] = (
+    (JsPath \ "_id").write[String] and
+      (JsPath \ "key").write[String] and
+      (JsPath \ "label").write[String] and
+      (JsPath \ "version").write[VersionInfo] and
+      (JsPath \ "groups").write[Seq[PermissionGroup]]
+  )(unlift(Organisation.unapply))
+
   implicit val formats = Format(organisationReads, organisationWrites)
+  implicit val oFormats = OFormat(organisationReads, organisationOWrites)
 
   implicit val organisationWritesWithoutId: Writes[Organisation] = Writes {
     org =>
@@ -121,39 +147,35 @@ object Organisation extends ReadableEntity[Organisation] {
       )
   }
 
-  def fromXml(xml: Elem) = {
-    Try {
-      val key = (xml \ "key").head.text
-      val label = (xml \ "label").head.text
+  implicit val readXml: XMLRead[Organisation] =
+    (node: NodeSeq, path: Option[String]) =>
+      (
+        (node \ "_id").validateNullable[String](
+          BSONObjectID.generate().stringify,
+          Some(s"${path.convert()}_id")),
+        (node \ "key").validate[String](Some(s"${path.convert()}key")),
+        (node \ "label").validate[String](Some(s"${path.convert()}label")),
+        (node \ "version").validate[VersionInfo](
+          Some(s"${path.convert()}version")),
+        (node \ "groups").validate[Seq[PermissionGroup]](
+          Some(s"${path.convert()}groups")),
+      ).mapN(
+        (_id, key, label, version, groups) =>
+          Organisation(_id = _id,
+                       key = key,
+                       label = label,
+                       version = version,
+                       groups = groups)
+    )
 
-      val version = (xml \ "version").headOption
-        .map { versionElem =>
-          val status = (versionElem \ "status").head.text
-          val num = (versionElem \ "num").head.text.toInt
-          val latest = (versionElem \ "latest").head.text.toBoolean
-          VersionInfo(status, num, latest, None)
-        }
-        .getOrElse(VersionInfo())
-
-      val groupsXml = (xml \ "groups").head
-      val groups = groupsXml.child.collect {
-        case e: Elem => PermissionGroup.fromXml(e)
-      }
-      Organisation(_id = "",
-                   key = key,
-                   label = label,
-                   version = version,
-                   groups = groups)
-    } match {
-      case Success(value)     => Right(value)
-      case Failure(throwable) => Left(throwable.getMessage)
-    }
+  def fromXml(xml: Elem): Either[AppErrors, Organisation] = {
+    readXml.read(xml, Some("organisation")).toEither
   }
 
   def fromJson(json: JsValue) = {
     json.validate[Organisation] match {
       case JsSuccess(o, _) => Right(o)
-      case JsError(errors) => Left(errors.mkString(", "))
+      case JsError(errors) => Left(AppErrors.fromJsError(errors))
     }
   }
 }
@@ -161,7 +183,7 @@ object Organisation extends ReadableEntity[Organisation] {
 case class Organisations(organisations: Seq[Organisation])
     extends ModelTransformAs {
   override def asXml(): Elem =
-    (<organisations>{organisations.map(_.asXml)}</organisations>)
+    <organisations>{organisations.map(_.asXml)}</organisations>.clean()
 
   override def asJson(): JsValue = JsArray(organisations.map(_.asJson))
 }
@@ -173,8 +195,7 @@ case class VersionInfoLight(status: String, num: Int, lastUpdate: DateTime)
 case class OrganisationLight(key: String,
                              label: String,
                              version: VersionInfoLight) {
-  def asXml = {
-    <organisationLight>
+  def asXml = <organisationLight>
       <key>{key}</key>
       <label>{label}</label>
       <version>
@@ -182,8 +203,7 @@ case class OrganisationLight(key: String,
         <num>{version.num}</num>
         <lastUpdate>{version.lastUpdate.toString(DateUtils.utcDateFormatter)}</lastUpdate>
       </version>
-    </organisationLight>
-  }
+    </organisationLight>.clean()
 
   def asJson = {
     Json.obj(
@@ -210,7 +230,8 @@ object OrganisationLight {
 case class OrganisationsLights(organisations: Seq[OrganisationLight])
     extends ModelTransformAs {
   override def asXml(): Elem =
-    (<organisationLights>{organisations.map(_.asXml)}</organisationLights>)
+    <organisationLights>{organisations.map(_.asXml)}</organisationLights>
+      .clean()
 
   override def asJson(): JsValue = JsArray(organisations.map(_.asJson))
 }

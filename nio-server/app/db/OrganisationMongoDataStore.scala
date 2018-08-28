@@ -1,7 +1,6 @@
 package db
 
 import akka.stream.Materializer
-import javax.inject.{Inject, Singleton}
 import models._
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoApi
@@ -12,11 +11,11 @@ import reactivemongo.api.{Cursor, ReadPreference}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-@Singleton
-class OrganisationMongoDataStore @Inject()(
-    val reactiveMongoApi: ReactiveMongoApi)(implicit val ec: ExecutionContext)
-    extends DataStoreUtils {
+class OrganisationMongoDataStore(val mongoApi: ReactiveMongoApi)(
+    implicit val executionContext: ExecutionContext)
+    extends MongoDataStore[Organisation] {
 
+  val format: OFormat[Organisation] = models.Organisation.oFormats
   override def collectionName(tenant: String) = s"$tenant-organisations"
 
   override def indices = Seq(
@@ -31,66 +30,61 @@ class OrganisationMongoDataStore @Inject()(
           sparse = true)
   )
 
-  implicit def format: Format[Organisation] = Organisation.formats
+  def insert(tenant: String, organisation: Organisation): Future[Boolean] =
+    insertOne(tenant, organisation)
 
-  def insert(tenant: String, organisation: Organisation) =
-    storedCollection(tenant).flatMap(
-      _.insert(format.writes(organisation).as[JsObject]).map(_.ok))
-
-  def findById(tenant: String, id: String) = {
-    val query = Json.obj("_id" -> id)
-    storedCollection(tenant).flatMap(_.find(query).one[Organisation])
+  def findById(tenant: String, id: String): Future[Option[Organisation]] = {
+    findOneById(tenant, id)
   }
 
-  def findByKey(tenant: String, key: String) = {
-    val query = Json.obj("key" -> key)
-    storedCollection(tenant).flatMap(_.find(query).one[Organisation])
+  def findByKey(tenant: String, key: String): Future[Option[Organisation]] = {
+    findOneByQuery(tenant, Json.obj("key" -> key))
   }
 
-  def findAllReleasedByKey(tenant: String, key: String) = {
+  def findAllReleasedByKey(tenant: String,
+                           key: String): Future[Seq[Organisation]] = {
     val query = Json.obj(
       "$and" -> Json.arr(Json.obj("key" -> key),
                          Json.obj("version.status" -> "RELEASED")))
-    storedCollection(tenant).flatMap(
-      _.find(query)
-        .cursor[Organisation](ReadPreference.primaryPreferred)
-        .collect[Seq](-1, Cursor.FailOnError[Seq[Organisation]]()))
+    findManyByQuery(tenant, query)
   }
 
-  def findLastReleasedByKey(tenant: String, key: String) = {
+  def findLastReleasedByKey(tenant: String,
+                            key: String): Future[Option[Organisation]] = {
     val query = Json.obj(
       "$and" -> Json.arr(Json.obj("key" -> key),
                          Json.obj("version.status" -> "RELEASED"),
                          Json.obj("version.latest" -> true)))
-    storedCollection(tenant).flatMap(_.find(query).one[Organisation])
+    findOneByQuery(tenant, query)
   }
 
-  def findDraftByKey(tenant: String, key: String) = {
+  def findDraftByKey(tenant: String,
+                     key: String): Future[Option[Organisation]] = {
     val query = Json.obj(
       "$and" -> Json.arr(Json.obj("key" -> key),
                          Json.obj("version.status" -> "DRAFT")))
-    storedCollection(tenant).flatMap(_.find(query).one[Organisation])
+    findOneByQuery(tenant, query)
   }
 
-  def findReleasedByKeyAndVersionNum(tenant: String,
-                                     key: String,
-                                     versionNum: Int) = {
+  def findReleasedByKeyAndVersionNum(
+      tenant: String,
+      key: String,
+      versionNum: Int): Future[Option[Organisation]] = {
     val query = Json.obj(
       "$and" -> Json.arr(Json.obj("key" -> key),
                          Json.obj("version.status" -> "RELEASED"),
                          Json.obj("version.num" -> versionNum)))
-    storedCollection(tenant).flatMap(_.find(query).one[Organisation])
+    findOneByQuery(tenant, query)
   }
 
   def updateById(tenant: String,
                  id: String,
                  value: Organisation): Future[Boolean] = {
-    storedCollection(tenant).flatMap(
-      _.update(Json.obj("_id" -> id), format.writes(value).as[JsObject])
-        .map(_.ok))
+    updateOne(tenant, id, value)
   }
 
-  def findAllLatestReleasesOrDrafts(tenant: String) = {
+  def findAllLatestReleasesOrDrafts(
+      tenant: String): Future[Seq[Organisation]] = {
     val query = Json.obj(
       "$or" -> Json.arr(
         Json.obj("$and" -> Json.arr(Json.obj("version.status" -> "RELEASED"),
@@ -98,33 +92,27 @@ class OrganisationMongoDataStore @Inject()(
         Json.obj("$and" -> Json.arr(Json.obj("version.status" -> "DRAFT"),
                                     Json.obj("version.neverReleased" -> true)))
       ))
-    storedCollection(tenant).flatMap(
-      _.find(query)
-        .cursor[Organisation](ReadPreference.primaryPreferred)
-        .collect[Seq](-1, Cursor.FailOnError[Seq[Organisation]]()))
+
+    findManyByQuery(tenant, query)
   }
 
-  def findAll(tenant: String) =
-    storedCollection(tenant).flatMap(
-      _.find(Json.obj())
-        .cursor[Organisation](ReadPreference.primaryPreferred)
-        .collect[Seq](-1, Cursor.FailOnError[Seq[Organisation]]()))
+  def findAll(tenant: String): Future[Seq[Organisation]] =
+    findMany(tenant)
 
-  def deleteOrganisationByTenant(tenant: String) = {
+  def deleteOrganisationByTenant(tenant: String): Future[Boolean] = {
     storedCollection(tenant).flatMap { col =>
       col.drop(failIfNotFound = false)
     }
   }
 
-  def removeByKey(tenant: String, orgKey: String) = {
-    storedCollection(tenant).flatMap { col =>
-      col.remove(Json.obj("key" -> orgKey))
-    }
+  def removeByKey(tenant: String, orgKey: String): Future[Boolean] = {
+    deleteByQuery(tenant, Json.obj("key" -> orgKey))
   }
 
-  def findAllLatestReleasesOrDraftsByDate(tenant: String,
-                                          from: String,
-                                          to: String) = {
+  def findAllLatestReleasesOrDraftsByDate(
+      tenant: String,
+      from: String,
+      to: String): Future[Seq[Organisation]] = {
     val query = Json.obj(
       "$or" -> Json.arr(
         Json.obj(
@@ -138,10 +126,8 @@ class OrganisationMongoDataStore @Inject()(
                              Json.obj("version.lastUpdate" -> Json
                                .obj("$gte" -> from, "$lte" -> to))))
       ))
-    storedCollection(tenant).flatMap(
-      _.find(query)
-        .cursor[Organisation](ReadPreference.primaryPreferred)
-        .collect[Seq](-1, Cursor.FailOnError[Seq[Organisation]]()))
+
+    findManyByQuery(tenant, query)
   }
 
   def streamAllLatestReleasesOrDraftsByDate(

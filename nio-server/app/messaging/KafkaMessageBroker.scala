@@ -5,14 +5,13 @@ import java.security.MessageDigest
 
 import akka.actor.ActorSystem
 import akka.kafka.ConsumerMessage.CommittableOffsetBatch
-import akka.kafka.scaladsl.Consumer
 import akka.kafka.Subscriptions
+import akka.kafka.scaladsl.Consumer
 import akka.stream.Materializer
 import akka.stream.scaladsl.Keep.both
-import akka.{Done, NotUsed}
 import akka.stream.scaladsl.{Flow, Source}
+import akka.{Done, NotUsed}
 import configuration.{Env, KafkaConfig}
-import javax.inject.{Inject, Singleton}
 import models.{Digest, NioEvent, SecuredEvent}
 import org.apache.kafka.clients.producer.{
   Callback,
@@ -31,8 +30,7 @@ import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.Failure
 import scala.util.control.NonFatal
 
-@Singleton
-class KafkaMessageBroker @Inject()(actorSystem: ActorSystem)(
+class KafkaMessageBroker(actorSystem: ActorSystem)(
     implicit context: ExecutionContext,
     env: Env,
     s3Manager: FSManager)

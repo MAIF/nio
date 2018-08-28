@@ -5,14 +5,12 @@ import java.net.URL
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import com.amazonaws.auth.{AWSStaticCredentialsProvider, BasicAWSCredentials}
-import javax.inject.{Inject, Singleton}
 import akka.stream.alpakka.s3.scaladsl.S3Client
 import akka.stream.alpakka.s3.{MemoryBufferType, Proxy, S3Settings}
 
 import scala.concurrent.ExecutionContext
 
-@Singleton
-class S3FileDataStore @Inject()(actorSystem: ActorSystem, conf: S3Configuration)(
+class S3FileDataStore(actorSystem: ActorSystem, conf: S3Configuration)(
     implicit ec: ExecutionContext) {
 
   lazy val s3Client = {

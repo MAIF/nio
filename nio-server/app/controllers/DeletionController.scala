@@ -8,32 +8,34 @@ import db.{
   OrganisationMongoDataStore,
   UserMongoDataStore
 }
-import javax.inject.{Inject, Singleton}
 import messaging.KafkaMessageBroker
 import models._
 import play.api.Logger
 import play.api.mvc.ControllerComponents
 
+import ErrorManager.ErrorManagerResult
+import ErrorManager.AppErrorManagerResult
 import scala.concurrent.{ExecutionContext, Future}
 
-@Singleton
-class DeletionController @Inject()(
-    val AuthAction: AuthAction,
-    val cc: ControllerComponents,
-    val userStore: UserMongoDataStore,
-    val consentFactStore: ConsentFactMongoDataStore,
-    val organisationStore: OrganisationMongoDataStore,
-    val deletionTaskStore: DeletionTaskMongoDataStore,
-    val broker: KafkaMessageBroker)(implicit val ec: ExecutionContext,
-                                    system: ActorSystem)
+class DeletionController(val AuthAction: AuthAction,
+                         val cc: ControllerComponents,
+                         val userStore: UserMongoDataStore,
+                         val consentFactStore: ConsentFactMongoDataStore,
+                         val organisationStore: OrganisationMongoDataStore,
+                         val deletionTaskStore: DeletionTaskMongoDataStore,
+                         val broker: KafkaMessageBroker)(
+    implicit val ec: ExecutionContext,
+    system: ActorSystem)
     extends ControllerUtils(cc) {
 
+  implicit val readable: ReadableEntity[AppIds] = AppIds
+
   def startDeletionTask(tenant: String, orgKey: String, userId: String) =
-    AuthAction.async(parse.anyContent) { implicit req =>
-      parseMethod[AppIds](AppIds) match {
+    AuthAction.async(bodyParser) { implicit req =>
+      req.body.read[AppIds] match {
         case Left(error) =>
           Logger.error(s"Unable to parse deletion task input due to $error")
-          Future.successful(BadRequest(error))
+          Future.successful(error.badRequest())
         case Right(o) =>
           val task = DeletionTask.newTask(orgKey, userId, o.appIds.toSet)
           deletionTaskStore.insert(tenant, task).map { _ =>
@@ -73,7 +75,7 @@ class DeletionController @Inject()(
   def findDeletionTask(tenant: String, orgKey: String, deletionId: String) =
     AuthAction.async { implicit request =>
       deletionTaskStore.findById(tenant, deletionId).map {
-        case None               => NotFound("error.deletion.task.not.found")
+        case None               => "error.deletion.task.not.found".notFound()
         case Some(deletionTask) => renderMethod(deletionTask)
       }
     }
@@ -84,9 +86,9 @@ class DeletionController @Inject()(
                          appId: String) = AuthAction.async { implicit request =>
     deletionTaskStore.findById(tenant, deletionId).flatMap {
       case None =>
-        Future.successful(NotFound("error.deletion.task.not.found"))
+        Future.successful("error.deletion.task.not.found".notFound())
       case Some(deletionTask) if !deletionTask.appIds.contains(appId) =>
-        Future.successful(NotFound("error.unknown.appId"))
+        Future.successful("error.unknown.appId".notFound())
       case Some(deletionTask) =>
         val updatedDeletionTask = deletionTask.copyWithAppDone(appId)
         deletionTaskStore

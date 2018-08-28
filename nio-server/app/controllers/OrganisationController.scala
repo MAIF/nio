@@ -5,7 +5,6 @@ import akka.stream.ActorMaterializer
 import akka.util.ByteString
 import auth.AuthAction
 import db._
-import javax.inject.Inject
 import models._
 import messaging.KafkaMessageBroker
 import play.api.Logger
@@ -16,7 +15,10 @@ import reactivemongo.bson.BSONObjectID
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class OrganisationController @Inject()(
+import ErrorManager.ErrorManagerResult
+import ErrorManager.AppErrorManagerResult
+
+class OrganisationController(
     val AuthAction: AuthAction,
     val cc: ControllerComponents,
     val ds: OrganisationMongoDataStore,
@@ -28,85 +30,65 @@ class OrganisationController @Inject()(
                                     system: ActorSystem)
     extends ControllerUtils(cc) {
 
+  implicit val readable: ReadableEntity[Organisation] = Organisation
   implicit val materializer = ActorMaterializer()(system)
 
-  def create(tenant: String) = AuthAction.async(parse.anyContent) {
-    implicit req =>
-      tenantDataStore.findByKey(tenant).flatMap {
-        case Some(t) => {
-          val parsed: Either[String, Organisation] =
-            parseMethod(Organisation)
+  def create(tenant: String) = AuthAction.async(bodyParser) { implicit req =>
+    tenantDataStore.findByKey(tenant).flatMap {
+      case Some(t) => {
+        req.body.read[Organisation] match {
+          case Left(error) =>
+            Logger.error("Unable to parse organisation  " + error)
+            Future.successful(error.badRequest())
+          case Right(receivedOrg) =>
+            val o = receivedOrg.copy(version = VersionInfo())
+            OrganisationValidator.validateOrganisation(o) match {
+              case Left(error) =>
+                Logger.error("Organisation is not valid  " + error)
+                Future.successful(error.badRequest())
+              case Right(_) =>
+                // check for duplicate key
+                ds.findByKey(tenant, o.key).flatMap {
+                  case None =>
+                    ds.insert(tenant, o).map { _ =>
+                      broker.publish(
+                        OrganisationCreated(tenant = tenant,
+                                            payload = o,
+                                            author = req.authInfo.sub,
+                                            metadata = req.authInfo.metadatas))
 
-          parsed match {
-            case Left(error) =>
-              Logger.error("Unable to parse organisation  " + error)
-              Future.successful(BadRequest(error))
-            case Right(receivedOrg) =>
-              val o = receivedOrg.copy(version = VersionInfo())
-              OrganisationValidator.validateOrganisation(o) match {
-                case Left(error) =>
-                  Logger.error("Organisation is not valid  " + error)
-
-                  Future.successful(
-                    BadRequest(
-                      Json.obj(
-                        "messages" -> error
-                      )
-                    )
-                  )
-                case Right(_) =>
-                  // check for duplicate key
-                  ds.findByKey(tenant, o.key).flatMap {
-                    case None =>
-                      ds.insert(tenant, o).map { _ =>
-                        broker.publish(
-                          OrganisationCreated(
-                            tenant = tenant,
-                            payload = o,
-                            author = req.authInfo.sub,
-                            metadata = req.authInfo.metadatas))
-
-                        renderMethod(o, Created)
-                      }
-                    case Some(_) =>
-                      Future.successful(Conflict("error.key.already.used"))
-                  }
-              }
-          }
+                      renderMethod(o, Created)
+                    }
+                  case Some(_) =>
+                    Future.successful("error.key.already.used".conflict())
+                }
+            }
         }
-        case None =>
-          Future.successful(NotFound("error.tenant.not.found"))
       }
+      case None =>
+        Future.successful("error.tenant.not.found".notFound())
+    }
   }
 
   // update if exists
   def replaceDraftIfExists(tenant: String, orgKey: String) =
-    AuthAction.async(parse.anyContent) { implicit req =>
-      val parsed: Either[String, Organisation] =
-        parseMethod(Organisation)
-
-      parsed match {
+    AuthAction.async(bodyParser) { implicit req =>
+      req.body.read[Organisation] match {
         case Left(error) =>
           Logger.error("Unable to parse organisation  " + error)
-          Future.successful(BadRequest(error))
+          Future.successful(error.badRequest())
         case Right(o) if o.key != orgKey =>
-          Future.successful(BadRequest("error.invalid.organisation.key"))
+          Future.successful("error.invalid.organisation.key".badRequest())
         case Right(o) if o.key == orgKey =>
           OrganisationValidator.validateOrganisation(o) match {
             case Left(error) =>
               Logger.error("Organisation is not valid  " + error)
 
-              Future.successful(
-                BadRequest(
-                  Json.obj(
-                    "messages" -> error
-                  )
-                )
-              )
+              Future.successful(error.badRequest())
             case Right(_) =>
               ds.findDraftByKey(tenant, orgKey).flatMap {
                 case None =>
-                  Future.successful(NotFound("error.organisation.not.found"))
+                  Future.successful("error.organisation.not.found".notFound())
                 case Some(previousDraft) =>
                   val newDraft =
                     o.copy(_id = previousDraft._id,
@@ -129,7 +111,8 @@ class OrganisationController @Inject()(
   def findAllReleasedByKey(tenant: String, orgKey: String) = AuthAction.async {
     implicit req =>
       ds.findDraftByKey(tenant, orgKey).flatMap {
-        case None => Future.successful(NotFound("error.organisation.not.found"))
+        case None =>
+          Future.successful("error.organisation.not.found".notFound())
         case Some(_) =>
           ds.findAllReleasedByKey(tenant, orgKey).map { organisations =>
             renderMethod(Organisations(organisations))
@@ -140,7 +123,7 @@ class OrganisationController @Inject()(
   def findLastReleasedByKey(tenant: String, orgKey: String) = AuthAction.async {
     implicit req =>
       ds.findLastReleasedByKey(tenant, orgKey).map {
-        case None => NotFound("error.organisation.not.found")
+        case None => "error.organisation.not.found".notFound()
         case Some(o) =>
           renderMethod(o)
       }
@@ -149,7 +132,7 @@ class OrganisationController @Inject()(
   def findDraftByKey(tenant: String, orgKey: String) = AuthAction.async {
     implicit req =>
       ds.findDraftByKey(tenant, orgKey).map {
-        case None => NotFound("error.organisation.not.found")
+        case None => "error.organisation.not.found".notFound()
         case Some(org) =>
           renderMethod(org)
       }
@@ -160,7 +143,7 @@ class OrganisationController @Inject()(
                                      version: Int) = AuthAction.async {
     implicit req =>
       ds.findReleasedByKeyAndVersionNum(tenant, orgKey, version).map {
-        case None => NotFound("error.organisation.not.found")
+        case None => "error.organisation.not.found".notFound()
         case Some(org) =>
           renderMethod(org)
       }
@@ -227,7 +210,7 @@ class OrganisationController @Inject()(
           }
 
         case None =>
-          Future.successful(NotFound("error.organisation.not.found"))
+          Future.successful("error.organisation.not.found".notFound())
       }
     }
 
@@ -259,7 +242,7 @@ class OrganisationController @Inject()(
               Ok
             }
           case None =>
-            Future.successful(NotFound("error.organisation.not.found"))
+            Future.successful("error.organisation.not.found".notFound())
         }
       } yield {
         res

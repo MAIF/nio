@@ -4,13 +4,14 @@ import * as userService from "../services/UserService";
 import {Link} from 'react-router-dom';
 import ReactTable from 'react-table';
 import 'react-table/react-table.css';
+import {LabelInput, TextInput} from "../../common/ui/inputs";
 
 export class UsersPage extends Component {
     columns = [
         {
             title: 'Identifiant utilisateur',
+            notFilterable: true,
             content: item => item.userId,
-            filteredState: "filterUserId",
             cell: (v, item) => {
                 return <Link to={`/organisations/${item.orgKey}/users/${item.userId}`}
                              style={{cursor: 'pointer'}}>{item.userId}</Link>
@@ -100,6 +101,16 @@ export class UsersPage extends Component {
                 <div className="col-md-12">
                     <h1>Utilisateurs</h1>
                 </div>
+                <div className="col-md-12">
+                    <div className="row">
+                        <div className="col-md-10">
+                            <TextInput label="Filtre identifiant utilisateur" value={this.state.filterUserId} onChange={(search) => this.onChange(search, "filterUserId")}/>
+                        </div>
+                        <div className="col-md-2">
+                            <div className="btn btn-primary" onClick={() => this.fetchData({page: 0, pageSize: this.state.pageSize})}>Rechercher</div>
+                        </div>
+                    </div>
+                </div>
                 <div className="row">
                     <div className="col-md-12">
                         <ReactTable
@@ -111,8 +122,6 @@ export class UsersPage extends Component {
                             defaultSorted={[{id: this.columns[0].title, desc: false}]}
                             defaultFiltered={
                                 [
-                                    {id: this.columns[0].title, value: this.state.filterUserId},
-                                    {id: this.columns[1].title, value: this.state.filterOrgKey}
                                 ]}
                             pages={Math.ceil(this.state.count / this.state.pageSize)} //Display to toal number of pages
                             loading={this.state.loading}
