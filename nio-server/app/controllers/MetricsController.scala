@@ -37,6 +37,8 @@ class MetricsController(
     writer.writeValue(stringWriter, metricRegistry)
     stringWriter.toString
   }
+  val blockingExecutionContext =
+    actorSystem.dispatchers.lookup("blocking-dispatcher")
 
   def healthCheck() = AuthAction.async { implicit req =>
     req.headers.get(env.healthCheckConfig.header) match {
@@ -50,9 +52,11 @@ class MetricsController(
               .consumerSettings(actorSystem, kafka)
               .createKafkaConsumer()
 
-            kafkaConsumer
-              .partitionsFor(kafka.topic)
-              .asScala
+            Future {
+              kafkaConsumer
+                .partitionsFor(kafka.topic)
+                .asScala
+            }(blockingExecutionContext)
 
             kafkaConsumer.close()
 
