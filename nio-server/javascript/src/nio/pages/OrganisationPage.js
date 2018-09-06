@@ -199,14 +199,20 @@ export class OrganisationPage extends Component {
       const organisation = {...this.state.organisation};
 
       if (this.props.organisationKey) {
-        organisationService.createOrganisationRelease(this.props.tenant, this.props.organisationKey)
-          .then(() => {
-            if (this.props.onSave)
-              this.props.onSave();
+          if (organisation.version)
+              delete organisation.version;
 
-            if (this.props.reloadAfterSave)
-              this.fetch(this.props);
-          });
+          organisationService.saveOrganisationDraft(this.props.tenant, this.props.organisationKey, organisation)
+              .then(() => {
+                  organisationService.createOrganisationRelease(this.props.tenant, this.props.organisationKey)
+                      .then(() => {
+                          if (this.props.onSave)
+                              this.props.onSave();
+
+                          if (this.props.reloadAfterSave)
+                              this.fetch(this.props);
+                      });
+              });
       }
       else {
         if (organisation.version)
