@@ -13,7 +13,7 @@ object EventType extends Enumeration {
   ConsentFactUpdated, AccountCreated, AccountUpdated, AccountDeleted,
   SecuredEvent, DeletionStarted, DeletionAppDone, DeletionFinished,
   ExtractionStarted, ExtractionAppFilesMetadataReceived, ExtractionAppDone,
-  ExtractionFinished, Unknown = Value
+  ExtractionFinished, UserExtractTaskAsked, Unknown = Value
 
   def from(name: String): Value =
     values.find(_.toString.toLowerCase == name.toLowerCase()).getOrElse(Unknown)
@@ -122,6 +122,12 @@ object NioEvent {
                            payload,
                            oldValue)
           }
+        case EventType.UserExtractTaskAsked =>
+          UserExtractTask
+            .fromJson(payload)
+            .toOption
+            .map(o =>
+              UserExtractTaskAsked(tenant, author, metadata, id, date, o))
         case EventType.SecuredEvent =>
           Digest
             .fromJson(payload)
@@ -174,6 +180,7 @@ object CleanUpMetadata {
           jsObject
       }
   }
+
 }
 
 import CleanUpMetadata.CleanMetadata
@@ -558,6 +565,31 @@ case class DeletionFinished(tenant: String,
         "payload" -> payload.asJson
       )
       .cleanMetadata()
+}
+
+case class UserExtractTaskAsked(tenant: String,
+                                author: String,
+                                metadata: Option[Seq[(String, String)]] = None,
+                                id: Long = NioEvent.gen.nextId(),
+                                date: DateTime = DateTime.now(DateTimeZone.UTC),
+                                payload: UserExtractTask)
+    extends NioEvent {
+  override def tYpe: EventType.Value = EventType.UserExtractTaskAsked
+
+  override def asJson: JsValue =
+    Json
+      .obj(
+        "type" -> tYpe,
+        "tenant" -> tenant,
+        "author" -> author,
+        "metadata" -> buildMetadata(metadata),
+        "date" -> date.toString(DateUtils.utcDateFormatter),
+        "id" -> id,
+        "payload" -> payload.asJson
+      )
+      .cleanMetadata()
+
+  override def shardId: String = payload.userId
 }
 
 case class ExtractionStarted(tenant: String,

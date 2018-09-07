@@ -25,11 +25,10 @@ import org.scalatestplus.play.{
   PlaySpec
 }
 import play.api.inject.DefaultApplicationLifecycle
-import play.api.{Application, ApplicationLoader, Configuration, Environment}
 import play.api.libs.json.{JsValue, Json}
 import play.api.libs.ws.{BodyWritable, WSClient, WSResponse}
 import play.api.test.Helpers._
-import play.api.test.WsTestClient
+import play.api.{Application, ApplicationLoader, Configuration, Environment}
 import play.core.DefaultWebCommands
 import play.modules.reactivemongo.ReactiveMongoApi
 import reactivemongo.play.json.collection.JSONCollection
@@ -108,25 +107,27 @@ trait TestUtils
       nioComponents.executionContext
     val reactiveMongoApi: ReactiveMongoApi = nioComponents.reactiveMongoApi
 
-    // clean mongo data
-    getStoredCollection(reactiveMongoApi, s"$tenant-accounts")
-      .flatMap(_.drop(failIfNotFound = false))
-    getStoredCollection(reactiveMongoApi, s"$tenant-consentFacts")
-      .flatMap(_.drop(failIfNotFound = false))
-    getStoredCollection(reactiveMongoApi, s"$tenant-lastConsentFacts")
-      .flatMap(_.drop(failIfNotFound = false))
-    getStoredCollection(reactiveMongoApi, s"$tenant-deletionTasks")
-      .flatMap(_.drop(failIfNotFound = false))
-    getStoredCollection(reactiveMongoApi, s"$tenant-extractionTasks")
-      .flatMap(_.drop(failIfNotFound = false))
-    getStoredCollection(reactiveMongoApi, s"$tenant-organisations")
-      .flatMap(_.drop(failIfNotFound = false))
-    getStoredCollection(reactiveMongoApi, s"$tenant-users")
-      .flatMap(_.drop(failIfNotFound = false))
-
     import play.modules.reactivemongo.json.ImplicitBSONHandlers._
-    val tenantsCollection = getStoredCollection(reactiveMongoApi, "tenants")
 
+    // clean mongo data
+    getStoredCollection(reactiveMongoApi, s"$tenant-userExtractTask")
+      .flatMap(_.remove(Json.obj()))
+    getStoredCollection(reactiveMongoApi, s"$tenant-accounts")
+      .flatMap(_.remove(Json.obj()))
+    getStoredCollection(reactiveMongoApi, s"$tenant-consentFacts")
+      .flatMap(_.remove(Json.obj()))
+    getStoredCollection(reactiveMongoApi, s"$tenant-lastConsentFacts")
+      .flatMap(_.remove(Json.obj()))
+    getStoredCollection(reactiveMongoApi, s"$tenant-deletionTasks")
+      .flatMap(_.remove(Json.obj()))
+    getStoredCollection(reactiveMongoApi, s"$tenant-extractionTasks")
+      .flatMap(_.remove(Json.obj()))
+    getStoredCollection(reactiveMongoApi, s"$tenant-organisations")
+      .flatMap(_.remove(Json.obj()))
+    getStoredCollection(reactiveMongoApi, s"$tenant-users")
+      .flatMap(_.remove(Json.obj()))
+
+    val tenantsCollection = getStoredCollection(reactiveMongoApi, "tenants")
     tenantsCollection.flatMap(_.remove(Json.obj("key" -> tenant)))
     tenantsCollection.flatMap(_.remove(Json.obj("key" -> "newTenant")))
     tenantsCollection.flatMap(_.remove(Json.obj("key" -> "testTenantXml")))
@@ -150,7 +151,7 @@ trait TestUtils
            |nio.mongo.url="$mongoUrl"
            |mongodb.uri="$mongoUrl"
            |tenant.admin.secret="secret"
-           |db.flush="true"
+           |db.flush=true
            |nio.s3Config.v4Auth="false"
            |nio.kafka.port=$kafkaPort
            |nio.kafka.servers="127.0.0.1:$kafkaPort"

@@ -23,7 +23,16 @@ POST        /api/:tenant/organisations/:orgKey/users/:userId/deletion/_start    
 
 POST        /api/:tenant/organisations/:orgKey/users/deletions/:deletionTaskId/apps/:appId/_done    controllers.DeletionController.updateDeletionTask(tenant: String, orgKey: String, deletionTaskId: String, appId: String)
 
+
 # Extractions
+
+POST        /api/:tenant/organisations/:orgKey/users/:userId/_extract                               controllers.UserExtractController.extractData(tenant: String, orgKey: String, userId: String)
+
+#POST        /api/:tenant/organisations/:orgKey/users/:userId/_files/*name
+#
+#GET         /api/:tenant/organisations/:orgKey/_extracted
+
+# Extractions Old
 
 GET         /api/:tenant/organisations/:orgKey/users/extractions                                                  controllers.ExtractionController.allExtractionTasksByOrgKey(tenant: String, orgKey: String)
 

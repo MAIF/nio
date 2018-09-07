@@ -17,6 +17,7 @@ class TenantController(
     accountMongoDataStore: AccountMongoDataStore,
     lastConsentFactMongoDataStore: LastConsentFactMongoDataStore,
     consentFactStore: ConsentFactMongoDataStore,
+    userExtractTaskDataStore: UserExtractTaskDataStore,
     organisationDataStore: OrganisationMongoDataStore,
     userDataStore: UserMongoDataStore,
     extractionTaskDataStore: ExtractionTaskMongoDataStore,
@@ -92,6 +93,11 @@ class TenantController(
                           .init(tenant.key)
                           .map(
                             _ => deletionTaskDataStore.ensureIndices(tenant.key)
+                          ),
+                        userExtractTaskDataStore
+                          .init(tenant.key)
+                          .map(
+                            _ => deletionTaskDataStore.ensureIndices(tenant.key)
                           )
                       )
                     )
@@ -119,8 +125,9 @@ class TenantController(
               tenantStore.removeByKey(tenantKey),
               accountMongoDataStore.deleteAccountByTenant(tenantKey),
               deletionTaskDataStore.deleteDeletionTaskByTenant(tenantKey),
-              extractionTaskDataStore.deleteExtractionTaskByTenant(tenantKey)
-            ).mapN { (_, _, _, _, _, _, _, _) =>
+              extractionTaskDataStore.deleteExtractionTaskByTenant(tenantKey),
+              userExtractTaskDataStore.deleteUserExtractTaskByTenant(tenantKey)
+            ).mapN { (_, _, _, _, _, _, _, _, _) =>
               broker.publish(
                 TenantDeleted(tenant = tenantToDelete.key,
                               payload = tenantToDelete,
