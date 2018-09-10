@@ -9,6 +9,7 @@ import libs.xml.syntax._
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.functional.syntax.{unlift, _}
 import play.api.libs.json.Reads._
+import play.api.libs.json.Writes._
 import play.api.libs.json._
 import reactivemongo.bson.BSONObjectID
 import utils.Result.AppErrors
@@ -20,6 +21,7 @@ case class UserExtractTask(_id: String,
                            tenant: String,
                            orgKey: String,
                            userId: String,
+                           email: String,
                            startedAt: DateTime,
                            endedAt: Option[DateTime])
     extends ModelTransformAs {
@@ -33,6 +35,9 @@ case class UserExtractTask(_id: String,
     <userId>
       {userId}
     </userId>
+    <email>
+      {email}
+    </email>
     <startedAt>
       {startedAt.toString(DateUtils.utcDateFormatter)}
     </startedAt>{endedAt.map(date => <endedAt>
@@ -47,12 +52,13 @@ case class UserExtractTask(_id: String,
 object UserExtractTask extends ReadableEntity[UserExtractTask] {
   implicit val dateFormats = DateUtils.utcDateTimeFormats
 
-  def instance(tenant: String, orgKey: String, userId: String) =
+  def instance(tenant: String, orgKey: String, userId: String, email: String) =
     UserExtractTask(
       _id = BSONObjectID.generate().stringify,
       tenant = tenant,
       orgKey = orgKey,
       userId = userId,
+      email = email,
       startedAt = DateTime.now(DateTimeZone.UTC),
       endedAt = None
     )
@@ -64,6 +70,7 @@ object UserExtractTask extends ReadableEntity[UserExtractTask] {
       (__ \ "tenant").read[String] and
       (__ \ "orgKey").read[String] and
       (__ \ "userId").read[String] and
+      (__ \ "email").read[String] and
       (__ \ "startedAt").readNullable[DateTime].map { maybeStartedAt =>
         maybeStartedAt.getOrElse(DateTime.now(DateTimeZone.UTC))
       } and
@@ -75,6 +82,7 @@ object UserExtractTask extends ReadableEntity[UserExtractTask] {
       (JsPath \ "tenant").write[String] and
       (JsPath \ "orgKey").write[String] and
       (JsPath \ "userId").write[String] and
+      (JsPath \ "email").write[String] and
       (JsPath \ "startedAt").write[DateTime] and
       (JsPath \ "endedAt").writeNullable[DateTime]
   )(unlift(UserExtractTask.unapply))
@@ -84,6 +92,7 @@ object UserExtractTask extends ReadableEntity[UserExtractTask] {
       (JsPath \ "tenant").write[String] and
       (JsPath \ "orgKey").write[String] and
       (JsPath \ "userId").write[String] and
+      (JsPath \ "email").write[String] and
       (JsPath \ "startedAt").write[DateTime] and
       (JsPath \ "endedAt").writeNullable[DateTime]
   )(unlift(UserExtractTask.unapply))
@@ -100,18 +109,20 @@ object UserExtractTask extends ReadableEntity[UserExtractTask] {
         (node \ "tenant").validate[String](Some(s"${path.convert()}tenant")),
         (node \ "orgKey").validate[String](Some(s"${path.convert()}orgKey")),
         (node \ "userId").validate[String](Some(s"${path.convert()}userId")),
+        (node \ "email").validate[String](Some(s"${path.convert()}email")),
         (node \ "startedAt").validateNullable[DateTime](
           DateTime.now(DateTimeZone.UTC),
           Some(s"${path.convert()}startedAt")),
         (node \ "endedAt").validateNullable[DateTime](
           Some(s"${path.convert()}endedAt"))
       ).mapN(
-        (_id, tenant, orgKey, userId, startedAt, endedAt) =>
+        (_id, tenant, orgKey, userId, email, startedAt, endedAt) =>
           UserExtractTask(
             _id = _id,
             tenant = tenant,
             orgKey = orgKey,
             userId = userId,
+            email = email,
             startedAt = startedAt,
             endedAt = endedAt
         ))

@@ -10,7 +10,18 @@ export class ConsentFactPage extends Component {
 
     state = {
         selectedTab: 'CURRENT',
-        tabs: []
+        tabs: [],
+        email: "",
+        errors: []
+    };
+
+    handleInputChange = (event) => {
+        const target = event.target;
+        const value = target.type === 'checkbox' ? target.checked : target.value;
+        const name = target.name;
+
+        const nextState = Object.assign({}, this.state, {[name]: value});
+        this.setState(nextState);
     };
 
     componentDidMount() {
@@ -37,8 +48,28 @@ export class ConsentFactPage extends Component {
     }
 
     extractData = () => {
-        userExtractService.extractData(this.props.tenant, this.props.organisationKey, this.props.userId)
-            .then(() => console.log("ok"));
+        if (this.validateExtract(this.state))
+            userExtractService.extractData(this.props.tenant, this.props.organisationKey, this.props.userId, {email: this.state.email})
+                .then(() => $('#emailAddress').modal('toggle'))
+                .catch(() => $('#emailAddress').modal('toggle'));
+    };
+
+    validateExtract = (state) => {
+        const errors = [];
+        if (!state.email) {
+            errors.push("email.error")
+        } else {
+            const re = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+
+            if (!re.test(state.email)) {
+                errors.push("email.format.error")
+            }
+        }
+
+        this.setState({errors});
+        console.log(errors);
+
+        return !errors.length;
     };
 
     addTab = (user) => {
@@ -75,7 +106,9 @@ export class ConsentFactPage extends Component {
                     <h1>Utilisateur {this.props.userId}</h1>
 
                     <div className="form-buttons pull-right">
-                        <button className="btn btn-primary" title="extract-data" onClick={this.extractData}><i className="glyphicon glyphicon-download-alt" /></button>
+                        <button className="btn btn-primary" title="extract-data" data-toggle="modal"
+                                data-target="#emailAddress"><i
+                            className="glyphicon glyphicon-download-alt"/></button>
                     </div>
                 </div>
                 <div className="col-md-12">
@@ -113,6 +146,37 @@ export class ConsentFactPage extends Component {
                                 this.state.tabs && this.state.tabs.length &&
                                 this.state.tabs.find(tab => tab.id === this.state.selectedTab).content
                             }
+                        </div>
+                    </div>
+                </div>
+
+                <div className="modal fade" tabIndex="-1" role="dialog" id="emailAddress">
+                    <div className="modal-dialog" role="document">
+                        <div className="modal-content">
+                            <div className="modal-header">
+                                <h4 className="modal-title text-center">Merci de saisir votre adresse email</h4>
+                            </div>
+                            <div className="modal-body text-center">
+                                <div
+                                    className={this.state.errors.indexOf("email.error") !== -1 || this.state.errors.indexOf("email.format.error") !== -1 ? "form-group has-error" : "form-group"}>
+                                    <label htmlFor="emailAddress" className="col-xs-12 col-sm-2 control-label">E-mail
+                                        :</label>
+                                    <div className="col-sm-10 input-group">
+                                        <input type="text" className="form-control" id="emailAddress" name="email"
+                                               placeholder="mon-adresse@perso.fr" value={this.state.email}
+                                               onChange={this.handleInputChange}/>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="modal-footer">
+                                <button type="button" className="btn btn-danger"
+                                        data-dismiss="modal">Cancel
+                                </button>
+
+                                <button type="button" className="btn btn-success"
+                                        onClick={this.extractData}>Extraire
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -17,7 +17,16 @@ trait FSManager {
       implicit s3ExecutionContext: S3ExecutionContext): Future[PutObjectResult]
 }
 
-class S3Manager(env: Env) extends FSManager {
+trait FSUserExtractManager {
+  def userExtractUpload(tenant: String,
+                        orgKey: String,
+                        userId: String,
+                        extractTaskId: String,
+                        content: String)(
+      implicit s3ExecutionContext: S3ExecutionContext): Future[PutObjectResult]
+}
+
+class S3Manager(env: Env) extends FSManager with FSUserExtractManager {
 
   private lazy val s3Config: S3Config = env.config.s3Config
 
@@ -76,7 +85,18 @@ class S3Manager(env: Env) extends FSManager {
                              content)
         }
       }
+  }
 
+  override def userExtractUpload(
+      tenant: String,
+      orgKey: String,
+      userId: String,
+      extractTaskId: String,
+      content: String)(implicit s3ExecutionContext: S3ExecutionContext)
+    : Future[PutObjectResult] = {
+    val key: String = s"/$tenant/$orgKey/$userId/extract/$extractTaskId"
+
+    addFile(key, content)
   }
 }
 
