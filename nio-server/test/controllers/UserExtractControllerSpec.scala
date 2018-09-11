@@ -89,14 +89,16 @@ class UserExtractControllerSpec extends TestUtils {
       val userExtracted = getJson(s"/$tenant/organisations/$orgKey/_extracted")
       userExtracted.status mustBe OK
 
-      val extracted: JsArray = userExtracted.json.as[JsArray]
+      val extracted: JsValue = userExtracted.json
 
-      println(extracted)
-
-      extracted.value.size mustBe (3)
-      (extracted \ 0 \ "userId").as[String] mustBe ("user1")
-      (extracted \ 1 \ "userId").as[String] mustBe ("userId2")
-      (extracted \ 2 \ "userId").as[String] mustBe ("userId3")
+      (extracted \ "page").as[Int] mustBe 0
+      (extracted \ "pageSize").as[Int] mustBe 10
+      (extracted \ "count").as[Int] mustBe 3
+      val items: JsArray = (extracted \ "items").as[JsArray]
+      items.value.size mustBe 3
+      (items \ 0 \ "userId").as[String] mustBe "user1"
+      (items \ 1 \ "userId").as[String] mustBe "userId2"
+      (items \ 2 \ "userId").as[String] mustBe "userId3"
     }
 
     "list all extracted data for an unknow organisation" in {

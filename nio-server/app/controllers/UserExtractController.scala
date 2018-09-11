@@ -82,7 +82,7 @@ class UserExtractController(
       }
     }
 
-  def extractedData(tenant: String, orgKey: String) =
+  def extractedData(tenant: String, orgKey: String, page: Int, pageSize: Int) =
     AuthAction.async { implicit req =>
       // control if an organisation with the orgkey exist
       organisationMongoDataStore
@@ -93,9 +93,13 @@ class UserExtractController(
             Future.successful(s"organisation.$orgKey.not.found".notFound())
           case Some(_) =>
             userExtractTaskDataStore
-              .findByOrgKey(tenant, orgKey)
-              .map { userExtractTasks =>
-                renderMethod(UserExtractTasks(userExtractTasks), Ok)
+              .findByOrgKey(tenant, orgKey, page, pageSize)
+              .map { res =>
+                renderMethod(UserExtractTasks(page = page,
+                                              pageSize = pageSize,
+                                              count = res._2,
+                                              items = res._1),
+                             Ok)
               }
         }
 

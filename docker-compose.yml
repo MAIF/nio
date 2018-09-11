@@ -11,9 +11,6 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 32181
       ZOOKEEPER_TICK_TIME: 2000
-    extra_hosts:
-      - "moby:127.0.0.1"
-      - "localhost: 127.0.0.1"
   kafka:
     image: confluentinc/cp-kafka:3.2.1
     ports:
@@ -27,9 +24,6 @@ services:
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
       KAFKA_DELETE_TOPIC_ENABLE: "true"
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-    extra_hosts:
-      - "moby:127.0.0.1"
-      - "localhost: 127.0.0.1"
   s3server:
     image: scality/s3server
     ports:

@@ -138,12 +138,29 @@ object UserExtractTask extends ReadableEntity[UserExtractTask] {
     }
 }
 
-case class UserExtractTasks(userExtractTasks: Seq[UserExtractTask])
+case class UserExtractTasks(page: Int,
+                            pageSize: Int,
+                            count: Int,
+                            items: Seq[UserExtractTask])
     extends ModelTransformAs {
   override def asXml(): Elem = <userExtractTasks>
-    {userExtractTasks.map(u => u.asXml())}
-    </userExtractTasks>
+    <page>
+      {page}
+    </page>
+    <pageSize>
+      {pageSize}
+    </pageSize>
+    <count>
+      {count}
+    </count>
+    <items>
+      {items.map(_.asXml)}
+    </items>
+  </userExtractTasks>.clean()
 
   override def asJson(): JsValue =
-    JsArray(userExtractTasks.map(_.asJson))
+    Json.obj("page" -> page,
+             "pageSize" -> pageSize,
+             "count" -> count,
+             "items" -> items.map(_.asJson))
 }
