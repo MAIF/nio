@@ -137,3 +137,13 @@ object UserExtractTask extends ReadableEntity[UserExtractTask] {
       case JsError(errors) => Left(AppErrors.fromJsError(errors))
     }
 }
+
+case class UserExtractTasks(userExtractTasks: Seq[UserExtractTask])
+    extends ModelTransformAs {
+  override def asXml(): Elem = <userExtractTasks>
+    {userExtractTasks.map(u => u.asXml())}
+    </userExtractTasks>
+
+  override def asJson(): JsValue =
+    JsArray(userExtractTasks.map(_.asJson))
+}

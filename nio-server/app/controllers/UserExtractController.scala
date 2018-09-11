@@ -6,7 +6,12 @@ import auth.AuthAction
 import controllers.ErrorManager.{AppErrorManagerResult, ErrorManagerResult}
 import db.{OrganisationMongoDataStore, UserExtractTaskDataStore}
 import messaging.KafkaMessageBroker
-import models.{UserExtract, UserExtractTask, UserExtractTaskAsked}
+import models.{
+  UserExtract,
+  UserExtractTask,
+  UserExtractTaskAsked,
+  UserExtractTasks
+}
 import play.api.Logger
 import play.api.libs.streams.Accumulator
 import play.api.mvc.{BodyParser, ControllerComponents}
@@ -77,6 +82,25 @@ class UserExtractController(
       }
     }
 
+  def extractedData(tenant: String, orgKey: String) =
+    AuthAction.async { implicit req =>
+      // control if an organisation with the orgkey exist
+      organisationMongoDataStore
+        .findByKey(tenant, orgKey)
+        .flatMap {
+          // if the organisation doesn't exist
+          case None =>
+            Future.successful(s"organisation.$orgKey.not.found".notFound())
+          case Some(_) =>
+            userExtractTaskDataStore
+              .findByOrgKey(tenant, orgKey)
+              .map { userExtractTasks =>
+                renderMethod(UserExtractTasks(userExtractTasks), Ok)
+              }
+        }
+
+    }
+
   def uploadFile(tenant: String, orgKey: String, userId: String, name: String) =
     AuthAction.async(streamFile) { implicit req =>
       // control if an extract task for this user/organisation/tenant exist
@@ -109,4 +133,5 @@ class UserExtractController(
     BodyParser { req =>
       Accumulator.source[ByteString].map(s => Right(s))
     }
+
 }
