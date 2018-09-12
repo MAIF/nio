@@ -7,7 +7,8 @@ import auth.AuthAction
 import controllers.ErrorManager.{AppErrorManagerResult, ErrorManagerResult}
 import db.{OrganisationMongoDataStore, UserExtractTaskDataStore}
 import messaging.KafkaMessageBroker
-import models.{UserExtract, UserExtractTask, UserExtractTaskAsked, UserExtractTasks}
+import models._
+import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
 import play.api.libs.json.Json
 import play.api.libs.streams.Accumulator
@@ -126,9 +127,28 @@ class UserExtractController(
                                  extractTask._id,
                                  name,
                                  req.body)
-              .map { locationAddress =>
-                // TODO Send mail with public link to S3
-                Ok(Json.obj("url" -> locationAddress))
+              .flatMap { locationAddress =>
+                val task: UserExtractTask = extractTask.copy(
+                  endedAt = Some(DateTime.now(DateTimeZone.UTC)))
+
+                // Update extract task with endedAt date
+                userExtractTaskDataStore
+                  .update(extractTask._id,
+                          task)
+                  .map { _ =>
+
+                    // publish associate event to kafka
+                    broker.publish(
+                      UserExtractTaskCompleted(
+                        tenant = tenant,
+                        author = req.authInfo.sub,
+                        metadata = req.authInfo.metadatas,
+                        payload = task
+                      )
+                    )
+                    // TODO Send mail with public link to S3
+                    Ok(Json.obj("url" -> locationAddress))
+                  }
               }
         }
     }

@@ -135,6 +135,19 @@ class UserExtractControllerSpec extends TestUtils {
       )
 
       resp.status mustBe OK
+
+
+      val msgAsJson = readLastKafkaEvent()
+      (msgAsJson \ "type").as[String] mustBe "UserExtractTaskCompleted"
+      (msgAsJson \ "payload" \ "tenant").as[String] mustBe tenant
+      (msgAsJson \ "payload" \ "orgKey").as[String] mustBe orgKey
+      (msgAsJson \ "payload" \ "userId").as[String] mustBe userId
+
+      // ask extract after file upload must be OK
+      val userExtractStatus =
+        postJson(s"/$tenant/organisations/$orgKey/users/$userId/_extract",
+                 userExtract.asJson())
+      userExtractStatus.status mustBe OK
     }
   }
 

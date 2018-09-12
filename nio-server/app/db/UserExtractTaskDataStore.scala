@@ -22,7 +22,7 @@ class UserExtractTaskDataStore(val mongoApi: ReactiveMongoApi)(
           "orgKey" -> IndexType.Ascending,
           "userId" -> IndexType.Ascending),
       name = Some("tenant_orgKey_userId"),
-      unique = true,
+      unique = false,
       sparse = true
     ),
     Index(
@@ -52,9 +52,11 @@ class UserExtractTaskDataStore(val mongoApi: ReactiveMongoApi)(
   def find(tenant: String,
            orgKey: String,
            userId: String): Future[Option[UserExtractTask]] =
-    findOneByQuery(
-      tenant,
-      Json.obj("tenant" -> tenant, "orgKey" -> orgKey, "userId" -> userId))
+    findOneByQuery(tenant,
+                   Json.obj("tenant" -> tenant,
+                            "orgKey" -> orgKey,
+                            "userId" -> userId,
+                            "endedAt" -> Json.obj("$exists" -> false)))
 
   def findByOrgKey(tenant: String,
                    orgKey: String,
