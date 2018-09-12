@@ -1,25 +1,23 @@
 package controllers
 
+import akka.actor.ActorSystem
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
 import auth.AuthAction
 import controllers.ErrorManager.{AppErrorManagerResult, ErrorManagerResult}
 import db.{OrganisationMongoDataStore, UserExtractTaskDataStore}
 import messaging.KafkaMessageBroker
-import models.{
-  UserExtract,
-  UserExtractTask,
-  UserExtractTaskAsked,
-  UserExtractTasks
-}
+import models.{UserExtract, UserExtractTask, UserExtractTaskAsked, UserExtractTasks}
 import play.api.Logger
+import play.api.libs.json.Json
 import play.api.libs.streams.Accumulator
 import play.api.mvc.{BodyParser, ControllerComponents}
-import utils.FSUserExtractManager
+import utils.{FSUserExtractManager, S3ExecutionContext}
 
 import scala.concurrent.{ExecutionContext, Future}
 
 class UserExtractController(
+    actorSystem: ActorSystem,
     val AuthAction: AuthAction,
     val cc: ControllerComponents,
     userExtractTaskDataStore: UserExtractTaskDataStore,
@@ -29,6 +27,9 @@ class UserExtractController(
     implicit val ec: ExecutionContext)
     extends ControllerUtils(cc) {
   implicit val readable: ReadableEntity[UserExtract] = UserExtract
+
+  implicit val s3ExecutionContext: S3ExecutionContext = S3ExecutionContext(
+    actorSystem.dispatchers.lookup("S3-dispatcher"))
 
   def extractData(tenant: String, orgKey: String, userId: String) =
     AuthAction.async(bodyParser) { implicit req =>
@@ -118,20 +119,19 @@ class UserExtractController(
           case Some(extractTask) =>
             // Send file to S3
 
-            // Send mail with public link to S3
-
-            ???
+            fSUserExtractManager
+              .userExtractUpload(tenant,
+                                 orgKey,
+                                 userId,
+                                 extractTask._id,
+                                 name,
+                                 req.body)
+              .map { locationAddress =>
+                // TODO Send mail with public link to S3
+                Ok(Json.obj("url" -> locationAddress))
+              }
         }
     }
-
-  //
-  //  def addToS3(): Flow[ByteString, String, NotUsed] =
-  //    Flow[ByteString]
-  //      .map(byteString => ???)
-  //
-  //  def sendMail(): Flow[(String, String), String, NotUsed] =
-  //    Flow[(String, String)]
-  //      .map((str1, str2) => ???)
 
   def streamFile: BodyParser[Source[ByteString, _]] =
     BodyParser { req =>

@@ -1,12 +1,18 @@
 package utils
 
+import java.io.{ByteArrayInputStream, FileInputStream}
 import java.util.Base64
 
+import akka.NotUsed
+import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
+import akka.stream.scaladsl.{Flow, Source}
+import akka.util.ByteString
 import com.amazonaws.ClientConfiguration
 import com.amazonaws.auth.{AWSStaticCredentialsProvider, BasicAWSCredentials}
 import com.amazonaws.client.builder.AwsClientBuilder
 import com.amazonaws.regions.Regions
-import com.amazonaws.services.s3.model.PutObjectResult
+import com.amazonaws.services.s3.model._
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 import configuration.{Env, S3Config}
 
@@ -22,12 +28,16 @@ trait FSUserExtractManager {
                         orgKey: String,
                         userId: String,
                         extractTaskId: String,
-                        content: String)(
-      implicit s3ExecutionContext: S3ExecutionContext): Future[PutObjectResult]
+                        name: String,
+                        src: Source[ByteString, _])(
+      implicit s3ExecutionContext: S3ExecutionContext): Future[String]
 }
 
-class S3Manager(env: Env) extends FSManager with FSUserExtractManager {
+class S3Manager(env: Env, actorSystem: ActorSystem)
+    extends FSManager
+    with FSUserExtractManager {
 
+  implicit val mat = ActorMaterializer()(actorSystem)
   private lazy val s3Config: S3Config = env.config.s3Config
 
   private lazy val amazonS3: AmazonS3 = AmazonS3ClientBuilder
@@ -80,24 +90,75 @@ class S3Manager(env: Env) extends FSManager with FSUserExtractManager {
     createBucket(env.config.s3Config.bucketName)
       .flatMap { _ =>
         Future {
-          amazonS3.putObject(env.config.s3Config.bucketName,
+          amazonS3.putObject(s3Config.bucketName,
                              Base64.getEncoder.encodeToString(key.getBytes),
                              content)
         }
       }
   }
 
-  override def userExtractUpload(
-      tenant: String,
-      orgKey: String,
-      userId: String,
-      extractTaskId: String,
-      content: String)(implicit s3ExecutionContext: S3ExecutionContext)
-    : Future[PutObjectResult] = {
-    val key: String = s"/$tenant/$orgKey/$userId/extract/$extractTaskId"
+  override def userExtractUpload(tenant: String,
+                                 orgKey: String,
+                                 userId: String,
+                                 extractTaskId: String,
+                                 name: String,
+                                 src: Source[ByteString, _])(
+      implicit s3ExecutionContext: S3ExecutionContext): Future[String] = {
+    val bucketName = s3Config.bucketName
 
-    addFile(key, content)
+    // Create bucket if not exist
+    createBucket(bucketName)
+      .flatMap { _ =>
+        val key: String =
+          s"$tenant/$orgKey/$userId/extract/$extractTaskId/$name"
+
+        val s3Request: InitiateMultipartUploadRequest =
+          new InitiateMultipartUploadRequest(bucketName, key)
+        val result: InitiateMultipartUploadResult =
+          amazonS3.initiateMultipartUpload(s3Request)
+        val uploadId: String = result.getUploadId
+
+        src
+          .via(loadFile(key, uploadId))
+          .runFold(Seq[UploadPartResult]()) { (results, uploadResult) =>
+            results :+ uploadResult
+          }
+          .map { results =>
+            val tags = scala.collection.JavaConverters
+              .seqAsJavaList(results.map(_.getPartETag))
+            val completeRequest =
+              new CompleteMultipartUploadRequest(bucketName,
+                                                 key,
+                                                 uploadId,
+                                                 tags)
+            amazonS3.completeMultipartUpload(completeRequest).getLocation
+          }
+      }
   }
+
+  def loadFile(key: String, uploadId: String)(
+      implicit s3ExecutionContext: S3ExecutionContext)
+    : Flow[ByteString, UploadPartResult, NotUsed] =
+    Flow[ByteString]
+      .grouped(5)
+      .statefulMapConcat { () =>
+        var partNumber = 1
+        chunks =>
+          {
+            val groupedChunk = chunks.reduce(_ ++ _)
+            val uploadPart = new UploadPartRequest()
+              .withBucketName(s3Config.bucketName)
+              .withKey(key)
+              .withUploadId(uploadId)
+              .withPartNumber(partNumber)
+              .withPartSize(groupedChunk.size)
+              .withInputStream(new ByteArrayInputStream(
+                groupedChunk.toArray[Byte]))
+
+            partNumber += 1
+            List(amazonS3.uploadPart(uploadPart))
+          }
+      }
 }
 
 case class S3ExecutionContext(ec: ExecutionContext) extends ExecutionContext {
