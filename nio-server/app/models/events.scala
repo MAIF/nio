@@ -13,7 +13,8 @@ object EventType extends Enumeration {
   ConsentFactUpdated, AccountCreated, AccountUpdated, AccountDeleted,
   SecuredEvent, DeletionStarted, DeletionAppDone, DeletionFinished,
   ExtractionStarted, ExtractionAppFilesMetadataReceived, ExtractionAppDone,
-  ExtractionFinished, UserExtractTaskAsked, UserExtractTaskCompleted, Unknown = Value
+  ExtractionFinished, UserExtractTaskAsked, UserExtractTaskCompleted, Unknown =
+    Value
 
   def from(name: String): Value =
     values.find(_.toString.toLowerCase == name.toLowerCase()).getOrElse(Unknown)
@@ -597,12 +598,13 @@ case class UserExtractTaskAsked(tenant: String,
 
   override def shardId: String = payload.userId
 }
-case class UserExtractTaskCompleted(tenant: String,
-                                author: String,
-                                metadata: Option[Seq[(String, String)]] = None,
-                                id: Long = NioEvent.gen.nextId(),
-                                date: DateTime = DateTime.now(DateTimeZone.UTC),
-                                payload: UserExtractTask)
+case class UserExtractTaskCompleted(
+    tenant: String,
+    author: String,
+    metadata: Option[Seq[(String, String)]] = None,
+    id: Long = NioEvent.gen.nextId(),
+    date: DateTime = DateTime.now(DateTimeZone.UTC),
+    payload: UserExtractTask)
     extends NioEvent {
   override def tYpe: EventType.Value = EventType.UserExtractTaskCompleted
 

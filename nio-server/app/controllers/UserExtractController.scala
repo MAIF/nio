@@ -109,6 +109,7 @@ class UserExtractController(
 
   def uploadFile(tenant: String, orgKey: String, userId: String, name: String) =
     AuthAction.async(streamFile) { implicit req =>
+
       // control if an extract task for this user/organisation/tenant exist
       userExtractTaskDataStore
         .find(tenant, orgKey, userId)
@@ -118,36 +119,45 @@ class UserExtractController(
               s"user.extract.task.for.user.$userId.and.organisation.$orgKey.not.found"
                 .notFound())
           case Some(extractTask) =>
-            // Send file to S3
 
-            fSUserExtractManager
-              .userExtractUpload(tenant,
-                                 orgKey,
-                                 userId,
-                                 extractTask._id,
-                                 name,
-                                 req.body)
-              .flatMap { locationAddress =>
-                val task: UserExtractTask = extractTask.copy(
-                  endedAt = Some(DateTime.now(DateTimeZone.UTC)))
+            val taskUpdateUploadDate: UserExtractTask = extractTask.copy(
+              uploadStartedAt = Some(DateTime.now(DateTimeZone.UTC)))
 
-                // Update extract task with endedAt date
-                userExtractTaskDataStore
-                  .update(extractTask._id,
-                          task)
-                  .map { _ =>
+            // specified upload started date
+            userExtractTaskDataStore
+              .update(extractTask._id, taskUpdateUploadDate)
+              .flatMap { _ =>
 
-                    // publish associate event to kafka
-                    broker.publish(
-                      UserExtractTaskCompleted(
-                        tenant = tenant,
-                        author = req.authInfo.sub,
-                        metadata = req.authInfo.metadatas,
-                        payload = task
-                      )
-                    )
-                    // TODO Send mail with public link to S3
-                    Ok(Json.obj("url" -> locationAddress))
+                // Send file to S3
+                fSUserExtractManager
+                  .userExtractUpload(tenant,
+                                     orgKey,
+                                     userId,
+                                     extractTask._id,
+                                     name,
+                                     req.body)
+                  .flatMap { locationAddress =>
+
+                    val task: UserExtractTask = taskUpdateUploadDate.copy(
+                      endedAt = Some(DateTime.now(DateTimeZone.UTC)))
+
+                    // Update extract task with endedAt date
+                    userExtractTaskDataStore
+                      .update(extractTask._id, task)
+                      .map { _ =>
+
+                        // publish associate event to kafka
+                        broker.publish(
+                          UserExtractTaskCompleted(
+                            tenant = tenant,
+                            author = req.authInfo.sub,
+                            metadata = req.authInfo.metadatas,
+                            payload = task
+                          )
+                        )
+                        // TODO Send mail with public link to S3
+                        Ok(Json.obj("url" -> locationAddress))
+                      }
                   }
               }
         }

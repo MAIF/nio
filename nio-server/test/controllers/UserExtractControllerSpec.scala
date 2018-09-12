@@ -136,6 +136,16 @@ class UserExtractControllerSpec extends TestUtils {
 
       resp.status mustBe OK
 
+      Await
+        .result(
+          ws.url(
+              s"$serverHost/api/$tenant/organisations/$orgKey/users/$userId/_files/${file.getName}")
+            .withBody(SourceBody(chunks))
+            .withMethod("POST")
+            .execute(),
+          Duration(60, TimeUnit.SECONDS)
+        )
+        .status mustBe NOT_FOUND
 
       val msgAsJson = readLastKafkaEvent()
       (msgAsJson \ "type").as[String] mustBe "UserExtractTaskCompleted"

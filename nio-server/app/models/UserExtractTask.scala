@@ -23,6 +23,7 @@ case class UserExtractTask(_id: String,
                            userId: String,
                            email: String,
                            startedAt: DateTime,
+                           uploadStartedAt: Option[DateTime],
                            endedAt: Option[DateTime])
     extends ModelTransformAs {
   override def asXml(): Elem = <userExtractTask>
@@ -40,7 +41,11 @@ case class UserExtractTask(_id: String,
     </email>
     <startedAt>
       {startedAt.toString(DateUtils.utcDateFormatter)}
-    </startedAt>{endedAt.map(date => <endedAt>
+    </startedAt>
+    {uploadStartedAt.map(date => <uploadStartedAt>
+      {date.toString(DateUtils.utcDateFormatter)}
+    </uploadStartedAt>)}
+    {endedAt.map(date => <endedAt>
       {date.toString(DateUtils.utcDateFormatter)}
     </endedAt>)}
   </userExtractTask>.clean()
@@ -60,6 +65,7 @@ object UserExtractTask extends ReadableEntity[UserExtractTask] {
       userId = userId,
       email = email,
       startedAt = DateTime.now(DateTimeZone.UTC),
+      uploadStartedAt = None,
       endedAt = None
     )
 
@@ -74,6 +80,7 @@ object UserExtractTask extends ReadableEntity[UserExtractTask] {
       (__ \ "startedAt").readNullable[DateTime].map { maybeStartedAt =>
         maybeStartedAt.getOrElse(DateTime.now(DateTimeZone.UTC))
       } and
+      (__ \ "uploadStartedAt").readNullable[DateTime] and
       (__ \ "endedAt").readNullable[DateTime]
   )(UserExtractTask.apply _)
 
@@ -84,6 +91,7 @@ object UserExtractTask extends ReadableEntity[UserExtractTask] {
       (JsPath \ "userId").write[String] and
       (JsPath \ "email").write[String] and
       (JsPath \ "startedAt").write[DateTime] and
+      (JsPath \ "uploadStartedAt").writeNullable[DateTime] and
       (JsPath \ "endedAt").writeNullable[DateTime]
   )(unlift(UserExtractTask.unapply))
 
@@ -94,6 +102,7 @@ object UserExtractTask extends ReadableEntity[UserExtractTask] {
       (JsPath \ "userId").write[String] and
       (JsPath \ "email").write[String] and
       (JsPath \ "startedAt").write[DateTime] and
+      (JsPath \ "uploadStartedAt").writeNullable[DateTime] and
       (JsPath \ "endedAt").writeNullable[DateTime]
   )(unlift(UserExtractTask.unapply))
 
@@ -113,10 +122,19 @@ object UserExtractTask extends ReadableEntity[UserExtractTask] {
         (node \ "startedAt").validateNullable[DateTime](
           DateTime.now(DateTimeZone.UTC),
           Some(s"${path.convert()}startedAt")),
+        (node \ "uploadStartedAt").validateNullable[DateTime](
+          Some(s"${path.convert()}uploadStartedAt")),
         (node \ "endedAt").validateNullable[DateTime](
           Some(s"${path.convert()}endedAt"))
       ).mapN(
-        (_id, tenant, orgKey, userId, email, startedAt, endedAt) =>
+        (_id,
+         tenant,
+         orgKey,
+         userId,
+         email,
+         startedAt,
+         uploadStartedAt,
+         endedAt) =>
           UserExtractTask(
             _id = _id,
             tenant = tenant,
@@ -124,6 +142,7 @@ object UserExtractTask extends ReadableEntity[UserExtractTask] {
             userId = userId,
             email = email,
             startedAt = startedAt,
+            uploadStartedAt = uploadStartedAt,
             endedAt = endedAt
         ))
 
