@@ -158,6 +158,21 @@ class UserExtractControllerSpec extends TestUtils {
         postJson(s"/$tenant/organisations/$orgKey/users/$userId/_extract",
                  userExtract.asJson())
       userExtractStatus.status mustBe OK
+
+      val file2 = File.createTempFile("file2", ".csv")
+      Files.write(file2.toPath, """val1; val2; val3 \n val4; val5; val6 \n""".getBytes(StandardCharsets.UTF_8))
+
+
+      val chunks2 = FileIO.fromPath(file2.toPath)
+
+      Await.result(
+        ws.url(
+          s"$serverHost/api/$tenant/organisations/$orgKey/users/$userId/_files/${file2.getName}")
+          .withBody(SourceBody(chunks2))
+          .withMethod("POST")
+          .execute(),
+        Duration(60, TimeUnit.SECONDS)
+      ).status mustBe OK
     }
   }
 
