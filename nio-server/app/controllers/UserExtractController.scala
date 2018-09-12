@@ -109,7 +109,6 @@ class UserExtractController(
 
   def uploadFile(tenant: String, orgKey: String, userId: String, name: String) =
     AuthAction.async(streamFile) { implicit req =>
-
       // control if an extract task for this user/organisation/tenant exist
       userExtractTaskDataStore
         .find(tenant, orgKey, userId)
@@ -119,7 +118,6 @@ class UserExtractController(
               s"user.extract.task.for.user.$userId.and.organisation.$orgKey.not.found"
                 .notFound())
           case Some(extractTask) =>
-
             val taskUpdateUploadDate: UserExtractTask = extractTask.copy(
               uploadStartedAt = Some(DateTime.now(DateTimeZone.UTC)))
 
@@ -127,7 +125,6 @@ class UserExtractController(
             userExtractTaskDataStore
               .update(extractTask._id, taskUpdateUploadDate)
               .flatMap { _ =>
-
                 // Send file to S3
                 fSUserExtractManager
                   .userExtractUpload(tenant,
@@ -137,7 +134,6 @@ class UserExtractController(
                                      name,
                                      req.body)
                   .flatMap { locationAddress =>
-
                     val task: UserExtractTask = taskUpdateUploadDate.copy(
                       endedAt = Some(DateTime.now(DateTimeZone.UTC)))
 
@@ -145,7 +141,6 @@ class UserExtractController(
                     userExtractTaskDataStore
                       .update(extractTask._id, task)
                       .map { _ =>
-
                         // publish associate event to kafka
                         broker.publish(
                           UserExtractTaskCompleted(
