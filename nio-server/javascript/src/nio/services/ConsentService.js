@@ -19,7 +19,7 @@ export function getConsentsTemplate(tenant, organisationKey, userId) {
       Accept: 'application/json',
       'Content-Type': 'application/json'
     }
-  }).then(r => r.json());
+  });
 }
 
 export function saveConsents(tenant, organisationKey, userId, user) {

@@ -1,33 +1,37 @@
 version: '2'
 services:
+
   mongo:
     image: mongo:3.4.3
     ports:
       - 27017:27017
+
   zookeeper:
     image: confluentinc/cp-zookeeper:3.2.1
     ports:
-     - 32182:32181
+      - 32182:32181
     environment:
-      ZOOKEEPER_CLIENT_PORT: 32181
-      ZOOKEEPER_TICK_TIME: 2000
+      - ZOOKEEPER_CLIENT_PORT=32181
+      - ZOOKEEPER_TICK_TIME=2000
+
   kafka:
     image: confluentinc/cp-kafka:3.2.1
     ports:
-     - 29092:29092
+      - 29092:29092
     depends_on:
       - zookeeper
     environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:32181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:29092
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
-      KAFKA_DELETE_TOPIC_ENABLE: "true"
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      - KAFKA_BROKER_ID=1
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:32181
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:29092
+      - KAFKA_AUTO_CREATE_TOPICS_ENABLE=true
+      - KAFKA_DELETE_TOPIC_ENABLE=true
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+
   s3server:
     image: scality/s3server
     ports:
       - 8000:8000
     environment:
-      - "SCALITY_ACCESS_KEY_ID=newAccessKey"
-      - "SCALITY_SECRET_ACCESS_KEY=newSecretKey"
+      - SCALITY_ACCESS_KEY_ID=newAccessKey
+      - SCALITY_SECRET_ACCESS_KEY=newSecretKey
