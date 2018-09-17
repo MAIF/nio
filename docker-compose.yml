@@ -1,15 +1,19 @@
-version: '2'
+version: '3'
 services:
 
   mongo:
     image: mongo:3.4.3
     ports:
       - 27017:27017
+    networks:
+      - nio-net
 
   zookeeper:
     image: confluentinc/cp-zookeeper:3.2.1
     ports:
       - 32182:32181
+    networks:
+      - nio-net
     environment:
       - ZOOKEEPER_CLIENT_PORT=32181
       - ZOOKEEPER_TICK_TIME=2000
@@ -18,12 +22,14 @@ services:
     image: confluentinc/cp-kafka:3.2.1
     ports:
       - 29092:29092
+    networks:
+      - nio-net
     depends_on:
       - zookeeper
     environment:
       - KAFKA_BROKER_ID=1
       - KAFKA_ZOOKEEPER_CONNECT=zookeeper:32181
-      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:29092
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://0.0.0.0:29092
       - KAFKA_AUTO_CREATE_TOPICS_ENABLE=true
       - KAFKA_DELETE_TOPIC_ENABLE=true
       - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
@@ -32,6 +38,34 @@ services:
     image: scality/s3server
     ports:
       - 8000:8000
+    networks:
+      - nio-net
     environment:
       - SCALITY_ACCESS_KEY_ID=newAccessKey
       - SCALITY_SECRET_ACCESS_KEY=newSecretKey
+
+  nio:
+    image: maif/nio
+    ports:
+      - 9000:9000
+    networks:
+      - nio-net
+    expose:
+      - 9000
+    environment:
+      - KAFKA_HOST=kafka:29092
+      - CELLAR_ADDON_HOST=http://s3server:8000
+      - MONGODB_ADDON_URI=mongodb://mongo:27017/nio
+    depends_on:
+      - mongo
+      - kafka
+      - s3server
+
+
+networks:
+  nio-net:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.16.237.39/24
