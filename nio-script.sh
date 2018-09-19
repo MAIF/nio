@@ -70,7 +70,6 @@ then
 		if [ -d "$BUILD_DIRECTORY" ] 
 		then
 			echo "An existing \"$BUILD_DIRECTORY\" folder already exist, it's time to say good bye!"		
-			sudo rm -rf $BUILD_DIRECTORY/data
 			sudo rm -rf $BUILD_DIRECTORY/config
 			
 			docker-compose -f $BUILD_DIRECTORY/docker-compose.yml down
@@ -98,7 +97,6 @@ elif [ "$1" = "cleanRun" ] && [ -d "$2" ]
 then
 	echo "Clean run folder"
 	
-	sudo rm -rf $2/data
 	sudo rm -rf $2/config
 	
 	docker-compose -f $2/docker-compose.yml down
