@@ -2,12 +2,12 @@ FROM openjdk:8
 
 LABEL MAINTAINER="MAIF Team <maif@maif.fr>"
 
-ADD nio-server/target/universal/nio-server-*.zip /opt
+ADD nio-server-*.zip /opt
 RUN unzip -q /opt/nio-server-*.zip -d /opt
 RUN rm /opt/nio-server-*.zip
 RUN mv /opt/nio-server-* /opt/backend
 
-ADD nio-server/javascript /opt/frontend
+ADD javascript /opt/frontend
 
 CMD ["cd", "opt/frontend"]
 CMD ["yarn", "run", "build"]
