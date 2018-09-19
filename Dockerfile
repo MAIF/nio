@@ -7,11 +7,6 @@ RUN unzip -q /opt/nio-server-*.zip -d /opt
 RUN rm /opt/nio-server-*.zip
 RUN mv /opt/nio-server-* /opt/backend
 
-ADD javascript /opt/frontend
-
-CMD ["cd", "opt/frontend"]
-CMD ["yarn", "run", "build"]
-
 WORKDIR /opt/backend
 
 EXPOSE 9000

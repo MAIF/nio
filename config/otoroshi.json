@@ -176,7 +176,9 @@
       "publicPatterns": [
         "/.*"
       ],
-      "privatePatterns": [],
+      "privatePatterns": [
+        "/api/.*"
+      ],
       "additionalHeaders": {},
       "matchingHeaders": {},
       "ipFiltering": {
