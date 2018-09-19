@@ -3,12 +3,13 @@
 # DO NOT FORGET to setup your hosts
 # # /etc/hosts: 127.0.0.1    nio.foo.bar kibana.foo.bar elastic.foo.bar keycloak.foo.bar otoroshi.foo.bar otoroshi-api.foo.bar privateapps.foo.bar
 # 
-# DO NOT FORGET to replace the ip address a line 144 of this file by your ip address
+# DO NOT FORGET to replace the ip address a line 145 of this file by your ip address
 # credentials are the following
 #
 # http://keycloak.foo.bar:8889 : keycloak/password
 # http://otoroshi.foo.bar:8889 : admin@otoroshi.io/password
-# http://kibana.foo.bar:8889 : index on otoroshi-events-* / @timestamp
+# http://kibana.foo.bar:8889 : create kibana index on otoroshi-events-* with @timestamp for time. 
+# To import Otoroshi dashboard for kibana, go to management / saved object / import (the dashboard file is at ./config/kibana.json)
 # http://nio.foo.bar:8889 : admin@nio.io/password
 
 version: '3'
