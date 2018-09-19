@@ -1,9 +1,9 @@
 # Example of Nio deployment using Otoroshi for security management and keycloak as identity provider
 #
-# don't forget to setup your hosts
+# DO NOT FORGET to setup your hosts
 # # /etc/hosts: 127.0.0.1    nio.foo.bar kibana.foo.bar elastic.foo.bar keycloak.foo.bar otoroshi.foo.bar otoroshi-api.foo.bar privateapps.foo.bar
 # 
-# and replace the ip address a line 144 of this file by your ip address
+# DO NOT FORGET to replace the ip address a line 144 of this file by your ip address
 # credentials are the following
 #
 # http://keycloak.foo.bar:8889 : keycloak/password
