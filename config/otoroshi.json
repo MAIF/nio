@@ -1,7 +1,4 @@
 {
-  "label": "Otoroshi export",
-  "dateRaw": 1537348950235,
-  "date": "2018-09-19 09:22:30",
   "stats": {
     "calls": 49,
     "dataIn": 4252,
@@ -409,7 +406,7 @@
       "authorizeUrl": "http://keycloak.foo.bar:8889/auth/realms/master/protocol/openid-connect/auth",
       "tokenUrl": "http://keycloak.foo.bar:8889/auth/realms/master/protocol/openid-connect/token",
       "userInfoUrl": "http://keycloak.foo.bar:8889/auth/realms/master/protocol/openid-connect/userinfo",
-      "loginUrl": "http://keycloak.foo.bar:8889/auth/realms/master/protocol/openid-connect/login",
+      "loginUrl": "http://keycloak.foo.bar:8889/auth/realms/master/protocol/openid-connect/auth",
       "logoutUrl": "http://keycloak.foo.bar:8889/auth/realms/master/protocol/openid-connect/logout",
       "accessTokenField": "access_token",
       "nameField": "name",

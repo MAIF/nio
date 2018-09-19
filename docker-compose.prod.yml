@@ -1,3 +1,16 @@
+# Example of Nio deployment using Otoroshi for security management and keycloak as identity provider
+#
+# don't forget to setup your hosts
+# # /etc/hosts: 127.0.0.1    nio.foo.bar kibana.foo.bar elastic.foo.bar keycloak.foo.bar otoroshi.foo.bar otoroshi-api.foo.bar privateapps.foo.bar
+# 
+# and replace the ip address a line 144 of this file by your ip address
+# credentials are the following
+#
+# http://keycloak.foo.bar:8889 : keycloak/password
+# http://otoroshi.foo.bar:8889 : admin@otoroshi.io/password
+# http://kibana.foo.bar:8889 : index on otoroshi-events-* / @timestamp
+# http://nio.foo.bar:8889 : admin@nio.io/password
+
 version: '3'
 services:
 
@@ -90,7 +103,7 @@ services:
       - ./docker-compose-prod-example-data/s3-metadata:/usr/src/app/localMetadata
 
   keycloak:
-    image: jboss/keycloak:4.2.1.Final # 4.4.0.Final
+    image: jboss/keycloak:4.4.0.Final
     networks:
       - nio-net
     environment:
@@ -127,6 +140,8 @@ services:
     image: maif/otoroshi:1.3.0-dev-1537343184
     networks:
       - nio-net
+    extra_hosts: 
+      - "keycloak.foo.bar: 192.168.86.194" # use your own IP address here
     environment:
       - APP_STORAGE=redis
       - REDIS_HOST=redis
@@ -193,9 +208,3 @@ networks:
       driver: default
       config:
         - subnet: 172.16.240.10/24
-
-# http://keycloak.foo.bar:8889 : keycloak/password - otoroshi/8c284230-0237-4346-977d-5c4225670e16
-# http://otoroshi.foo.bar:8889 : admin@otoroshi.io/password
-# http://kibana.foo.bar:8889 : index on otoroshi-events-* / @timestamp
-# http://nio.foo.bar:8889 : admin@nio.io/password
-# /etc/hosts: 127.0.0.1    nio.foo.bar kibana.foo.bar elastic.foo.bar keycloak.foo.bar otoroshi.foo.bar otoroshi-api.foo.bar privateapps.foo.bar
