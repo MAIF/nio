@@ -11,3 +11,4 @@ nio-server/javascript/node_modules
 /project/target/
 data/
 /nio-server/javascript/yarn.lock
+/docker-compose-prod-example-data
