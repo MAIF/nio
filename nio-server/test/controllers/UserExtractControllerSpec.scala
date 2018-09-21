@@ -111,6 +111,21 @@ class UserExtractControllerSpec extends TestUtils {
       (items \ 2 \ "userId").as[String] mustBe "userId3"
     }
 
+    "list all extracted data for a given user" in {
+      val userExtracted =
+        getJson(s"/$tenant/organisations/$orgKey/users/user1/_extracted")
+      userExtracted.status mustBe OK
+
+      val extracted: JsValue = userExtracted.json
+
+      (extracted \ "page").as[Int] mustBe 0
+      (extracted \ "pageSize").as[Int] mustBe 10
+      (extracted \ "count").as[Int] mustBe 1
+      val items: JsArray = (extracted \ "items").as[JsArray]
+      items.value.size mustBe 1
+      (items \ 0 \ "userId").as[String] mustBe "user1"
+    }
+
     "list all extracted data for an unknow organisation" in {
       val userExtracted =
         getJson(s"/$tenant/organisations/orgUnknow/_extracted")
@@ -160,19 +175,40 @@ class UserExtractControllerSpec extends TestUtils {
       userExtractStatus.status mustBe OK
 
       val file2 = File.createTempFile("file2", ".csv")
-      Files.write(file2.toPath, """val1; val2; val3 \n val4; val5; val6 \n""".getBytes(StandardCharsets.UTF_8))
-
+      Files.write(file2.toPath,
+                  """val1; val2; val3 \n val4; val5; val6 \n""".getBytes(
+                    StandardCharsets.UTF_8))
 
       val chunks2 = FileIO.fromPath(file2.toPath)
 
-      Await.result(
-        ws.url(
-          s"$serverHost/api/$tenant/organisations/$orgKey/users/$userId/_files/${file2.getName}")
-          .withBody(SourceBody(chunks2))
-          .withMethod("POST")
-          .execute(),
-        Duration(60, TimeUnit.SECONDS)
-      ).status mustBe OK
+      Await
+        .result(
+          ws.url(
+              s"$serverHost/api/$tenant/organisations/$orgKey/users/$userId/_files/${file2.getName}")
+            .withBody(SourceBody(chunks2))
+            .withMethod("POST")
+            .execute(),
+          Duration(60, TimeUnit.SECONDS)
+        )
+        .status mustBe OK
+
+      val userExtracted =
+        getJson(s"/$tenant/organisations/$orgKey/users/$userId/_extracted")
+      userExtracted.status mustBe OK
+
+      val extracted: JsValue = userExtracted.json
+
+      (extracted \ "page").as[Int] mustBe 0
+      (extracted \ "pageSize").as[Int] mustBe 10
+      (extracted \ "count").as[Int] mustBe 2
+      val items: JsArray = (extracted \ "items").as[JsArray]
+      items.value.size mustBe 2
+
+      (items \ 0 \ "userId").as[String] mustBe "user1"
+      (items \ 0 \ "orgKey").as[String] mustBe orgKey
+
+      (items \ 1 \ "userId").as[String] mustBe "user1"
+      (items \ 1 \ "orgKey").as[String] mustBe orgKey
     }
   }
 

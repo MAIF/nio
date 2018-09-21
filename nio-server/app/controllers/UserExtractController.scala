@@ -106,6 +106,32 @@ class UserExtractController(
         }
 
     }
+  def userExtractedData(tenant: String,
+                        orgKey: String,
+                        userId: String,
+                        page: Int,
+                        pageSize: Int) =
+    AuthAction.async { implicit req =>
+      // control if an organisation with the orgkey exist
+      organisationMongoDataStore
+        .findByKey(tenant, orgKey)
+        .flatMap {
+          // if the organisation doesn't exist
+          case None =>
+            Future.successful(s"organisation.$orgKey.not.found".notFound())
+          case Some(_) =>
+            userExtractTaskDataStore
+              .findByOrgKeyAndUserId(tenant, orgKey, userId, page, pageSize)
+              .map { res =>
+                renderMethod(UserExtractTasks(page = page,
+                                              pageSize = pageSize,
+                                              count = res._2,
+                                              items = res._1),
+                             Ok)
+              }
+        }
+
+    }
 
   def uploadFile(tenant: String, orgKey: String, userId: String, name: String) =
     AuthAction.async(streamFile) { implicit req =>

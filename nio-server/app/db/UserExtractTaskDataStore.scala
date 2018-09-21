@@ -71,6 +71,19 @@ class UserExtractTaskDataStore(val mongoApi: ReactiveMongoApi)(
       page = page,
       pageSize = pageSize)
 
+  def findByOrgKeyAndUserId(
+      tenant: String,
+      orgKey: String,
+      userId: String,
+      page: Int,
+      pageSize: Int): Future[(Seq[UserExtractTask], Int)] =
+    findManyByQueryPaginateCount(
+      tenant = tenant,
+      query =
+        Json.obj("tenant" -> tenant, "orgKey" -> orgKey, "userId" -> userId),
+      page = page,
+      pageSize = pageSize)
+
   def deleteUserExtractTaskByTenant(tenant: String): Future[Boolean] =
     storedCollection(tenant).flatMap { col =>
       col.drop(failIfNotFound = false)

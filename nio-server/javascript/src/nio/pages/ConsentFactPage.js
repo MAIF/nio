@@ -5,6 +5,7 @@ import * as userExtractService from "../services/UserExtractService";
 import {ConsentFactDisplayPage} from "./ConsentFactDisplayPage";
 import {ConsentFactHistoryPage} from "./ConsentFactHistoryPage";
 import moment from "moment";
+import {UserExtractPage} from "./UserExtractPage";
 
 export class ConsentFactPage extends Component {
 
@@ -40,6 +41,13 @@ export class ConsentFactPage extends Component {
                     title: "Historique",
                     id: 'HISTORY',
                     content: <ConsentFactHistoryPage {...this.props} showDetails={this.addTab}/>,
+                    deletable: false
+                });
+
+                tabs.push({
+                    title: "Historique extractions",
+                    id: "EXTRACTPAGE",
+                    content: <UserExtractPage tenant={this.props.tenant} organisationKey={this.props.organisationKey} userId={this.props.userId}/>,
                     deletable: false
                 });
 
