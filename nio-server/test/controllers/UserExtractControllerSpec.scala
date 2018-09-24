@@ -107,6 +107,9 @@ class UserExtractControllerSpec extends TestUtils {
       val items: JsArray = (extracted \ "items").as[JsArray]
       items.value.size mustBe 3
       (items \ 0 \ "userId").as[String] mustBe "user1"
+      (items \ 0 \ "uploadStartedAt").asOpt[String] mustBe None
+      (items \ 0 \ "endedAt").asOpt[String] mustBe None
+
       (items \ 1 \ "userId").as[String] mustBe "userId2"
       (items \ 2 \ "userId").as[String] mustBe "userId3"
     }

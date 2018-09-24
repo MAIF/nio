@@ -32,3 +32,11 @@ export function fetchUserExtractHistory(tenant, orgKey, userId, page, pageSize) 
         }
     }).then(r => r.json());
 }
+
+export function uploadFile(tenant, orgKey, userId, formData) {
+    return fetch(`/api/${tenant}/organisations/${orgKey}/users/${userId}/_files/test.txt`, {
+        method: "POST",
+        credentials: 'include',
+        body: formData
+    }).then(r => r.json());
+}

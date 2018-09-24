@@ -4,7 +4,7 @@ import {BrowserRouter as Router, Route, Link, Switch, withRouter, Redirect} from
 import queryString from 'query-string';
 
 import {TopHeader} from "./pages/TopHeader";
-import {ConsentsPage, Home} from "./pages/Consents";
+import {Home} from "./pages/Consents";
 import './pages/app.css';
 import {OrganisationPage} from "./pages/OrganisationPage";
 import {OrganisationsPage} from "./pages/OrganisationsPage";
@@ -12,8 +12,8 @@ import {SampleConsentsPage} from "./pages/SampleConsentsPage";
 import {OrganisationVersionPage} from "./pages/OrganisationVersionPage";
 import {UsersPage} from "./pages/UsersPage";
 
-import {ConsentFactHistoryPage} from "./pages/ConsentFactHistoryPage";
 import {ConsentFactPage} from "./pages/ConsentFactPage";
+import {UploadFilePage} from "./pages/UploadFilePage";
 
 export class NioApp extends Component {
 
@@ -112,6 +112,11 @@ export class NioApp extends Component {
                          })}/>
                   <Route exact path="/consentSample"
                          component={props => this.decorate(SampleConsentsPage, {
+                           ...this.props,
+                           props
+                         })}/>
+                  <Route exact path="/extractSample"
+                         component={props => this.decorate(UploadFilePage, {
                            ...this.props,
                            props
                          })}/>

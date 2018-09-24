@@ -177,6 +177,7 @@ class UserExtractController(
                           )
                         )
                         // TODO Send mail with public link to S3
+                        println(s"add file to s3 on path : $locationAddress")
                         Ok(Json.obj("url" -> locationAddress))
                       }
                   }

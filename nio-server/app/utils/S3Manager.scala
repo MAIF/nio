@@ -15,6 +15,7 @@ import com.amazonaws.regions.Regions
 import com.amazonaws.services.s3.model._
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 import configuration.{Env, S3Config}
+import play.api.Logger
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -67,13 +68,21 @@ class S3Manager(env: Env, actorSystem: ActorSystem)
     }
   }
 
-  private def createBucket(bucketName: String)(
+  private def createBucket(bucketName: String, public: Boolean = false)(
       implicit s3ExecutionContext: S3ExecutionContext): Future[Boolean] = {
     isBucketExist(bucketName)
       .flatMap {
         case e if !e =>
           Future {
-            amazonS3.createBucket(bucketName)
+            if (public) {
+              val createBucketRequest: CreateBucketRequest =
+                new CreateBucketRequest(bucketName)
+              createBucketRequest.setCannedAcl(
+                CannedAccessControlList.PublicRead)
+
+              amazonS3.createBucket(createBucketRequest)
+            } else
+              amazonS3.createBucket(bucketName)
           }.map(
             _ => e
           )
@@ -104,14 +113,13 @@ class S3Manager(env: Env, actorSystem: ActorSystem)
                                  name: String,
                                  src: Source[ByteString, _])(
       implicit s3ExecutionContext: S3ExecutionContext): Future[String] = {
-    val bucketName = s3Config.bucketName
+    val bucketName = env.config.s3Config.uploadBucketName
+    val key: String =
+      s"$tenant/$orgKey/$userId/extract/$extractTaskId/$name"
 
     // Create bucket if not exist
-    createBucket(bucketName)
+    createBucket(bucketName, true)
       .flatMap { _ =>
-        val key: String =
-          s"$tenant/$orgKey/$userId/extract/$extractTaskId/$name"
-
         val s3Request: InitiateMultipartUploadRequest =
           new InitiateMultipartUploadRequest(bucketName, key)
         val result: InitiateMultipartUploadResult =
@@ -131,9 +139,16 @@ class S3Manager(env: Env, actorSystem: ActorSystem)
                                                  key,
                                                  uploadId,
                                                  tags)
-            amazonS3.completeMultipartUpload(completeRequest).getLocation
+            val result = amazonS3.completeMultipartUpload(completeRequest)
+
+            result.getLocation
           }
       }
+      .flatMap(_ => {
+        Future {
+          amazonS3.getUrl(bucketName, key)
+        }.map(_.toExternalForm)
+      })
   }
 
   def loadFile(key: String, uploadId: String)(
@@ -147,7 +162,7 @@ class S3Manager(env: Env, actorSystem: ActorSystem)
           {
             val groupedChunk = chunks.reduce(_ ++ _)
             val uploadPart = new UploadPartRequest()
-              .withBucketName(s3Config.bucketName)
+              .withBucketName(s3Config.uploadBucketName)
               .withKey(key)
               .withUploadId(uploadId)
               .withPartNumber(partNumber)
