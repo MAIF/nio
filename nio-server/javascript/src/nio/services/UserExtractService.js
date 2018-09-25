@@ -37,9 +37,9 @@ export function uploadFile(tenant, orgKey, userId, formData, fileName, type) {
     return fetch(`/api/${tenant}/organisations/${orgKey}/users/${userId}/_files/${fileName}`, {
         method: "POST",
         credentials: 'include',
-        headers: {
-            'Content-Type': type
-        },
+        // headers: {
+        //     'Content-Type': "multipart/form-data; boundary=974767299852498929531610575",
+        // },
         body: formData
     }).then(r => r.json());
 }

@@ -120,7 +120,7 @@ class S3Manager(env: Env, actorSystem: ActorSystem)
              userId: String,
              extractTaskId: String,
              name: String): String =
-    s"$tenant/$orgKey/$userId/extract/$extractTaskId/$name"
+    s"$tenant/$orgKey/$userId/extract/$extractTaskId/${name.replaceAll("-", "_").replaceAll(" ", "_")}"
 
   def getUploadedFile(
       tenant: String,

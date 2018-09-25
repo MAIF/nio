@@ -1,10 +1,11 @@
 package controllers
 
+import java.io.FileInputStream
 import java.util.Base64
 
 import akka.actor.ActorSystem
 import akka.stream.IOResult
-import akka.stream.scaladsl.Source
+import akka.stream.scaladsl.{Source, StreamConverters}
 import akka.util.ByteString
 import auth.AuthAction
 import com.auth0.jwt.JWT
@@ -144,9 +145,13 @@ class UserExtractController(
     }
 
   def uploadFile(tenant: String, orgKey: String, userId: String, name: String) =
-    AuthAction.async(streamFile) { implicit req =>
-      // control if an extract task for this user/organisation/tenant exist
+    AuthAction.async(parse.multipartFormData) { implicit req =>
+      val src: Source[ByteString, Future[IOResult]] =
+        StreamConverters.fromInputStream(() => {
+          new FileInputStream(req.body.files.head.ref)
+        })
 
+      // control if an extract task for this user/organisation/tenant exist
       userExtractTaskDataStore
         .find(tenant, orgKey, userId)
         .flatMap {
@@ -169,7 +174,7 @@ class UserExtractController(
                                      userId,
                                      extractTask._id,
                                      name,
-                                     req.body)
+                                     src)
                   .flatMap { locationAddress =>
                     val task: UserExtractTask = taskUpdateUploadDate.copy(
                       endedAt = Some(DateTime.now(DateTimeZone.UTC)))
@@ -190,9 +195,9 @@ class UserExtractController(
 
                         // TODO Send mail with public link to S3
                         println(s"add file to s3 on path : $locationAddress")
-                        // TODO : paramétré l'URL
+                        // FIXME : change host to unsecure this call?
                         Ok(Json.obj(
-                          "url" -> s"http://localhost:9000/_download?uploadToken=${encryptToken(tenant, orgKey, userId, extractTask._id, req.headers.get("Content-type"), name)}"))
+                          "url" -> s"/_download/$name?uploadToken=${encryptToken(tenant, orgKey, userId, extractTask._id, name)}"))
                       }
                   }
               }
@@ -203,8 +208,7 @@ class UserExtractController(
                            orgKey: String,
                            userId: String,
                            extractTaskId: String,
-                           maybeContentType: Option[String],
-                           name: String): String = {
+                           name: String) = {
     val config = env.config.filter.otoroshi
     val algorithm = Algorithm.HMAC512(config.sharedKey)
 
@@ -216,7 +220,6 @@ class UserExtractController(
           .withClaim("tenant", tenant)
           .withClaim("orgKey", orgKey)
           .withClaim("userId", userId)
-          .withClaim("contentType", maybeContentType.orNull)
           .withClaim("extractTaskId", extractTaskId)
           .withClaim("name", name)
           .sign(algorithm)
@@ -224,7 +227,6 @@ class UserExtractController(
   }
 
   private def decryptToken(token: String): (Option[String],
-                                            Option[String],
                                             Option[String],
                                             Option[String],
                                             Option[String],
@@ -248,41 +250,40 @@ class UserExtractController(
       claims.get("orgKey").map(_.asString),
       claims.get("userId").map(_.asString),
       claims.get("extractTaskId").map(_.asString),
-      claims.get("contentType").map(_.asString),
       claims.get("name").map(_.asString)
     )
   }
 
-  def downloadFile(token: String) = AuthAction.async { implicit req =>
-    val data = decryptToken(token)
+  def downloadFile(filename: String, token: String) = AuthAction.async {
+    implicit req =>
+      val data = decryptToken(token)
 
-    // TODO : temp fix, never do that again
-    val tenant = data._1.get
-    val orgKey = data._2.get
-    val userId = data._3.get
-    val extractTaskId = data._4.get
-    val contentType = data._5.get
-    val name = data._6.get
+      // TODO : temp fix, never do that again
+      val tenant = data._1.get
+      val orgKey = data._2.get
+      val userId = data._3.get
+      val extractTaskId = data._4.get
+      val name = data._5.get
 
-    val maybeSource: Future[Source[ByteString, Future[IOResult]]] =
-      fSUserExtractManager.getUploadedFile(tenant,
-                                           orgKey,
-                                           userId,
-                                           extractTaskId,
-                                           name)
+      val maybeSource: Future[Source[ByteString, Future[IOResult]]] =
+        fSUserExtractManager.getUploadedFile(tenant,
+                                             orgKey,
+                                             userId,
+                                             extractTaskId,
+                                             name)
 
-    maybeSource.map(source => {
-      val src: Source[ByteString, Future[IOResult]] = source
+      maybeSource.map(source => {
+        val src: Source[ByteString, Future[IOResult]] = source
 
-      Result(
-        header = ResponseHeader(OK,
-                                Map(
-                                  CONTENT_DISPOSITION -> "attachment",
-                                  "filename" -> name
-                                )),
-        body = HttpEntity.Streamed(src, None, Some(contentType))
-      )
-    })
+        Result(
+          header = ResponseHeader(OK,
+                                  Map(
+                                    CONTENT_DISPOSITION -> "attachment",
+                                    "filename" -> filename
+                                  )),
+          body = HttpEntity.Streamed(src, None, None)
+        )
+      })
   }
 
   def streamFile: BodyParser[Source[ByteString, _]] =

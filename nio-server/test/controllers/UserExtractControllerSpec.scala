@@ -5,11 +5,21 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.util.concurrent.TimeUnit
 
-import akka.stream.scaladsl.FileIO
+import akka.NotUsed
+import akka.http.scaladsl.model.Multipart.BodyPart
+import akka.stream.scaladsl.{FileIO, Source}
 import models.{Organisation, Permission, PermissionGroup, UserExtract}
+import org.apache.http.entity.ContentType
+import org.apache.http.entity.mime.MultipartEntityBuilder
 import play.api.libs.json.{JsArray, JsValue}
 import play.api.libs.ws.SourceBody
+import play.api.{Logger, mvc}
+import play.api.mvc.MultipartFormData
+import play.api.mvc.MultipartFormData.{DataPart, FilePart}
 import play.api.test.Helpers._
+import play.mvc.BodyParser.MultipartFormData
+import play.shaded.ahc.org.asynchttpclient.request.body.multipart.StringPart
+import play.shaded.ahc.org.asynchttpclient.request.body.multipart.part.StringMultipartPart
 import utils.TestUtils
 
 import scala.concurrent.Await
@@ -141,14 +151,16 @@ class UserExtractControllerSpec extends TestUtils {
       Files.write(file.toPath,
                   """{ "key": "value" }""".getBytes(StandardCharsets.UTF_8))
 
-      val chunks = FileIO.fromPath(file.toPath)
-
       val resp = Await.result(
         ws.url(
             s"$serverHost/api/$tenant/organisations/$orgKey/users/$userId/_files/${file.getName}")
-          .withBody(SourceBody(chunks))
-          .withMethod("POST")
-          .execute(),
+          .withBody(
+            Source.single(
+              FilePart("file",
+                       file.getName,
+                       Some("application/json"),
+                       FileIO.fromPath(file.toPath))))
+          .execute("POST"),
         Duration(60, TimeUnit.SECONDS)
       )
 
@@ -158,9 +170,13 @@ class UserExtractControllerSpec extends TestUtils {
         .result(
           ws.url(
               s"$serverHost/api/$tenant/organisations/$orgKey/users/$userId/_files/${file.getName}")
-            .withBody(SourceBody(chunks))
-            .withMethod("POST")
-            .execute(),
+            .withBody(
+              Source.single(
+                FilePart("file",
+                         file.getName,
+                         Some("application/json"),
+                         FileIO.fromPath(file.toPath))))
+            .execute("POST"),
           Duration(60, TimeUnit.SECONDS)
         )
         .status mustBe NOT_FOUND
@@ -188,9 +204,13 @@ class UserExtractControllerSpec extends TestUtils {
         .result(
           ws.url(
               s"$serverHost/api/$tenant/organisations/$orgKey/users/$userId/_files/${file2.getName}")
-            .withBody(SourceBody(chunks2))
-            .withMethod("POST")
-            .execute(),
+            .withBody(
+              Source.single(
+                FilePart("file",
+                         file2.getName,
+                         Some("application/json"),
+                         FileIO.fromPath(file2.toPath))))
+            .execute("POST"),
           Duration(60, TimeUnit.SECONDS)
         )
         .status mustBe OK
