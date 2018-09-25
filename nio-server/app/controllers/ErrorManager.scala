@@ -39,6 +39,10 @@ object ErrorManager {
                      f: ErrorManagerSuite): Result = {
       f.convert(appErrors, BadRequest)
     }
+    def unauthorized()(implicit req: Request[Any],
+                       f: ErrorManagerSuite): Result = {
+      f.convert(appErrors, Unauthorized)
+    }
   }
 
 }

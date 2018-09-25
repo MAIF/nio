@@ -22,6 +22,7 @@ import play.api.libs.Files
 import play.api.libs.json.Json
 import play.api.libs.streams.Accumulator
 import play.api.mvc.{BodyParser, ControllerComponents, ResponseHeader, Result}
+import utils.Result.AppErrors
 import utils.{FSUserExtractManager, S3ExecutionContext}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -226,11 +227,8 @@ class UserExtractController(
           .getBytes())
   }
 
-  private def decryptToken(token: String): (Option[String],
-                                            Option[String],
-                                            Option[String],
-                                            Option[String],
-                                            Option[String]) = {
+  private def decryptToken(token: String)
+    : Either[AppErrors, (String, String, String, String, String)] = {
     val config = env.config.filter.otoroshi
     val algorithm = Algorithm.HMAC512(config.sharedKey)
     val verifier = JWT
@@ -245,45 +243,62 @@ class UserExtractController(
     import scala.collection.JavaConverters._
     val claims = decoded.getClaims.asScala
 
-    (
-      claims.get("tenant").map(_.asString),
-      claims.get("orgKey").map(_.asString),
-      claims.get("userId").map(_.asString),
-      claims.get("extractTaskId").map(_.asString),
-      claims.get("name").map(_.asString)
-    )
+    val maybeTuple: Option[(String, String, String, String, String)] = for {
+      tenant <- claims.get("tenant").map(_.asString)
+      orgKey <- claims.get("orgKey").map(_.asString)
+      userId <- claims.get("userId").map(_.asString)
+      extractTaskId <- claims.get("extractTaskId").map(_.asString)
+      name <- claims.get("name").map(_.asString)
+    } yield
+      (
+        tenant,
+        orgKey,
+        userId,
+        extractTaskId,
+        name
+      )
+
+    maybeTuple match {
+      case Some(valid) => Right(valid)
+      case None        => Left(AppErrors.error("invalid.download.token"))
+    }
   }
 
   def downloadFile(filename: String, token: String) = AuthAction.async {
     implicit req =>
-      val data = decryptToken(token)
+      decryptToken(token) match {
+        case Right(data) => {
+          val tenant = data._1
+          val orgKey = data._2
+          val userId = data._3
+          val extractTaskId = data._4
+          val name = data._5
 
-      // TODO : temp fix, never do that again
-      val tenant = data._1.get
-      val orgKey = data._2.get
-      val userId = data._3.get
-      val extractTaskId = data._4.get
-      val name = data._5.get
+          val maybeSource: Future[Source[ByteString, Future[IOResult]]] =
+            fSUserExtractManager.getUploadedFile(tenant,
+                                                 orgKey,
+                                                 userId,
+                                                 extractTaskId,
+                                                 name)
 
-      val maybeSource: Future[Source[ByteString, Future[IOResult]]] =
-        fSUserExtractManager.getUploadedFile(tenant,
-                                             orgKey,
-                                             userId,
-                                             extractTaskId,
-                                             name)
+          maybeSource.map(source => {
+            val src: Source[ByteString, Future[IOResult]] = source
 
-      maybeSource.map(source => {
-        val src: Source[ByteString, Future[IOResult]] = source
+            Result(
+              header = ResponseHeader(OK,
+                                      Map(
+                                        CONTENT_DISPOSITION -> "attachment",
+                                        "filename" -> filename
+                                      )),
+              body = HttpEntity.Streamed(src, None, None)
+            )
+          })
+        }
+        case Left(error) =>
+          Logger.error("Unable to parse token  " + error)
+          Future.successful(error.unauthorized())
+      }
 
-        Result(
-          header = ResponseHeader(OK,
-                                  Map(
-                                    CONTENT_DISPOSITION -> "attachment",
-                                    "filename" -> filename
-                                  )),
-          body = HttpEntity.Streamed(src, None, None)
-        )
-      })
   }
 
   def streamFile: BodyParser[Source[ByteString, _]] =

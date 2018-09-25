@@ -83,15 +83,7 @@ class S3Manager(env: Env, actorSystem: ActorSystem)
       .flatMap {
         case e if !e =>
           Future {
-            if (public) {
-              val createBucketRequest: CreateBucketRequest =
-                new CreateBucketRequest(bucketName)
-              createBucketRequest.setCannedAcl(
-                CannedAccessControlList.PublicRead)
-
-              amazonS3.createBucket(createBucketRequest)
-            } else
-              amazonS3.createBucket(bucketName)
+            amazonS3.createBucket(bucketName)
           }.map(
             _ => e
           )
@@ -152,7 +144,7 @@ class S3Manager(env: Env, actorSystem: ActorSystem)
     val key: String = getKey(tenant, orgKey, userId, extractTaskId, name)
 
     // Create bucket if not exist
-    createBucket(bucketName, true)
+    createBucket(bucketName)
       .flatMap { _ =>
         val s3Request: InitiateMultipartUploadRequest =
           new InitiateMultipartUploadRequest(bucketName, key)
