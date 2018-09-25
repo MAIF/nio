@@ -75,5 +75,6 @@ case class AdminConfig(secret: String, header: String)
 case class S3Config(bucketName: String,
                     uploadBucketName: String,
                     endpoint: String,
+                    chunkSizeInMb: Int,
                     accessKey: String,
                     secretKey: String)

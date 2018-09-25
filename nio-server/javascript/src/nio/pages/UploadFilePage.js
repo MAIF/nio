@@ -12,23 +12,24 @@ export class UploadFilePage extends Component {
         userId: '',
         fileUrl: '',
         errors: [],
-        data: null
+        data: null,
+        fileName: '',
+        type: ''
     };
 
 
     handleUploadFile = (event) => {
         const data = new FormData();
         data.append('file', event.target.files[0]);
-        data.append('name', 'some value user types');
-        data.append('description', 'some value user types');
+        data.append('name', event.target.files[0].name);
 
-        this.setState({data});
+        this.setState({data, fileName: event.target.files[0].name, type: event.target.files[0].type});
     };
 
 
     submit = () => {
         if (this.validate(this.state))
-            userExtractService.uploadFile(this.props.tenant, this.state.organisationKey, this.state.userId, this.state.data)
+            userExtractService.uploadFile(this.props.tenant, this.state.organisationKey, this.state.userId, this.state.data, this.state.fileName, this.state.type)
                 .then(fileUrl => this.setState({fileUrl: fileUrl.url}))
 
     };
@@ -59,7 +60,7 @@ export class UploadFilePage extends Component {
         return (
             <div className="row">
                 <div className="col-md-12">
-                    <h3>Test de l'organisation</h3>
+                    <h3>Test d'extraction</h3>
                 </div>
 
                 <div className="col-md-12">
@@ -102,7 +103,7 @@ export class UploadFilePage extends Component {
                 {
                     this.state.fileUrl &&
                     <div className="col-md-12">
-                        <a href={this.state.fileUrl}>Accès au fichier téléchargé</a>
+                        <a href={this.state.fileUrl} target="_blank">Accès au fichier téléchargé</a>
                     </div>
                 }
 

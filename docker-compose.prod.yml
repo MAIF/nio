@@ -143,7 +143,7 @@ services:
     networks:
       - nio-net
     extra_hosts: 
-      - "keycloak.foo.bar: 192.168.96.1" # use your own IP address here
+      - "keycloak.foo.bar: 192.168.200.59" # use your own IP address here
     environment:
       - APP_STORAGE=redis
       - REDIS_HOST=redis

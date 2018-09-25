@@ -1,23 +1,32 @@
 package controllers
 
+import java.util.Base64
+
 import akka.actor.ActorSystem
+import akka.stream.IOResult
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
 import auth.AuthAction
+import com.auth0.jwt.JWT
+import com.auth0.jwt.algorithms.Algorithm
+import configuration.Env
 import controllers.ErrorManager.{AppErrorManagerResult, ErrorManagerResult}
 import db.{OrganisationMongoDataStore, UserExtractTaskDataStore}
 import messaging.KafkaMessageBroker
 import models._
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
+import play.api.http.HttpEntity
+import play.api.libs.Files
 import play.api.libs.json.Json
 import play.api.libs.streams.Accumulator
-import play.api.mvc.{BodyParser, ControllerComponents}
+import play.api.mvc.{BodyParser, ControllerComponents, ResponseHeader, Result}
 import utils.{FSUserExtractManager, S3ExecutionContext}
 
 import scala.concurrent.{ExecutionContext, Future}
 
 class UserExtractController(
+    env: Env,
     actorSystem: ActorSystem,
     val AuthAction: AuthAction,
     val cc: ControllerComponents,
@@ -106,6 +115,7 @@ class UserExtractController(
         }
 
     }
+
   def userExtractedData(tenant: String,
                         orgKey: String,
                         userId: String,
@@ -136,6 +146,7 @@ class UserExtractController(
   def uploadFile(tenant: String, orgKey: String, userId: String, name: String) =
     AuthAction.async(streamFile) { implicit req =>
       // control if an extract task for this user/organisation/tenant exist
+
       userExtractTaskDataStore
         .find(tenant, orgKey, userId)
         .flatMap {
@@ -176,14 +187,103 @@ class UserExtractController(
                             payload = task
                           )
                         )
+
                         // TODO Send mail with public link to S3
                         println(s"add file to s3 on path : $locationAddress")
-                        Ok(Json.obj("url" -> locationAddress))
+                        // TODO : paramétré l'URL
+                        Ok(Json.obj(
+                          "url" -> s"http://localhost:9000/_download?uploadToken=${encryptToken(tenant, orgKey, userId, extractTask._id, req.headers.get("Content-type"), name)}"))
                       }
                   }
               }
         }
     }
+
+  private def encryptToken(tenant: String,
+                           orgKey: String,
+                           userId: String,
+                           extractTaskId: String,
+                           maybeContentType: Option[String],
+                           name: String): String = {
+    val config = env.config.filter.otoroshi
+    val algorithm = Algorithm.HMAC512(config.sharedKey)
+
+    Base64.getEncoder
+      .encodeToString(
+        JWT
+          .create()
+          .withIssuer(config.issuer)
+          .withClaim("tenant", tenant)
+          .withClaim("orgKey", orgKey)
+          .withClaim("userId", userId)
+          .withClaim("contentType", maybeContentType.orNull)
+          .withClaim("extractTaskId", extractTaskId)
+          .withClaim("name", name)
+          .sign(algorithm)
+          .getBytes())
+  }
+
+  private def decryptToken(token: String): (Option[String],
+                                            Option[String],
+                                            Option[String],
+                                            Option[String],
+                                            Option[String],
+                                            Option[String]) = {
+    val config = env.config.filter.otoroshi
+    val algorithm = Algorithm.HMAC512(config.sharedKey)
+    val verifier = JWT
+      .require(algorithm)
+      .withIssuer(config.issuer)
+      .acceptLeeway(5000)
+      .build()
+
+    val decoded =
+      verifier.verify(new String(Base64.getDecoder.decode(token.getBytes())))
+
+    import scala.collection.JavaConverters._
+    val claims = decoded.getClaims.asScala
+
+    (
+      claims.get("tenant").map(_.asString),
+      claims.get("orgKey").map(_.asString),
+      claims.get("userId").map(_.asString),
+      claims.get("extractTaskId").map(_.asString),
+      claims.get("contentType").map(_.asString),
+      claims.get("name").map(_.asString)
+    )
+  }
+
+  def downloadFile(token: String) = AuthAction.async { implicit req =>
+    val data = decryptToken(token)
+
+    // TODO : temp fix, never do that again
+    val tenant = data._1.get
+    val orgKey = data._2.get
+    val userId = data._3.get
+    val extractTaskId = data._4.get
+    val contentType = data._5.get
+    val name = data._6.get
+
+    val maybeSource: Future[Source[ByteString, Future[IOResult]]] =
+      fSUserExtractManager.getUploadedFile(tenant,
+                                           orgKey,
+                                           userId,
+                                           extractTaskId,
+                                           name)
+
+    maybeSource.map(source => {
+      val src: Source[ByteString, Future[IOResult]] = source
+
+      Result(
+        header = ResponseHeader(OK,
+                                Map(
+                                  CONTENT_DISPOSITION -> "attachment",
+                                  "filename" -> name
+                                )),
+        body = HttpEntity.Streamed(src, None, Some(contentType))
+      )
+    })
+  }
 
   def streamFile: BodyParser[Source[ByteString, _]] =
     BodyParser { req =>

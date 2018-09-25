@@ -30,6 +30,8 @@ POST        /api/:tenant/organisations/:orgKey/users/:userId/_extract           
 
 POST        /api/:tenant/organisations/:orgKey/users/:userId/_files/*name                           controllers.UserExtractController.uploadFile(tenant: String, orgKey: String, userId: String, name: String)
 
+GET         /_download                                                                              controllers.UserExtractController.downloadFile(uploadToken: String)
+
 GET         /api/:tenant/organisations/:orgKey/_extracted                                           controllers.UserExtractController.extractedData(tenant: String, orgKey: String, page: Int ?= 0, pageSize: Int ?= 10)
 
 GET         /api/:tenant/organisations/:orgKey/users/:userId/_extracted                             controllers.UserExtractController.userExtractedData(tenant: String, orgKey: String, userId: String, page: Int ?= 0, pageSize: Int ?= 10)
