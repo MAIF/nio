@@ -23,7 +23,12 @@ import play.modules.reactivemongo.{
 }
 import router.Routes
 import s3._
-import service.ConsentManagerService
+import service.{
+  ConsentManagerService,
+  MailGunService,
+  MailMockService,
+  MailService
+}
 import utils.{DefaultLoader, S3Manager, SecureEvent}
 
 class NioLoader extends ApplicationLoader {
@@ -114,6 +119,12 @@ class NioComponents(context: Context)
   lazy val userController: UserController = wire[UserController]
   lazy val userExtractTaskController: UserExtractController =
     wire[UserExtractController]
+
+  lazy val mailService: MailService = if (env.config.mailSendingEnable) {
+    wire[MailGunService]
+  } else {
+    wire[MailMockService]
+  }
 
   override def router: Router = {
     lazy val prefix: String = "/"

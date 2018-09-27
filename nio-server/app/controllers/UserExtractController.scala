@@ -22,6 +22,7 @@ import play.api.libs.Files
 import play.api.libs.json.Json
 import play.api.libs.streams.Accumulator
 import play.api.mvc.{BodyParser, ControllerComponents, ResponseHeader, Result}
+import service.MailService
 import utils.Result.AppErrors
 import utils.{FSUserExtractManager, S3ExecutionContext}
 
@@ -35,8 +36,8 @@ class UserExtractController(
     userExtractTaskDataStore: UserExtractTaskDataStore,
     organisationMongoDataStore: OrganisationMongoDataStore,
     broker: KafkaMessageBroker,
-    fSUserExtractManager: FSUserExtractManager)(
-    implicit val ec: ExecutionContext)
+    fSUserExtractManager: FSUserExtractManager,
+    mailService: MailService)(implicit val ec: ExecutionContext)
     extends ControllerUtils(cc) {
   implicit val readable: ReadableEntity[UserExtract] = UserExtract
 
@@ -183,7 +184,7 @@ class UserExtractController(
                     // Update extract task with endedAt date
                     userExtractTaskDataStore
                       .update(extractTask._id, task)
-                      .map { _ =>
+                      .flatMap { _ =>
                         // publish associate event to kafka
                         broker.publish(
                           UserExtractTaskCompleted(
@@ -194,11 +195,15 @@ class UserExtractController(
                           )
                         )
 
-                        // TODO Send mail with public link to S3
-                        println(s"add file to s3 on path : $locationAddress")
-                        // FIXME : change host to unsecure this call?
-                        Ok(Json.obj(
-                          "url" -> s"/_download/$name?uploadToken=${encryptToken(tenant, orgKey, userId, extractTask._id, name)}"))
+                        // send mail
+                        mailService
+                          .sendDownloadedFile(
+                            extractTask.email,
+                            s"${env.config.downloadFileHost}/_download/$name?uploadToken=${encryptToken(tenant, orgKey, userId, extractTask._id, name)}"
+                          )
+                          .map { url =>
+                            Ok(Json.obj("url" -> url))
+                          }
                       }
                   }
               }
