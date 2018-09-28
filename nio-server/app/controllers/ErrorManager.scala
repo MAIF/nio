@@ -17,6 +17,11 @@ object ErrorManager {
       f.convert(AppErrors.error(error), NotFound)
     }
 
+    def internalServerError()(implicit req: Request[Any],
+                              f: ErrorManagerSuite): Result = {
+      f.convert(AppErrors.error(error), InternalServerError)
+    }
+
     def conflict()(implicit req: Request[Any], f: ErrorManagerSuite): Result = {
       f.convert(AppErrors.error(error), Conflict)
     }

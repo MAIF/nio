@@ -162,51 +162,46 @@ class UserExtractController(
               s"user.extract.task.for.user.$userId.and.organisation.$orgKey.not.found"
                 .notFound())
           case Some(extractTask) =>
-            val taskUpdateUploadDate: UserExtractTask = extractTask.copy(
-              uploadStartedAt = Some(DateTime.now(DateTimeZone.UTC)))
-
-            // specified upload started date
-            userExtractTaskDataStore
-              .update(extractTask._id, taskUpdateUploadDate)
-              .flatMap { _ =>
-                // Send file to S3
-                fSUserExtractManager
-                  .userExtractUpload(tenant,
-                                     orgKey,
-                                     userId,
-                                     extractTask._id,
-                                     name,
-                                     src)
-                  .flatMap { locationAddress =>
-                    val task: UserExtractTask = taskUpdateUploadDate.copy(
-                      endedAt = Some(DateTime.now(DateTimeZone.UTC)))
-
-                    // Update extract task with endedAt date
-                    userExtractTaskDataStore
-                      .update(extractTask._id, task)
-                      .flatMap { _ =>
-                        // publish associate event to kafka
-                        broker.publish(
-                          UserExtractTaskCompleted(
-                            tenant = tenant,
-                            author = req.authInfo.sub,
-                            metadata = req.authInfo.metadatas,
-                            payload = task
-                          )
-                        )
-
-                        // send mail
-                        mailService
-                          .sendDownloadedFile(
-                            extractTask.email,
-                            s"${env.config.downloadFileHost}/_download/$name?uploadToken=${encryptToken(tenant, orgKey, userId, extractTask._id, name)}"
-                          )
-                          .map { url =>
-                            Ok(Json.obj("url" -> url))
-                          }
-                      }
-                  }
+            val future: Future[Either[AppErrors, String]] = for {
+              taskUpdateUploadDate: UserExtractTask <- Future {
+                extractTask.copy(
+                  uploadStartedAt = Some(DateTime.now(DateTimeZone.UTC))
+                )
               }
+              _ <- userExtractTaskDataStore.update(extractTask._id,
+                                                   taskUpdateUploadDate)
+              downloadedFileUrl <- Future {
+                s"${env.config.downloadFileHost}/_download/$name?uploadToken=${encryptToken(tenant, orgKey, userId, extractTask._id, name)}"
+              }
+              _ <- fSUserExtractManager.userExtractUpload(tenant,
+                                                          orgKey,
+                                                          userId,
+                                                          extractTask._id,
+                                                          name,
+                                                          src)
+              _ <- mailService.sendDownloadedFile(extractTask.email,
+                                                  downloadedFileUrl.toString)
+              taskUpdateEndedDate: UserExtractTask <- Future {
+                taskUpdateUploadDate.copy(
+                  endedAt = Some(DateTime.now(DateTimeZone.UTC)))
+              }
+              _ <- Future {
+                broker.publish(
+                  UserExtractTaskCompleted(
+                    tenant = tenant,
+                    author = req.authInfo.sub,
+                    metadata = req.authInfo.metadatas,
+                    payload = taskUpdateEndedDate
+                  )
+                )
+              }
+            } yield Right(downloadedFileUrl)
+            future.map {
+              case Right(url) =>
+                Ok(Json.obj("url" -> url))
+              case Left(_) =>
+                "error.during.upload.file".internalServerError()
+            }
         }
     }
 

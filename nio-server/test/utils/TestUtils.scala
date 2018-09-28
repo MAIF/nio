@@ -158,6 +158,7 @@ trait TestUtils
            |nio.kafka.topic=$kafkaTopic
            |nio.kafka.eventsGroupIn=10000
            |nio.s3ManagementEnabled=false
+           |nio.mailSendingEnable=false
            |db.tenants=["$tenant"]
        """.stripMargin).resolve()
     )
