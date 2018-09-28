@@ -25,6 +25,7 @@ class ConsentManagerService(
 
   def createOrReplace(tenant: String,
                       author: String,
+                      metadata: Option[Seq[(String, String)]],
                       organisation: Organisation,
                       consentFact: ConsentFact,
                       maybeLastConsentFact: Option[ConsentFact] = None)
@@ -57,7 +58,8 @@ class ConsentManagerService(
                   ConsentFactCreated(
                     tenant = tenant,
                     payload = consentFact,
-                    author = author
+                    author = author,
+                    metadata = metadata
                   )
                 )
               )
@@ -79,7 +81,8 @@ class ConsentManagerService(
                     tenant = tenant,
                     oldValue = lastConsentFactStored,
                     payload = lastConsentFactToStore,
-                    author = author
+                    author = author,
+                    metadata = metadata
                   )
                 )
               )
@@ -97,6 +100,7 @@ class ConsentManagerService(
   def saveConsents(
       tenant: String,
       author: String,
+      metadata: Option[Seq[(String, String)]],
       organisationKey: String,
       userId: String,
       consentFact: ConsentFact): Future[Either[AppErrors, ConsentFact]] = {
@@ -123,7 +127,11 @@ class ConsentManagerService(
 
               case Some(organisation)
                   if organisation.version.num == consentFact.version =>
-                createOrReplace(tenant, author, organisation, consentFact)
+                createOrReplace(tenant,
+                                author,
+                                metadata,
+                                organisation,
+                                consentFact)
             }
 
         // Update consent fact with the same organisation version
@@ -137,6 +145,7 @@ class ConsentManagerService(
               case Some(organisation) =>
                 createOrReplace(tenant,
                                 author,
+                                metadata,
                                 organisation,
                                 consentFact,
                                 Option(lastConsentFactStored))
@@ -169,6 +178,7 @@ class ConsentManagerService(
               case Some(organisation) =>
                 createOrReplace(tenant,
                                 author,
+                                metadata,
                                 organisation,
                                 consentFact,
                                 Option(lastConsentFactStored))
@@ -195,10 +205,10 @@ class ConsentManagerService(
 
     // format: off
     val res: OptionT[Future, ConsentFact] = for {
-      userId: String  <- OptionT.fromOption[Future](maybeUserId)
-      _               = Logger.info(s"userId is defined with $userId")
-      consentFact     <- OptionT(lastConsentFactMongoDataStore.findByOrgKeyAndUserId(tenant, orgKey, userId))
-      built           <- OptionT.pure[Future](buildTemplate(orgKey, orgVersion, template, consentFact, userId))
+      userId: String <- OptionT.fromOption[Future](maybeUserId)
+      _ = Logger.info(s"userId is defined with $userId")
+      consentFact <- OptionT(lastConsentFactMongoDataStore.findByOrgKeyAndUserId(tenant, orgKey, userId))
+      built <- OptionT.pure[Future](buildTemplate(orgKey, orgVersion, template, consentFact, userId))
     } yield built
     // format: on
     res.getOrElse(template)

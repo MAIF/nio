@@ -140,7 +140,12 @@ class ConsentController(
           val cf: ConsentFact = ConsentFact.addOrgKey(consentFact, orgKey)
 
           consentManagerService
-            .saveConsents(tenant, req.authInfo.sub, orgKey, userId, cf)
+            .saveConsents(tenant,
+                          req.authInfo.sub,
+                          req.authInfo.metadatas,
+                          orgKey,
+                          userId,
+                          cf)
             .map {
               case Right(consentFactSaved) =>
                 context.stop()

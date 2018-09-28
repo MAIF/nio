@@ -64,7 +64,7 @@ class KafkaMessageBroker(actorSystem: ActorSystem)(
     val promise = Promise[RecordMetadata]
     val json = event.asJson.toString()
     try {
-      Logger.debug(s"Publishing event $json")
+      Logger.info(s"Publishing event $json")
       val record =
         new ProducerRecord[String, String](kafka.topic, event.shardId, json)
       producer.send(record, callback(promise))
