@@ -214,6 +214,8 @@ class ConsentControllerSpec extends TestUtils {
       val msgAsJson = readLastKafkaEvent()
       (msgAsJson \ "type").as[String] mustBe "ConsentFactCreated"
       (msgAsJson \ "payload" \ "userId").as[String] mustBe userId1
+      (msgAsJson \ "metadata" \ "foo").as[String] mustBe "bar"
+      (msgAsJson \ "metadata" \ "foo2").as[String] mustBe "bar2"
 
       val response = getJson(path)
 
@@ -290,6 +292,8 @@ class ConsentControllerSpec extends TestUtils {
         .as[String] mustBe user1.doneBy.role
       (msgAsJson \ "payload" \ "doneBy" \ "role")
         .as[String] mustBe user1Modified.doneBy.role
+      (msgAsJson \ "metadata" \ "foo").as[String] mustBe "bar"
+      (msgAsJson \ "metadata" \ "foo2").as[String] mustBe "bar2"
 
       val response = getJson(path)
 
