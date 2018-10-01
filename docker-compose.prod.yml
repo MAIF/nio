@@ -1,7 +1,7 @@
 # Example of Nio deployment using Otoroshi for security management and keycloak as identity provider
 #
 # DO NOT FORGET to setup your hosts
-# # /etc/hosts: 127.0.0.1    nio.foo.bar nio-download.foo.bar kibana.foo.bar elastic.foo.bar keycloak.foo.bar otoroshi.foo.bar otoroshi-api.foo.bar privateapps.foo.bar
+# # /etc/hosts: 127.0.0.1    nio.foo.bar nio-provider.foo.bar nio-download.foo.bar kibana.foo.bar elastic.foo.bar keycloak.foo.bar otoroshi.foo.bar otoroshi-api.foo.bar privateapps.foo.bar
 # 
 # DO NOT FORGET to replace the ip address a line 145 of this file by your ip address
 # credentials are the following
@@ -139,6 +139,18 @@ services:
       - mongo
       - kafka
       - s3server
+      - otoroshi
+
+  nio-provider:
+    image: maif/nio-provider
+#    networks:
+#      - nio-net
+    expose:
+      - 9001
+    environment:
+      - KAFKA_HOST=kafka:29092
+    depends_on:
+      - kafka
       - otoroshi
 
   otoroshi:

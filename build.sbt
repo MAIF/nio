@@ -6,7 +6,9 @@ version := "0.1.0-SNAPSHOT"
 
 lazy val root = (project in file("."))
   .aggregate(
-    `nio-server`
+    `nio-server`,
+    `nio-provider`
   )
 
 lazy val `nio-server` = project
+lazy val `nio-provider` = project
