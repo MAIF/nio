@@ -32,11 +32,11 @@ class ExtractionController(val AuthAction: AuthAction,
                            val s3Conf: S3Configuration,
                            val s3: S3,
                            val s3FileDataStore: S3FileDataStore)(
-                            implicit val ec: ExecutionContext,
-                            val system: ActorSystem,
-                            val store: ExtractionTaskMongoDataStore,
-                            val broker: KafkaMessageBroker)
-  extends ControllerUtils(cc) {
+    implicit val ec: ExecutionContext,
+    val system: ActorSystem,
+    val store: ExtractionTaskMongoDataStore,
+    val broker: KafkaMessageBroker)
+    extends ControllerUtils(cc) {
 
   implicit val mat = ActorMaterializer()(system)
 
@@ -58,7 +58,8 @@ class ExtractionController(val AuthAction: AuthAction,
           store.insert(tenant, task).map { _ =>
             task.appIds.foreach { appId =>
               broker.publish(
-                ExtractionStarted(tenant = tenant,
+                ExtractionStarted(
+                  tenant = tenant,
                   author = req.authInfo.sub,
                   metadata = req.authInfo.metadatas,
                   payload = ExtractionTaskInfoPerApp(
@@ -66,7 +67,8 @@ class ExtractionController(val AuthAction: AuthAction,
                     userId = userId,
                     appId = appId,
                     extractionTaskId = task._id
-                  ))
+                  )
+                )
               )
             }
             renderMethod(task, Created)
@@ -130,7 +132,7 @@ class ExtractionController(val AuthAction: AuthAction,
                         extractionTaskId: String) =
     AuthAction.async { implicit request =>
       store.findById(tenant, extractionTaskId).map {
-        case None => "error.extraction.task.not.found".notFound()
+        case None                 => "error.extraction.task.not.found".notFound()
         case Some(extractionTask) => renderMethod(extractionTask)
       }
     }
@@ -151,19 +153,19 @@ class ExtractionController(val AuthAction: AuthAction,
               Future.successful("error.unknown.appId".notFound())
             case Some(fileMetadata) =>
               (if (s3Conf.v4auth) {
-                upload(tenant, req.task, appId, name)
-              } else {
-                oldUpload(tenant, req.task, appId, name)
-              }).flatMap { location =>
+                 upload(tenant, req.task, appId, name)
+               } else {
+                 oldUpload(tenant, req.task, appId, name)
+               }).flatMap { location =>
                 // Check all files are done for this app
                 if (req.task.allFilesDone(appId)) {
                   val updatedTask =
                     req.task.copyWithFileUploadHandled(appId, appState)
                   updatedTask
                     .storeAndEmitEvents(tenant,
-                      appId,
-                      req.authInfo.sub,
-                      req.authInfo.metadatas)
+                                        appId,
+                                        req.authInfo.sub,
+                                        req.authInfo.metadatas)
                     .map { _ =>
                       Ok(location)
                     }
@@ -176,11 +178,11 @@ class ExtractionController(val AuthAction: AuthAction,
     }
 
   private def upload(
-                      tenant: String,
-                      task: ExtractionTask,
-                      appId: String,
-                      name: String)(implicit req: ReqWithExtractionTask[Source[ByteString, _]])
-  : Future[String] = {
+      tenant: String,
+      task: ExtractionTask,
+      appId: String,
+      name: String)(implicit req: ReqWithExtractionTask[Source[ByteString, _]])
+    : Future[String] = {
     req.body
       .via(
         Flow[ByteString].map { chunk =>
@@ -198,11 +200,11 @@ class ExtractionController(val AuthAction: AuthAction,
   }
 
   private def oldUpload(
-                         tenant: String,
-                         task: ExtractionTask,
-                         appId: String,
-                         name: String)(implicit req: ReqWithExtractionTask[Source[ByteString, _]])
-  : Future[String] = {
+      tenant: String,
+      task: ExtractionTask,
+      appId: String,
+      name: String)(implicit req: ReqWithExtractionTask[Source[ByteString, _]])
+    : Future[String] = {
     val uploadKey =
       s"$tenant/${task.orgKey}/${task.userId}/${task._id}/$appId/$name"
 
@@ -251,9 +253,9 @@ class ExtractionController(val AuthAction: AuthAction,
           .seqAsJavaList(results.map(_.getPartETag))
         val completeRequest =
           new CompleteMultipartUploadRequest(s3Conf.bucketName,
-            uploadKey,
-            uploadId,
-            tags)
+                                             uploadKey,
+                                             uploadId,
+                                             tags)
         val result = s3.client.completeMultipartUpload(completeRequest)
         result.getLocation
       }

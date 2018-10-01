@@ -171,7 +171,7 @@ class UserExtractController(
               _ <- userExtractTaskDataStore.update(extractTask._id,
                                                    taskUpdateUploadDate)
               downloadedFileUrl <- Future {
-                s"${env.config.downloadFileHost}/_download/$name?uploadToken=${encryptToken(tenant, orgKey, userId, extractTask._id, name)}"
+                s"${env.config.downloadFileHost}/$name?uploadToken=${encryptToken(tenant, orgKey, userId, extractTask._id, name)}"
               }
               _ <- fSUserExtractManager.userExtractUpload(tenant,
                                                           orgKey,

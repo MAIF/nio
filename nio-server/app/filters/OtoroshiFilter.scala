@@ -35,7 +35,8 @@ class OtoroshiFilter(env: Env)(implicit ec: ExecutionContext,
     val maybeState = requestHeader.headers.get(config.headerGatewayState)
     val maybeClaim: Option[String] =
       requestHeader.headers.get(config.headerClaim)
-    val excludeCheckingPath = Seq("/docs", "/assets", "/_healthCheck")
+    val excludeCheckingPath =
+      Seq("/docs", "/assets", "/_healthCheck", "/_download")
 
     val t = Try(env.env match {
       case devOrTest if devOrTest == "dev" || devOrTest == "test" =>

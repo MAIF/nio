@@ -44,7 +44,7 @@ then
 elif [ "$1" = "run" ]
 then
 	echo "DO NOT FORGET to setup your hosts"
-	echo "/etc/hosts: 127.0.0.1    nio.foo.bar kibana.foo.bar elastic.foo.bar keycloak.foo.bar otoroshi.foo.bar otoroshi-api.foo.bar privateapps.foo.bar"
+	echo "/etc/hosts: 127.0.0.1    nio.foo.bar nio-download.foo.bar kibana.foo.bar elastic.foo.bar keycloak.foo.bar otoroshi.foo.bar otoroshi-api.foo.bar privateapps.foo.bar"
 
 	echo "DO NOT FORGET to replace the ip address a line 144 in docker-compose.prod.yml by your ip address"
 	echo "credentials are the following"

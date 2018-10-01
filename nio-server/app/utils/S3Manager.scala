@@ -66,7 +66,7 @@ class S3Manager(env: Env, actorSystem: ActorSystem)
     .withPathStyleAccessEnabled(true)
     .withEndpointConfiguration(
       new AwsClientBuilder.EndpointConfiguration(s3Config.endpoint,
-                                                 Regions.DEFAULT_REGION.getName)
+                                                 s3Config.region)
     )
     .build()
 

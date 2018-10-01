@@ -269,6 +269,128 @@
         "allowCredentials": true
       },
       "authConfigRef": "39riqju9yicai3ssdbsoc4dgw0qh9a9100e4wkg1cjxru78tfvs0tlx2dy893p79"
+    },{
+      "id": "nio-download",
+      "groupId": "nio-group",
+      "name": "nio-download",
+      "env": "prod",
+      "domain": "foo.bar",
+      "subdomain": "nio-download",
+      "targets": [
+        {
+          "host": "nio:9000",
+          "scheme": "http"
+        }
+      ],
+      "root": "/_download/",
+      "matchingRoot": null,
+      "localHost": "localhost:8080",
+      "localScheme": "http",
+      "redirectToLocal": false,
+      "enabled": true,
+      "userFacing": false,
+      "privateApp": false,
+      "forceHttps": false,
+      "maintenanceMode": false,
+      "buildMode": false,
+      "strictlyPrivate": false,
+      "enforceSecureCommunication": true,
+      "sendOtoroshiHeadersBack": true,
+      "secComExcludedPatterns": [],
+      "securityExcludedPatterns": [],
+      "publicPatterns": [
+        "/.*"
+      ],
+      "additionalHeaders": {},
+      "matchingHeaders": {},
+      "ipFiltering": {
+        "whitelist": [],
+        "blacklist": []
+      },
+      "api": {
+        "exposeApi": false
+      },
+      "healthCheck": {
+        "enabled": false,
+        "url": "/"
+      },
+      "clientConfig": {
+        "useCircuitBreaker": true,
+        "retries": 3,
+        "maxErrors": 20,
+        "retryInitialDelay": 50,
+        "backoffFactor": 2,
+        "callTimeout": 30000,
+        "globalTimeout": 30000,
+        "sampleInterval": 2000
+      },
+      "canary": {
+        "enabled": false,
+        "traffic": 0.2,
+        "targets": [],
+        "root": "/"
+      },
+      "metadata": {},
+      "chaosConfig": {
+        "enabled": false,
+        "largeRequestFaultConfig": {
+          "ratio": 0.2,
+          "additionalRequestSize": 0
+        },
+        "largeResponseFaultConfig": {
+          "ratio": 0.2,
+          "additionalResponseSize": 0
+        },
+        "latencyInjectionFaultConfig": {
+          "ratio": 0.2,
+          "from": 0,
+          "to": 0
+        },
+        "badResponsesFaultConfig": {
+          "ratio": 0.2,
+          "responses": []
+        }
+      },
+      "jwtVerifier": {
+        "type": "local",
+        "enabled": false,
+        "strict": true,
+        "excludedPatterns": [],
+        "source": {
+          "type": "InHeader",
+          "name": "X-JWT-Token",
+          "remove": ""
+        },
+        "algoSettings": {
+          "type": "HSAlgoSettings",
+          "size": 512,
+          "secret": "secret"
+        },
+        "strategy": {
+          "type": "PassThrough",
+          "verificationSettings": {
+            "fields": {
+              "iss": "The Issuer"
+            }
+          }
+        }
+      },
+      "secComSettings": {
+        "type": "HSAlgoSettings",
+        "size": 512,
+        "secret": "none"
+      },
+      "cors": {
+        "enabled": false,
+        "allowOrigin": "*",
+        "exposeHeaders": [],
+        "allowHeaders": [],
+        "allowMethods": [],
+        "excludedPatterns": [],
+        "maxAge": null,
+        "allowCredentials": true
+      },
+      "authConfigRef": "39riqju9yicai3ssdbsoc4dgw0qh9a9100e4wkg1cjxru78tfvs0tlx2dy893p79"
     },
     {
       "id": "admin-api-service",

@@ -1,7 +1,7 @@
 # Example of Nio deployment using Otoroshi for security management and keycloak as identity provider
 #
 # DO NOT FORGET to setup your hosts
-# # /etc/hosts: 127.0.0.1    nio.foo.bar kibana.foo.bar elastic.foo.bar keycloak.foo.bar otoroshi.foo.bar otoroshi-api.foo.bar privateapps.foo.bar
+# # /etc/hosts: 127.0.0.1    nio.foo.bar nio-download.foo.bar kibana.foo.bar elastic.foo.bar keycloak.foo.bar otoroshi.foo.bar otoroshi-api.foo.bar privateapps.foo.bar
 # 
 # DO NOT FORGET to replace the ip address a line 145 of this file by your ip address
 # credentials are the following
@@ -19,8 +19,8 @@ services:
     image: redis:4.0.8
     expose:
       - 6379
-    networks:
-      - nio-net
+#    networks:
+#      - nio-net
     command: redis-server --appendonly yes
     volumes:
       - ./docker-compose-prod-example-data/redis-data:/data
@@ -29,8 +29,8 @@ services:
     image: mongo:3.7.2
     expose:
       - 27017
-    networks:
-      - nio-net
+#    networks:
+#      - nio-net
     volumes:
       - ./docker-compose-prod-example-data/mongo-data:/data/db
 
@@ -40,8 +40,8 @@ services:
       - 5432
     ports:
       - 5432:5432
-    networks:
-      - nio-net
+#    networks:
+#      - nio-net
     environment: 
       - POSTGRES_DB=keycloak 
       - POSTGRES_USER=keycloak 
@@ -57,8 +57,8 @@ services:
       - 32182:32181
     expose:
       - 32181
-    networks:
-      - nio-net
+#    networks:
+#      - nio-net
     environment:
       - ZOOKEEPER_CLIENT_PORT=32181
       - ZOOKEEPER_TICK_TIME=2000
@@ -72,8 +72,8 @@ services:
       - 29092:29092
     expose:
       - 29092
-    networks:
-      - nio-net
+#    networks:
+#      - nio-net
     depends_on:
       - zookeeper
     environment:
@@ -94,19 +94,21 @@ services:
     image: scality/s3server
     expose:
       - 8000
-    networks:
-      - nio-net
+#    networks:
+#      - nio-net
     environment:
       - SCALITY_ACCESS_KEY_ID=newAccessKey
       - SCALITY_SECRET_ACCESS_KEY=newSecretKey
+      - LOG_LEVEL=trace
+      - ENDPOINT=s3server
     volumes:
       - ./docker-compose-prod-example-data/s3-data:/usr/src/app/localData
       - ./docker-compose-prod-example-data/s3-metadata:/usr/src/app/localMetadata
 
   keycloak:
     image: jboss/keycloak:4.4.0.Final
-    networks:
-      - nio-net
+#    networks:
+#      - nio-net
     environment:
       - DB_VENDOR=postgres
       - DB_ADDR=postgres
@@ -123,14 +125,15 @@ services:
 
   nio:
     image: maif/nio
-    networks:
-      - nio-net
+#    networks:
+#      - nio-net
     expose:
       - 9000
     environment:
       - KAFKA_HOST=kafka:29092
       - CELLAR_ADDON_HOST=http://s3server:8000
       - MONGODB_ADDON_URI=mongodb://mongo:27017/nio
+      - DOWNLOAD_FILE_HOST=http://nio-download.foo.bar:8889
       - DB_FLUSH=true
     depends_on:
       - mongo
@@ -140,10 +143,10 @@ services:
 
   otoroshi:
     image: maif/otoroshi:1.3.0-dev-1537343184
-    networks:
-      - nio-net
+#    networks:
+#      - nio-net
     extra_hosts: 
-      - "keycloak.foo.bar: 192.168.200.59" # use your own IP address here
+      - "keycloak.foo.bar: 172.21.198.163" # use your own IP address here
     environment:
       - APP_STORAGE=redis
       - REDIS_HOST=redis
@@ -165,8 +168,8 @@ services:
       - ELASTICSEARCH_URL=http://elastic:9200
     expose:
       - 5601
-    networks:
-      - nio-net
+#    networks:
+#      - nio-net
     depends_on:
       - elastic
 
@@ -184,8 +187,8 @@ services:
       - ./docker-compose-prod-example-data/es-data
     expose:
       - 9200
-    networks:
-      - nio-net
+#    networks:
+#      - nio-net
 
   nginx:
     image: nginx
@@ -193,8 +196,8 @@ services:
       - 8080
     ports:
       - 8889:8080
-    networks:
-      - nio-net
+#    networks:
+#      - nio-net
     volumes:
       - ./config/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on: 
@@ -203,10 +206,10 @@ services:
       - kibana
       - keycloak
 
-networks:
-  nio-net:
-    driver: bridge
-    ipam:
-      driver: default
-      config:
-        - subnet: 172.16.240.10/24
+#networks:
+#  nio-net:
+#    driver: bridge
+#    ipam:
+#      driver: default
+#      config:
+#        - subnet: 172.16.240.10/24
