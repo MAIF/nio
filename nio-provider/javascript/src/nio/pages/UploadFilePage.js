@@ -1,6 +1,5 @@
 import React, {Component} from 'react';
 import PropTypes from "prop-types";
-import {SampleConsentsPage} from "./SampleConsentsPage";
 
 import * as userExtractService from "../services/UserExtractService";
 import {TextInput} from "../../common/ui/inputs";
@@ -8,8 +7,8 @@ import {TextInput} from "../../common/ui/inputs";
 export class UploadFilePage extends Component {
 
     state = {
-        organisationKey: '',
-        userId: '',
+        organisationKey: this.props.organisationKey,
+        userId: this.props.userId,
         fileUrl: '',
         errors: [],
         data: null,
@@ -29,9 +28,12 @@ export class UploadFilePage extends Component {
 
     submit = () => {
         if (this.validate(this.state))
-            userExtractService.uploadFile(this.props.tenant, this.state.organisationKey, this.state.userId, this.state.data, this.state.fileName, this.state.type)
-                .then(fileUrl => this.setState({fileUrl: fileUrl.url}))
-
+            userExtractService.uploadFile(this.props.tenant, this.state.organisationKey, this.state.userId, this.state.data, this.state.fileName)
+                .then(fileUrl => {
+                        this.setState({fileUrl: fileUrl.url});
+                        this.props.onUpload(fileUrl.url);
+                    }
+                )
     };
 
     onChange = (value, name) => {
@@ -60,7 +62,7 @@ export class UploadFilePage extends Component {
         return (
             <div className="row">
                 <div className="col-md-12">
-                    <h3>Test d'extraction</h3>
+                    <h3>Téléchargement du fichier</h3>
                 </div>
 
                 <div className="col-md-12">
@@ -112,6 +114,9 @@ export class UploadFilePage extends Component {
     }
 }
 
-SampleConsentsPage.propTypes = {
-    tenant: PropTypes.string.isRequired
+UploadFilePage.propTypes = {
+    tenant: PropTypes.string.isRequired,
+    organisationKey: PropTypes.string.isRequired,
+    userId: PropTypes.string.isRequired,
+    onUpload: PropTypes.func.isRequired
 };

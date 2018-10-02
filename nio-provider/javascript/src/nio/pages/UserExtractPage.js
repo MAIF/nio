@@ -1,99 +1,134 @@
 import React, {Component} from 'react';
-import PropTypes from "prop-types";
-import * as userExtractService from "../services/UserExtractService";
-import Moment from 'react-moment';
 
-import {Link} from 'react-router-dom';
 import ReactTable from 'react-table';
 import 'react-table/react-table.css';
+import Moment from 'react-moment';
+import {UploadFilePage} from "./UploadFilePage";
 
 
 export class UserExtractPage extends Component {
+    websocket = null;
+    ping = null;
 
     columns = [
         {
+            title: 'Tenant',
+            content: item => item.payload.tenant,
+            notFilterable: true
+        },
+        {
+            title: 'Organisation',
+            content: item => item.payload.orgKey,
+            notFilterable: true
+        },
+        {
             title: 'Utilisateur',
-            content: item => item.key,
-            cell: (v, item) => {
-                return <Link to={`/organisations/${this.props.organisationKey}/users/${item.userId}`}
-                             style={{cursor: 'pointer'}}>{item.userId} <i
-                    className="glyphicon glyphicon-share"/></Link>
-            },
+            content: item => item.payload.userId,
+            notFilterable: true
+        },
+        {
+            title: 'Type de la demande',
+            content: item => item.type,
             notFilterable: true
         }, {
-            title: 'Date de début',
+            title: 'Date de la demande',
             notFilterable: true,
-            content: item => item.startedAt,
+            content: item => item.payload.startedAt,
             cell: (v, item) => {
-                return item.startedAt ?
+                return item.payload.startedAt ?
                     <Moment locale="fr" parse="YYYY-MM-DDTHH:mm:ssZ"
-                            format="DD/MM/YYYY HH:mm:ss">{item.startedAt}</Moment> : "NC"
+                            format="DD/MM/YYYY HH:mm:ss">{item.payload.startedAt}</Moment> : "NC";
             }
-        }, {
-            title: 'Date de début de téléchargement',
-            notFilterable: true,
-            content: item => item.uploadStartedAt,
+        },
+        {
+            title: `Action`,
+            content: item => item.payload.userId,
             cell: (v, item) => {
-                return item.uploadStartedAt ?
-                    <Moment locale="fr" parse="YYYY-MM-DDTHH:mm:ssZ"
-                            format="DD/MM/YYYY HH:mm:ss">{item.uploadStartedAt}</Moment> : "NC"
-            }
-        }, {
-            title: 'Date de fin',
-            notFilterable: true,
-            content: item => item.endedAt,
-            cell: (v, item) => {
-                return item.endedAt ?
-                    <Moment locale="fr" parse="YYYY-MM-DDTHH:mm:ssZ"
-                            format="DD/MM/YYYY HH:mm:ss">{item.endedAt}</Moment> : "NC"
-            }
+                return item.type === "UserExtractTaskAsked" ?
+                    <a onClick={() => this.setState({selectedEvent: item})}
+                       style={{cursor: 'pointer'}}><i className="glyphicon glyphicon-share"/></a>
+                    :
+                    item.payload.endedAt ?
+                        <Moment locale="fr" parse="YYYY-MM-DDTHH:mm:ssZ"
+                                format="DD/MM/YYYY HH:mm:ss">{item.payload.endedAt}</Moment>
+                        :
+                        "NC"
+            },
+            notFilterable: true
         }
     ];
 
     state = {
-        items: [],
-        page: 0,
-        pageSize: 20,
-        count: 0,
-        loading: true
+        messages: [],
+        selectedEvent: null,
+        url: null
     };
 
+    componentDidMount() {
+        this.connectWebSocket();
+    }
 
-    onChange = (search, name) => {
-        this.setState({[name]: search});
+    componentWillUnmount() {
+        this.closeWebSocket();
+    }
+
+    connectWebSocket = () => {
+        if (!this.websocket) {
+            console.log("create a websocket");
+            this.websocket = new WebSocket(`${this.props.webSocketHost}/ws`);
+
+            this.websocket.onopen = () => {
+                console.log("ws is open")
+            };
+
+            this.websocket.onmessage = (msg) => {
+                console.log(`message received ${msg.data}`);
+                const messages = [...this.state.messages];
+                messages.push(JSON.parse(msg.data));
+                this.setState({messages: this.cleanMessages(messages)});
+            };
+
+            if (!this.ping)
+                this.ping = setInterval(() => {
+                    if (this.websocket.readyState === WebSocket.OPEN) {
+                        this.websocket.send("iAmAlive");
+                    }
+                }, 500);
+        }
     };
 
-    fetchData = (state, instance) => {
-        this.fetchExtractedUser(this.props.tenant, this.props.organisationKey, this.props.userId, state.page, state.pageSize);
-    };
+    cleanMessages = (allMessages) => {
+        const messages = [];
 
-    fetchExtractedUser = (tenant, organisationKey, userId, page, pageSize) => {
-        this.setState({loading: true}, () => {
-            if (userId) {
-                // fetch extract history for an organisation
-                userExtractService.fetchUserExtractHistory(tenant, organisationKey, userId, page, pageSize)
-                    .then(pagedUserExtraction => this.setState({
-                        items: pagedUserExtraction.items,
-                        count: pagedUserExtraction.count,
-                        page: pagedUserExtraction.page,
-                        pageSize: pagedUserExtraction.pageSize,
-                        loading: false
-                    }));
-            } else {
-                // fetch extract history for an organisation
-                userExtractService.fetchExtractHistory(tenant, organisationKey, page, pageSize)
-                    .then(pagedUserExtraction => this.setState({
-                        items: pagedUserExtraction.items,
-                        count: pagedUserExtraction.count,
-                        page: pagedUserExtraction.page,
-                        pageSize: pagedUserExtraction.pageSize,
-                        loading: false
-                    }))
+        for (let i = allMessages.length - 1; i >= 0; i--) {
+            let msg = allMessages[i];
+            if (messages.findIndex(message => message.payload._id === msg.payload._id) === -1) {
+                messages.push(msg)
             }
-        });
+        }
+
+        return messages;
+    };
+
+    closeWebSocket = () => {
+        if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
+            this.websocket.close();
+
+            this.websocket = null;
+
+            if (this.ping) {
+                clearInterval(this.ping);
+                this.ping = null;
+            }
+        }
+    };
+
+    onUpload = (url) => {
+        this.setState({selectedEvent: null, url})
     };
 
     render() {
+
         const columns = this.columns.map(c => {
             return {
                 Header: c.title,
@@ -130,7 +165,7 @@ export class UserExtractPage extends Component {
         return (
             <div className="row">
                 <div className="col-md-12">
-                    <h1>Extractions</h1>
+                    <h3>Demande de téléchargement de données</h3>
                 </div>
 
                 <div className="row">
@@ -138,19 +173,14 @@ export class UserExtractPage extends Component {
                         <ReactTable
                             className="fulltable -striped -highlight"
                             manual // Forces table not to paginate or sort automatically so we can handle it server-side
-                            data={this.state.items}
+                            data={this.state.messages}
                             sortable={false}
                             filterable={false}
                             filterAll={true}
                             defaultFiltered={
                                 []
                             }
-                            pages={Math.ceil(this.state.count / this.state.pageSize)} //Display to toal number of pages
-                            loading={this.state.loading}
-                            onFetchData={(state, instance) => {
-                                this.fetchData(state, instance)
-                            }}
-                            defaultPageSize={20}
+                            defaultPageSize={5}
                             columns={columns}
                             defaultFilterMethod={(filter, row, column) => {
                                 const id = filter.pivotId || filter.id;
@@ -164,13 +194,23 @@ export class UserExtractPage extends Component {
                         />
                     </div>
                 </div>
+
+                {
+                    this.state.selectedEvent &&
+                    <div className="col-md-12">
+                        <UploadFilePage tenant={this.state.selectedEvent.payload.tenant}
+                                        organisationKey={this.state.selectedEvent.payload.orgKey}
+                                        userId={this.state.selectedEvent.payload.userId} onUpload={this.onUpload}/>
+                    </div>
+                }
+
+                {
+                    this.state.url &&
+                    <div className="col-md-12">
+                        <a href={this.state.url} target="_blank">Voir le fichier téléchargé</a>
+                    </div>
+                }
             </div>
-        );
+        )
     }
 }
-
-UserExtractPage.propTypes = {
-    tenant: PropTypes.string.isRequired,
-    organisationKey: PropTypes.string.isRequired,
-    userId: PropTypes.string
-};

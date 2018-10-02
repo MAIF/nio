@@ -1,54 +1,5 @@
 const translateObject = {
-    organisation: {
-        key: {
-            required: "La clé de l'organisation est obligatoire.",
-            invalid: "Le format de la clé de l'organisation est incorrect (un mot sans espace ni caractère spécial)."
-        },
-        label: {
-            required: "Le libellé de l'organisation est obligatoire."
-        },
-        diff: {
-            numV1: {
-                required: "La version est obligatoire."
-            },
-            numV2: {
-                required: "La version est obligatoire."
-            }
-        },
-        groups: {
-            x: {
-                key: {
-                    required: "La clé du groupe est obligatoire.",
-                    invalid: "Le format de la clé du groupe est incorrect (un mot sans espace ni caractère spécial)."
-                },
-                label: {
-                    required: "Le libellé du groupe est obligatoire."
-                },
-                permissions: {
-                    x: {
-                        key: {
-                            required: "La clé de la permission est obligatoire.",
-                            invalid: "Le format de la clé de la permission est incorrect (un mot sans espace ni caractère spécial)."
-                        },
-                        label: {
-                            required: "Le libellé de la permission est obligatoire."
-                        }
-                    }
-                }
-            }
-        }
-    },
-    consentsSample: {
-        organisationKey: {
-            required: "La clé de l'organisation est obligatoire.",
-            not: {
-                found: "La clé de l'organisation n'est pas reconnue"
-            }
-        },
-        userId: {
-            required: "L'identifiant de l'utilisateur est obligatoire."
-        }
-    }
+
 };
 
 export function translate(key, args = []) {

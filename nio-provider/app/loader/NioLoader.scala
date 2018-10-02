@@ -17,6 +17,7 @@ import play.api.routing.Router
 import play.filters.HttpFiltersComponents
 import play.filters.gzip._
 import router.Routes
+import service.NioService
 
 class NioLoader extends ApplicationLoader {
   override def load(context: Context): Application = {
@@ -43,6 +44,9 @@ class NioComponents(context: Context)
   // wire Kafka
   implicit lazy val kafkaMessageBroker: KafkaMessageBroker =
     wire[KafkaMessageBroker]
+
+  // wire service
+  lazy val nioService: NioService = wire[NioService]
 
   // wire Action
   lazy val bodyParserDefault: Default =

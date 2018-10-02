@@ -1,6 +1,5 @@
 import React, {Component} from 'react';
 import PropTypes from "prop-types";
-import {SampleConsentsPage} from "./SampleConsentsPage";
 
 import * as userExtractService from "../services/UserExtractService";
 import {TextInput} from "../../common/ui/inputs";
@@ -112,6 +111,6 @@ export class UploadFilePage extends Component {
     }
 }
 
-SampleConsentsPage.propTypes = {
+UploadFilePage.propTypes = {
     tenant: PropTypes.string.isRequired
 };

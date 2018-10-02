@@ -149,6 +149,10 @@ services:
       - 9001
     environment:
       - KAFKA_HOST=kafka:29092
+      - WEBSOCKET_HOST=ws://nio-provider.foo.bar:8889
+      - NIO_URL=http://nio.foo.bar:8889
+      - NIO_HEADER_VALUE_CLIENT_ID=nio-apikey
+      - NIO_HEADER_VALUE_CLIENT_SECRET=nio-apikey
     depends_on:
       - kafka
       - otoroshi

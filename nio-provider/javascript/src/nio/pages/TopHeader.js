@@ -18,14 +18,6 @@ export class TopHeader extends Component {
         this.setState({user: nextProps.userEmail});
     }
 
-    logout = () => {
-        if (this.props.tenant)
-            window.location = `${this.props.logoutUrl}${this.props.tenant}/bo`;
-        else
-            window.location = `${this.props.logoutUrl}`;
-    };
-
-
     render() {
         return (
             <nav className="navbar navbar-inverse navbar-fixed-top">
@@ -43,12 +35,12 @@ export class TopHeader extends Component {
                     </button>
 
                     <Link to={`/`} className="navbar-brand"
-                          style={{display: 'flex'}}>仁王&nbsp; Niō</Link>
+                          style={{display: 'flex'}}>仁王&nbsp; Niō Exemple</Link>
                 </div>
                 <div className="container-fluid">
                     <div id="navbar" className="navbar-collapse collapse">
                         <ul className="nav navbar-nav navbar-right">
-                            <li><a onClick={this.logout}>{(this.state.user || "")} <span
+                            <li><a href="#">{(this.state.user || "")} <span
                                 className="glyphicon glyphicon-off"/></a></li>
                         </ul>
                     </div>
@@ -59,7 +51,5 @@ export class TopHeader extends Component {
 }
 
 TopHeader.propTypes = {
-    user: PropTypes.string,
-    tenant: PropTypes.string,
-    logoutUrl: PropTypes.string
+    user: PropTypes.string
 };

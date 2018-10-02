@@ -15,7 +15,9 @@ object NioConfiguration {
   }
 }
 
-case class NioConfiguration(filter: Otoroshi, kafka: KafkaConfig)
+case class NioConfiguration(websocketHost: String,
+                            filter: Otoroshi,
+                            kafka: KafkaConfig)
 
 case class OtoroshiFilterConfig(sharedKey: String,
                                 issuer: String,
