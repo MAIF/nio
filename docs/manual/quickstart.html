@@ -124,7 +124,8 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 </code></pre>
 <p>You will need to install <a href="https://www.scala-sbt.org/download.html?_ga=2.189648747.1180427007.1527096641-566511216.1527096641">SBT</a> and <a href="https://yarnpkg.com/lang/en/docs/install/#mac-stable">Yarn</a> first.</p>
 <p>Start server in dev mode:</p>
-<pre class="prettyprint"><code class="language-sh">sbt &#39;project nio-server&#39; &#39;~run&#39;
+<pre class="prettyprint"><code class="language-sh">export DB_FLUSH=true
+sbt &#39;project nio-server&#39; &#39;~run&#39;
 </code></pre>
 <p>Start client in dev mode :</p>
 <pre class="prettyprint"><code class="language-sh">cd nio-server/javascript
