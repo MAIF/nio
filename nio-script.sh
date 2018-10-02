@@ -17,17 +17,17 @@ then
 		rm -rf $BUILD_DIRECTORY	
 	fi
 
-	#cd nio-provider/javascript
-	#echo "Installing Yarn"
-	#sudo npm install -g yarn
-	#yarn install
-	#echo "Running JS build"
-	#yarn run build
-	#echo "Destroying dependencies cache"
-	#rm -rf ./node_modules
-	#cd ../..
+	cd nio-provider/javascript
+	echo "Installing Yarn"
+	sudo npm install -g yarn
+	yarn install
+	echo "Running JS build"
+	yarn run build
+	echo "Destroying dependencies cache"
+	rm -rf ./node_modules
+	cd ../..
 
-	#pwd
+	pwd
 	
 	sbt 'project nio-provider' 'dist'
 	

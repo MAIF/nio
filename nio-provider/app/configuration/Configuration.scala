@@ -17,7 +17,12 @@ object NioConfiguration {
 
 case class NioConfiguration(websocketHost: String,
                             filter: Otoroshi,
-                            kafka: KafkaConfig)
+                            kafka: KafkaConfig,
+                            nio: NioConfig)
+
+case class NioConfig(url: String,
+                     headerValueClientId: String,
+                     headerValueClientSecret: String)
 
 case class OtoroshiFilterConfig(sharedKey: String,
                                 issuer: String,
