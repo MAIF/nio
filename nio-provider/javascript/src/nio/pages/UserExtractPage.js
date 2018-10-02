@@ -31,13 +31,22 @@ export class UserExtractPage extends Component {
             content: item => item.type,
             notFilterable: true
         }, {
-            title: 'Date de la demande',
+            title: 'Demandé le',
             notFilterable: true,
             content: item => item.payload.startedAt,
             cell: (v, item) => {
                 return item.payload.startedAt ?
                     <Moment locale="fr" parse="YYYY-MM-DDTHH:mm:ssZ"
                             format="DD/MM/YYYY HH:mm:ss">{item.payload.startedAt}</Moment> : "NC";
+            }
+        }, {
+            title: 'Traité le',
+            notFilterable: true,
+            content: item => item.payload.startedAt,
+            cell: (v, item) => {
+                return item.payload.endedAt ?
+                    <Moment locale="fr" parse="YYYY-MM-DDTHH:mm:ssZ"
+                            format="DD/MM/YYYY HH:mm:ss">{item.payload.endedAt}</Moment> : "NC";
             }
         },
         {
@@ -48,11 +57,7 @@ export class UserExtractPage extends Component {
                     <a onClick={() => this.setState({selectedEvent: item})}
                        style={{cursor: 'pointer'}}><i className="glyphicon glyphicon-share"/></a>
                     :
-                    item.payload.endedAt ?
-                        <Moment locale="fr" parse="YYYY-MM-DDTHH:mm:ssZ"
-                                format="DD/MM/YYYY HH:mm:ss">{item.payload.endedAt}</Moment>
-                        :
-                        "NC"
+                    ""
             },
             notFilterable: true
         }
