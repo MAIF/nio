@@ -6,6 +6,7 @@ import {ConsentFactDisplayPage} from "./ConsentFactDisplayPage";
 import {ConsentFactHistoryPage} from "./ConsentFactHistoryPage";
 import moment from "moment";
 import {UserExtractPage} from "./UserExtractPage";
+import {Link} from "react-router-dom";
 
 export class ConsentFactPage extends Component {
 
@@ -117,6 +118,9 @@ export class ConsentFactPage extends Component {
                         <button className="btn btn-primary" title="extract-data" data-toggle="modal"
                                 data-target="#emailAddress"><i
                             className="glyphicon glyphicon-download-alt"/></button>
+                        <Link className="btn btn-primary"  to={`/organisations/${this.props.organisationKey}/users/${this.props.userId}/consent`}>
+                            <i className="glyphicon glyphicon-pencil"/>
+                        </Link>
                     </div>
                 </div>
                 <div className="col-md-12">

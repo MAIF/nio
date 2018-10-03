@@ -185,6 +185,8 @@ class UserExtractController(
                 taskUpdateUploadDate.copy(
                   endedAt = Some(DateTime.now(DateTimeZone.UTC)))
               }
+              _ <- userExtractTaskDataStore.update(extractTask._id,
+                                                   taskUpdateEndedDate)
               _ <- Future {
                 broker.publish(
                   UserExtractTaskCompleted(

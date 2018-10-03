@@ -8,8 +8,8 @@ import 'moment/locale/fr'
 
 export class SampleConsentsPage extends Component {
     state = {
-        organisationKey: '',
-        userId: '',
+        organisationKey: this.props.organisationKey || '',
+        userId: this.props.userId || '',
         user: null,
         templateUser: null,
         errors: [],
@@ -80,7 +80,7 @@ export class SampleConsentsPage extends Component {
         return (
             <div className="row">
                 <div className="col-md-12">
-                    <h3>Test de l'organisation</h3>
+                    <h3>Consentements</h3>
                 </div>
 
                 <div className="col-md-12">
