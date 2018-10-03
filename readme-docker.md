@@ -41,3 +41,17 @@ Run a docker-compose file to start Nio, Nio-provider, Otoroshi. This script use 
 
 
 
+
+## Access to Nio 
+
+
+```sbtshell
+http://nio.foo.bar:8889
+```
+
+## Access to Nio Provider
+
+
+```sbtshell
+http://nio-provider.foo.bar:8889/fo
+```
