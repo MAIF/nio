@@ -36,6 +36,35 @@ const translateObject = {
                     }
                 }
             }
+        },
+        offers: {
+            x: {
+                name: {
+                  required: "Le nom de l'offre est obligatoire."
+                },
+                groups: {
+                    x: {
+                        key: {
+                            required: "La clé du groupe de l'offre est obligatoire.",
+                            invalid: "Le format de la clé du groupe de l'offre est incorrect (un mot sans espace ni caractère spécial)."
+                        },
+                        label: {
+                            required: "Le libellé du groupe de l'offre est obligatoire."
+                        },
+                        permissions: {
+                            x: {
+                                key: {
+                                    required: "La clé de la permission de l'offre est obligatoire.",
+                                    invalid: "Le format de la clé de la permission de l'offre est incorrect (un mot sans espace ni caractère spécial)."
+                                },
+                                label: {
+                                    required: "Le libellé de la permission de l'offre est obligatoire."
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     consentsSample: {

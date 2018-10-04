@@ -57,26 +57,94 @@ object VersionInfo {
     }
 }
 
+case class Offer(name: String, groups: Seq[PermissionGroup])
+    extends ModelTransformAs {
+  override def asXml(): Elem = <offer>
+    <name>
+      {name}
+    </name>
+    <groups>
+      {groups.map(_.asXml)}
+    </groups>
+  </offer>.clean()
+
+  override def asJson(): JsValue = Offer.offerWrites.writes(this)
+}
+
+object Offer extends ReadableEntity[Offer] {
+  implicit val offerReads: Reads[Offer] = (
+    (__ \ "name").read[String] and
+      (__ \ "groups").read[Seq[PermissionGroup]]
+  )(Offer.apply _)
+
+  implicit val offerWrites: Writes[Offer] = (
+    (__ \ "name").write[String] and
+      (__ \ "groups").write[Seq[PermissionGroup]]
+  )(unlift(Offer.unapply))
+
+  implicit val offerOWrites: OWrites[Offer] = (
+    (__ \ "name").write[String] and
+      (__ \ "groups").write[Seq[PermissionGroup]]
+  )(unlift(Offer.unapply))
+
+  implicit val format: Format[Offer] = Format(offerReads, offerWrites)
+  implicit val oformat: OFormat[Offer] = OFormat(offerReads, offerOWrites)
+
+  implicit val offerReadXml: XMLRead[Offer] =
+    (node: NodeSeq, path: Option[String]) =>
+      (
+        (node \ "name").validate[String](Some(s"${path.convert()}name")),
+        (node \ "groups").validate[Seq[PermissionGroup]](
+          Some(s"${path.convert()}groups"))
+      ).mapN(
+        (name, groups) => Offer(name, groups)
+    )
+
+  override def fromXml(xml: Elem): Either[AppErrors, Offer] =
+    offerReadXml.read(xml, Some("offer")).toEither
+
+  override def fromJson(json: JsValue): Either[AppErrors, Offer] =
+    json.validate[Offer] match {
+      case JsSuccess(value, _) => Right(value)
+      case JsError(errors)     => Left(AppErrors.fromJsError(errors))
+    }
+}
+
 case class Organisation(_id: String = BSONObjectID.generate().stringify,
                         key: String,
                         label: String,
                         version: VersionInfo = VersionInfo(),
-                        groups: Seq[PermissionGroup])
+                        groups: Seq[PermissionGroup],
+                        offers: Option[Seq[Offer]] = None)
     extends ModelTransformAs {
 
   def asJson = Organisation.organisationWritesWithoutId.writes(this)
 
   def asXml = <organisation>
-      <key>{key}</key>
-      <label>{label}</label>
-      <version>
-        <status>{version.status}</status>
-        <num>{version.num}</num>
-        <latest>{version.latest}</latest>
-        <lastUpdate>{version.lastUpdate.toString(DateUtils.utcDateFormatter)}</lastUpdate>
-      </version>
-      <groups>{groups.map(_.asXml)}</groups>
-    </organisation>.clean()
+    <key>
+      {key}
+    </key>
+    <label>
+      {label}
+    </label>
+    <version>
+      <status>
+        {version.status}
+      </status>
+      <num>
+        {version.num}
+      </num>
+      <latest>
+        {version.latest}
+      </latest>
+      <lastUpdate>
+        {version.lastUpdate.toString(DateUtils.utcDateFormatter)}
+      </lastUpdate>
+    </version>
+    <groups>
+      {groups.map(_.asXml)}
+    </groups>{offers.map(l => <offers>l.map(_.asXml())</offers>)}
+  </organisation>.clean()
 
   def newWith(version: VersionInfo) =
     this.copy(_id = BSONObjectID.generate().stringify, version = version)
@@ -114,7 +182,8 @@ object Organisation extends ReadableEntity[Organisation] {
       (__ \ "version").readNullable[VersionInfo].map { maybeVersion =>
         maybeVersion.getOrElse(VersionInfo())
       } and
-      (__ \ "groups").read[Seq[PermissionGroup]]
+      (__ \ "groups").read[Seq[PermissionGroup]] and
+      (__ \ "offers").readNullable[Seq[Offer]]
   )(Organisation.apply _)
 
   implicit val organisationWrites: Writes[Organisation] = (
@@ -122,7 +191,8 @@ object Organisation extends ReadableEntity[Organisation] {
       (JsPath \ "key").write[String] and
       (JsPath \ "label").write[String] and
       (JsPath \ "version").write[VersionInfo] and
-      (JsPath \ "groups").write[Seq[PermissionGroup]]
+      (JsPath \ "groups").write[Seq[PermissionGroup]] and
+      (JsPath \ "offers").writeNullable[Seq[Offer]]
   )(unlift(Organisation.unapply))
 
   implicit val organisationOWrites: OWrites[Organisation] = (
@@ -130,21 +200,32 @@ object Organisation extends ReadableEntity[Organisation] {
       (JsPath \ "key").write[String] and
       (JsPath \ "label").write[String] and
       (JsPath \ "version").write[VersionInfo] and
-      (JsPath \ "groups").write[Seq[PermissionGroup]]
+      (JsPath \ "groups").write[Seq[PermissionGroup]] and
+      (JsPath \ "offers").writeNullable[Seq[Offer]]
   )(unlift(Organisation.unapply))
 
-  implicit val formats = Format(organisationReads, organisationWrites)
-  implicit val oFormats = OFormat(organisationReads, organisationOWrites)
+  implicit val formats: Format[Organisation] =
+    Format(organisationReads, organisationWrites)
+  implicit val oFormats: OFormat[Organisation] =
+    OFormat(organisationReads, organisationOWrites)
 
   implicit val organisationWritesWithoutId: Writes[Organisation] = Writes {
     org =>
-      Json.obj(
-        "key" -> org.key,
-        "label" -> org.label,
-        "version" -> VersionInfo.versionInfoWritesWithoutNeverReleased.writes(
-          org.version),
-        "groups" -> org.groups
-      )
+      {
+
+        val organisation: JsObject = Json.obj(
+          "key" -> org.key,
+          "label" -> org.label,
+          "version" -> VersionInfo.versionInfoWritesWithoutNeverReleased.writes(
+            org.version),
+          "groups" -> org.groups
+        )
+
+        if (org.offers.isDefined) {
+          organisation ++ Json.obj("offers" -> org.offers.get.map(_.asJson()))
+        } else
+          organisation
+      }
   }
 
   implicit val readXml: XMLRead[Organisation] =
@@ -159,13 +240,16 @@ object Organisation extends ReadableEntity[Organisation] {
           Some(s"${path.convert()}version")),
         (node \ "groups").validate[Seq[PermissionGroup]](
           Some(s"${path.convert()}groups")),
+        (node \ "offers").validateNullable[Seq[Offer]](
+          Some(s"${path.convert()}offers")),
       ).mapN(
-        (_id, key, label, version, groups) =>
+        (_id, key, label, version, groups, offers) =>
           Organisation(_id = _id,
                        key = key,
                        label = label,
                        version = version,
-                       groups = groups)
+                       groups = groups,
+                       offers = offers)
     )
 
   def fromXml(xml: Elem): Either[AppErrors, Organisation] = {
@@ -183,7 +267,9 @@ object Organisation extends ReadableEntity[Organisation] {
 case class Organisations(organisations: Seq[Organisation])
     extends ModelTransformAs {
   override def asXml(): Elem =
-    <organisations>{organisations.map(_.asXml)}</organisations>.clean()
+    <organisations>
+      {organisations.map(_.asXml)}
+    </organisations>.clean()
 
   override def asJson(): JsValue = JsArray(organisations.map(_.asJson))
 }
@@ -196,14 +282,24 @@ case class OrganisationLight(key: String,
                              label: String,
                              version: VersionInfoLight) {
   def asXml = <organisationLight>
-      <key>{key}</key>
-      <label>{label}</label>
-      <version>
-        <status>{version.status}</status>
-        <num>{version.num}</num>
-        <lastUpdate>{version.lastUpdate.toString(DateUtils.utcDateFormatter)}</lastUpdate>
-      </version>
-    </organisationLight>.clean()
+    <key>
+      {key}
+    </key>
+    <label>
+      {label}
+    </label>
+    <version>
+      <status>
+        {version.status}
+      </status>
+      <num>
+        {version.num}
+      </num>
+      <lastUpdate>
+        {version.lastUpdate.toString(DateUtils.utcDateFormatter)}
+      </lastUpdate>
+    </version>
+  </organisationLight>.clean()
 
   def asJson = {
     Json.obj(
@@ -230,7 +326,9 @@ object OrganisationLight {
 case class OrganisationsLights(organisations: Seq[OrganisationLight])
     extends ModelTransformAs {
   override def asXml(): Elem =
-    <organisationLights>{organisations.map(_.asXml)}</organisationLights>
+    <organisationLights>
+      {organisations.map(_.asXml)}
+    </organisationLights>
       .clean()
 
   override def asJson(): JsValue = JsArray(organisations.map(_.asJson))
