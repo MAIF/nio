@@ -16,11 +16,14 @@ object NioConfiguration {
 }
 
 case class NioConfiguration(logoutUrl: String,
+                            downloadFileHost: String,
+                            mailSendingEnable: Boolean,
                             filter: Otoroshi,
                             recordManagementEnabled: Boolean,
                             s3ManagementEnabled: Boolean,
                             kafka: KafkaConfig,
-                            s3Config: S3Config)
+                            s3Config: S3Config,
+                            mailGunConfig: MailGunConfig)
 
 case class ApiKeyHeaders(headerClientId: String, headerClientSecret: String)
 
@@ -73,6 +76,11 @@ case class HealthCheckConfiguration(secret: String, header: String)
 case class AdminConfig(secret: String, header: String)
 
 case class S3Config(bucketName: String,
+                    uploadBucketName: String,
                     endpoint: String,
+                    region: String,
+                    chunkSizeInMb: Int,
                     accessKey: String,
                     secretKey: String)
+
+case class MailGunConfig(apiKey: String, endpoint: String, from: String)

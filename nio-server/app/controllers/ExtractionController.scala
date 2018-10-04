@@ -58,14 +58,17 @@ class ExtractionController(val AuthAction: AuthAction,
           store.insert(tenant, task).map { _ =>
             task.appIds.foreach { appId =>
               broker.publish(
-                ExtractionStarted(tenant = tenant,
-                                  author = req.authInfo.sub,
-                                  payload = ExtractionTaskInfoPerApp(
-                                    orgKey = orgKey,
-                                    userId = userId,
-                                    appId = appId,
-                                    extractionTaskId = task._id
-                                  ))
+                ExtractionStarted(
+                  tenant = tenant,
+                  author = req.authInfo.sub,
+                  metadata = req.authInfo.metadatas,
+                  payload = ExtractionTaskInfoPerApp(
+                    orgKey = orgKey,
+                    userId = userId,
+                    appId = appId,
+                    extractionTaskId = task._id
+                  )
+                )
               )
             }
             renderMethod(task, Created)
@@ -96,6 +99,7 @@ class ExtractionController(val AuthAction: AuthAction,
                   ExtractionAppFilesMetadataReceived(
                     tenant = tenant,
                     author = req.authInfo.sub,
+                    metadata = req.authInfo.metadatas,
                     payload = AppFilesMetadata(
                       orgKey,
                       task.userId,
@@ -230,6 +234,7 @@ class ExtractionController(val AuthAction: AuthAction,
                   UploadTracker.incrementUploadedBytes(task._id, appId, 1)
                   super.read()
                 }
+
                 override def read(b: Array[Byte], off: Int, len: Int): Int = {
                   // Notify upload progress
                   UploadTracker.incrementUploadedBytes(task._id, appId, len)

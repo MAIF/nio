@@ -5,7 +5,6 @@ import {Link} from "react-router-dom";
 import Moment from 'react-moment';
 import ReactTable from 'react-table';
 import 'react-table/react-table.css';
-import {ConsentsPage} from "./Consents";
 import {ConsentFactDisplayPage} from "./ConsentFactDisplayPage";
 
 export class ConsentFactHistoryPage extends Component {

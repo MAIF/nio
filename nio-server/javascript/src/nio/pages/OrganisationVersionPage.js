@@ -4,6 +4,7 @@ import * as organisationService from "../services/OrganisationService";
 import {OrganisationPage} from "./OrganisationPage";
 import {OrganisationReleasePage} from "./OrganisationReleasePage";
 import {OrganisationDiffPage} from "./OrganisationDiffPage";
+import {UserExtractPage} from "./UserExtractPage";
 
 export class OrganisationVersionPage extends Component {
 
@@ -35,6 +36,13 @@ export class OrganisationVersionPage extends Component {
       title: "Différences",
       id: "DIFF",
       content: <OrganisationDiffPage tenant={this.props.tenant} organisationKey={this.props.organisationKey}/>,
+      deletable: false
+    });
+
+    tabs.push({
+      title: "Historique extractions",
+      id: "EXTRACTPAGE",
+      content: <UserExtractPage tenant={this.props.tenant} organisationKey={this.props.organisationKey}/>,
       deletable: false
     });
 

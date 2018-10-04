@@ -23,7 +23,12 @@ import play.modules.reactivemongo.{
 }
 import router.Routes
 import s3._
-import service.ConsentManagerService
+import service.{
+  ConsentManagerService,
+  MailGunService,
+  MailMockService,
+  MailService
+}
 import utils.{DefaultLoader, S3Manager, SecureEvent}
 
 class NioLoader extends ApplicationLoader {
@@ -68,6 +73,8 @@ class NioComponents(context: Context)
     wire[TenantMongoDataStore]
   implicit lazy val userDataStore: UserMongoDataStore =
     wire[UserMongoDataStore]
+  implicit lazy val userExtractTaskDataStore: UserExtractTaskDataStore =
+    wire[UserExtractTaskDataStore]
 
   // wire service
   implicit lazy val consentManagerService: ConsentManagerService =
@@ -110,6 +117,14 @@ class NioComponents(context: Context)
     wire[OrganisationController]
   lazy val tenantController: TenantController = wire[TenantController]
   lazy val userController: UserController = wire[UserController]
+  lazy val userExtractTaskController: UserExtractController =
+    wire[UserExtractController]
+
+  lazy val mailService: MailService = if (env.config.mailSendingEnable) {
+    wire[MailGunService]
+  } else {
+    wire[MailMockService]
+  }
 
   override def router: Router = {
     lazy val prefix: String = "/"

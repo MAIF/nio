@@ -1,0 +1,234 @@
+# Example of Nio deployment using Otoroshi for security management and keycloak as identity provider
+#
+# DO NOT FORGET to setup your hosts
+# # /etc/hosts: 127.0.0.1    nio.foo.bar nio-provider.foo.bar nio-download.foo.bar kibana.foo.bar elastic.foo.bar keycloak.foo.bar otoroshi.foo.bar otoroshi-api.foo.bar privateapps.foo.bar
+# 
+# DO NOT FORGET to replace the ip address a line 161 and line 168 of this file by your ip address
+# credentials are the following
+#
+# http://keycloak.foo.bar:8889 : keycloak/password
+# http://otoroshi.foo.bar:8889 : admin@otoroshi.io/password
+# http://kibana.foo.bar:8889 : create kibana index on otoroshi-events-* with @timestamp for time. 
+# To import Otoroshi dashboard for kibana, go to management / saved object / import (the dashboard file is at ./config/kibana.json)
+# http://nio.foo.bar:8889 : admin@nio.io/password
+
+version: '3'
+services:
+
+  redis:
+    image: redis:4.0.8
+    expose:
+      - 6379
+#    networks:
+#      - nio-net
+    command: redis-server --appendonly yes
+    volumes:
+      - ./docker-compose-prod-example-data/redis-data:/data
+
+  mongo:
+    image: mongo:3.7.2
+    expose:
+      - 27017
+#    networks:
+#      - nio-net
+    volumes:
+      - ./docker-compose-prod-example-data/mongo-data:/data/db
+
+  postgres:
+    image: postgres:10.3
+    expose:
+      - 5432
+    ports:
+      - 5432:5432
+#    networks:
+#      - nio-net
+    environment: 
+      - POSTGRES_DB=keycloak 
+      - POSTGRES_USER=keycloak 
+      - POSTGRES_PASSWORD=password
+    command: '-c listen_addresses=*'
+    volumes:
+      - ./docker-compose-prod-example-data/pg-data:/var/lib/postgresql/data
+      - ./config/keycloak.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:3.2.1
+    ports:
+      - 32182:32181
+    expose:
+      - 32181
+#    networks:
+#      - nio-net
+    environment:
+      - ZOOKEEPER_CLIENT_PORT=32181
+      - ZOOKEEPER_TICK_TIME=2000
+    volumes:
+      - ./docker-compose-prod-example-data/zk-data:/var/lib/zookeeper
+      - ./docker-compose-prod-example-data/zk-secrets:/etc/zookeeper/secrets
+
+  kafka:
+    image: confluentinc/cp-kafka:3.2.1
+    ports:
+      - 29092:29092
+    expose:
+      - 29092
+#    networks:
+#      - nio-net
+    depends_on:
+      - zookeeper
+    environment:
+      - KAFKA_ADVERTISED_LISTENERS=LISTENER_DOCKER_INTERNAL://kafka:29092
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=LISTENER_DOCKER_INTERNAL:PLAINTEXT,LISTENER_DOCKER_EXTERNAL:PLAINTEXT
+      - KAFKA_INTER_BROKER_LISTENER_NAME=LISTENER_DOCKER_INTERNAL
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:32181
+      - KAFKA_BROKER_ID=1
+      - KAFKA_LOG4J_LOGGERS=kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_AUTO_CREATE_TOPICS_ENABLE=true
+      - KAFKA_DELETE_TOPIC_ENABLE=true
+    volumes:
+      - ./docker-compose-prod-example-data/kafka-data:/var/lib/kafka
+      - ./docker-compose-prod-example-data/kafka-secrets:/etc/kafka/secrets
+
+  s3server:
+    image: scality/s3server
+    expose:
+      - 8000
+#    networks:
+#      - nio-net
+    environment:
+      - SCALITY_ACCESS_KEY_ID=newAccessKey
+      - SCALITY_SECRET_ACCESS_KEY=newSecretKey
+      - LOG_LEVEL=trace
+      - ENDPOINT=s3server
+    volumes:
+      - ./docker-compose-prod-example-data/s3-data:/usr/src/app/localData
+      - ./docker-compose-prod-example-data/s3-metadata:/usr/src/app/localMetadata
+
+  keycloak:
+    image: jboss/keycloak:4.4.0.Final
+#    networks:
+#      - nio-net
+    environment:
+      - DB_VENDOR=postgres
+      - DB_ADDR=postgres
+      - DB_PORT=5432
+      - DB_DATABASE=keycloak
+      - DB_USER=keycloak
+      - DB_PASSWORD=password
+      - KEYCLOAK_USER=keycloak 
+      - KEYCLOAK_PASSWORD=password
+    expose:
+      - 8080
+    depends_on:
+      - postgres
+
+  nio:
+    image: maif/nio
+#    networks:
+#      - nio-net
+    expose:
+      - 9000
+    environment:
+      - KAFKA_HOST=kafka:29092
+      - CELLAR_ADDON_HOST=http://s3server:8000
+      - MONGODB_ADDON_URI=mongodb://mongo:27017/nio
+      - DOWNLOAD_FILE_HOST=http://nio-download.foo.bar:8889
+      - DB_FLUSH=true
+    depends_on:
+      - mongo
+      - kafka
+      - s3server
+      - otoroshi
+
+  nio-provider:
+    image: maif/nio-provider
+#    networks:
+#      - nio-net
+    expose:
+      - 9001
+    environment:
+      - KAFKA_HOST=kafka:29092
+      - WEBSOCKET_HOST=ws://nio-provider.foo.bar:8889
+      - NIO_URL=http://nio.foo.bar:8889
+      - NIO_HEADER_VALUE_CLIENT_ID=nio-apikey
+      - NIO_HEADER_VALUE_CLIENT_SECRET=nio-apikey
+    depends_on:
+      - kafka
+      - otoroshi
+      - nio
+    extra_hosts:
+      - "nio.foo.bar: 172.21.198.163"
+
+  otoroshi:
+    image: maif/otoroshi:1.3.0-dev-1537343184
+#    networks:
+#      - nio-net
+    extra_hosts: 
+      - "keycloak.foo.bar: 172.21.198.163" # use your own IP address here
+    environment:
+      - APP_STORAGE=redis
+      - REDIS_HOST=redis
+      - PORT=8080
+      - APP_PRIVATEAPPS_PORT=8889
+      - APP_IMPORT_FROM=/usr/app/otoroshi/imports/otoroshi.json
+      - APP_DOMAIN=foo.bar
+    volumes:
+      - "./config:/usr/app/otoroshi/imports"
+    expose:
+      - 8080
+    depends_on:
+      - redis
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:6.3.0
+    environment:
+      - SERVER_NAME=kibana.foo.bar
+      - ELASTICSEARCH_URL=http://elastic:9200
+    expose:
+      - 5601
+#    networks:
+#      - nio-net
+    depends_on:
+      - elastic
+
+  elastic:
+    image: docker.elastic.co/elasticsearch/elasticsearch:6.3.0
+    environment:
+      - cluster.name=docker-cluster
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms256m -Xmx256m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - ./docker-compose-prod-example-data/es-data
+    expose:
+      - 9200
+#    networks:
+#      - nio-net
+
+  nginx:
+    image: nginx
+    expose:
+      - 8080
+    ports:
+      - 8889:8080
+#    networks:
+#      - nio-net
+    volumes:
+      - ./config/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on: 
+      - otoroshi
+      - nio
+      - kibana
+      - keycloak
+
+#networks:
+#  nio-net:
+#    driver: bridge
+#    ipam:
+#      driver: default
+#      config:
+#        - subnet: 172.16.240.10/24

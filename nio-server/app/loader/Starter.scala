@@ -4,7 +4,7 @@ import java.util.concurrent.TimeUnit
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import db._
+import db.{UserExtractTaskDataStore, _}
 import models.Tenant
 import play.api.{Configuration, Logger}
 import s3.S3
@@ -24,6 +24,7 @@ class Starter(
     accountDataStore: AccountMongoDataStore,
     deletionTaskDataStore: DeletionTaskMongoDataStore,
     extractionTaskDataStore: ExtractionTaskMongoDataStore,
+    userExtractTaskDataStore: UserExtractTaskDataStore,
     defaultLoader: DefaultLoader,
     s3: S3,
     secureEvent: SecureEvent)(implicit val executionContext: ExecutionContext) {
@@ -54,6 +55,7 @@ class Starter(
                 _ <- accountDataStore.init(tenant)
                 _ <- deletionTaskDataStore.init(tenant)
                 _ <- extractionTaskDataStore.init(tenant)
+                _ <- userExtractTaskDataStore.init(tenant)
                 _ <- defaultLoader.load(tenant)
               } yield {
                 ()
@@ -98,6 +100,10 @@ class Starter(
                     Logger.info(
                       s"Ensuring indices for extraction task on ${t.key}")
                     extractionTaskDataStore.ensureIndices(t.key)
+                  }, {
+                    Logger.info(
+                      s"Ensuring indices for user extract task on ${t.key}")
+                    userExtractTaskDataStore.ensureIndices(t.key)
                   }
                 )
               )

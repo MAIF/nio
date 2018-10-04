@@ -124,7 +124,8 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 </code></pre>
 <p>You will need to install <a href="https://www.scala-sbt.org/download.html?_ga=2.189648747.1180427007.1527096641-566511216.1527096641">SBT</a> and <a href="https://yarnpkg.com/lang/en/docs/install/#mac-stable">Yarn</a> first.</p>
 <p>Start server in dev mode:</p>
-<pre class="prettyprint"><code class="language-sh">sbt &#39;project nio-server&#39; &#39;~run&#39;
+<pre class="prettyprint"><code class="language-sh">export DB_FLUSH=true
+sbt &#39;project nio-server&#39; &#39;~run&#39;
 </code></pre>
 <p>Start client in dev mode :</p>
 <pre class="prettyprint"><code class="language-sh">cd nio-server/javascript
@@ -132,7 +133,31 @@ yarn install
 yarn start
 </code></pre>
 <p>You may now connect to Nio&rsquo;s back office on <a href="http://localhost:9000/sandbox/bo">http://localhost:9000/sandbox/bo</a>, default tenant <code>sandbox</code> is created.</p>
-<h3><a href="#going-forward-with-otoroshi" name="going-forward-with-otoroshi" class="anchor"><span class="anchor-link"></span></a>Going forward with Otoroshi</h3>
+<h3><a href="#nio" name="nio" class="anchor"><span class="anchor-link"></span></a>Nio - via docker</h3>
+<p>Build Nio image :</p>
+<pre class="prettyprint"><code class="language-sh">./nio-script.sh build
+</code></pre>
+<p>Build Nio Provider :</p>
+<pre class="prettyprint"><code class="language-sh">./nio-script.sh buildProvider
+</code></pre>
+<p>Run all :</p>
+<pre class="prettyprint"><code class="language-sh"># DO NOT FORGET to setup your hosts
+# # /etc/hosts: 127.0.0.1    nio.foo.bar nio-provider.foo.bar nio-download.foo.bar kibana.foo.bar elastic.foo.bar keycloak.foo.bar otoroshi.foo.bar otoroshi-api.foo.bar privateapps.foo.bar
+#
+# DO NOT FORGET to replace the ip address a line 161 and line 168 of this file by your ip address
+# credentials are the following
+#
+# http://keycloak.foo.bar:8889 : keycloak/password
+# http://otoroshi.foo.bar:8889 : admin@otoroshi.io/password
+# http://kibana.foo.bar:8889 : create kibana index on otoroshi-events-* with @timestamp for time.
+# To import Otoroshi dashboard for kibana, go to management / saved object / import (the dashboard file is at ./config/kibana.json)
+# http://nio.foo.bar:8889 : admin@nio.io/password
+./nio-script.sh run
+</code></pre>
+<p>You may now connect to Nio&rsquo;s back office on <a href="http://nio.foo.bar:8889/sandbox/bo">http://nio.foo.bar:8889/sandbox/bo</a>, default tenant <code>sandbox</code> is created.</p>
+<p>You may now connect to Nio&rsquo;s front office on <a href="http://nio-provider.foo.bar:8889/fo">http://nio-provider.foo.bar:8889/fo</a>.</p>
+
+  <h3><a href="#going-forward-with-otoroshi" name="going-forward-with-otoroshi" class="anchor"><span class="anchor-link"></span></a>Going forward with Otoroshi</h3>
 <p>You need to install to get closer to production environment <a href="https://maif.github.io/otoroshi/">Otoroshi</a>. Look how lucky you are since <strong>Otoroshi</strong> provides an <a href="https://maif.github.io/otoroshi/manual/getotoroshi/fromdocker.html">official Docker image</a>, but you can also get it other ways.</p>
 <p><strong>Otoroshi</strong> will provide some security and API management to Nio.</p>
 <p>Once you have installed Otoroshi, you need to <a href="https://maif.github.io/otoroshi/manual/usage/2-services.html">configure <strong>Otoroshi</strong> to expose <strong>Nio</strong> as a service</a>.</p>

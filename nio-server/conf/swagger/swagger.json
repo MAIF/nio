@@ -34,10 +34,15 @@
       "description": "La notion de compte corresponds à l'association des utilisateurs présents sur les différentes applications avec les organisations correspondantes. Les APIs ci-dessous vont vous permettre d'administrer ces associations."
     },
     {
+      "name": "extraction",
+      "description": "L'extraction des données des utilisateurs est à la charge des applications, Nio offre une API pour avertir qu'une demande d'extraction de données a été demander. La demande d'extraction corresponds à l'ajout d'un événement typé dans Kafka. Une fois l'événement lu par une application elle va ensuite  charger le fichier correspondant à l'extraction de l'utilisateur dans Nio.  Une fois le fichier chargé, un e-mail avec un lien vers le fichier est envoyé à l'utilisateur."
+    },
+    {
       "name": "suppression",
-      "description": "La suppression des données des utilisateurs est à la charge des applications, Nio offre une API pour démmarrer une suppression, obtenir le deétails d'une suppression, lister toutes les suppressions ainsi que de mettre a jour l'état d'une suppression."
+      "description": "La suppression des données des utilisateurs est à la charge des applications, Nio offre une API pour démarrer une suppression, obtenir le deétails d'une suppression, lister toutes les suppressions ainsi que de mettre a jour l'état d'une suppression."
     }
   ],
+  "host": "nio.foo.bar",
   "paths": {
     "/api/{tenant}/organisations": {
       "get": {
@@ -1495,6 +1500,268 @@
           }
         }
       }
+    },
+    "/api/{tenant}/organisations/{orgKey}/users/{userId}/_extract": {
+      "post": {
+        "tags": [
+          "extraction"
+        ],
+        "summary": "Demander l'extraction de données pour un utilisateur.",
+        "description": "Demande l'extraction des données pour un utilisateur spécifique. Un événement est publié dans Kafka et les applications lors de la réception peuvent alors démarrer le chargement d'un fichier qu'ils devront transmettre à Nio.",
+        "parameters": [
+          {
+            "name": "$CLIENT_ID",
+            "in": "header",
+            "description": "Otoroshi client id",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "$CLIENT_SECRET",
+            "in": "header",
+            "description": "Otoroshi client secret",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "tenant",
+            "in": "path",
+            "description": "Le nom du tenant",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "orgKey",
+            "in": "path",
+            "description": "La clé de l'organisation",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "userId",
+            "in": "path",
+            "description": "L'identifiant de l'utilisateur",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "userExtract",
+            "in": "body",
+            "description": "Les données d'entrée.",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/UserExtract"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "La demande d'extraction a été prise en compte.",
+            "schema": {
+              "$ref": "#/definitions/UserExtractTask"
+            }
+          },
+          "404": {
+            "description": "Le tenant ou l'organisation est inconnu"
+          },
+          "409": {
+            "description": "Une demande d'extraction a déjà été réalisée avec ces paramètres"
+          }
+        }
+      }
+    },
+    "/api/{tenant}/organisations/{orgKey}/users/{userId}/_files/*name": {
+      "post": {
+        "tags": [
+          "extraction"
+        ],
+        "summary": "Chargement du fichier correspondant à l'extraction des données de l'utilisateur.",
+        "description": "Chargement du fichier correspondant à l'extraction des données de l'utilisateur.",
+        "parameters": [
+          {
+            "name": "$CLIENT_ID",
+            "in": "header",
+            "description": "Otoroshi client id",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "$CLIENT_SECRET",
+            "in": "header",
+            "description": "Otoroshi client secret",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "tenant",
+            "in": "path",
+            "description": "Le nom du tenant",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "orgKey",
+            "in": "path",
+            "description": "La clé de l'organisation",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "userId",
+            "in": "path",
+            "description": "L'identifiant de l'utilisateur",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Le chargement est terminé."
+          },
+          "404": {
+            "description": "Le tenant ou l'organisation est inconnu ou aucune demande d'extraction pour cet utilisateur, organisation, tenant n'a été demandé."
+          }
+        }
+      }
+    },
+    "/api/{tenant}/organisations/{orgKey}/_extracted": {
+      "get": {
+        "tags": [
+          "extraction"
+        ],
+        "summary": "Récupérer la liste des extractions réalisées pour une organisation.",
+        "description": "Récupération de la liste des extractions réalisées pour une organisation.",
+        "parameters": [
+          {
+            "name": "$CLIENT_ID",
+            "in": "header",
+            "description": "Otoroshi client id",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "$CLIENT_SECRET",
+            "in": "header",
+            "description": "Otoroshi client secret",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "tenant",
+            "in": "path",
+            "description": "Le nom du tenant",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "orgKey",
+            "in": "path",
+            "description": "La clé de l'organisation",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Le numero de la page (0 par défaut)",
+            "required": false,
+            "type": "string",
+            "default": 0
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Le nombre d'élements par page (10 par défaut)",
+            "required": false,
+            "type": "string",
+            "default": 10
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "La liste paginée des extractions.",
+            "schema": {
+              "$ref": "#/definitions/PagedUserExtractTask"
+            }
+          },
+          "404": {
+            "description": "Le tenant ou l'organisation est inconnu."
+          }
+        }
+      }
+    },
+    "/api/{tenant}/organisations/{orgKey}/users/{userId}/_extracted": {
+      "get": {
+        "tags": [
+          "extraction"
+        ],
+        "summary": "Récupérer la liste des extractions réalisées pour un utilisateur donné.",
+        "description": "Récupération de la liste des extractions réalisées pour un utilisateur donné.",
+        "parameters": [
+          {
+            "name": "$CLIENT_ID",
+            "in": "header",
+            "description": "Otoroshi client id",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "$CLIENT_SECRET",
+            "in": "header",
+            "description": "Otoroshi client secret",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "tenant",
+            "in": "path",
+            "description": "Le nom du tenant",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "orgKey",
+            "in": "path",
+            "description": "La clé de l'organisation",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "userId",
+            "in": "path",
+            "description": "L'identifiant utilisateur",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Le numero de la page (0 par défaut)",
+            "required": false,
+            "type": "string",
+            "default": 0
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Le nombre d'élements par page (10 par défaut)",
+            "required": false,
+            "type": "string",
+            "default": 10
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "La liste paginée des extractions.",
+            "schema": {
+              "$ref": "#/definitions/PagedUserExtractTask"
+            }
+          },
+          "404": {
+            "description": "Le tenant ou l'organisation est inconnu."
+          }
+        }
+      }
     }
   },
   "definitions": {
@@ -1654,11 +1921,11 @@
       "type": "object",
       "description": "definition d'une meta donnée",
       "properties": {
-        "key": {
+        "userId": {
           "type": "string",
           "description": "clé de la meta donnée"
         },
-        "value": {
+        "orgKey": {
           "type": "string",
           "description": "valeur de la meta donnée"
         }
@@ -1894,6 +2161,79 @@
           "description": "Les élements de la page",
           "items": {
             "$ref": "#/definitions/DeletionTask"
+          }
+        }
+      }
+    },
+    "UserExtract": {
+      "type": "object",
+      "description": "définition d'une demande d'extraction",
+      "properties": {
+        "email": {
+          "type": "string",
+          "description": "Email de l'utilisateur cible"
+        }
+      }
+    },
+    "UserExtractTask": {
+      "type": "object",
+      "description": "définition de la demande validée d'extraction",
+      "properties": {
+        "_id": {
+          "type": "string",
+          "description": "identifiant de la demande d'extraction"
+        },
+        "tenant": {
+          "type": "string",
+          "description": "tenant de la demande"
+        },
+        "orgKey": {
+          "type": "string",
+          "description": "clé de l'organisation de la demande"
+        },
+        "userId": {
+          "type": "string",
+          "description": "identifiant de l'utilisateur de la demande"
+        },
+        "email": {
+          "type": "string",
+          "description": "email de l'utilisateur"
+        },
+        "startedAt": {
+          "type": "string",
+          "description": "date de la demande"
+        },
+        "uploadStartedAt": {
+          "type": "string",
+          "description": "date de démarrage de l'upload du fichier"
+        },
+        "endedAt": {
+          "type": "string",
+          "description": "date fin de traitement de la demande"
+        }
+      }
+    },
+    "PagedUserExtractTask": {
+      "type": "object",
+      "description": "structure simple d'une page contenant des tâches d'extraction",
+      "properties": {
+        "page": {
+          "type": "string",
+          "description": "page courante"
+        },
+        "pageSize": {
+          "type": "string",
+          "description": "taille de la page"
+        },
+        "count": {
+          "type": "integer",
+          "description": "Nombre total d'élements"
+        },
+        "items": {
+          "type": "array",
+          "description": "Les élements de la page",
+          "items": {
+            "$ref": "#/definitions/UserExtractTask"
           }
         }
       }
