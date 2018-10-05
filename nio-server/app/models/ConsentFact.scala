@@ -107,12 +107,15 @@ object ConsentGroup {
     }
 }
 
-case class ConsentOffer(name: String, groups: Seq[ConsentGroup])
+case class ConsentOffer(key: String, label: String, groups: Seq[ConsentGroup])
     extends ModelTransformAs {
   override def asXml(): Elem = <offer>
-    <name>
-      {name}
-    </name>
+    <key>
+      {key}
+    </key>
+    <label>
+      {label}
+    </label>
     <groups>
       {groups.map(_.asXml)}
     </groups>
@@ -123,17 +126,20 @@ case class ConsentOffer(name: String, groups: Seq[ConsentGroup])
 
 object ConsentOffer extends ReadableEntity[ConsentOffer] {
   implicit val offerReads: Reads[ConsentOffer] = (
-    (__ \ "name").read[String] and
+    (__ \ "key").read[String] and
+      (__ \ "label").read[String] and
       (__ \ "groups").read[Seq[ConsentGroup]]
   )(ConsentOffer.apply _)
 
   implicit val offerWrites: Writes[ConsentOffer] = (
-    (__ \ "name").write[String] and
+    (__ \ "key").write[String] and
+      (__ \ "label").write[String] and
       (__ \ "groups").write[Seq[ConsentGroup]]
   )(unlift(ConsentOffer.unapply))
 
   implicit val offerOWrites: OWrites[ConsentOffer] = (
-    (__ \ "name").write[String] and
+    (__ \ "key").write[String] and
+      (__ \ "label").write[String] and
       (__ \ "groups").write[Seq[ConsentGroup]]
   )(unlift(ConsentOffer.unapply))
 
@@ -144,11 +150,12 @@ object ConsentOffer extends ReadableEntity[ConsentOffer] {
   implicit val offerReadXml: XMLRead[ConsentOffer] =
     (node: NodeSeq, path: Option[String]) =>
       (
-        (node \ "name").validate[String](Some(s"${path.convert()}name")),
+        (node \ "key").validate[String](Some(s"${path.convert()}key")),
+        (node \ "label").validate[String](Some(s"${path.convert()}label")),
         (node \ "groups").validate[Seq[ConsentGroup]](
           Some(s"${path.convert()}groups"))
       ).mapN(
-        (name, groups) => ConsentOffer(name, groups)
+        (key, label, groups) => ConsentOffer(key, label, groups)
     )
 
   override def fromXml(xml: Elem): Either[AppErrors, ConsentOffer] =
