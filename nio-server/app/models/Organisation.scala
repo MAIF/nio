@@ -8,6 +8,7 @@ import libs.xml.XMLRead
 import libs.xml.XmlUtil.XmlCleaner
 import libs.xml.implicits._
 import libs.xml.syntax._
+import org.apache.commons.lang3.StringUtils
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.functional.syntax.{unlift, _}
 import play.api.libs.json.Reads._
@@ -357,19 +358,29 @@ sealed trait PermissionValidator {
   private def validateKey(
       key: String,
       indexGroup: Int,
-      index: Int): ValidatorUtils.ValidationResult[String] = {
+      index: Int,
+      prefix: String): ValidatorUtils.ValidationResult[String] = {
     key match {
       case k if k.matches(ValidatorUtils.keyPattern) => key.validNel
       case _ =>
-        s"error.organisation.groups.$indexGroup.permissions.$index.key".invalidNel
+        s"$prefix.permissions.$index.key".invalidNel
     }
   }
 
-  def validatePermission(
-      permission: Permission,
-      indexGroup: Int,
-      index: Int): ValidatorUtils.ValidationResult[Permission] = {
-    validateKey(permission.key, indexGroup, index).map(_ => permission)
+  def validatePermission(permission: Permission,
+                         indexGroup: Int,
+                         index: Int,
+                         maybePrefix: Option[String])
+    : ValidatorUtils.ValidationResult[Permission] = {
+
+    val prefix: String = maybePrefix match {
+      case Some(p) =>
+        p
+      case None =>
+        s"error.organisation.groups.$indexGroup"
+    }
+
+    validateKey(permission.key, indexGroup, index, prefix).map(_ => permission)
   }
 }
 
@@ -379,39 +390,79 @@ sealed trait GroupValidator {
 
   private def validateKey(
       key: String,
-      index: Int): ValidatorUtils.ValidationResult[String] = {
+      index: Int,
+      prefix: String): ValidatorUtils.ValidationResult[String] = {
     key match {
       case k if k.matches(ValidatorUtils.keyPattern) => key.validNel
-      case _                                         => s"error.organisation.groups.$index.key".invalidNel
+      case _                                         => s"$prefix.groups.$index.key".invalidNel
     }
   }
 
   private def validatePermissions(
       permissions: Seq[Permission],
-      index: Int): ValidatorUtils.ValidationResult[Seq[Permission]] = {
+      index: Int,
+      prefix: String): ValidatorUtils.ValidationResult[Seq[Permission]] = {
     if (permissions.nonEmpty)
       permissions.validNel
     else
-      s"error.organisation.groups.$index.permissions.empty".invalidNel
+      s"$prefix.groups.$index.permissions.empty".invalidNel
   }
 
-  def validateGroup(
-      group: PermissionGroup,
-      index: Int): ValidatorUtils.ValidationResult[PermissionGroup] = {
+  def validateGroup(group: PermissionGroup,
+                    index: Int,
+                    maybePrefix: Option[String] = None)
+    : ValidatorUtils.ValidationResult[PermissionGroup] = {
+
+    val prefix: String = maybePrefix match {
+      case Some(p) =>
+        p
+      case None =>
+        "error.organisation"
+    }
+
     (
-      validateKey(group.key, index),
-      validatePermissions(group.permissions, index),
+      validateKey(group.key, index, prefix),
+      validatePermissions(group.permissions, index, prefix),
       ValidatorUtils.sequence(group.permissions.zipWithIndex.map {
         case (permission, indexPermission) =>
           PermissionValidator.validatePermission(permission,
                                                  index,
-                                                 indexPermission)
+                                                 indexPermission,
+                                                 Some(s"$prefix.groups.$index"))
       })
     ).mapN((_, _, _) => group)
   }
 }
 
 object GroupValidator extends GroupValidator
+
+sealed trait OfferValidator {
+
+  private def validateName(
+      name: String,
+      index: Int): ValidatorUtils.ValidationResult[String] = {
+    name match {
+      case k if StringUtils.isNoneEmpty(k) => name.validNel
+      case _                               => s"error.organisation.offers.$index.name".invalidNel
+    }
+  }
+
+  def validateOffer(offer: Offer,
+                    indexOffer: Int): ValidatorUtils.ValidationResult[Offer] = {
+
+    val prefix: String = s"organisation.offers.$indexOffer"
+    (
+      validateName(offer.name, indexOffer),
+      ValidatorUtils.sequence(offer.groups.zipWithIndex.map {
+        case (group, index) =>
+          GroupValidator.validateGroup(group, index, Some(prefix))
+      })
+    ).mapN((_, _) => offer)
+  }
+
+}
+
+object OfferValidator extends OfferValidator
 
 sealed trait OrganisationValidator {
 
@@ -439,8 +490,15 @@ sealed trait OrganisationValidator {
       validateGroups(organisation.groups),
       ValidatorUtils.sequence(organisation.groups.zipWithIndex.map {
         case (group, index) => GroupValidator.validateGroup(group, index)
-      })
-    ).mapN((_, _, _) => organisation)
+      }),
+      ValidatorUtils.sequence(
+        organisation.offers
+          .map(offers =>
+            offers.zipWithIndex.map {
+              case (offer, index) => OfferValidator.validateOffer(offer, index)
+          })
+          .getOrElse(Seq.empty))
+    ).mapN((_, _, _, _) => organisation)
       .toEither
       .leftMap(s =>
         AppErrors(s.toList.map(errorMessage => ErrorMessage(errorMessage))))

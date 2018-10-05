@@ -76,11 +76,10 @@ class OrganisationControllerSpec extends TestUtils {
         Seq(
           Offer("offer1",
                 Seq(
-                  PermissionGroup(
-                    key = "group1",
-                    label = "groupe 1",
-                    permissions =
-                      Seq(Permission("other", "other")))))
+                  PermissionGroup(key = "group1",
+                                  label = "groupe 1",
+                                  permissions =
+                                    Seq(Permission("other", "other")))))
         )
       )
     )
@@ -550,9 +549,11 @@ class OrganisationControllerSpec extends TestUtils {
       (valuePut \ "key").as[String] mustBe org3Update.key
       (valuePut \ "label").as[String] mustBe org3Update.label
 
-      (valuePut \ "version" \ "status").as[String] mustBe org3Update.version.status
+      (valuePut \ "version" \ "status").as[String] mustBe org3Update.version
+        .status
       (valuePut \ "version" \ "num").as[Int] mustBe org3Update.version.num
-      (valuePut \ "version" \ "latest").as[Boolean] mustBe org3Update.version.latest
+      (valuePut \ "version" \ "latest").as[Boolean] mustBe org3Update.version
+        .latest
       (valuePut \ "version" \ "neverReleased").asOpt[Boolean] mustBe None
 
       val groupsPut = (valuePut \ "groups").as[JsArray]
@@ -575,10 +576,11 @@ class OrganisationControllerSpec extends TestUtils {
       (offersPut \ 0 \ "groups" \ 0 \ "label")
         .as[String] mustBe org3Update.offers.get.head.groups.head.label
       (offersPut \ 0 \ "groups" \ 0 \ "permissions" \ 0 \ "key")
-        .as[String] mustBe org3Update.offers.get.head.groups.head.permissions.head.key
+        .as[String] mustBe org3Update.offers.get.head.groups.head.permissions.head
+        .key
       (offersPut \ 0 \ "groups" \ 0 \ "permissions" \ 0 \ "label")
         .as[String] mustBe org3Update.offers.get.head.groups.head.permissions.head.label
-      
+
     }
   }
 
@@ -690,5 +692,51 @@ class OrganisationControllerSpec extends TestUtils {
 
     }
 
+  }
+
+  "organisation with error" should {
+    "error" in {
+
+      val orgKey = "error"
+      val org: Organisation = Organisation(
+        key = orgKey,
+        label = "lbl",
+        version = VersionInfo(
+          num = 5,
+          status = "RELEASED"
+        ),
+        groups = Seq(
+          PermissionGroup(key = "bla-qlkfqlj _lk",
+                          label = "label",
+                          permissions = Seq(
+                            Permission("fjslkjf sjklfl", "Please accept sms")))
+        ),
+        offers = Some(
+          Seq(
+            Offer(name = "toto",
+                  groups = Seq(
+                    PermissionGroup(key = "group1",
+                                    label = "bla-qlkfqlj _lk",
+                                    permissions = Seq.empty)
+                  ))
+          )
+        )
+      )
+
+      val response: WSResponse = postJson(s"/$tenant/organisations", org.asJson)
+
+      response.status mustBe BAD_REQUEST
+
+      val value: JsValue = response.json
+
+      (value \ "errors").as[JsArray].value.length mustBe 3
+
+      (value \ "errors" \ 0 \ "message")
+        .as[String] mustBe "error.organisation.groups.0.key"
+      (value \ "errors" \ 1 \ "message")
+        .as[String] mustBe "error.organisation.groups.0.permissions.0.key"
+      (value \ "errors" \ 2 \ "message")
+        .as[String] mustBe "organisation.offers.0.groups.0.permissions.empty"
+    }
   }
 }

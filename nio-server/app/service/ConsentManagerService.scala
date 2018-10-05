@@ -221,34 +221,64 @@ class ConsentManagerService(
                             userId: String) = {
     Logger.info(s"consent fact exist")
 
+    val mergeConsentGroup =
+      (maybeGroup: Option[ConsentGroup], group: ConsentGroup) =>
+        maybeGroup
+          .map { consentGroup =>
+            val groups: Seq[Consent] = group.consents.map { consent =>
+              val maybeConsent =
+                consentGroup.consents.find(c =>
+                  c.key == consent.key && c.label == consent.label)
+              maybeConsent match {
+                case Some(consentValue) =>
+                  consent.copy(checked = consentValue.checked)
+                case None =>
+                  consent
+              }
+            }
+            group.copy(consents = groups)
+          }
+          .getOrElse(group)
+
     val groupsUpdated: Seq[ConsentGroup] =
       template.groups.map(
         group => {
           val maybeGroup = consentFact.groups.find(cg =>
             cg.key == group.key && cg.label == group.label)
 
-          maybeGroup
-            .map {
-              consentGroup =>
-                val groups: Seq[Consent] = group.consents.map { consent =>
-                  val maybeConsent =
-                    consentGroup.consents.find(c =>
-                      c.key == consent.key && c.label == consent.label)
-                  maybeConsent match {
-                    case Some(consentValue) =>
-                      consent.copy(checked = consentValue.checked)
-                    case None =>
-                      consent
+          mergeConsentGroup(maybeGroup, group)
+        }
+      )
+
+    val offersUpdated: Option[Seq[ConsentOffer]] =
+      template.offers.map(
+        offers =>
+          offers.map { offer =>
+            val maybeOffer = consentFact.offers
+              .getOrElse(Seq.empty)
+              .find(co => co.name == offer.name)
+
+            maybeOffer
+              .map { cOffer =>
+                val groups: Seq[ConsentGroup] = offer.groups.map(
+                  group => {
+                    val maybeGroup = cOffer.groups.find(cg =>
+                      cg.key == group.key && cg.label == group.label)
+
+                    mergeConsentGroup(maybeGroup, group)
                   }
-                }
-                group.copy(consents = groups)
-            }
-            .getOrElse(group)
+                )
+                offer.copy(groups = groups)
+              }
+              .getOrElse(offer)
         }
       )
 
     ConsentFact
-      .template(orgVersion, groupsUpdated, orgKey)
+      .template(orgVerNum = orgVersion,
+                groups = groupsUpdated,
+                offers = offersUpdated,
+                orgKey = orgKey)
       .copy(userId = userId)
   }
 }
