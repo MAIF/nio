@@ -139,7 +139,7 @@ export class OrganisationPage extends Component {
                     }
                 ]
             };
-            const offers = [...this.state.organisation.offers];
+            const offers = [...this.state.organisation.offers || []];
             offers.unshift(offer);
 
             this.setState({organisation: {...this.state.organisation, offers}});
