@@ -57,19 +57,33 @@ class ConsentController(
             Logger.error(s"Organisation $orgKey not found")
             Future.successful("error.unknown.organisation".notFound())
           case Some(organisation) =>
-            val groups = organisation.groups.map { pg =>
+            val toConsentGroup = (pg: PermissionGroup) =>
               ConsentGroup(
                 key = pg.key,
                 label = pg.label,
                 consents = pg.permissions.map { p =>
                   Consent(key = p.key, label = p.label, checked = false)
                 })
+
+            val groups = organisation.groups.map { toConsentGroup(_) }
+
+            val offers = organisation.offers.map { offers =>
+              offers.map(
+                offer =>
+                  ConsentOffer(
+                    name = offer.name,
+                    groups = offer.groups.map { toConsentGroup(_) }
+                ))
             }
+
             Logger.info(
               s"Using default consents template in organisation $orgKey")
 
             val template =
-              ConsentFact.template(organisation.version.num, groups, orgKey)
+              ConsentFact.template(orgVerNum = organisation.version.num,
+                                   groups = groups,
+                                   offers = offers,
+                                   orgKey = orgKey)
 
             consentManagerService
               .mergeTemplateWithConsentFact(tenant,
