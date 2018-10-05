@@ -125,7 +125,8 @@ export class OrganisationPage extends Component {
     addOffer = () => {
         if (!this.props.readOnlyMode) {
             const offer = {
-                name: '',
+                key: '',
+                label: '',
                 groups: [
                     {
                         key: '',
@@ -210,8 +211,14 @@ export class OrganisationPage extends Component {
 
         if (nextState.organisation.offers)
         nextState.organisation.offers.forEach((offer, indexOffer) => {
-            if (!offer.name)
-                errors.push(`organisation.offers.${indexOffer}.name.required`);
+            if (!offer.key)
+                errors.push(`organisation.offers.${indexOffer}.key.required`);
+            else if (!/^\w+$/.test(offer.key)) {
+                errors.push(`organisation.offers.${indexOffer}.key.invalid`);
+            }
+
+            if (!offer.label)
+                errors.push(`organisation.offers.${indexOffer}.label.required`);
 
             offer.groups.forEach((group, indexGroup) => {
                 if (!group.key)
@@ -583,11 +590,17 @@ class Offer extends Component {
                     </div>
                 </div>
 
-                <TextInput label={"Nom de l'offre"} value={this.state.offer.name}
-                           onChange={(e) => this.onChange(e, "name")}
+                <TextInput label={"Clé de l'offre"} value={this.state.offer.key}
+                           onChange={(e) => this.onChange(e, "key")}
                            disabled={this.props.readOnlyMode}
                            errorMessage={this.props.errors}
-                           errorKey={[`${this.props.prefixe}offers.${this.props.index}.name.required`]}/>
+                           errorKey={[`${this.props.prefixe}offers.${this.props.index}.key.required`, `${this.props.prefixe}offers.${this.props.index}.key.invalid`]}/>
+
+                <TextInput label={"Libellé de l'offre"} value={this.state.offer.label}
+                           onChange={(e) => this.onChange(e, "label")}
+                           disabled={this.props.readOnlyMode}
+                           errorMessage={this.props.errors}
+                           errorKey={[`${this.props.prefixe}offers.${this.props.index}.label.required`]}/>
                 {
                     this.state.offer.groups.map(
                         (group, index) =>

@@ -39,8 +39,12 @@ const translateObject = {
         },
         offers: {
             x: {
-                name: {
-                  required: "Le nom de l'offre est obligatoire."
+                key: {
+                  required: "La clé de l'offre est obligatoire.",
+                  invalid: "Le format de la clé de l'offre est incorrect (un mot sans espace ni caractère spécial)."
+                },
+                label: {
+                  required: "Le libellé de l'offre est obligatoire."
                 },
                 groups: {
                     x: {

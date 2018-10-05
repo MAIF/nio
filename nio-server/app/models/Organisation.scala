@@ -58,12 +58,15 @@ object VersionInfo {
     }
 }
 
-case class Offer(name: String, groups: Seq[PermissionGroup])
+case class Offer(key: String, label: String, groups: Seq[PermissionGroup])
     extends ModelTransformAs {
   override def asXml(): Elem = <offer>
-    <name>
-      {name}
-    </name>
+    <key>
+      {key}
+    </key>
+    <label>
+      {label}
+    </label>
     <groups>
       {groups.map(_.asXml)}
     </groups>
@@ -74,17 +77,20 @@ case class Offer(name: String, groups: Seq[PermissionGroup])
 
 object Offer extends ReadableEntity[Offer] {
   implicit val offerReads: Reads[Offer] = (
-    (__ \ "name").read[String] and
+    (__ \ "key").read[String] and
+      (__ \ "label").read[String] and
       (__ \ "groups").read[Seq[PermissionGroup]]
   )(Offer.apply _)
 
   implicit val offerWrites: Writes[Offer] = (
-    (__ \ "name").write[String] and
+    (__ \ "key").write[String] and
+      (__ \ "label").write[String] and
       (__ \ "groups").write[Seq[PermissionGroup]]
   )(unlift(Offer.unapply))
 
   implicit val offerOWrites: OWrites[Offer] = (
-    (__ \ "name").write[String] and
+    (__ \ "key").write[String] and
+      (__ \ "label").write[String] and
       (__ \ "groups").write[Seq[PermissionGroup]]
   )(unlift(Offer.unapply))
 
@@ -94,11 +100,12 @@ object Offer extends ReadableEntity[Offer] {
   implicit val offerReadXml: XMLRead[Offer] =
     (node: NodeSeq, path: Option[String]) =>
       (
-        (node \ "name").validate[String](Some(s"${path.convert()}name")),
+        (node \ "key").validate[String](Some(s"${path.convert()}key")),
+        (node \ "label").validate[String](Some(s"${path.convert()}label")),
         (node \ "groups").validate[Seq[PermissionGroup]](
           Some(s"${path.convert()}groups"))
       ).mapN(
-        (name, groups) => Offer(name, groups)
+        (key, label, groups) => Offer(key, label, groups)
     )
 
   override def fromXml(xml: Elem): Either[AppErrors, Offer] =
@@ -438,12 +445,12 @@ object GroupValidator extends GroupValidator
 
 sealed trait OfferValidator {
 
-  private def validateName(
-      name: String,
+  private def validateKey(
+      key: String,
       index: Int): ValidatorUtils.ValidationResult[String] = {
-    name match {
-      case k if StringUtils.isNoneEmpty(k) => name.validNel
-      case _                               => s"error.organisation.offers.$index.name".invalidNel
+    key match {
+      case k if k.matches(ValidatorUtils.keyPattern) => key.validNel
+      case _                                         => s"error.organisation.offers.$index.key".invalidNel
     }
   }
 
@@ -452,7 +459,7 @@ sealed trait OfferValidator {
 
     val prefix: String = s"organisation.offers.$indexOffer"
     (
-      validateName(offer.name, indexOffer),
+      validateKey(offer.key, indexOffer),
       ValidatorUtils.sequence(offer.groups.zipWithIndex.map {
         case (group, index) =>
           GroupValidator.validateGroup(group, index, Some(prefix))

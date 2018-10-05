@@ -71,7 +71,8 @@ class ConsentController(
               offers.map(
                 offer =>
                   ConsentOffer(
-                    name = offer.name,
+                    key = offer.key,
+                    label = offer.label,
                     groups = offer.groups.map { toConsentGroup(_) }
                 ))
             }

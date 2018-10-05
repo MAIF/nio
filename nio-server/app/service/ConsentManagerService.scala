@@ -256,7 +256,7 @@ class ConsentManagerService(
           offers.map { offer =>
             val maybeOffer = consentFact.offers
               .getOrElse(Seq.empty)
-              .find(co => co.name == offer.name)
+              .find(co => co.key == offer.key)
 
             maybeOffer
               .map { cOffer =>

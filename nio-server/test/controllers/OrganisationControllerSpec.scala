@@ -54,6 +54,7 @@ class OrganisationControllerSpec extends TestUtils {
       offers = Some(
         Seq(
           Offer("offer1",
+                "offer 1",
                 Seq(
                   PermissionGroup(
                     key = "group2",
@@ -75,6 +76,7 @@ class OrganisationControllerSpec extends TestUtils {
       offers = Some(
         Seq(
           Offer("offer1",
+                "offer 1",
                 Seq(
                   PermissionGroup(key = "group1",
                                   label = "groupe 1",
@@ -530,8 +532,10 @@ class OrganisationControllerSpec extends TestUtils {
         .as[String] mustBe org3.groups.head.permissions.head.label
 
       val offers = (value \ "offers").as[JsArray]
-      (offers \ 0 \ "name")
-        .as[String] mustBe org3.offers.get.head.name
+      (offers \ 0 \ "key")
+        .as[String] mustBe org3.offers.get.head.key
+      (offers \ 0 \ "label")
+        .as[String] mustBe org3.offers.get.head.label
       (offers \ 0 \ "groups" \ 0 \ "key")
         .as[String] mustBe org3.offers.get.head.groups.head.key
       (offers \ 0 \ "groups" \ 0 \ "label")
@@ -569,8 +573,10 @@ class OrganisationControllerSpec extends TestUtils {
         .as[String] mustBe org3Update.groups.head.permissions.head.label
 
       val offersPut = (valuePut \ "offers").as[JsArray]
-      (offersPut \ 0 \ "name")
-        .as[String] mustBe org3Update.offers.get.head.name
+      (offersPut \ 0 \ "key")
+        .as[String] mustBe org3Update.offers.get.head.key
+      (offersPut \ 0 \ "label")
+        .as[String] mustBe org3Update.offers.get.head.label
       (offersPut \ 0 \ "groups" \ 0 \ "key")
         .as[String] mustBe org3Update.offers.get.head.groups.head.key
       (offersPut \ 0 \ "groups" \ 0 \ "label")
@@ -713,7 +719,8 @@ class OrganisationControllerSpec extends TestUtils {
         ),
         offers = Some(
           Seq(
-            Offer(name = "toto",
+            Offer(key = "toto",
+                  label = "toto",
                   groups = Seq(
                     PermissionGroup(key = "group1",
                                     label = "bla-qlkfqlj _lk",

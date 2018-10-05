@@ -408,6 +408,7 @@ class ConsentTemplateControllerSpec extends TestUtils {
           Seq(
             Offer(
               "offer1",
+              "offer 1",
               Seq(PermissionGroup(
                 key = "maifNotifs",
                 label =
@@ -421,6 +422,7 @@ class ConsentTemplateControllerSpec extends TestUtils {
             ),
             Offer(
               "offer2",
+              "offer 2",
               Seq(PermissionGroup(
                 key = "maifNotifs",
                 label =
@@ -449,7 +451,8 @@ class ConsentTemplateControllerSpec extends TestUtils {
       val offers: JsArray = (value \ "offers").as[JsArray]
       offers.value.length mustBe 2
 
-      (offers \ 0 \ "name").as[String] mustBe "offer1"
+      (offers \ 0 \ "key").as[String] mustBe "offer1"
+      (offers \ 0 \ "label").as[String] mustBe "offer 1"
       (offers \ 0 \ "groups").as[JsArray].value.length mustBe 1
       val offer1group1 = (offers \ 0 \ "groups" \ 0).as[JsValue]
 
@@ -477,7 +480,8 @@ class ConsentTemplateControllerSpec extends TestUtils {
       (offer1group1perm3 \ "label").as[String] mustBe "Par SMS / MMS / VMS"
       (offer1group1perm3 \ "checked").as[Boolean] mustBe false
 
-      (offers \ 1 \ "name").as[String] mustBe "offer2"
+      (offers \ 1 \ "key").as[String] mustBe "offer2"
+      (offers \ 1 \ "label").as[String] mustBe "offer 2"
       (offers \ 1 \ "groups").as[JsArray].value.length mustBe 1
       val offer2group1 = (offers \ 1 \ "groups" \ 0).as[JsValue]
 
@@ -534,7 +538,8 @@ class ConsentTemplateControllerSpec extends TestUtils {
         offers = Some(
           Seq(
             ConsentOffer(
-              name = "offer1",
+              key = "offer1",
+              label = "offer 1",
               Seq(
                 ConsentGroup(
                   key = "maifNotifs",
@@ -555,7 +560,8 @@ class ConsentTemplateControllerSpec extends TestUtils {
               )
             ),
             ConsentOffer(
-              name = "offer2",
+              key = "offer2",
+              label = "offer 2",
               Seq(
                 ConsentGroup(
                   key = "maifNotifs",
@@ -593,7 +599,8 @@ class ConsentTemplateControllerSpec extends TestUtils {
       val offers: JsArray = (value \ "offers").as[JsArray]
       offers.value.length mustBe 2
 
-      (offers \ 0 \ "name").as[String] mustBe "offer1"
+      (offers \ 0 \ "key").as[String] mustBe "offer1"
+      (offers \ 0 \ "label").as[String] mustBe "offer 1"
       (offers \ 0 \ "groups").as[JsArray].value.length mustBe 1
       val offer1group1 = (offers \ 0 \ "groups" \ 0).as[JsValue]
 
@@ -621,7 +628,8 @@ class ConsentTemplateControllerSpec extends TestUtils {
       (offer1group1perm3 \ "label").as[String] mustBe "Par SMS / MMS / VMS"
       (offer1group1perm3 \ "checked").as[Boolean] mustBe false
 
-      (offers \ 1 \ "name").as[String] mustBe "offer2"
+      (offers \ 1 \ "key").as[String] mustBe "offer2"
+      (offers \ 1 \ "label").as[String] mustBe "offer 2"
       (offers \ 1 \ "groups").as[JsArray].value.length mustBe 1
       val offer2group1 = (offers \ 1 \ "groups" \ 0).as[JsValue]
 
