@@ -27,14 +27,15 @@ export class ConsentFactPage extends Component {
     };
 
     componentDidMount() {
-        consentService.getConsentsHistory(this.props.tenant, this.props.organisationKey, this.props.userId, 0, 1)
-            .then(currentConsentVersion => {
+        consentService.getConsents(this.props.tenant, this.props.organisationKey, this.props.userId)
+            .then(r => r.json())
+            .then(lastConsentVersion => {
                 const tabs = [];
 
                 tabs.push({
                     title: "Version courante",
                     id: 'CURRENT',
-                    content: <ConsentFactDisplayPage {...this.props} user={currentConsentVersion.items[0]}
+                    content: <ConsentFactDisplayPage {...this.props} user={lastConsentVersion}
                                                      customLabel={"Version courante de l'utilisateur"}/>,
                     deletable: false
                 });
@@ -48,12 +49,14 @@ export class ConsentFactPage extends Component {
                 tabs.push({
                     title: "Historique extractions",
                     id: "EXTRACTPAGE",
-                    content: <UserExtractPage tenant={this.props.tenant} organisationKey={this.props.organisationKey} userId={this.props.userId}/>,
+                    content: <UserExtractPage tenant={this.props.tenant} organisationKey={this.props.organisationKey}
+                                              userId={this.props.userId}/>,
                     deletable: false
                 });
 
                 this.setState({tabs});
             });
+
     }
 
     extractData = () => {
@@ -118,7 +121,8 @@ export class ConsentFactPage extends Component {
                         <button className="btn btn-primary" title="extract-data" data-toggle="modal"
                                 data-target="#emailAddress"><i
                             className="glyphicon glyphicon-download-alt"/></button>
-                        <Link className="btn btn-primary"  to={`/organisations/${this.props.organisationKey}/users/${this.props.userId}/consent`}>
+                        <Link className="btn btn-primary"
+                              to={`/organisations/${this.props.organisationKey}/users/${this.props.userId}/consent`}>
                             <i className="glyphicon glyphicon-pencil"/>
                         </Link>
                     </div>
