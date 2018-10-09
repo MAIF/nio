@@ -1,64 +1,11 @@
 import React, {Component} from 'react';
 import PropTypes from "prop-types";
-import {Toggle} from "../../common/ui/components/Toggle";
+import _ from "lodash";
 import * as consentService from "../services/ConsentService";
 
 export class ConsentsPage extends Component {
 
-  state = {
-    groups: [
-      {
-        label: 'J\'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF',
-        consents: [
-          {
-            key: 'tel',
-            label: 'Par contact téléphonique',
-            checked: true
-          },
-          {
-            key: 'electronique',
-            label: 'Par contact électronique',
-            checked: false
-          },
-          {
-            key: 'sms-mms-vms',
-            label: 'Par SMS / MMS / VMS',
-            checked: true
-          }
-        ]
-      },
-      {
-        label: 'J\'accepte de recevoir par téléphone, mail et SMS des offres personnalisées des partenaires du groupe MAIF',
-        consents: [
-          {
-            key: 'tel',
-            label: 'Par contact téléphonique',
-            checked: true
-          },
-          {
-            key: 'electronique',
-            label: 'Par contact électronique',
-            checked: true
-          },
-          {
-            key: 'sms-mms-vms',
-            label: 'Par SMS / MMS / VMS',
-            checked: true
-          }
-        ]
-      }
-    ]
-  };
-
-  componentDidMount() {
-    if (this.props.groups)
-      this.setState({groups: this.props.groups})
-  }
-
-  componentWillReceiveProps(nextProps) {
-    if (nextProps.groups)
-      this.setState({groups: nextProps.groups})
-  }
+  state = {groups: _.cloneDeep(this.props.groups) || [], offers: _.cloneDeep(this.props.offers) || []};
 
   onChangeGroup = (index, group) => {
     if (!this.props.readOnlyMode) {
@@ -68,10 +15,26 @@ export class ConsentsPage extends Component {
     }
   };
 
+  componentWillReceiveProps(nextProps) {
+    this.setState({groups: nextProps.groups || [], offers: nextProps.offers || []})
+  }
+
+  onChangeOffer = (index, offer) => {
+    if (!this.props.readOnlyMode) {
+      const offers = _.cloneDeep(this.state.offers);
+      offers[index] = offer;
+      this.setState({offers})
+    }
+  };
+
   saveConsents = () => {
     if (!this.props.readOnlyMode) {
       const user = {...this.props.user};
       user.groups = [...this.state.groups];
+      user.offers = [...this.state.offers];
+
+    if (user.offers && !user.offers.length)
+        delete user.offers;
 
       user.userId = this.props.userId;
       user.doneBy.userId = this.props.userId;
@@ -93,6 +56,13 @@ export class ConsentsPage extends Component {
           }
 
           {
+              this.state.offers && this.state.offers.map((offer, index) =>
+                  <Offer key={index} offer={offer} index={index} onChange={this.onChangeOffer}
+                         readOnlyMode={this.props.readOnlyMode}/>
+              )
+          }
+
+          {
             (this.props.submitable && !this.props.readOnlyMode) &&
             <div className="form-buttons pull-right">
               <button className="btn btn-primary" onClick={this.saveConsents}>
@@ -107,6 +77,7 @@ export class ConsentsPage extends Component {
 
 ConsentsPage.propTypes = {
   groups: PropTypes.array,
+  offers: PropTypes.array,
   submitable: PropTypes.bool,
   readOnlyMode: PropTypes.bool,
   tenant: PropTypes.string,
@@ -168,15 +139,15 @@ class Consents extends Component {
 
   initializeConsents = (group) => {
     const toggleValue = this.initializeToggleValue(group);
-    this.setState({group, toggleValue});
+    this.setState({group: {...group}, toggleValue});
   };
 
   componentDidMount() {
-    this.initializeConsents(this.props.group);
+    this.initializeConsents(_.cloneDeep(this.props.group));
   }
 
   componentWillReceiveProps(nextProps) {
-    this.initializeConsents(nextProps.group);
+    this.initializeConsents(_.cloneDeep(nextProps.group));
   }
 
   render() {
@@ -237,4 +208,62 @@ Consents.propTypes = {
   group: PropTypes.object.isRequired,
   onChange: PropTypes.func.isRequired,
   readOnlyMode: PropTypes.bool,
+};
+
+class Offer extends Component {
+    state = {
+        toggleValue: false,
+        offer: {
+            key: '',
+            label: '',
+            groups: []
+        }
+    };
+
+    componentDidMount() {
+        this.setState({offer: _.cloneDeep(this.props.offer)})
+    }
+
+    componentWillReceiveProps(nextProps) {
+        this.setState({offer: _.cloneDeep(nextProps.offer)})
+    }
+
+    onChangeOfferGroup = (index, group) => {
+        if (!this.props.readOnlyMode) {
+            const offer = _.cloneDeep(this.state.offer);
+            offer.groups[index] = group;
+            this.props.onChange(this.props.index, offer)
+        }
+    };
+
+    render() {
+        return (
+            <div className="row thumbnail">
+                <div className="col-md-12">
+                    <div className="row">
+                        <div className="col-md-12">
+                            {this.state.offer.label}
+                        </div>
+
+                        <div className="col-md-12"  style={{paddingBottom: "5px", paddingTop: "5px"}}>
+                            {
+                                this.state.offer.groups.map((group, index) =>
+                                    <Consents key={index} index={index} group={group} onChange={this.onChangeOfferGroup}
+                                              readOnlyMode={this.props.readOnlyMode}/>
+                                )
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+}
+
+
+Offer.propTypes = {
+    index: PropTypes.number.isRequired,
+    offer: PropTypes.object.isRequired,
+    onChange: PropTypes.func.isRequired,
+    readOnlyMode: PropTypes.bool,
 };

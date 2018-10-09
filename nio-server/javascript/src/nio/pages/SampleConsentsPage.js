@@ -158,7 +158,8 @@ export class SampleConsentsPage extends Component {
 
                 {
                     this.state.user &&
-                    <ConsentsPage groups={this.state.user.groups} user={this.state.user} tenant={this.props.tenant}
+                    <ConsentsPage groups={this.state.user.groups} offers={this.state.user.offers}
+                                  user={this.state.user} tenant={this.props.tenant}
                                   organisationKey={this.state.organisationKey} userId={this.state.userId}
                                   submitable={true}/>
                 }
