@@ -482,7 +482,22 @@ export class OrganisationPage extends Component {
                                 }
                             })
                         ]
-                    }/>
+                    }
+                    offers={[...this.state.organisation.offers.map(offer => ({
+                        key: offer.key,
+                        label: offer.label,
+                        groups: offer.groups.map(group => ({
+                            key: group.key,
+                            label: group.label,
+                            consents: group.permissions.map(permission => ({
+                                    key: permission.key,
+                                    label: permission.label,
+                                    checked: false
+                                })
+                            )
+                        }))
+
+                    }))]}/>
                 }
             </div>
         );
