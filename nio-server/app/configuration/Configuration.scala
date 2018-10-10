@@ -81,6 +81,7 @@ case class S3Config(bucketName: String,
                     region: String,
                     chunkSizeInMb: Int,
                     accessKey: String,
-                    secretKey: String)
+                    secretKey: String,
+                    expireAtInDay: Int)
 
 case class MailGunConfig(apiKey: String, endpoint: String, from: String)

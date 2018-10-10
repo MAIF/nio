@@ -2,6 +2,7 @@ package utils
 
 import java.io.{ByteArrayInputStream, File, FileInputStream, InputStream}
 import java.nio.file.Files
+import java.util
 import java.util.Base64
 
 import akka.NotUsed
@@ -14,6 +15,12 @@ import com.amazonaws.auth.{AWSStaticCredentialsProvider, BasicAWSCredentials}
 import com.amazonaws.client.builder.AwsClientBuilder
 import com.amazonaws.regions.Regions
 import com.amazonaws.services.s3.model._
+import com.amazonaws.services.s3.model.lifecycle.{
+  LifecycleAndOperator,
+  LifecycleFilter,
+  LifecyclePrefixPredicate,
+  LifecycleTagPredicate
+}
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 import configuration.{Env, S3Config}
 import play.api.Logger
@@ -133,6 +140,27 @@ class S3Manager(env: Env, actorSystem: ActorSystem)
     })
   }
 
+  def bucketExpiration(bucketName: String, prefixKey: String)(
+      implicit s3ExecutionContext: S3ExecutionContext): Future[Boolean] = {
+    // https://docs.aws.amazon.com/fr_fr/AmazonS3/latest/dev/manage-lifecycle-using-java.html
+    val rule: BucketLifecycleConfiguration.Rule =
+      new BucketLifecycleConfiguration.Rule()
+        .withId(s"$bucketName-ttl")
+        .withFilter(
+          new LifecycleFilter(
+            new LifecyclePrefixPredicate(prefixKey)
+          )
+        )
+        .withExpirationInDays(s3Config.expireAtInDay)
+        .withStatus(BucketLifecycleConfiguration.ENABLED)
+
+    Future {
+      val configuration = amazonS3.getBucketLifecycleConfiguration(bucketName)
+      configuration.getRules.add(rule)
+      amazonS3.setBucketLifecycleConfiguration(bucketName, configuration)
+    }(s3ExecutionContext).map(_ => true)
+  }
+
   override def userExtractUpload(tenant: String,
                                  orgKey: String,
                                  userId: String,
@@ -141,10 +169,15 @@ class S3Manager(env: Env, actorSystem: ActorSystem)
                                  src: Source[ByteString, _])(
       implicit s3ExecutionContext: S3ExecutionContext): Future[String] = {
     val bucketName = s3Config.uploadBucketName
+
     val key: String = getKey(tenant, orgKey, userId, extractTaskId, name)
 
     // Create bucket if not exist
     createBucket(bucketName)
+      .map(_ => {
+        val prefixKey = s"$tenant/$orgKey/$userId/extract/$extractTaskId/"
+        bucketExpiration(bucketName, prefixKey)
+      })
       .flatMap { _ =>
         val s3Request: InitiateMultipartUploadRequest =
           new InitiateMultipartUploadRequest(bucketName, key)

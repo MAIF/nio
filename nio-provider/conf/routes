@@ -5,10 +5,10 @@
 # Map static resources from the /public folder to the /assets URL path
 GET         /assets/*file                                                   controllers.Assets.versioned(path="/public", file: Asset)
 
-GET         /fo                                                             controllers.HomeController.index()
-GET         /fo/                                                            controllers.HomeController.indexOther()
+GET         /web                                                            controllers.HomeController.index()
+GET         /web/                                                           controllers.HomeController.indexOther()
 
 GET         /ws                                                             controllers.UserDataController.listen()
 POST        /api/:tenant/organisations/:orgKey/users/:userId/_files/*name   controllers.UserDataController.uploadFile(tenant: String, orgKey: String, userId: String, name: String)
 
-GET         /fo/*other                                                      controllers.HomeController.otherRoutes(other: String)
+GET         /web/*other                                                      controllers.HomeController.otherRoutes(other: String)

@@ -72,7 +72,7 @@ const NioAppRouter = withRouter(NioApp);
 export class RoutedNioApp extends Component {
     render() {
         return (
-            <Router basename={`/fo`}>
+            <Router basename={`/web`}>
                 <NioAppRouter {...this.props}/>
             </Router>
         );

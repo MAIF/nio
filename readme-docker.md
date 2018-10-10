@@ -53,5 +53,5 @@ http://nio.foo.bar:8889
 
 
 ```sbtshell
-http://nio-provider.foo.bar:8889/fo
+http://nio-provider.foo.bar:8889/web
 ```
