@@ -16,6 +16,7 @@ class OrganisationMongoDataStore(val mongoApi: ReactiveMongoApi)(
     extends MongoDataStore[Organisation] {
 
   val format: OFormat[Organisation] = models.Organisation.oFormats
+
   override def collectionName(tenant: String) = s"$tenant-organisations"
 
   override def indices = Seq(

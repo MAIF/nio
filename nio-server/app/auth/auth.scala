@@ -11,7 +11,8 @@ import models.ExtractionTask
 
 case class AuthInfo(sub: String,
                     isAdmin: Boolean,
-                    metadatas: Option[Seq[(String, String)]] = None)
+                    metadatas: Option[Seq[(String, String)]] = None,
+                    offerRestrictionPatterns: Option[Seq[String]] = None)
 
 case class AuthContextWithEmail[A](request: Request[A],
                                    email: String,

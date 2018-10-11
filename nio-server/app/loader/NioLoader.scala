@@ -23,12 +23,7 @@ import play.modules.reactivemongo.{
 }
 import router.Routes
 import s3._
-import service.{
-  ConsentManagerService,
-  MailGunService,
-  MailMockService,
-  MailService
-}
+import service.{AccessibleOfferManagerService, _}
 import utils.{DefaultLoader, S3Manager, SecureEvent}
 
 class NioLoader extends ApplicationLoader {
@@ -79,6 +74,11 @@ class NioComponents(context: Context)
   // wire service
   implicit lazy val consentManagerService: ConsentManagerService =
     wire[ConsentManagerService]
+  implicit lazy val organisationManagerService: OrganisationManagerService =
+    wire[OrganisationManagerService]
+  implicit lazy val accessibleOfferManagerService
+    : AccessibleOfferManagerService =
+    wire[AccessibleOfferManagerService]
 
   // wire Kafka
   implicit lazy val kafkaMessageBroker: KafkaMessageBroker =

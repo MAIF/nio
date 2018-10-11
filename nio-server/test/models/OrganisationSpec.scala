@@ -2,6 +2,7 @@ package models
 
 import org.scalatest.WordSpecLike
 import org.scalatestplus.play.PlaySpec
+import play.api.Logger
 
 class OrganisationSpec extends PlaySpec with WordSpecLike {
 
