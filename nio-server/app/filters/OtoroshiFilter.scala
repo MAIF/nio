@@ -46,7 +46,8 @@ class OtoroshiFilter(env: Env)(implicit ec: ExecutionContext,
             .addAttr(OtoroshiFilter.AuthInfo,
                      AuthInfo("test@test.com",
                               isAdmin = true,
-                              Some(Seq(("foo", "bar"), ("foo2", "bar2"))))))
+                              Some(Seq(("foo", "bar"), ("foo2", "bar2"))),
+                              Some(Seq("offer1", "offer2")))))
           .map {
             result =>
               val requestTime = System.currentTimeMillis - startTime
@@ -198,6 +199,7 @@ class OtoroshiFilter(env: Env)(implicit ec: ExecutionContext,
                               startTime: Long,
                               nextFilter: RequestHeader => Future[Result])(
       requestHeader: RequestHeader): Future[Result] = {
+
     val requestWithAuthInfo = for {
       sub <- claims.get("sub").map(_.asString)
       name = claims.get("name").map(_.asString)
@@ -212,6 +214,12 @@ class OtoroshiFilter(env: Env)(implicit ec: ExecutionContext,
         .map(header =>
           (header._1.replaceFirst("metadata.", ""), header._2.asString()))
         .toSeq
+      maybeOfferRestrictionPatterns = claims
+        .get("offers")
+        .map(_.asString()) // Claim to String
+        .map(s => s.split(",")) // String to array[String]
+        .map(_.map(_.trim)) // Trim all string into array
+        .map(_.toSeq) // Array[String] to Seq[String]
     } yield {
       logger.info(s"Request from sub: $sub, name:$name, isAdmin:$isAdmin")
       email
@@ -220,7 +228,10 @@ class OtoroshiFilter(env: Env)(implicit ec: ExecutionContext,
         }
         .getOrElse(requestHeader)
         .addAttr(OtoroshiFilter.AuthInfo,
-                 AuthInfo(sub, isAdmin, Some(metadatas)))
+                 AuthInfo(sub,
+                          isAdmin,
+                          Some(metadatas),
+                          maybeOfferRestrictionPatterns))
     }
 
     nextFilter(requestWithAuthInfo.getOrElse(requestHeader)).map { result =>
