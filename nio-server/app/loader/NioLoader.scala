@@ -77,8 +77,9 @@ class NioComponents(context: Context)
   implicit lazy val organisationManagerService: OrganisationManagerService =
     wire[OrganisationManagerService]
   implicit lazy val accessibleOfferManagerService
-    : AccessibleOfferManagerService =
-    wire[AccessibleOfferManagerService]
+    : AccessibleOfferManagerService = wire[AccessibleOfferManagerService]
+  implicit lazy val offerManagerService: OfferManagerService =
+    wire[OfferManagerService]
 
   // wire Kafka
   implicit lazy val kafkaMessageBroker: KafkaMessageBroker =

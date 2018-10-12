@@ -1,5 +1,7 @@
 package controllers
 
+import utils.Result.AppErrors
+
 object ErrorManager {
 
   import utils.Result.AppErrors
@@ -48,6 +50,26 @@ object ErrorManager {
                        f: ErrorManagerSuite): Result = {
       f.convert(appErrors, Unauthorized)
     }
+    def notFound()(implicit req: Request[Any], f: ErrorManagerSuite): Result = {
+      f.convert(appErrors, NotFound)
+    }
+
+    def convert(status: Status)(implicit req: Request[Any],
+                                f: ErrorManagerSuite): Result = {
+      f.convert(appErrors, status)
+    }
+  }
+
+  implicit class ErrorWithStatusManagerResult(val error: AppErrorWithStatus)
+      extends AnyVal {
+
+    def renderError()(implicit req: Request[Any],
+                      f: ErrorManagerSuite): Result = {
+      error.appErrors.convert(error.status)
+    }
   }
 
 }
+import play.api.mvc.Results.Status
+
+case class AppErrorWithStatus(appErrors: AppErrors, status: Status)

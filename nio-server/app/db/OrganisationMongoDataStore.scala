@@ -1,13 +1,15 @@
 package db
 
+import akka.http.scaladsl.util.FastFuture
 import akka.stream.Materializer
+import controllers.AppErrorWithStatus
 import models._
+import play.api.Logger
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoApi
 import play.modules.reactivemongo.json.ImplicitBSONHandlers._
 import reactivemongo.akkastream.cursorProducer
 import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.api.{Cursor, ReadPreference}
 import utils.Result.{AppErrors, ErrorMessage}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -161,8 +163,9 @@ class OrganisationMongoDataStore(val mongoApi: ReactiveMongoApi)(
   }
 
   // OFFERS
+  import play.api.mvc.Results._
 
-  def findOffersByOrgKey(
+  def findOffers(
       tenant: String,
       orgKey: String): Future[Either[AppErrors, Option[Seq[Offer]]]] = {
     findByKey(tenant, orgKey).map {
@@ -171,4 +174,82 @@ class OrganisationMongoDataStore(val mongoApi: ReactiveMongoApi)(
         Left(AppErrors(Seq(ErrorMessage(s"organisation.$orgKey.not.found"))))
     }
   }
+
+  def findOffer(tenant: String,
+                orgKey: String,
+                offerKey: String): Future[Either[AppErrors, Option[Offer]]] = {
+    findLastReleasedByKey(tenant, orgKey).map {
+      case Some(organisation) =>
+        Right(organisation.offers.flatMap(offers =>
+          offers.find(p => p.key == offerKey)))
+      case None =>
+        Left(AppErrors(Seq(ErrorMessage(s"organisation.$orgKey.not.found"))))
+    }
+  }
+
+  def updateOffer(tenant: String,
+                  orgKey: String,
+                  offerKey: String,
+                  offer: Offer): Future[Offer] = {
+    storedCollection(tenant).flatMap {
+      _.update(
+        Json.obj("key" -> orgKey,
+                 "offers.key" -> offerKey,
+                 "version.latest" -> true),
+        Json.obj(
+          "$set" -> Json.obj(
+            "offers.$" -> offer.asJson()
+          ))
+      ).map(_ => offer)
+    }
+  }
+
+  def addOffer(tenant: String, orgKey: String, offer: Offer): Future[Offer] = {
+    storedCollection(tenant).flatMap {
+      _.update(
+        Json.obj("key" -> orgKey, "version.latest" -> true),
+        Json.obj(
+          "$push" -> Json.obj(
+            "offers" -> offer.asJson()
+          ))
+      ).map(result => {
+        Logger.info(s"$result")
+        offer
+      })
+    }
+  }
+
+  def deleteOffer(
+      tenant: String,
+      orgKey: String,
+      offerKey: String): Future[Either[AppErrorWithStatus, Offer]] = {
+    findOffer(tenant, orgKey, offerKey).flatMap {
+      case Right(maybeOffer) =>
+        maybeOffer match {
+          case Some(offer) =>
+            storedCollection(tenant).flatMap {
+              _.update(
+                Json.obj("key" -> orgKey,
+                         "offers.key" -> offerKey,
+                         "version.latest" -> true),
+                Json.obj(
+                  "$pull" -> Json.obj(
+                    "offers" -> offer.asJson()
+                  ))
+              ).map(_ => Right(offer))
+            }
+
+          case None =>
+            FastFuture.successful(
+              Left(
+                AppErrorWithStatus(
+                  AppErrors(Seq(ErrorMessage(s"offer.$offerKey.not.found"))),
+                  NotFound)))
+        }
+      case Left(e) =>
+        FastFuture.successful(Left(AppErrorWithStatus(e, NotFound)))
+    }
+
+  }
+
 }

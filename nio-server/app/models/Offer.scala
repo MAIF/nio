@@ -85,3 +85,12 @@ object Offer extends ReadableEntity[Offer] {
       case JsError(errors)     => Left(AppErrors.fromJsError(errors))
     }
 }
+
+case class Offers(offers: Option[Seq[Offer]]) extends ModelTransformAs {
+  override def asXml(): Elem = <offers>
+    {offers.getOrElse(Seq.empty).map(_.asXml())}
+  </offers>
+
+  override def asJson(): JsValue =
+    Json.toJson(offers.getOrElse(Seq.empty).map(_.asJson()).toSeq)
+}
