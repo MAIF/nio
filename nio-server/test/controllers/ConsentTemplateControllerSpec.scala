@@ -409,6 +409,7 @@ class ConsentTemplateControllerSpec extends TestUtils {
             Offer(
               "offer1",
               "offer 1",
+              1,
               Seq(PermissionGroup(
                 key = "maifNotifs",
                 label =
@@ -423,6 +424,7 @@ class ConsentTemplateControllerSpec extends TestUtils {
             Offer(
               "offer2",
               "offer 2",
+              1,
               Seq(PermissionGroup(
                 key = "maifNotifs",
                 label =

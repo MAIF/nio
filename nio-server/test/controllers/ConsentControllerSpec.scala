@@ -646,6 +646,7 @@ class ConsentControllerSpec extends TestUtils {
             Offer(
               "offer1",
               "offer 1",
+              1,
               Seq(PermissionGroup(
                 key = "maifNotifs",
                 label =

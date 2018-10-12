@@ -8,7 +8,6 @@ import libs.xml.XMLRead
 import libs.xml.XmlUtil.XmlCleaner
 import libs.xml.implicits._
 import libs.xml.syntax._
-import org.apache.commons.lang3.StringUtils
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.functional.syntax.{unlift, _}
 import play.api.libs.json.Reads._
@@ -58,66 +57,6 @@ object VersionInfo {
     }
 }
 
-case class Offer(key: String, label: String, groups: Seq[PermissionGroup])
-    extends ModelTransformAs {
-  override def asXml(): Elem = <offer>
-    <key>
-      {key}
-    </key>
-    <label>
-      {label}
-    </label>
-    <groups>
-      {groups.map(_.asXml)}
-    </groups>
-  </offer>.clean()
-
-  override def asJson(): JsValue = Offer.offerWrites.writes(this)
-}
-
-object Offer extends ReadableEntity[Offer] {
-  implicit val offerReads: Reads[Offer] = (
-    (__ \ "key").read[String] and
-      (__ \ "label").read[String] and
-      (__ \ "groups").read[Seq[PermissionGroup]]
-  )(Offer.apply _)
-
-  implicit val offerWrites: Writes[Offer] = (
-    (__ \ "key").write[String] and
-      (__ \ "label").write[String] and
-      (__ \ "groups").write[Seq[PermissionGroup]]
-  )(unlift(Offer.unapply))
-
-  implicit val offerOWrites: OWrites[Offer] = (
-    (__ \ "key").write[String] and
-      (__ \ "label").write[String] and
-      (__ \ "groups").write[Seq[PermissionGroup]]
-  )(unlift(Offer.unapply))
-
-  implicit val format: Format[Offer] = Format(offerReads, offerWrites)
-  implicit val oformat: OFormat[Offer] = OFormat(offerReads, offerOWrites)
-
-  implicit val offerReadXml: XMLRead[Offer] =
-    (node: NodeSeq, path: Option[String]) =>
-      (
-        (node \ "key").validate[String](Some(s"${path.convert()}key")),
-        (node \ "label").validate[String](Some(s"${path.convert()}label")),
-        (node \ "groups").validate[Seq[PermissionGroup]](
-          Some(s"${path.convert()}groups"))
-      ).mapN(
-        (key, label, groups) => Offer(key, label, groups)
-    )
-
-  override def fromXml(xml: Elem): Either[AppErrors, Offer] =
-    offerReadXml.read(xml, Some("offer")).toEither
-
-  override def fromJson(json: JsValue): Either[AppErrors, Offer] =
-    json.validate[Offer] match {
-      case JsSuccess(value, _) => Right(value)
-      case JsError(errors)     => Left(AppErrors.fromJsError(errors))
-    }
-}
-
 case class Organisation(_id: String = BSONObjectID.generate().stringify,
                         key: String,
                         label: String,
@@ -154,10 +93,10 @@ case class Organisation(_id: String = BSONObjectID.generate().stringify,
     </groups>{offers.map(l => <offers>l.map(_.asXml())</offers>)}
   </organisation>.clean()
 
-  def newWith(version: VersionInfo) =
+  def newWith(version: VersionInfo): Organisation =
     this.copy(_id = BSONObjectID.generate().stringify, version = version)
 
-  def isValidWith(cf: ConsentFact) = {
+  def isValidWith(cf: ConsentFact): Option[String] = {
     if (cf.groups.length != groups.length) {
       Some("error.invalid.groups.length")
     } else {
