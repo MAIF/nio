@@ -58,6 +58,15 @@ GET         /api/:tenant/organisations/:orgKey                      controllers.
 
 DELETE      /api/:tenant/organisations/:orgKey                      controllers.OrganisationController.delete(tenant: String, orgKey: String)
 
+
+GET         /api/:tenant/organisations/:orgKey/offers               controllers.OrganisationOfferController.findAll(tenant: String, orgKey: String)
+
+POST        /api/:tenant/organisations/:orgKey/offers               controllers.OrganisationOfferController.add(tenant: String, orgKey: String)
+
+PUT         /api/:tenant/organisations/:orgKey/offers/:offerKey     controllers.OrganisationOfferController.update(tenant: String, orgKey: String, offerKey: String)
+
+DELETE      /api/:tenant/organisations/:orgKey/offers/:offerKey     controllers.OrganisationOfferController.delete(tenant: String, orgKey: String, offerKey: String)
+
 GET         /api/:tenant/organisations/:orgKey/last                 controllers.OrganisationController.findLastReleasedByKey(tenant: String, orgKey: String)
 
 GET         /api/:tenant/organisations/:orgKey/draft                controllers.OrganisationController.findDraftByKey(tenant: String, orgKey: String)

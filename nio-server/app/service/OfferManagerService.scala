@@ -1,8 +1,13 @@
 package service
 
+import akka.http.scaladsl.util.FastFuture
+import controllers.AppErrorWithStatus
 import db.OrganisationMongoDataStore
-import models.Offer
-import utils.Result.AppErrors
+import models.{Offer, Organisation}
+import play.Logger
+import utils.Result.{AppErrors, ErrorMessage}
+import play.api.mvc.Results._
+import reactivemongo.bson.BSONObjectID
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -14,7 +19,7 @@ class OfferManagerService(
   def getAll(tenant: String,
              orgKey: String,
              offerRestrictionPatterns: Option[Seq[String]])
-    : Future[Either[AppErrors, Option[Seq[Offer]]]] = {
+    : Future[Either[AppErrorWithStatus, Option[Seq[Offer]]]] = {
     accessibleOfferManagerService
       .accessibleOfferByOrganisation(tenant, orgKey, offerRestrictionPatterns)
       .map {
@@ -27,14 +32,129 @@ class OfferManagerService(
 
   def save(tenant: String,
            orgKey: String,
-           offer: Offer): Future[Either[AppErrors, Offer]] = {
-    ???
+           maybeOfferKey: Option[String],
+           offer: Offer,
+           offerRestrictionPatterns: Option[Seq[String]])
+    : Future[Either[AppErrorWithStatus, Offer]] = {
+
+    maybeOfferKey match {
+      case Some(offerKey) if offerKey != offer.key =>
+        toErrorWithStatus(s"offer.key.${offer.key}.must.be.equals.to.$offerKey",
+                          BadRequest)
+      case Some(offerKey) if offerKey == offer.key =>
+        save(tenant, orgKey, offer, offerRestrictionPatterns)
+      case None =>
+        save(tenant, orgKey, offer, offerRestrictionPatterns)
+    }
+  }
+
+  private def save(tenant: String,
+                   orgKey: String,
+                   offer: Offer,
+                   offerRestrictionPatterns: Option[Seq[String]])
+    : Future[Either[AppErrorWithStatus, Offer]] = {
+    accessibleOfferManagerService.accessibleOfferKey(
+      offer.key,
+      offerRestrictionPatterns) match {
+      case true =>
+        organisationMongoDataStore
+          .findOffer(tenant, orgKey, offer.key)
+          .flatMap {
+            case Left(e) =>
+              toErrorWithStatus(e, NotFound)
+            case Right(maybeOffer) =>
+              maybeOffer match {
+                case Some(_) =>
+                  updateOrganisation(tenant, orgKey).flatMap {
+                    case Right(_) =>
+                      organisationMongoDataStore
+                        .updateOffer(tenant, orgKey, offer.key, offer)
+                        .map(Right(_))
+
+                    case Left(e) =>
+                      toErrorWithStatus(e)
+                  }
+                case None =>
+                  updateOrganisation(tenant, orgKey).flatMap {
+                    case Right(_) =>
+                      organisationMongoDataStore
+                        .addOffer(tenant, orgKey, offer)
+                        .map(Right(_))
+
+                    case Left(e) =>
+                      toErrorWithStatus(e)
+                  }
+              }
+          }
+      case false =>
+        toErrorWithStatus(s"offer.${offer.key}.not.accessible", Unauthorized)
+    }
   }
 
   def delete(tenant: String,
              orgKey: String,
-             offer: Offer): Future[Either[AppErrors, Offer]] = {
-    ???
+             offerKey: String,
+             offerRestrictionPatterns: Option[Seq[String]])
+    : Future[Either[AppErrorWithStatus, Offer]] = {
+
+    accessibleOfferManagerService.accessibleOfferKey(
+      offerKey,
+      offerRestrictionPatterns) match {
+      case true =>
+        updateOrganisation(tenant, orgKey).flatMap {
+          case Left(e) =>
+            FastFuture.successful(Left(e))
+          case Right(_) =>
+            organisationMongoDataStore.deleteOffer(tenant, orgKey, offerKey)
+        }
+      case false =>
+        toErrorWithStatus(s"offer.$offerKey.not.accessible", Unauthorized)
+    }
+  }
+
+  private def updateOrganisation(tenant: String, orgKey: String)
+    : Future[Either[AppErrorWithStatus, Option[Organisation]]] = {
+    organisationMongoDataStore.findLastReleasedByKey(tenant, orgKey).flatMap {
+      case Some(lastExistingOrganisation) =>
+        val oldOrganisation = lastExistingOrganisation.copy(
+          version = lastExistingOrganisation.version.copy(latest = false))
+        val newOrganisation = oldOrganisation.copy(
+          _id = BSONObjectID.generate().stringify,
+          version = oldOrganisation.version.copy(latest = true))
+
+        for {
+          _ <- organisationMongoDataStore
+            .updateById(tenant, lastExistingOrganisation._id, oldOrganisation)
+          _ <- organisationMongoDataStore.insert(tenant, newOrganisation)
+          lastOrganisation <- organisationMongoDataStore
+            .findLastReleasedByKey(tenant, lastExistingOrganisation.key)
+        } yield Right(lastOrganisation)
+      case None =>
+        FastFuture.successful(
+          Left(AppErrorWithStatus(
+            AppErrors(
+              Seq(ErrorMessage(s"released.of.organisation.$orgKey.not.found"))),
+            NotFound)))
+    }
+  }
+
+  private def toErrorWithStatus(
+      errorMessage: String,
+      status: Status): Future[Either[AppErrorWithStatus, Offer]] = {
+    FastFuture.successful(
+      Left(
+        AppErrorWithStatus(AppErrors(Seq(ErrorMessage(errorMessage))), status)))
+  }
+
+  private def toErrorWithStatus(
+      appErrors: AppErrors,
+      status: Status): Future[Either[AppErrorWithStatus, Offer]] = {
+    FastFuture.successful(Left(AppErrorWithStatus(appErrors, status)))
+  }
+
+  private def toErrorWithStatus(appErrors: AppErrorWithStatus)
+    : Future[Either[AppErrorWithStatus, Offer]] = {
+    FastFuture.successful(Left(appErrors))
   }
 
 }

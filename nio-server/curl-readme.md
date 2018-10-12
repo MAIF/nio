@@ -78,6 +78,34 @@ curl -X POST "http://localhost:9000/api/demo/organisations/test/draft/_release" 
 -H 'content-type: application/json'
 ```
 
+## create an offer on test organisation 
+
+```
+curl -X POST "http://localhost:9000/api/demo/organisations/test/offers" \
+-H 'accept: application/json' \
+-H 'content-type: application/json' \
+-d '{
+       "key": "offer1",
+       "label": "offre 1",
+       "groups": [{
+           "key": "test_notifications",
+           "label": "J'\''accepte de recevoir des offres personnalisées du groupe TEST",
+           "permissions": [{
+               "key": "sms",
+               "label": "Par sms"
+           }]
+       }, {
+           "key": "partners_notifications",
+           "label": "J'\''accepte de recevoir des offres personnalisées des partenaires du groupe TEST",
+           "permissions": [{
+               "key": "sms",
+               "label": "Par sms"
+           }]
+       }]
+   }'
+```
+
+
 ## check test organisation has been created
 
 ```

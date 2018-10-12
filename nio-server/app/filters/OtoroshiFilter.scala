@@ -47,17 +47,17 @@ class OtoroshiFilter(env: Env)(implicit ec: ExecutionContext,
                      AuthInfo("test@test.com",
                               isAdmin = true,
                               Some(Seq(("foo", "bar"), ("foo2", "bar2"))),
-                              Some(Seq("offer1", "offer2")))))
-          .map {
-            result =>
-              val requestTime = System.currentTimeMillis - startTime
-              logger.debug(
-                s"Request => ${requestHeader.method} ${requestHeader.uri} took ${requestTime}ms and returned ${result.header.status}"
-              )
-              result.withHeaders(
-                config.headerGatewayStateResp -> maybeState.getOrElse("--")
-              )
-          }
+                              Some(Seq("offer1", "offer2"))))
+        ).map {
+          result =>
+            val requestTime = System.currentTimeMillis - startTime
+            logger.debug(
+              s"Request => ${requestHeader.method} ${requestHeader.uri} took ${requestTime}ms and returned ${result.header.status}"
+            )
+            result.withHeaders(
+              config.headerGatewayStateResp -> maybeState.getOrElse("--")
+            )
+        }
 
       case "prod" if maybeClaim.isEmpty && maybeState.isEmpty =>
         Future.successful(
