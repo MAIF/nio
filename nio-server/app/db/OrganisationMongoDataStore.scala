@@ -8,6 +8,7 @@ import play.modules.reactivemongo.json.ImplicitBSONHandlers._
 import reactivemongo.akkastream.cursorProducer
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.api.{Cursor, ReadPreference}
+import utils.Result.{AppErrors, ErrorMessage}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -156,6 +157,18 @@ class OrganisationMongoDataStore(val mongoApi: ReactiveMongoApi)(
               ))
         .cursor[JsValue]()
         .documentSource()
+    }
+  }
+
+  // OFFERS
+
+  def findOffersByOrgKey(
+      tenant: String,
+      orgKey: String): Future[Either[AppErrors, Option[Seq[Offer]]]] = {
+    findByKey(tenant, orgKey).map {
+      case Some(organisation) => Right(organisation.offers)
+      case None =>
+        Left(AppErrors(Seq(ErrorMessage(s"organisation.$orgKey.not.found"))))
     }
   }
 }
