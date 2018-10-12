@@ -119,6 +119,8 @@ class NioComponents(context: Context)
   lazy val userController: UserController = wire[UserController]
   lazy val userExtractTaskController: UserExtractController =
     wire[UserExtractController]
+  lazy val organisationOfferController: OrganisationOfferController =
+    wire[OrganisationOfferController]
 
   lazy val mailService: MailService = if (env.config.mailSendingEnable) {
     wire[MailGunService]
