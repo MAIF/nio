@@ -55,6 +55,7 @@ class OrganisationControllerSpec extends TestUtils {
         Seq(
           Offer("offer1",
                 "offer 1",
+                1,
                 Seq(
                   PermissionGroup(
                     key = "group2",
@@ -77,6 +78,7 @@ class OrganisationControllerSpec extends TestUtils {
         Seq(
           Offer("offer1",
                 "offer 1",
+                1,
                 Seq(
                   PermissionGroup(key = "group1",
                                   label = "groupe 1",
