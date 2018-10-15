@@ -168,7 +168,7 @@ class OrganisationMongoDataStore(val mongoApi: ReactiveMongoApi)(
   def findOffers(
       tenant: String,
       orgKey: String): Future[Either[AppErrors, Option[Seq[Offer]]]] = {
-    findByKey(tenant, orgKey).map {
+    findLastReleasedByKey(tenant, orgKey).map {
       case Some(organisation) => Right(organisation.offers)
       case None =>
         Left(AppErrors(Seq(ErrorMessage(s"organisation.$orgKey.not.found"))))

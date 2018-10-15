@@ -3,6 +3,7 @@ package models
 import org.joda.time.{DateTime, DateTimeZone}
 import org.scalatest.{MustMatchers, WordSpecLike}
 import org.scalatestplus.play.PlaySpec
+import play.api.Logger
 import play.api.libs.json.JsValue
 import utils.DateUtils
 import utils.Result.AppErrors
@@ -493,5 +494,70 @@ class ModelValidationSpec extends PlaySpec with WordSpecLike with MustMatchers {
       <invalidKey>{tenant.key}</invalidKey>
       <invalidDescription>{tenant.description}</invalidDescription>
     </tenant>
+  }
+
+  "Validation Offer" should {
+
+    val offer: Offer = Offer(
+      key = "offer1",
+      label = "offer 1",
+      version = 4,
+      groups = Seq(
+        PermissionGroup(
+          key = "keyGroup",
+          label = "labelGroup",
+          permissions = Seq(
+            Permission(
+              key = "keyPerm",
+              label = "labelPerm"
+            )
+          )
+        )
+      )
+    )
+
+    "xml serialize/deserialize" in {
+      val xml: Elem = offer.asXml
+      val offerEither: Either[AppErrors, Offer] = Offer.fromXml(xml)
+
+      val offerFromXml: Offer = offerEither.right.get
+      checkOffer(offerFromXml)
+    }
+
+    "xml invalid" in {
+      val xml: Elem = invalidOffer(offer)
+      val offerEither: Either[AppErrors, Offer] = Offer.fromXml(xml)
+
+      val appErrors: AppErrors = offerEither.left.get
+
+      appErrors.errors.head.message must be("unknow.path.offer.key")
+      appErrors.errors(1).message must be("unknow.path.offer.label")
+      appErrors.errors(2).message must be("unknow.path.offer.groups")
+    }
+
+    "json serialize/deserialize" in {
+      val json: JsValue = offer.asJson
+      val offerEither: Either[AppErrors, Offer] = Offer.fromJson(json)
+
+      val offerFromJson: Offer = offerEither.right.get
+      checkOffer(offerFromJson)
+    }
+
+    def checkOffer(offer: Offer): Unit = {
+      offer.key must be("offer1")
+      offer.label must be("offer 1")
+      offer.version must be(4)
+      offer.groups.size must be(1)
+      offer.groups.head.key must be("keyGroup")
+      offer.groups.head.label must be("labelGroup")
+      offer.groups.head.permissions.size must be(1)
+      offer.groups.head.permissions.head.key must be("keyPerm")
+      offer.groups.head.permissions.head.label must be("labelPerm")
+    }
+
+    def invalidOffer(offer: Offer): Elem = <offer>
+      <invalidKey>{offer.key}</invalidKey>
+      <invalidLabel>{offer.label}</invalidLabel>
+    </offer>
   }
 }

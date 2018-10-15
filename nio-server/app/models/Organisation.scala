@@ -118,6 +118,54 @@ case class Organisation(_id: String = BSONObjectID.generate().stringify,
   }
 }
 
+object OrganisationDraft extends ReadableEntity[Organisation] {
+
+  implicit val organisationReads: Reads[Organisation] = (
+    (__ \ "_id").readNullable[String].map { mayBeId =>
+      mayBeId.getOrElse(BSONObjectID.generate().stringify)
+    } and
+      (__ \ "key").read[String] and
+      (__ \ "label").read[String] and
+      (__ \ "version").readNullable[VersionInfo].map { maybeVersion =>
+        maybeVersion.getOrElse(VersionInfo())
+      } and
+      (__ \ "groups").read[Seq[PermissionGroup]]
+  )((_id, key, label, version, groups) =>
+    Organisation(_id, key, label, version, groups))
+
+  implicit val readXml: XMLRead[Organisation] =
+    (node: NodeSeq, path: Option[String]) =>
+      (
+        (node \ "_id").validateNullable[String](
+          BSONObjectID.generate().stringify,
+          Some(s"${path.convert()}_id")),
+        (node \ "key").validate[String](Some(s"${path.convert()}key")),
+        (node \ "label").validate[String](Some(s"${path.convert()}label")),
+        (node \ "version").validate[VersionInfo](
+          Some(s"${path.convert()}version")),
+        (node \ "groups").validate[Seq[PermissionGroup]](
+          Some(s"${path.convert()}groups"))
+      ).mapN(
+        (_id, key, label, version, groups) =>
+          Organisation(_id = _id,
+                       key = key,
+                       label = label,
+                       version = version,
+                       groups = groups)
+    )
+
+  def fromXml(xml: Elem): Either[AppErrors, Organisation] = {
+    readXml.read(xml, Some("organisation")).toEither
+  }
+
+  def fromJson(json: JsValue) = {
+    json.validate[Organisation] match {
+      case JsSuccess(o, _) => Right(o)
+      case JsError(errors) => Left(AppErrors.fromJsError(errors))
+    }
+  }
+}
+
 object Organisation extends ReadableEntity[Organisation] {
 
   implicit val organisationReads: Reads[Organisation] = (
@@ -382,34 +430,6 @@ sealed trait GroupValidator {
 
 object GroupValidator extends GroupValidator
 
-sealed trait OfferValidator {
-
-  private def validateKey(
-      key: String,
-      index: Int): ValidatorUtils.ValidationResult[String] = {
-    key match {
-      case k if k.matches(ValidatorUtils.keyPattern) => key.validNel
-      case _                                         => s"error.organisation.offers.$index.key".invalidNel
-    }
-  }
-
-  def validateOffer(offer: Offer,
-                    indexOffer: Int): ValidatorUtils.ValidationResult[Offer] = {
-
-    val prefix: String = s"organisation.offers.$indexOffer"
-    (
-      validateKey(offer.key, indexOffer),
-      ValidatorUtils.sequence(offer.groups.zipWithIndex.map {
-        case (group, index) =>
-          GroupValidator.validateGroup(group, index, Some(prefix))
-      })
-    ).mapN((_, _) => offer)
-  }
-
-}
-
-object OfferValidator extends OfferValidator
-
 sealed trait OrganisationValidator {
 
   private def validateKey(
@@ -436,15 +456,8 @@ sealed trait OrganisationValidator {
       validateGroups(organisation.groups),
       ValidatorUtils.sequence(organisation.groups.zipWithIndex.map {
         case (group, index) => GroupValidator.validateGroup(group, index)
-      }),
-      ValidatorUtils.sequence(
-        organisation.offers
-          .map(offers =>
-            offers.zipWithIndex.map {
-              case (offer, index) => OfferValidator.validateOffer(offer, index)
-          })
-          .getOrElse(Seq.empty))
-    ).mapN((_, _, _, _) => organisation)
+      })
+    ).mapN((_, _, _) => organisation)
       .toEither
       .leftMap(s =>
         AppErrors(s.toList.map(errorMessage => ErrorMessage(errorMessage))))

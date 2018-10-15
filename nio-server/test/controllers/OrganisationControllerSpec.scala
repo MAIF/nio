@@ -533,19 +533,7 @@ class OrganisationControllerSpec extends TestUtils {
       (permissions \ 0 \ "label")
         .as[String] mustBe org3.groups.head.permissions.head.label
 
-      val offers = (value \ "offers").as[JsArray]
-      (offers \ 0 \ "key")
-        .as[String] mustBe org3.offers.get.head.key
-      (offers \ 0 \ "label")
-        .as[String] mustBe org3.offers.get.head.label
-      (offers \ 0 \ "groups" \ 0 \ "key")
-        .as[String] mustBe org3.offers.get.head.groups.head.key
-      (offers \ 0 \ "groups" \ 0 \ "label")
-        .as[String] mustBe org3.offers.get.head.groups.head.label
-      (offers \ 0 \ "groups" \ 0 \ "permissions" \ 0 \ "key")
-        .as[String] mustBe org3.offers.get.head.groups.head.permissions.head.key
-      (offers \ 0 \ "groups" \ 0 \ "permissions" \ 0 \ "label")
-        .as[String] mustBe org3.offers.get.head.groups.head.permissions.head.label
+      (value \ "offers").asOpt[String] mustBe None
 
       val respOrgaUpdated: WSResponse =
         putJson(s"/$tenant/organisations/$org3Key/draft", org3Update.asJson)
@@ -574,21 +562,7 @@ class OrganisationControllerSpec extends TestUtils {
       (permissionsPut \ 0 \ "label")
         .as[String] mustBe org3Update.groups.head.permissions.head.label
 
-      val offersPut = (valuePut \ "offers").as[JsArray]
-      (offersPut \ 0 \ "key")
-        .as[String] mustBe org3Update.offers.get.head.key
-      (offersPut \ 0 \ "label")
-        .as[String] mustBe org3Update.offers.get.head.label
-      (offersPut \ 0 \ "groups" \ 0 \ "key")
-        .as[String] mustBe org3Update.offers.get.head.groups.head.key
-      (offersPut \ 0 \ "groups" \ 0 \ "label")
-        .as[String] mustBe org3Update.offers.get.head.groups.head.label
-      (offersPut \ 0 \ "groups" \ 0 \ "permissions" \ 0 \ "key")
-        .as[String] mustBe org3Update.offers.get.head.groups.head.permissions.head
-        .key
-      (offersPut \ 0 \ "groups" \ 0 \ "permissions" \ 0 \ "label")
-        .as[String] mustBe org3Update.offers.get.head.groups.head.permissions.head.label
-
+      (valuePut \ "offers").asOpt[String] mustBe None
     }
   }
 
@@ -738,14 +712,12 @@ class OrganisationControllerSpec extends TestUtils {
 
       val value: JsValue = response.json
 
-      (value \ "errors").as[JsArray].value.length mustBe 3
+      (value \ "errors").as[JsArray].value.length mustBe 2
 
       (value \ "errors" \ 0 \ "message")
         .as[String] mustBe "error.organisation.groups.0.key"
       (value \ "errors" \ 1 \ "message")
         .as[String] mustBe "error.organisation.groups.0.permissions.0.key"
-      (value \ "errors" \ 2 \ "message")
-        .as[String] mustBe "organisation.offers.0.groups.0.permissions.empty"
     }
   }
 }

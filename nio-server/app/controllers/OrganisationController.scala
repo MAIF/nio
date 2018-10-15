@@ -30,17 +30,18 @@ class OrganisationController(
                                     system: ActorSystem)
     extends ControllerUtils(cc) {
 
-  implicit val readable: ReadableEntity[Organisation] = Organisation
-  implicit val materializer = ActorMaterializer()(system)
+  implicit val readable: ReadableEntity[Organisation] = OrganisationDraft
+  implicit val materializer: ActorMaterializer = ActorMaterializer()(system)
 
   def create(tenant: String) = AuthAction.async(bodyParser) { implicit req =>
     tenantDataStore.findByKey(tenant).flatMap {
-      case Some(t) => {
+      case Some(_) => {
         req.body.read[Organisation] match {
           case Left(error) =>
             Logger.error("Unable to parse organisation  " + error)
             Future.successful(error.badRequest())
           case Right(receivedOrg) =>
+            // Exclude offers
             val o = receivedOrg.copy(version = VersionInfo())
             OrganisationValidator.validateOrganisation(o) match {
               case Left(error) =>
@@ -160,7 +161,8 @@ class OrganisationController(
                 num = previousOrganisationDraft.version.num + 1,
                 neverReleased = Some(false),
                 lastUpdate = previousOrganisationDraft.version.lastUpdate
-              )
+              ),
+              offers = None
             )
 
           // configure the current organisation release (keep organisation draft version number, change status to RELEASED, update flag latest to true)
@@ -172,10 +174,22 @@ class OrganisationController(
                 status = "RELEASED",
                 latest = true,
                 neverReleased = None
-              )
+              ),
+              offers = None
             )
 
           for {
+
+            // get current offers for this organisation
+            maybeOffers <- ds
+              .findOffers(tenant, orgKey)
+              .map {
+                case Right(offers) =>
+                  offers
+                case Left(_)       =>
+                  None
+              }
+
             // find previous released to trace into kafka
             maybePreviousRelease <- ds.findLastReleasedByKey(tenant, orgKey)
 
@@ -184,8 +198,13 @@ class OrganisationController(
                                newOrganisationDraft._id,
                                newOrganisationDraft)
 
+            // add already exist offers to organisation
+            organisationReleased = currentOrganisationReleased.copy(offers = maybeOffers)
+
             // insert release
-            _ <- ds.insert(tenant, currentOrganisationReleased)
+            _ <- ds.insert(
+              tenant,
+              organisationReleased)
 
             // update flag latest on the old organisation release
             _ <- maybePreviousRelease
@@ -206,7 +225,7 @@ class OrganisationController(
                                      metadata = req.authInfo.metadatas))
             }
           } yield {
-            renderMethod(currentOrganisationReleased)
+            renderMethod(organisationReleased)
           }
 
         case None =>
