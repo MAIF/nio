@@ -257,6 +257,55 @@ class OrganisationOfferControllerSpec extends TestUtils {
       (groups2 \ 0 \ "permissions" \ 0 \ "label")
         .as[String] mustBe offer2.groups.head.permissions.head.label
     }
+    
+    
+    "get offers after organisation release" in {
 
+      val releaseOrganisation = postJson(s"/$tenant/organisations/$orgKey/draft/_release", Json.obj())
+      
+      releaseOrganisation.status mustBe OK
+      val releasedOrg = releaseOrganisation.json
+      
+      val offers = (releasedOrg \ "offers").as[JsArray]
+
+      offers.value.length mustBe 1
+
+      val offer1: JsValue = (offers \ 0).as[JsValue]
+
+      (offer1 \ "key").as[String] mustBe offer2.key
+      (offer1 \ "label").as[String] mustBe offer2.label
+      (offer1 \ "version").as[Int] mustBe 1
+
+      val groupsOffer1: JsArray = (offer1 \ "groups").as[JsArray]
+      groupsOffer1.value.length mustBe 1
+
+      (groupsOffer1 \ 0 \ "key").as[String] mustBe offer2.groups.head.key
+      (groupsOffer1 \ 0 \ "label").as[String] mustBe offer2.groups.head.label
+      (groupsOffer1 \ 0 \ "permissions" \ 0 \ "key")
+        .as[String] mustBe offer2.groups.head.permissions.head.key
+      (groupsOffer1 \ 0 \ "permissions" \ 0 \ "label")
+        .as[String] mustBe offer2.groups.head.permissions.head.label
+
+      val get2Response = getJson(s"/$tenant/organisations/$orgKey/offers")
+      get2Response.status mustBe OK
+      val get2Offers: JsArray = get2Response.json.as[JsArray]
+      get2Offers.value.length mustBe 1
+
+      val value2: JsValue = (get2Offers \ 0).as[JsValue]
+
+      (value2 \ "key").as[String] mustBe offer2.key
+      (value2 \ "label").as[String] mustBe offer2.label
+      (value2 \ "version").as[Int] mustBe 1
+
+      val groups2: JsArray = (value2 \ "groups").as[JsArray]
+      groups2.value.length mustBe 1
+
+      (groups2 \ 0 \ "key").as[String] mustBe offer2.groups.head.key
+      (groups2 \ 0 \ "label").as[String] mustBe offer2.groups.head.label
+      (groups2 \ 0 \ "permissions" \ 0 \ "key")
+        .as[String] mustBe offer2.groups.head.permissions.head.key
+      (groups2 \ 0 \ "permissions" \ 0 \ "label")
+        .as[String] mustBe offer2.groups.head.permissions.head.label
+    }
   }
 }
