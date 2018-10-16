@@ -9,7 +9,7 @@ import libs.xml.syntax._
 import play.api.libs.functional.syntax.{unlift, _}
 import play.api.libs.json.Reads._
 import play.api.libs.json._
-import utils.Result.AppErrors
+import utils.Result.{AppErrors, ErrorMessage, Result}
 
 import scala.xml.{Elem, NodeSeq}
 
@@ -94,3 +94,38 @@ case class Offers(offers: Option[Seq[Offer]]) extends ModelTransformAs {
   override def asJson(): JsValue =
     Json.toJson(offers.getOrElse(Seq.empty).map(_.asJson()).toSeq)
 }
+
+sealed trait OfferValidator {
+  private def validateKey(
+      key: String): ValidatorUtils.ValidationResult[String] = {
+    key match {
+      case k if k.matches(ValidatorUtils.keyPattern) => key.validNel
+      case _                                         => s"offer.key".invalidNel
+    }
+  }
+
+  private def validateGroups(groups: Seq[PermissionGroup])
+    : ValidatorUtils.ValidationResult[Seq[PermissionGroup]] = {
+
+    if (groups.nonEmpty)
+      groups.validNel
+    else
+      "offer.groups.empty".invalidNel
+  }
+
+  def validateOffer(offer: Offer): Result[Offer] = {
+    val prefix: String = s"offer"
+    (
+      validateKey(offer.key),
+      validateGroups(offer.groups),
+      ValidatorUtils.sequence(offer.groups.zipWithIndex.map {
+        case (group, index) =>
+          GroupValidator.validateGroup(group, index, Some(prefix))
+      })
+    ).mapN((_, _, _) => offer)
+      .toEither
+      .leftMap(s =>
+        AppErrors(s.toList.map(errorMessage => ErrorMessage(errorMessage))))
+  }
+}
+object OfferValidator extends OfferValidator

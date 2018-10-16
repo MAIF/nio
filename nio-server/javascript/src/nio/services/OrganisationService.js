@@ -19,7 +19,7 @@ export function getOrganisationLastRelease(tenant, organisationKey) {
       Accept: 'application/json',
       'Content-Type': 'application/json'
     }
-  }).then(r => r.json());
+  });
 }
 
 // Get a specific version for an specific organisation

@@ -214,12 +214,15 @@ class OtoroshiFilter(env: Env)(implicit ec: ExecutionContext,
         .map(header =>
           (header._1.replaceFirst("metadata.", ""), header._2.asString()))
         .toSeq
-      maybeOfferRestrictionPatterns = claims
-        .get("offers")
-        .map(_.asString()) // Claim to String
-        .map(s => s.split(",")) // String to array[String]
-        .map(_.map(_.trim)) // Trim all string into array
-        .map(_.toSeq) // Array[String] to Seq[String]
+      maybeOfferRestrictionPatterns = if (isAdmin)
+        Some(Seq("*")) // if admin, there is no restriction on offer keys
+      else
+        claims
+          .get("offers")
+          .map(_.asString()) // Claim to String
+          .map(s => s.split(",")) // String to array[String]
+          .map(_.map(_.trim)) // Trim all string into array
+          .map(_.toSeq) // Array[String] to Seq[String]
     } yield {
       logger.info(s"Request from sub: $sub, name:$name, isAdmin:$isAdmin")
       email

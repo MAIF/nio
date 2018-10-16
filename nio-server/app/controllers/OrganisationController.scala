@@ -186,7 +186,7 @@ class OrganisationController(
               .map {
                 case Right(offers) =>
                   offers
-                case Left(_)       =>
+                case Left(_) =>
                   None
               }
 
@@ -199,12 +199,11 @@ class OrganisationController(
                                newOrganisationDraft)
 
             // add already exist offers to organisation
-            organisationReleased = currentOrganisationReleased.copy(offers = maybeOffers)
+            organisationReleased = currentOrganisationReleased.copy(
+              offers = maybeOffers)
 
             // insert release
-            _ <- ds.insert(
-              tenant,
-              organisationReleased)
+            _ <- ds.insert(tenant, organisationReleased)
 
             // update flag latest on the old organisation release
             _ <- maybePreviousRelease
