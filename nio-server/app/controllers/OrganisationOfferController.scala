@@ -12,7 +12,7 @@ import controllers.ErrorManager.{
 import db.OrganisationMongoDataStore
 import libs.xmlorjson.XmlOrJson
 import messaging.KafkaMessageBroker
-import models.{Offer, Offers}
+import models.{Offer, OfferValidator, Offers}
 import play.api.Logger
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
@@ -55,33 +55,38 @@ class OrganisationOfferController(
           Logger.error("Unable to parse offer  " + error)
           FastFuture.successful(error.badRequest())
         case Right(offer) =>
-          organisationMongoDataStore
-            .findOffer(tenant, orgKey, offer.key)
-            .flatMap {
-              case Left(e) =>
-                FastFuture.successful(e.notFound())
-              case Right(maybeOffer) =>
-                maybeOffer match {
-                  case Some(_) =>
-                    FastFuture.successful(
-                      s"offer.with.key.${offer.key}.on.organisation.$orgKey.already.exist"
-                        .conflict())
-                  case None =>
-                    offerManagerService
-                      .save(tenant,
-                            orgKey,
-                            None,
-                            offer.copy(version = 1),
-                            req.authInfo.offerRestrictionPatterns)
-                      .map {
-                        case Left(e) =>
-                          e.renderError()
-                        case Right(value) =>
-                          renderMethod(value, Created)
-                      }
-                }
+          OfferValidator.validateOffer(offer) match {
+            case Right(_) =>
+              organisationMongoDataStore
+                .findOffer(tenant, orgKey, offer.key)
+                .flatMap {
+                  case Left(e) =>
+                    FastFuture.successful(e.notFound())
+                  case Right(maybeOffer) =>
+                    maybeOffer match {
+                      case Some(_) =>
+                        FastFuture.successful(
+                          s"offer.with.key.${offer.key}.on.organisation.$orgKey.already.exist"
+                            .conflict())
+                      case None =>
+                        offerManagerService
+                          .save(tenant,
+                                orgKey,
+                                None,
+                                offer.copy(version = 1),
+                                req.authInfo.offerRestrictionPatterns)
+                          .map {
+                            case Left(e) =>
+                              e.renderError()
+                            case Right(value) =>
+                              renderMethod(value, Created)
+                          }
+                    }
 
-            }
+                }
+            case Left(e) =>
+              FastFuture.successful(e.badRequest())
+          }
 
       }
     }
@@ -95,33 +100,36 @@ class OrganisationOfferController(
           Logger.error("Unable to parse offer  " + error)
           FastFuture.successful(error.badRequest())
         case Right(offer) =>
-          organisationMongoDataStore
-            .findOffer(tenant, orgKey, offer.key)
-            .flatMap {
-              case Left(e) =>
-                FastFuture.successful(e.badRequest())
-              case Right(maybeOffer) =>
-                maybeOffer match {
-                  case Some(_) =>
-                    offerManagerService
-                      .save(tenant,
-                            orgKey,
-                            Some(offerKey),
-                            offer.copy(version = offer.version + 1),
-                            req.authInfo.offerRestrictionPatterns)
-                      .map {
-                        case Left(e) =>
-                          e.renderError()
-                        case Right(value) =>
-                          renderMethod(value)
-                      }
-                  case None =>
-                    FastFuture.successful(
-                      s"offer.${offer.key}.not.found".notFound())
+          OfferValidator.validateOffer(offer) match {
+            case Right(_) =>
+              organisationMongoDataStore
+                .findOffer(tenant, orgKey, offer.key)
+                .flatMap {
+                  case Left(e) =>
+                    FastFuture.successful(e.badRequest())
+                  case Right(maybeOffer) =>
+                    maybeOffer match {
+                      case Some(_) =>
+                        offerManagerService
+                          .save(tenant,
+                                orgKey,
+                                Some(offerKey),
+                                offer.copy(version = offer.version + 1),
+                                req.authInfo.offerRestrictionPatterns)
+                          .map {
+                            case Left(e) =>
+                              e.renderError()
+                            case Right(value) =>
+                              renderMethod(value)
+                          }
+                      case None =>
+                        FastFuture.successful(
+                          s"offer.${offer.key}.not.found".notFound())
+                    }
                 }
-
-            }
-
+            case Left(e) =>
+              FastFuture.successful(e.badRequest())
+          }
       }
     }
 

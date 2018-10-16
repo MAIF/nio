@@ -1,126 +1,149 @@
 import React, {Component} from 'react';
 import PropTypes from "prop-types";
-import * as organisationService from "../services/OrganisationService";
 import {OrganisationPage} from "./OrganisationPage";
 import {OrganisationReleasePage} from "./OrganisationReleasePage";
 import {OrganisationDiffPage} from "./OrganisationDiffPage";
 import {UserExtractPage} from "./UserExtractPage";
+import {OffersPage} from "./OffersPage";
+import * as organisationService from "../services/OrganisationService";
 
 export class OrganisationVersionPage extends Component {
 
-  state = {
-    selectedTab: 'DRAFT',
-    tabs: []
-  };
+    state = {
+        selectedTab: 'DRAFT',
+        tabs: []
+    };
 
-  componentDidMount() {
-    const tabs = [];
+    componentDidMount() {
+        this.fetch();
+    }
 
-    tabs.push({
-      title: "Brouillon",
-      id: "DRAFT",
-      content: <OrganisationPage tenant={this.props.tenant} organisationKey={this.props.organisationKey}
-                                 readOnlyMode={false} reloadAfterSave={true}/>,
-      deletable: false
-    });
+    fetch = () => {
+        organisationService.getOrganisationLastRelease(this.props.tenant, this.props.organisationKey)
+            .then(resp => {
+                const tabs = [];
 
-    tabs.push({
-      title: "Publications",
-      id: "RELEASE",
-      content: <OrganisationReleasePage tenant={this.props.tenant} organisationKey={this.props.organisationKey}
-                                        showDetails={this.addTab}/>,
-      deletable: false
-    });
+                tabs.push({
+                    title: "Brouillon",
+                    id: "DRAFT",
+                    content: <OrganisationPage tenant={this.props.tenant} organisationKey={this.props.organisationKey}
+                                               readOnlyMode={false} reloadAfterSave={true} onSave={this.fetch}/>,
+                    deletable: false
+                });
 
-    tabs.push({
-      title: "Différences",
-      id: "DIFF",
-      content: <OrganisationDiffPage tenant={this.props.tenant} organisationKey={this.props.organisationKey}/>,
-      deletable: false
-    });
+                if (resp.status === 200)
+                    tabs.push({
+                        title: "Offres",
+                        id: "OFFERS",
+                        content: <OffersPage tenant={this.props.tenant} organisationKey={this.props.organisationKey}
+                                             readOnlyMode={false}/>,
+                        deletable: false
+                    });
 
-    tabs.push({
-      title: "Historique extractions",
-      id: "EXTRACTPAGE",
-      content: <UserExtractPage tenant={this.props.tenant} organisationKey={this.props.organisationKey}/>,
-      deletable: false
-    });
+                tabs.push({
+                    title: "Publications",
+                    id: "RELEASE",
+                    content: <OrganisationReleasePage tenant={this.props.tenant}
+                                                      organisationKey={this.props.organisationKey}
+                                                      showDetails={this.addTab}/>,
+                    deletable: false
+                });
 
-    this.setState({tabs});
-  }
+                tabs.push({
+                    title: "Différences",
+                    id: "DIFF",
+                    content: <OrganisationDiffPage tenant={this.props.tenant}
+                                                   organisationKey={this.props.organisationKey}/>,
+                    deletable: false
+                });
 
-  addTab = (version) => {
-    const tabs = [...this.state.tabs];
+                tabs.push({
+                    title: "Historique extractions",
+                    id: "EXTRACTPAGE",
+                    content: <UserExtractPage tenant={this.props.tenant} organisationKey={this.props.organisationKey}/>,
+                    deletable: false
+                });
 
-    let selectedTab = `RELEASE-${version}`;
+                this.setState({tabs});
+            });
+    };
 
-    if (tabs.findIndex(tab => tab.id === selectedTab) === -1)
-      tabs.push({
-        title: `Version ${version}`,
-        id: selectedTab,
-        content: <OrganisationPage tenant={this.props.tenant} organisationKey={this.props.organisationKey}
-                                   readOnlyMode={true} version={version}/>,
-        deletable: true
-      });
+    addTab = (version) => {
+        const tabs = [...this.state.tabs];
 
-    this.setState({tabs, selectedTab});
-  };
+        let selectedTab = `RELEASE-${version}`;
 
-  removeTab = (index) => {
-    this.setState({selectedTab: 'DRAFT'}, () => {
-      const tabs = [...this.state.tabs];
-      tabs.splice(index, 1);
-      this.setState({tabs});
-    });
-  };
+        if (tabs.findIndex(tab => tab.id === selectedTab) === -1)
+            tabs.push({
+                title: `Version ${version}`,
+                id: selectedTab,
+                content: <OrganisationPage tenant={this.props.tenant} organisationKey={this.props.organisationKey}
+                                           readOnlyMode={true} version={version}/>,
+                deletable: true
+            });
 
-  render() {
-    return (
-      <div className="row">
-        <div className="col-md-12">
-          <h1>Organisation {this.props.organisationKey}</h1>
-        </div>
-        <div className="col-md-12">
-          <ul className="nav nav-tabs">
-            {
-              this.state.tabs.map((tab, index) =>
-                tab.deletable ?
-                  <li key={tab.id} className={`nav-item ${tab.id === this.state.selectedTab ? "active" : ""}`}>
-                    <a className="nav-link">
-                      <span onClick={() => this.setState({selectedTab: tab.id})}>{tab.title}</span> {tab.deletable &&
-                    <i style={{cursor: 'pointer'}} className="glyphicon glyphicon-remove" onClick={() => this.removeTab(index)}/>}
-                    </a>
-                  </li>
-                  :
-                  <li key={tab.id} className={`nav-item ${tab.id === this.state.selectedTab ? "active" : ""}`}
-                      onClick={() => this.setState({selectedTab: tab.id})}>
-                    <a className="nav-link">
-                      {tab.title}
-                    </a>
-                  </li>
-              )
-            }
-          </ul>
-        </div>
+        this.setState({tabs, selectedTab});
+    };
 
-        <div className="">
-          <div className="col-md-12">
+    removeTab = (index) => {
+        this.setState({selectedTab: 'DRAFT'}, () => {
+            const tabs = [...this.state.tabs];
+            tabs.splice(index, 1);
+            this.setState({tabs});
+        });
+    };
 
-            <div className="tab-content" style={{marginTop: "20px"}}>
-              {
-                this.state.tabs && this.state.tabs.length &&
-                this.state.tabs.find(tab => tab.id === this.state.selectedTab).content
-              }
+    render() {
+        return (
+            <div className="row">
+                <div className="col-md-12">
+                    <h1>Organisation {this.props.organisationKey}</h1>
+                </div>
+                <div className="col-md-12">
+                    <ul className="nav nav-tabs">
+                        {
+                            this.state.tabs.map((tab, index) =>
+                                tab.deletable ?
+                                    <li key={tab.id}
+                                        className={`nav-item ${tab.id === this.state.selectedTab ? "active" : ""}`}>
+                                        <a className="nav-link">
+                                            <span
+                                                onClick={() => this.setState({selectedTab: tab.id})}>{tab.title}</span> {tab.deletable &&
+                                        <i style={{cursor: 'pointer'}} className="glyphicon glyphicon-remove"
+                                           onClick={() => this.removeTab(index)}/>}
+                                        </a>
+                                    </li>
+                                    :
+                                    <li key={tab.id}
+                                        className={`nav-item ${tab.id === this.state.selectedTab ? "active" : ""}`}
+                                        onClick={() => this.setState({selectedTab: tab.id})}>
+                                        <a className="nav-link">
+                                            {tab.title}
+                                        </a>
+                                    </li>
+                            )
+                        }
+                    </ul>
+                </div>
+
+                <div className="">
+                    <div className="col-md-12">
+
+                        <div className="tab-content" style={{marginTop: "20px"}}>
+                            {
+                                this.state.tabs && this.state.tabs.length &&
+                                this.state.tabs.find(tab => tab.id === this.state.selectedTab).content
+                            }
+                        </div>
+                    </div>
+                </div>
+
             </div>
-          </div>
-        </div>
-
-      </div>
-    );
-  }
+        );
+    }
 }
 
 OrganisationVersionPage.propTypes = {
-  tenant: PropTypes.string.isRequired,
-  organisationKey: PropTypes.string.isRequired
+    tenant: PropTypes.string.isRequired,
+    organisationKey: PropTypes.string.isRequired
 };

@@ -257,15 +257,15 @@ class OrganisationOfferControllerSpec extends TestUtils {
       (groups2 \ 0 \ "permissions" \ 0 \ "label")
         .as[String] mustBe offer2.groups.head.permissions.head.label
     }
-    
-    
+
     "get offers after organisation release" in {
 
-      val releaseOrganisation = postJson(s"/$tenant/organisations/$orgKey/draft/_release", Json.obj())
-      
+      val releaseOrganisation =
+        postJson(s"/$tenant/organisations/$orgKey/draft/_release", Json.obj())
+
       releaseOrganisation.status mustBe OK
       val releasedOrg = releaseOrganisation.json
-      
+
       val offers = (releasedOrg \ "offers").as[JsArray]
 
       offers.value.length mustBe 1
