@@ -139,8 +139,6 @@ export class OffersPage extends Component {
                 if (!existingOffer) {
                     offersToCreate.push(offer);
                 } else {
-                    console.log("OFFER : " + JSON.stringify(offer));
-                    console.log("EXISTING OFFER : " + JSON.stringify(existingOffer));
                     if (!_.isEqual(offer, existingOffer)) {
                         offersToUpdate.push(offer);
                     }
