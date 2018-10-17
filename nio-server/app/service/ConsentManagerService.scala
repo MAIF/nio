@@ -133,9 +133,6 @@ class ConsentManagerService(
                             c.key == consent.key && c.label == consent.label)))))
             FastFuture.successful(Right(offerToCompare))
           else {
-            Logger.debug(s"offer to test ****** ${offerToCompare.asJson()}")
-            Logger.debug(
-              s"offer from lastConsent datastore ****** ${lastConsentOffer.asJson()}")
             Logger.error(
               s"offer.${offerToCompare.key}.structure.unavailable.compare.to.lastconsent")
             FastFuture.successful(Left(AppErrors(Seq(ErrorMessage(
@@ -186,9 +183,6 @@ class ConsentManagerService(
                               c.key == permission.key && c.label == permission.label)))))
             FastFuture.successful(Right(offerToCompare))
           else {
-            Logger.debug(s"offer to test ****** ${offerToCompare.asJson()}")
-            Logger.debug(
-              s"offer from organisation datastore ***** ${permissionOffer.asJson()}")
             Logger.error(
               s"offer.${offerToCompare.key}.structure.unavailable.compare.to.organisation")
             FastFuture.successful(Left(AppErrors(Seq(ErrorMessage(
