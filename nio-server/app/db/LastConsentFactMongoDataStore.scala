@@ -1,11 +1,14 @@
 package db
 
+import akka.http.scaladsl.util.FastFuture
 import akka.stream._
 import akka.stream.scaladsl.{Sink, Source}
 import akka.util.ByteString
+import controllers.AppErrorWithStatus
 import models._
 import play.api.Logger
 import play.api.libs.json.{JsValue, Json, OFormat}
+import play.api.mvc.Results.NotFound
 import play.modules.reactivemongo.ReactiveMongoApi
 import play.modules.reactivemongo.json.ImplicitBSONHandlers._
 import reactivemongo.akkastream.cursorProducer
@@ -14,6 +17,7 @@ import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.api.{Cursor, QueryOpts, ReadPreference}
 import reactivemongo.bson.BSONDocument
 import utils.BSONUtils
+import utils.Result.{AppErrors, ErrorMessage}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Failure
@@ -81,6 +85,53 @@ class LastConsentFactMongoDataStore(val mongoApi: ReactiveMongoApi)(
     deleteOneById(tenant, id)
   }
 
+  def findConsentOffer(
+      tenant: String,
+      orgKey: String,
+      userId: String,
+      offerKey: String): Future[Either[AppErrors, Option[ConsentOffer]]] = {
+    findByOrgKeyAndUserId(tenant, orgKey, userId).map {
+      case Some(consentFact) =>
+        Right(consentFact.offers.flatMap(offers =>
+          offers.find(p => p.key == offerKey)))
+      case None =>
+        Left(AppErrors(Seq(ErrorMessage(s"organisation.$orgKey.not.found"))))
+    }
+  }
+
+  def removeOfferById(
+      tenant: String,
+      orgKey: String,
+      userId: String,
+      offerKey: String): Future[Either[AppErrorWithStatus, ConsentOffer]] = {
+    findConsentOffer(tenant, orgKey, userId, offerKey).flatMap {
+      case Right(maybeOffer) =>
+        maybeOffer match {
+          case Some(offer) =>
+            storedCollection(tenant).flatMap {
+              _.update(
+                Json.obj("orgKey" -> orgKey,
+                         "userId" -> userId,
+                         "offers.key" -> offerKey),
+                Json.obj(
+                  "$pull" -> Json.obj(
+                    "offers" -> offer.asJson()
+                  ))
+              ).map(_ => Right(offer))
+            }
+
+          case None =>
+            FastFuture.successful(
+              Left(
+                AppErrorWithStatus(
+                  AppErrors(Seq(ErrorMessage(s"offer.$offerKey.not.found"))),
+                  NotFound)))
+        }
+      case Left(e) =>
+        FastFuture.successful(Left(AppErrorWithStatus(e, NotFound)))
+    }
+  }
+
   def update(tenant: String,
              orgKey: String,
              userId: String,
@@ -102,7 +153,7 @@ class LastConsentFactMongoDataStore(val mongoApi: ReactiveMongoApi)(
           (0 until parallelisation)
             .map { idx =>
               val items = count / parallelisation
-              val from = (items * idx)
+              val from = items * idx
               val to = from + items
               Logger.info(
                 s"Consuming $items consents with worker $idx: $from => $to")

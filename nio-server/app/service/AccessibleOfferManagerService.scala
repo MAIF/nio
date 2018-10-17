@@ -2,7 +2,7 @@ package service
 
 import akka.http.scaladsl.util.FastFuture
 import db.OrganisationMongoDataStore
-import models.Offer
+import models.{Offer, Organisation}
 import play.api.Logger
 import play.api.libs.json.Json
 import utils.Result.{AppErrors, ErrorMessage}
@@ -44,6 +44,33 @@ class AccessibleOfferManagerService(
                   .filter(offer => patterns.exists(p => offer.key.matches(p)))
             )
             Right(maybeOffers)
+          case None =>
+            Left(
+              AppErrors(Seq(ErrorMessage(s"organisation.$orgKey.not.found"))))
+        }
+    }
+  }
+
+  def organisationWithAccessibleOffer(
+      tenant: String,
+      orgKey: String,
+      offerRestrictionPatterns: Option[Seq[String]])
+    : Future[Either[AppErrors, Option[Organisation]]] = {
+    offerRestrictionPatterns match {
+      case None =>
+        FastFuture.successful(Right(None))
+      case Some(patterns) =>
+        organisationMongoDataStore.findLastReleasedByKey(tenant, orgKey).map {
+          case Some(organisation) =>
+            Logger.info(s"existing offers ${organisation.offers.map(_.map(o =>
+              Json.stringify(o.asJson())))}")
+            val filteredOrganisation = organisation.copy(
+              offers = organisation.offers.map(
+                offers =>
+                  offers
+                    .filter(offer => patterns.exists(p => offer.key.matches(p)))
+              ))
+            Right(Some(filteredOrganisation))
           case None =>
             Left(
               AppErrors(Seq(ErrorMessage(s"organisation.$orgKey.not.found"))))
