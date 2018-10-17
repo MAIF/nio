@@ -187,9 +187,6 @@ class ConsentController(
         case Right(consentFact) if consentFact.userId == userId =>
           val cf: ConsentFact = ConsentFact.addOrgKey(consentFact, orgKey)
 
-          Logger.debug(
-            s"AT THE BEGENING **** LABEL => ${consentFact.offers.get.map(o => o.label)}")
-
           (cf.offers, req.authInfo.offerRestrictionPatterns) match {
             case (Some(offers), None) =>
               val errorMessages =
