@@ -107,7 +107,10 @@ object ConsentGroup {
     }
 }
 
-case class ConsentOffer(key: String, label: String, groups: Seq[ConsentGroup])
+case class ConsentOffer(key: String,
+                        label: String,
+                        version: Int,
+                        groups: Seq[ConsentGroup])
     extends ModelTransformAs {
   override def asXml(): Elem = <offer>
     <key>
@@ -116,6 +119,9 @@ case class ConsentOffer(key: String, label: String, groups: Seq[ConsentGroup])
     <label>
       {label}
     </label>
+    <version>
+      {version}
+    </version>
     <groups>
       {groups.map(_.asXml)}
     </groups>
@@ -128,18 +134,21 @@ object ConsentOffer extends ReadableEntity[ConsentOffer] {
   implicit val offerReads: Reads[ConsentOffer] = (
     (__ \ "key").read[String] and
       (__ \ "label").read[String] and
+      (__ \ "version").read[Int] and
       (__ \ "groups").read[Seq[ConsentGroup]]
   )(ConsentOffer.apply _)
 
   implicit val offerWrites: Writes[ConsentOffer] = (
     (__ \ "key").write[String] and
       (__ \ "label").write[String] and
+      (__ \ "version").write[Int] and
       (__ \ "groups").write[Seq[ConsentGroup]]
   )(unlift(ConsentOffer.unapply))
 
   implicit val offerOWrites: OWrites[ConsentOffer] = (
     (__ \ "key").write[String] and
       (__ \ "label").write[String] and
+      (__ \ "version").write[Int] and
       (__ \ "groups").write[Seq[ConsentGroup]]
   )(unlift(ConsentOffer.unapply))
 
@@ -152,10 +161,12 @@ object ConsentOffer extends ReadableEntity[ConsentOffer] {
       (
         (node \ "key").validate[String](Some(s"${path.convert()}key")),
         (node \ "label").validate[String](Some(s"${path.convert()}label")),
+        (node \ "version").validate[Int](Some(s"${path.convert()}version")),
         (node \ "groups").validate[Seq[ConsentGroup]](
           Some(s"${path.convert()}groups"))
       ).mapN(
-        (key, label, groups) => ConsentOffer(key, label, groups)
+        (key, label, version, groups) =>
+          ConsentOffer(key, label, version, groups)
     )
 
   override def fromXml(xml: Elem): Either[AppErrors, ConsentOffer] =
@@ -386,5 +397,20 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
 
   def addOrgKey(consentFact: ConsentFact, orgKey: String): ConsentFact = {
     consentFact.copy(orgKey = Some(orgKey))
+  }
+
+  def withRestriction(consentFact: ConsentFact,
+                      maybePattern: Option[Seq[String]]): ConsentFact = {
+    consentFact.copy(offers = consentFact.offers match {
+      case None => None
+      case Some(offers) =>
+        Some(
+          offers
+            .filter(offer =>
+              maybePattern match {
+                case None          => false
+                case Some(pattern) => pattern.exists(p => offer.key.matches(p))
+            }))
+    })
   }
 }
