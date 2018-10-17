@@ -11,6 +11,7 @@ import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Sink
 import com.amazonaws.services.s3.model.PutObjectResult
 import com.typesafe.config.ConfigFactory
+import filters.AuthInfoMock
 import loader.NioLoader
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.common.TopicPartition
@@ -77,7 +78,10 @@ trait TestUtils
   implicit val materializer: ActorMaterializer =
     ActorMaterializer()(actorSystem)
 
-  protected lazy val nioComponents: NioSpec = new NioSpec(getContext)
+  protected lazy val authInfo: AuthInfoMock = new AuthInfoTest
+
+  protected lazy val nioComponents: NioSpec =
+    new NioSpec(getContext, Some(authInfo))
 
   protected def ws: WSClient = nioComponents.wsClient
 
@@ -97,7 +101,7 @@ trait TestUtils
   }
 
   override def fakeApplication(): Application = {
-    new NioLoader().load(getContext)
+    new NioTestLoader(Some(authInfo)).load(getContext)
   }
 
   override protected def beforeAll(): Unit = {}

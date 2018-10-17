@@ -1,7 +1,6 @@
 package controllers
 
 import models._
-import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
 import play.api.libs.json.{JsArray, JsValue, Json}
 import play.api.libs.ws.WSResponse

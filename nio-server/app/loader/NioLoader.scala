@@ -7,13 +7,13 @@ import com.softwaremill.macwire.wire
 import configuration._
 import controllers._
 import db._
-import filters.OtoroshiFilter
+import filters.{AuthInfoDev, AuthInfoMock, OtoroshiFilter}
 import messaging.KafkaMessageBroker
 import play.api.ApplicationLoader.Context
 import play.api._
 import play.api.libs.ws.ahc.AhcWSComponents
 import play.api.mvc.BodyParsers.Default
-import play.api.mvc.EssentialFilter
+import play.api.mvc.{EssentialFilter, Filter}
 import play.api.routing.Router
 import play.filters.HttpFiltersComponents
 import play.filters.gzip._
@@ -44,6 +44,8 @@ class NioComponents(context: Context)
     with GzipFilterComponents {
 
   implicit val system: ActorSystem = actorSystem
+
+  implicit lazy val authInfo: AuthInfoMock = wire[AuthInfoDev]
 
   // wire Reactive mongo
   implicit lazy val reactiveMongo: ReactiveMongoApi = reactiveMongoApi
@@ -135,8 +137,10 @@ class NioComponents(context: Context)
     wire[Routes]
   }
 
+  lazy val securityFilter: Filter = wire[OtoroshiFilter]
+
   override def httpFilters: Seq[EssentialFilter] = {
-    Seq(new OtoroshiFilter(env), gzipFilter)
+    Seq(securityFilter, gzipFilter)
   }
 
   implicit val config: Configuration = context.initialConfiguration
