@@ -230,6 +230,15 @@ class OrganisationOfferControllerSpec extends TestUtils {
         .as[String] mustBe offer2.groups.head.permissions.head.label
     }
 
+    "update offer with another offer version" in {
+      val updateResponse =
+        putJson(s"/$tenant/organisations/$orgKey/offers/$offerKey1",
+          offerUpdated.copy(version = 10).asJson())
+
+      updateResponse.status mustBe OK
+      (updateResponse.json \ "version").as[Int] mustBe 3
+    }
+
     "delete an offer" in {
       val deleteResponse =
         delete(s"/$tenant/organisations/$orgKey/offers/$offerKey1")

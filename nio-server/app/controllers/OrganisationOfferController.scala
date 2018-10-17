@@ -109,12 +109,12 @@ class OrganisationOfferController(
                     FastFuture.successful(e.badRequest())
                   case Right(maybeOffer) =>
                     maybeOffer match {
-                      case Some(_) =>
+                      case Some(previousOffer) =>
                         offerManagerService
                           .save(tenant,
                                 orgKey,
                                 Some(offerKey),
-                                offer.copy(version = offer.version + 1),
+                                offer.copy(version = previousOffer.version + 1),
                                 req.authInfo.offerRestrictionPatterns)
                           .map {
                             case Left(e) =>
