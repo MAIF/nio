@@ -71,7 +71,7 @@ trait TestUtils
   )
 
   val kafkaPort = 9092
-  val mongoPort = 27017
+  val mongoPort = 27018
   val tenant = "test"
 
   private lazy val actorSystem = ActorSystem("test")
@@ -149,7 +149,7 @@ trait TestUtils
   val kafkaTopic = "test-nio-consent-events"
 
   val extraConfig: Configuration = {
-    val mongoUrl = s"mongodb://localhost:$mongoPort/nio"
+    val mongoUrl = s"mongodb://localhost:$mongoPort/nio-test"
     Configuration(
       ConfigFactory.parseString(s"""
            |nio.mongo.url="$mongoUrl"
