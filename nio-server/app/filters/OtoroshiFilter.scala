@@ -20,8 +20,22 @@ object OtoroshiFilter {
   val AuthInfo: TypedKey[AuthInfo] = TypedKey("authInfo")
 }
 
-class OtoroshiFilter(env: Env)(implicit ec: ExecutionContext,
-                               val mat: Materializer)
+trait AuthInfoMock {
+
+  def getAuthInfo: AuthInfo
+}
+
+class AuthInfoDev extends AuthInfoMock {
+  override def getAuthInfo: AuthInfo =
+    AuthInfo("test@test.com",
+             isAdmin = true,
+             Some(Seq(("foo", "bar"), ("foo2", "bar2"))),
+             Some(Seq("offer1", "offer2")))
+}
+
+class OtoroshiFilter(env: Env, authInfoMock: AuthInfoMock)(
+    implicit ec: ExecutionContext,
+    val mat: Materializer)
     extends Filter {
 
   val config: OtoroshiFilterConfig = env.config.filter.otoroshi
@@ -43,11 +57,7 @@ class OtoroshiFilter(env: Env)(implicit ec: ExecutionContext,
         nextFilter(
           requestHeader
             .addAttr(OtoroshiFilter.Email, "test@test.com")
-            .addAttr(OtoroshiFilter.AuthInfo,
-                     AuthInfo("test@test.com",
-                              isAdmin = true,
-                              Some(Seq(("foo", "bar"), ("foo2", "bar2"))),
-                              Some(Seq("offer1", "offer2"))))
+            .addAttr(OtoroshiFilter.AuthInfo, authInfoMock.getAuthInfo)
         ).map {
           result =>
             val requestTime = System.currentTimeMillis - startTime
