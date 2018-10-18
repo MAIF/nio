@@ -716,14 +716,12 @@ class ConsentControllerSpec extends TestUtils {
             "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF",
           consents = Seq(
             Consent(key = "phone",
-              label = "Par contact téléphonique",
-              checked = true),
+                    label = "Par contact téléphonique",
+                    checked = true),
             Consent(key = "mail",
-              label = "Par contact électronique",
-              checked = false),
-            Consent(key = "sms",
-              label = "Par SMS / MMS / VMS",
-              checked = true)
+                    label = "Par contact électronique",
+                    checked = false),
+            Consent(key = "sms", label = "Par SMS / MMS / VMS", checked = true)
           )
         )
       ),
@@ -740,14 +738,14 @@ class ConsentControllerSpec extends TestUtils {
                   "J'accepte de recevoir par téléphone, mail et SMS des offres commerciales du groupe MAIF",
                 consents = Seq(
                   Consent(key = "phone",
-                    label = "Par contact téléphonique",
-                    checked = false),
+                          label = "Par contact téléphonique",
+                          checked = false),
                   Consent(key = "mail",
-                    label = "Par contact électronique",
-                    checked = true),
+                          label = "Par contact électronique",
+                          checked = true),
                   Consent(key = "sms",
-                    label = "Par SMS / MMS / VMS",
-                    checked = false)
+                          label = "Par SMS / MMS / VMS",
+                          checked = false)
                 )
               )
             )
@@ -763,14 +761,14 @@ class ConsentControllerSpec extends TestUtils {
                   "J'accepte de recevoir par téléphone, mail et SMS des offres commerciales des partenaires du groupe MAIF",
                 consents = Seq(
                   Consent(key = "phone",
-                    label = "Par contact téléphonique",
-                    checked = true),
+                          label = "Par contact téléphonique",
+                          checked = true),
                   Consent(key = "mail",
-                    label = "Par contact électronique",
-                    checked = true),
+                          label = "Par contact électronique",
+                          checked = true),
                   Consent(key = "sms",
-                    label = "Par SMS / MMS / VMS",
-                    checked = false)
+                          label = "Par SMS / MMS / VMS",
+                          checked = false)
                 )
               )
             )
@@ -790,14 +788,12 @@ class ConsentControllerSpec extends TestUtils {
             "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF",
           consents = Seq(
             Consent(key = "phone",
-              label = "Par contact téléphonique",
-              checked = true),
+                    label = "Par contact téléphonique",
+                    checked = true),
             Consent(key = "mail",
-              label = "Par contact électronique",
-              checked = false),
-            Consent(key = "sms",
-              label = "Par SMS / MMS / VMS",
-              checked = true)
+                    label = "Par contact électronique",
+                    checked = false),
+            Consent(key = "sms", label = "Par SMS / MMS / VMS", checked = true)
           )
         )
       )
@@ -812,7 +808,8 @@ class ConsentControllerSpec extends TestUtils {
 
       // offer 2 with version 2
       postJson(s"/$tenant/organisations/$orgKey/offers", offer2.asJson()).status mustBe CREATED
-      putJson(s"/$tenant/organisations/$orgKey/offers/${offer2.key}", offer2.asJson()).status mustBe OK
+      putJson(s"/$tenant/organisations/$orgKey/offers/${offer2.key}",
+              offer2.asJson()).status mustBe OK
     }
 
     "add offer" in {
@@ -893,11 +890,14 @@ class ConsentControllerSpec extends TestUtils {
     "version consent >  version org on error" in {
       // offer 2 version 3
       putJson(s"/$tenant/organisations/$orgKey/offers/${offer2.key}",
-        offer2.asJson()).status mustBe OK
+              offer2.asJson()).status mustBe OK
 
-      val consentWithVersionHighThanOrg: ConsentFact = basicConsentFact.copy(offers = Some(Seq(offerToConsentOffer(offer2.copy(version = 10)))))
+      val consentWithVersionHighThanOrg: ConsentFact = basicConsentFact.copy(
+        offers = Some(Seq(offerToConsentOffer(offer2.copy(version = 10)))))
 
-      val putErrorResponse: WSResponse = putJson(s"/$tenant/organisations/$orgKey/users/$userId", consentWithVersionHighThanOrg.asJson)
+      val putErrorResponse: WSResponse =
+        putJson(s"/$tenant/organisations/$orgKey/users/$userId",
+                consentWithVersionHighThanOrg.asJson)
       putErrorResponse.status mustBe BAD_REQUEST
 
     }
@@ -909,42 +909,51 @@ class ConsentControllerSpec extends TestUtils {
       putJson(
         s"/$tenant/organisations/$orgKey/users/$userId",
         consentWithVersionLowThanOrgAndLastCons.asJson).status mustBe BAD_REQUEST
-//
-//      //version consent 2 <  version org 3 => version consent 2 = version  lastconsent 2 ==> struct KO 400
-//
-//      val consentWithVersionLowThanOrgAndEqualToLastConsAndStrucDif
-//        : ConsentFact = basicConsentFact.copy(
-//        offers = Some(Seq(offerToConsentOffer(offer2V2OnError))))
-//      putJson(
-//        s"/$tenant/organisations/$orgKey/users/$userId",
-//        consentWithVersionLowThanOrgAndEqualToLastConsAndStrucDif.asJson).status mustBe BAD_REQUEST
+    }
 
-      //version consent =  version org ==> 200  si structure OK / 400 si pas OK
-//      val consentWithVersionEqualToOrgAndStrucEq: ConsentFact =
-//        basicConsentFact.copy(
-//          offers = Some(Seq(offerToConsentOffer(offer2V3).copy(version = 3))))
-//
-//      putJson(
-//        s"/$tenant/organisations/$orgKey/users/$userId",
-//        consentWithVersionEqualToOrgAndStrucEq.asJson).status mustBe CREATED
+    "version consent 2 <  version org 3 => version consent 2 = version  lastconsent 2 ==> struct KO" in {
+      val consentWithVersionLowThanOrgAndEqualToLastConsAndStrucDif
+        : ConsentFact = basicConsentFact.copy(
+        offers = Some(Seq(offerToConsentOffer(offer2V2OnError))))
+      val putErrorResponse: WSResponse = putJson(
+        s"/$tenant/organisations/$orgKey/users/$userId",
+        consentWithVersionLowThanOrgAndEqualToLastConsAndStrucDif.asJson)
+      putErrorResponse.status mustBe BAD_REQUEST
+    }
 
-//      val consentWithVersionEqualToOrgAndStrucDif: ConsentFact =
-//        basicConsentFact.copy(
-//          offers = Some(Seq(offerToConsentOffer(offer2V3OnError))))
-//      putJson(
-//        s"/$tenant/organisations/$orgKey/users/$userId",
-//        consentWithVersionEqualToOrgAndStrucDif.asJson).status mustBe BAD_REQUEST
-//
-//      //version consent 2 <  version org 3 => version consent 2 = version  lastconsent 2 ==> struct OK 200
-//      val consentWithVersionLowThanOrgAndEqualToLastConsAndStrucEq
-//        : ConsentFact =
-//        basicConsentFact.copy(
-//          offers = Some(Seq(offerToConsentOffer(offer2V2).copy(version = 2))))
-//
-//      putJson(
-//        s"/$tenant/organisations/$orgKey/users/$userId",
-//        consentWithVersionLowThanOrgAndEqualToLastConsAndStrucEq.asJson).status mustBe OK
+    "version consent =  version org ==> 200  si structure OK / 400 si pas OK" in {
+      val consentWithVersionEqualToOrgAndStrucEq: ConsentFact =
+        basicConsentFact.copy(
+          offers = Some(Seq(offerToConsentOffer(offer2).copy(version = 3))))
 
+      putJson(s"/$tenant/organisations/$orgKey/users/$userId",
+              consentWithVersionEqualToOrgAndStrucEq.asJson).status mustBe OK
+
+      val consentWithVersionEqualToOrgAndStrucDif: ConsentFact =
+        basicConsentFact.copy(
+          offers = Some(Seq(offerToConsentOffer(offer2V3OnError))))
+      val putErrorResponse: WSResponse =
+        putJson(s"/$tenant/organisations/$orgKey/users/$userId",
+                consentWithVersionEqualToOrgAndStrucDif.asJson)
+      putErrorResponse.status mustBe BAD_REQUEST
+    }
+
+    "version consent 2 <  version org 3 => version consent 2 = version lastconsent 2 ==> struct OK" in {
+      val consentWithVersionLowThanOrgAndEqualToLastConsAndStrucEq
+        : ConsentFact =
+        basicConsentFact.copy(
+          offers = Some(Seq(offerToConsentOffer(offer2).copy(version = 3))))
+
+      // Update offer version
+      val updateOfferResponse: WSResponse =
+        putJson(s"/$tenant/organisations/$orgKey/offers/${offer2.key}",
+                offer2.asJson())
+      updateOfferResponse.status mustBe OK
+
+      val putErrorResponse: WSResponse =
+        putJson(s"/$tenant/organisations/$orgKey/users/$userId",
+                consentWithVersionLowThanOrgAndEqualToLastConsAndStrucEq.asJson)
+      putErrorResponse.status mustBe OK
     }
 
     "delete offer" in {
