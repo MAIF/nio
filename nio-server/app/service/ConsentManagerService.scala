@@ -24,13 +24,14 @@ class ConsentManagerService(
     kafkaMessageBroker: KafkaMessageBroker)(
     implicit val executionContext: ExecutionContext) {
 
-  def createOrReplace(tenant: String,
-                      author: String,
-                      metadata: Option[Seq[(String, String)]],
-                      organisation: Organisation,
-                      consentFact: ConsentFact,
-                      maybeLastConsentFact: Option[ConsentFact] = None)
+  private def createOrReplace(tenant: String,
+                              author: String,
+                              metadata: Option[Seq[(String, String)]],
+                              organisation: Organisation,
+                              consentFact: ConsentFact,
+                              maybeLastConsentFact: Option[ConsentFact] = None)
     : Future[Either[AppErrors, ConsentFact]] = {
+
     organisation.isValidWith(consentFact) match {
       case Some(error) =>
         Logger.error(
@@ -40,65 +41,75 @@ class ConsentManagerService(
         val organisationKey: String = organisation.key
         val userId: String = consentFact.userId
 
-        maybeLastConsentFact match {
-          // Create a new user, consent fact and last consent fact
-          case None =>
-            for {
-              _ <- consentFactMongoDataStore.insert(tenant, consentFact)
-              _ <- lastConsentFactMongoDataStore.insert(tenant, consentFact)
-              _ <- userMongoDataStore.insert(
-                tenant,
-                User(
-                  userId = userId,
-                  orgKey = organisationKey,
-                  orgVersion = organisation.version.num,
-                  latestConsentFactId = consentFact._id
-                ))
-              _ <- FastFuture.successful(
-                kafkaMessageBroker.publish(
-                  ConsentFactCreated(
-                    tenant = tenant,
-                    payload = consentFact,
-                    author = author,
-                    metadata = metadata
+        validateOffersStructures(tenant,
+                                 organisationKey,
+                                 userId,
+                                 consentFact.offers).flatMap {
+          case Left(e) =>
+            FastFuture.successful(Left(e))
+          case Right(_) =>
+            maybeLastConsentFact match {
+              // Create a new user, consent fact and last consent fact
+              case None =>
+                for {
+                  _ <- consentFactMongoDataStore.insert(tenant, consentFact)
+                  _ <- lastConsentFactMongoDataStore.insert(tenant, consentFact)
+                  _ <- userMongoDataStore.insert(tenant,
+                                                 User(
+                                                   userId = userId,
+                                                   orgKey = organisationKey,
+                                                   orgVersion =
+                                                     organisation.version.num,
+                                                   latestConsentFactId =
+                                                     consentFact._id
+                                                 ))
+                  _ <- FastFuture.successful(
+                    kafkaMessageBroker.publish(
+                      ConsentFactCreated(
+                        tenant = tenant,
+                        payload = consentFact,
+                        author = author,
+                        metadata = metadata
+                      )
+                    )
                   )
-                )
-              )
-            } yield Right(consentFact)
-          // Update user, consent fact and last consent fact
-          case Some(lastConsentFactStored)
-              if consentFact.version >= lastConsentFactStored.version =>
-            val lastConsentFactToStore =
-              consentFact.copy(lastConsentFactStored._id)
-            for {
-              _ <- lastConsentFactMongoDataStore.update(tenant,
-                                                        organisationKey,
-                                                        userId,
-                                                        lastConsentFactToStore)
-              _ <- consentFactMongoDataStore.insert(tenant, consentFact)
-              _ <- FastFuture.successful(
-                kafkaMessageBroker.publish(
-                  ConsentFactUpdated(
-                    tenant = tenant,
-                    oldValue = lastConsentFactStored,
-                    payload = lastConsentFactToStore,
-                    author = author,
-                    metadata = metadata
+                } yield Right(consentFact)
+              // Update user, consent fact and last consent fact
+              case Some(lastConsentFactStored)
+                  if consentFact.version >= lastConsentFactStored.version =>
+                val lastConsentFactToStore =
+                  consentFact.copy(lastConsentFactStored._id)
+                for {
+                  _ <- lastConsentFactMongoDataStore.update(
+                    tenant,
+                    organisationKey,
+                    userId,
+                    lastConsentFactToStore)
+                  _ <- consentFactMongoDataStore.insert(tenant, consentFact)
+                  _ <- FastFuture.successful(
+                    kafkaMessageBroker.publish(
+                      ConsentFactUpdated(
+                        tenant = tenant,
+                        oldValue = lastConsentFactStored,
+                        payload = lastConsentFactToStore,
+                        author = author,
+                        metadata = metadata
+                      )
+                    )
                   )
-                )
-              )
-            } yield Right(consentFact)
+                } yield Right(consentFact)
 
-          case Some(lastConsentFactStored) =>
-            Logger.error(
-              s"lastConsentFactStored.version > consentFact.version (${lastConsentFactStored.version} > ${consentFact.version}) for ${lastConsentFactStored._id}")
-            FastFuture.successful(Left(AppErrors.error(
-              "invalid.lastConsentFactStored.version.sup.consentFact.version")))
+              case Some(lastConsentFactStored) =>
+                Logger.error(
+                  s"lastConsentFactStored.version > consentFact.version (${lastConsentFactStored.version} > ${consentFact.version}) for ${lastConsentFactStored._id}")
+                FastFuture.successful(Left(AppErrors.error(
+                  "invalid.lastConsentFactStored.version.sup.consentFact.version")))
+            }
         }
     }
   }
 
-  def testOfferStrucureWithLastConsent(
+  private def validateOfferStructureWithConsent(
       tenant: String,
       orgKey: String,
       userId: String,
@@ -117,31 +128,18 @@ class ConsentManagerService(
             s"offer.${offerToCompare.key}.with.version.${offerToCompare.version}.not.equal.to.${offer.version}")
           FastFuture.successful(Left(AppErrors(Seq(ErrorMessage(
             s"offer.${offerToCompare.key}.with.version.${offerToCompare.version}.unavailable")))))
-        case Right(Some(lastConsentOffer)) =>
-          if (offerToCompare.label == lastConsentOffer.label &&
-              offerToCompare.version == lastConsentOffer.version &&
-              lastConsentOffer.groups.forall(lastConsentGroup =>
-                offerToCompare.groups
-                  .find(c => c.key == lastConsentGroup.key)
-                  .exists(consentGroup =>
-                    consentGroup.key == lastConsentGroup.key &&
-                      consentGroup.label == lastConsentGroup.label &&
-                      consentGroup.consents.forall(c =>
-                        lastConsentGroup.consents
-                          .find(consent => consent.key == c.key)
-                          .exists(consent =>
-                            c.key == consent.key && c.label == consent.label)))))
-            FastFuture.successful(Right(offerToCompare))
-          else {
-            Logger.error(
-              s"offer.${offerToCompare.key}.structure.unavailable.compare.to.lastconsent")
-            FastFuture.successful(Left(AppErrors(Seq(ErrorMessage(
-              s"offer.${offerToCompare.key}.structure.unavailable.compare.to.lastconsentfact")))))
-          }
+        case Right(Some(lastConsentOffer))
+            if compareConsentOffersStructure(offerToCompare,
+                                             lastConsentOffer) =>
+          FastFuture.successful(Right(offerToCompare))
+        case _ =>
+          Logger.error(
+            s"offer.${offerToCompare.key}.structure.unavailable.compare.to.lastconsent")
+          FastFuture.successful(Left(AppErrors(Seq(ErrorMessage(
+            s"offer.${offerToCompare.key}.structure.unavailable.compare.to.lastconsentfact")))))
       }
 
-  //Fixme: on a deja fait l'appel a organisationMongoDataStore.findLastReleasedByKey
-  def testOfferStructureWithOrganisation(
+  private def validateOfferStructureWithOrganisation(
       tenant: String,
       orgKey: String,
       userId: String,
@@ -161,36 +159,68 @@ class ConsentManagerService(
             s"offer.${offerToCompare.key}.version.${offerToCompare.version}.unavailable")))))
         case Right(Some(permissionOffer))
             if offerToCompare.version < permissionOffer.version =>
-          testOfferStrucureWithLastConsent(tenant,
-                                           orgKey,
-                                           userId,
-                                           offerToCompare)
+          validateOfferStructureWithConsent(tenant,
+                                            orgKey,
+                                            userId,
+                                            offerToCompare)
         case Right(Some(permissionOffer))
-            if offerToCompare.version == permissionOffer.version =>
-          if (offerToCompare.label == permissionOffer.label &&
-              offerToCompare.version == permissionOffer.version &&
-              permissionOffer.groups.forall(
-                permissionGroup =>
-                  offerToCompare.groups
-                    .find(c => c.key == permissionGroup.key)
-                    .exists(consents =>
-                      consents.key == permissionGroup.key &&
-                        consents.label == permissionGroup.label &&
-                        consents.consents.forall(c =>
-                          permissionGroup.permissions
-                            .find(permission => permission.key == c.key)
-                            .exists(permission =>
-                              c.key == permission.key && c.label == permission.label)))))
-            FastFuture.successful(Right(offerToCompare))
-          else {
-            Logger.error(
-              s"offer.${offerToCompare.key}.structure.unavailable.compare.to.organisation")
-            FastFuture.successful(Left(AppErrors(Seq(ErrorMessage(
-              s"offer.${offerToCompare.key}.structure.unavailable.compare.to.organisation")))))
-          }
+            if offerToCompare.version == permissionOffer.version && compareConsentOfferWithPermissionOfferStructure(
+              offerToCompare,
+              permissionOffer) =>
+          FastFuture.successful(Right(offerToCompare))
+        case _ =>
+          Logger.error(
+            s"offer.${offerToCompare.key}.structure.unavailable.compare.to.organisation")
+          FastFuture.successful(Left(AppErrors(Seq(ErrorMessage(
+            s"offer.${offerToCompare.key}.structure.unavailable.compare.to.organisation")))))
       }
 
-  def testOffersStructure(
+  private def compareConsentOffersStructure(
+      offerToCompare: ConsentOffer,
+      lastConsentOffer: ConsentOffer): Boolean = {
+    val permissionOffer = Offer(
+      key = lastConsentOffer.key,
+      label = lastConsentOffer.label,
+      version = lastConsentOffer.version,
+      groups = lastConsentOffer.groups.map { g =>
+        PermissionGroup(
+          key = g.key,
+          label = g.label,
+          permissions = g.consents.map { p =>
+            Permission(
+              key = p.key,
+              label = p.label
+            )
+          }
+        )
+      }
+    )
+
+    compareConsentOfferWithPermissionOfferStructure(offerToCompare,
+                                                    permissionOffer)
+  }
+
+  private def compareConsentOfferWithPermissionOfferStructure(
+      consentOffer: ConsentOffer,
+      permissionOffer: Offer): Boolean = {
+    consentOffer.label == permissionOffer.label &&
+    consentOffer.version == permissionOffer.version &&
+    permissionOffer.groups.forall(
+      permissionGroup =>
+        consentOffer.groups
+          .find(c => c.key == permissionGroup.key)
+          .exists(
+            consents =>
+              consents.key == permissionGroup.key &&
+                consents.label == permissionGroup.label &&
+                consents.consents.forall(c =>
+                  permissionGroup.permissions
+                    .find(permission => permission.key == c.key)
+                    .exists(permission =>
+                      c.key == permission.key && c.label == permission.label))))
+  }
+
+  private def validateOffersStructures(
       tenant: String,
       orgKey: String,
       userId: String,
@@ -203,7 +233,7 @@ class ConsentManagerService(
         Future
           .sequence {
             offersToCompare.map(
-              testOfferStructureWithOrganisation(tenant, orgKey, userId, _))
+              validateOfferStructureWithOrganisation(tenant, orgKey, userId, _))
           }
           .map(sequence)
           .map {
@@ -212,7 +242,7 @@ class ConsentManagerService(
           }
     }
 
-  def sequence[A, B](s: Seq[Either[A, B]]): Either[Seq[A], B] =
+  private def sequence[A, B](s: Seq[Either[A, B]]): Either[Seq[A], B] =
     s.foldLeft(Left(Nil): Either[List[A], B]) { (acc, e) =>
       for (xs <- acc.left; x <- e.left) yield x :: xs
     }
@@ -247,18 +277,11 @@ class ConsentManagerService(
 
               case Some(organisation)
                   if organisation.version.num == consentFact.version =>
-                testOffersStructure(tenant,
-                                    organisationKey,
-                                    userId,
-                                    consentFact.offers).flatMap {
-                  case Left(error) => FastFuture.successful(Left(error))
-                  case Right(_) =>
-                    createOrReplace(tenant,
-                                    author,
-                                    metadata,
-                                    organisation,
-                                    consentFact)
-                }
+                createOrReplace(tenant,
+                                author,
+                                metadata,
+                                organisation,
+                                consentFact)
             }
 
         // Update consent fact with the same organisation version
@@ -270,19 +293,12 @@ class ConsentManagerService(
                                             lastConsentFactStored.version)
             .flatMap {
               case Some(organisation) =>
-                testOffersStructure(tenant,
-                                    organisationKey,
-                                    userId,
-                                    consentFact.offers).flatMap {
-                  case Left(error) => FastFuture.successful(Left(error))
-                  case Right(_) =>
-                    createOrReplace(tenant,
-                                    author,
-                                    metadata,
-                                    organisation,
-                                    consentFact,
-                                    Some(lastConsentFactStored))
-                }
+                createOrReplace(tenant,
+                                author,
+                                metadata,
+                                organisation,
+                                consentFact,
+                                Some(lastConsentFactStored))
               case None =>
                 Logger.error(
                   s"error.unknow.specified.version : version specified ${lastConsentFactStored.version}")
