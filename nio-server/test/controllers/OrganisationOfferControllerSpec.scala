@@ -233,7 +233,7 @@ class OrganisationOfferControllerSpec extends TestUtils {
     "update offer with another offer version" in {
       val updateResponse =
         putJson(s"/$tenant/organisations/$orgKey/offers/$offerKey1",
-          offerUpdated.copy(version = 10).asJson())
+                offerUpdated.copy(version = 10).asJson())
 
       updateResponse.status mustBe OK
       (updateResponse.json \ "version").as[Int] mustBe 3

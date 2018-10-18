@@ -18,11 +18,12 @@ import db.{
   OrganisationMongoDataStore,
   UserMongoDataStore
 }
+import libs.xmlorjson.XmlOrJson
 import messaging.KafkaMessageBroker
 import models.{ConsentFact, _}
 import play.api.Logger
 import play.api.http.HttpEntity
-import play.api.mvc.{ControllerComponents, ResponseHeader, Result}
+import play.api.mvc.{Action, ControllerComponents, ResponseHeader, Result}
 import reactivemongo.api.{Cursor, QueryOpts}
 import reactivemongo.bson.BSONDocument
 import service.{AccessibleOfferManagerService, ConsentManagerService}
@@ -174,7 +175,9 @@ class ConsentController(
     }
 
   // create or replace if exists
-  def createOrReplaceIfExists(tenant: String, orgKey: String, userId: String) =
+  def createOrReplaceIfExists(tenant: String,
+                              orgKey: String,
+                              userId: String): Action[XmlOrJson] =
     AuthAction.async(bodyParser) { implicit req =>
       req.body.read[ConsentFact] match {
         case Left(error) =>
@@ -188,11 +191,14 @@ class ConsentController(
           val cf: ConsentFact = ConsentFact.addOrgKey(consentFact, orgKey)
 
           (cf.offers, req.authInfo.offerRestrictionPatterns) match {
+            // case ask create or update offers but no pattern allowed
             case (Some(offers), None) =>
               val errorMessages =
                 offers.map(o => ErrorMessage(s"offer.${o.key}.not.authorized"))
               Logger.error(s"not authorized : ${errorMessages.map(_.message)}")
-              Future.successful("error.no.authorised.offers".unauthorized())
+              Future.successful(AppErrors(errorMessages).unauthorized())
+
+            // case create or update consents without offers
             case (None, _) =>
               consentManagerService
                 .saveConsents(tenant,
@@ -209,10 +215,17 @@ class ConsentController(
                       s"not authorized : ${error.errors.map(_.message)}")
                     error.badRequest()
                 }
+
+            // case create or update offers and some patterns are specified
             case (Some(offers), Some(pattern)) =>
+              // validate offers key are accessible
               offers
-                .filterNot(offer => pattern.exists(p => offer.key.matches(p)))
-                .toList match {
+                .filterNot(
+                  o =>
+                    accessibleOfferService.accessibleOfferKey(
+                      o.key,
+                      req.authInfo.offerRestrictionPatterns)) match {
+                // case all offers in consent (body) are accessible
                 case Nil =>
                   consentManagerService
                     .saveConsents(tenant,
@@ -229,6 +242,8 @@ class ConsentController(
                           s"not authorized : ${error.errors.map(_.message)}")
                         error.badRequest()
                     }
+
+                // case one or more offers are not accessible
                 case unauthorizedOffers =>
                   val errorMessages = unauthorizedOffers.map(o =>
                     ErrorMessage(s"offer.${o.key}.not.authorized"))

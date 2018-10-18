@@ -265,7 +265,9 @@ class ConsentManagerService(
         case Some(lastConsentFactStored)
             if lastConsentFactStored.version == consentFact.version =>
           organisationMongoDataStore
-            .findLastReleasedByKey(tenant, organisationKey)
+            .findReleasedByKeyAndVersionNum(tenant,
+                                            organisationKey,
+                                            lastConsentFactStored.version)
             .flatMap {
               case Some(organisation) =>
                 testOffersStructure(tenant,
@@ -278,7 +280,8 @@ class ConsentManagerService(
                                     author,
                                     metadata,
                                     organisation,
-                                    consentFact)
+                                    consentFact,
+                                    Some(lastConsentFactStored))
                 }
               case None =>
                 Logger.error(
