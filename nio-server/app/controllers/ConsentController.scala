@@ -211,9 +211,7 @@ class ConsentController(
                   case Right(consentFactSaved) =>
                     renderMethod(consentFactSaved)
                   case Left(error) =>
-                    Logger.error(
-                      s"not authorized : ${error.errors.map(_.message)}")
-                    error.badRequest()
+                    error.renderError()
                 }
 
             // case create or update offers and some patterns are specified
@@ -238,9 +236,7 @@ class ConsentController(
                       case Right(consentFactSaved) =>
                         renderMethod(consentFactSaved)
                       case Left(error) =>
-                        Logger.error(
-                          s"not authorized : ${error.errors.map(_.message)}")
-                        error.badRequest()
+                        error.renderError()
                     }
 
                 // case one or more offers are not accessible

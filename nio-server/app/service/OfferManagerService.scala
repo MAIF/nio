@@ -14,7 +14,8 @@ import scala.concurrent.{ExecutionContext, Future}
 class OfferManagerService(
     organisationMongoDataStore: OrganisationMongoDataStore,
     accessibleOfferManagerService: AccessibleOfferManagerService)(
-    implicit val executionContext: ExecutionContext) {
+    implicit val executionContext: ExecutionContext)
+    extends ServiceUtils {
 
   def getAll(tenant: String,
              orgKey: String,
@@ -130,31 +131,9 @@ class OfferManagerService(
             .findLastReleasedByKey(tenant, lastExistingOrganisation.key)
         } yield Right(lastOrganisation)
       case None =>
-        FastFuture.successful(
-          Left(AppErrorWithStatus(
-            AppErrors(
-              Seq(ErrorMessage(s"released.of.organisation.$orgKey.not.found"))),
-            NotFound)))
+        toErrorWithStatus(s"released.of.organisation.$orgKey.not.found",
+                          NotFound)
     }
-  }
-
-  private def toErrorWithStatus(
-      errorMessage: String,
-      status: Status): Future[Either[AppErrorWithStatus, Offer]] = {
-    FastFuture.successful(
-      Left(
-        AppErrorWithStatus(AppErrors(Seq(ErrorMessage(errorMessage))), status)))
-  }
-
-  private def toErrorWithStatus(
-      appErrors: AppErrors,
-      status: Status): Future[Either[AppErrorWithStatus, Offer]] = {
-    FastFuture.successful(Left(AppErrorWithStatus(appErrors, status)))
-  }
-
-  private def toErrorWithStatus(appErrors: AppErrorWithStatus)
-    : Future[Either[AppErrorWithStatus, Offer]] = {
-    FastFuture.successful(Left(appErrors))
   }
 
 }
