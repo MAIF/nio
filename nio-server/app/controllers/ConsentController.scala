@@ -58,7 +58,7 @@ class ConsentController(
   def getTemplate(tenant: String,
                   orgKey: String,
                   maybeUserId: Option[String],
-                  offerKeys: Option[Seq[String]]) =
+                  maybeOfferKeys: Option[Seq[String]]) =
     AuthAction.async { implicit req =>
       {
         val context: Timer.Context = timerGetConsentFactTemplate.time()
@@ -89,40 +89,57 @@ class ConsentController(
                     toConsentGroup(_)
                   }
 
-                  val offers: Option[Seq[ConsentOffer]] = organisation.offers
-                    .map { offers =>
-                      offers
-                        .map(
-                          offer =>
-                            ConsentOffer(
-                              key = offer.key,
-                              label = offer.label,
-                              version = offer.version,
-                              groups = offer.groups.map {
-                                toConsentGroup(_)
-                              }
-                          ))
+                  accessibleOfferService
+                    .accessibleOfferByOrganisation(
+                      tenant,
+                      orgKey,
+                      req.authInfo.offerRestrictionPatterns)
+                    .flatMap {
+                      case Left(e) => FastFuture.successful(e.notFound())
+                      case Right(accessibleOffers) =>
+                        val offers: Option[Seq[ConsentOffer]] =
+                          accessibleOffers.map(
+                            _.filter(o =>
+                              maybeOfferKeys match {
+                                case Some(offerKeys) if offerKeys.nonEmpty =>
+                                  offerKeys.contains(o.key)
+                                case _ =>
+                                  true
+                            }).map(
+                              offer =>
+                                ConsentOffer(
+                                  key = offer.key,
+                                  label = offer.label,
+                                  version = offer.version,
+                                  groups = offer.groups.map {
+                                    toConsentGroup(_)
+                                  }
+                              ))
+                          )
+
+                        Logger.info(
+                          s"Using default consents template in organisation $orgKey")
+
+                        val template =
+                          ConsentFact.template(orgVerNum =
+                                                 organisation.version.num,
+                                               groups = groups,
+                                               offers = offers,
+                                               orgKey = orgKey)
+
+                        consentManagerService
+                          .mergeTemplateWithConsentFact(
+                            tenant,
+                            orgKey,
+                            organisation.version.num,
+                            template,
+                            maybeUserId)
+                          .map { consentFact =>
+                            context.stop()
+                            renderMethod(consentFact)
+                          }
                     }
 
-                  Logger.info(
-                    s"Using default consents template in organisation $orgKey")
-
-                  val template =
-                    ConsentFact.template(orgVerNum = organisation.version.num,
-                                         groups = groups,
-                                         offers = offers,
-                                         orgKey = orgKey)
-
-                  consentManagerService
-                    .mergeTemplateWithConsentFact(tenant,
-                                                  orgKey,
-                                                  organisation.version.num,
-                                                  template,
-                                                  maybeUserId)
-                    .map { consentFact =>
-                      context.stop()
-                      renderMethod(consentFact)
-                    }
               }
 
           }
