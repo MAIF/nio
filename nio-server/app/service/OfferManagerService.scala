@@ -4,8 +4,6 @@ import akka.http.scaladsl.util.FastFuture
 import controllers.AppErrorWithStatus
 import db.OrganisationMongoDataStore
 import models.{Offer, Organisation}
-import play.Logger
-import utils.Result.{AppErrors, ErrorMessage}
 import play.api.mvc.Results._
 import reactivemongo.bson.BSONObjectID
 

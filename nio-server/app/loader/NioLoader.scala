@@ -76,8 +76,6 @@ class NioComponents(context: Context)
   // wire service
   implicit lazy val consentManagerService: ConsentManagerService =
     wire[ConsentManagerService]
-  implicit lazy val organisationManagerService: OrganisationManagerService =
-    wire[OrganisationManagerService]
   implicit lazy val accessibleOfferManagerService
     : AccessibleOfferManagerService = wire[AccessibleOfferManagerService]
   implicit lazy val offerManagerService: OfferManagerService =
