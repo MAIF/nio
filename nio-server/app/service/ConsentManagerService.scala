@@ -203,14 +203,13 @@ class ConsentManagerService(
             s"offer.${offerToCompare.key}.structure.unavailable.compare.to.lastconsentfact")
       }
 
-  private def compareConsentOffersStructure(
-      offerToCompare: ConsentOffer,
-      lastConsentOffer: ConsentOffer): Boolean = {
-    val permissionOffer = Offer(
-      key = lastConsentOffer.key,
-      label = lastConsentOffer.label,
-      version = lastConsentOffer.version,
-      groups = lastConsentOffer.groups.map { g =>
+  private def convertConsentOfferToPermissionOffer(
+      consentOffer: ConsentOffer): Offer = {
+    Offer(
+      key = consentOffer.key,
+      label = consentOffer.label,
+      version = consentOffer.version,
+      groups = consentOffer.groups.map { g =>
         PermissionGroup(
           key = g.key,
           label = g.label,
@@ -223,7 +222,13 @@ class ConsentManagerService(
         )
       }
     )
+  }
 
+  private def compareConsentOffersStructure(
+      offerToCompare: ConsentOffer,
+      lastConsentOffer: ConsentOffer): Boolean = {
+    val permissionOffer: Offer = convertConsentOfferToPermissionOffer(
+      lastConsentOffer)
     compareConsentOfferWithPermissionOfferStructure(offerToCompare,
                                                     permissionOffer)
   }

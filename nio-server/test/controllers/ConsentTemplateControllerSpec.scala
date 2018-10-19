@@ -384,281 +384,344 @@ class ConsentTemplateControllerSpec extends TestUtils {
     }
   }
 
-//  "ConsentController with offer" should {
-//    val orgKey: String = "orgWithOffer2"
-//
-//    "generate empty template with offer" in {
-//
-//      val orgWithOffer: Organisation = Organisation(
-//        key = orgKey,
-//        label = "organisation with offer",
-//        groups = Seq(
-//          PermissionGroup(
-//            key = "maifNotifs",
-//            label =
-//              "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF",
-//            permissions = Seq(
-//              Permission(key = "phone", label = "Par contact téléphonique"),
-//              Permission(key = "mail", label = "Par contact électronique"),
-//              Permission(key = "sms", label = "Par SMS / MMS / VMS")
-//            )
-//          )
-//        ),
-//        offers = Some(
-//          Seq(
-//            Offer(
-//              "offer1",
-//              "offer 1",
-//              1,
-//              Seq(PermissionGroup(
-//                key = "maifNotifs",
-//                label =
-//                  "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF",
-//                permissions = Seq(
-//                  Permission(key = "phone", label = "Par contact téléphonique"),
-//                  Permission(key = "mail", label = "Par contact électronique"),
-//                  Permission(key = "sms", label = "Par SMS / MMS / VMS")
-//                )
-//              ))
-//            ),
-//            Offer(
-//              "offer2",
-//              "offer 2",
-//              1,
-//              Seq(PermissionGroup(
-//                key = "maifNotifs",
-//                label =
-//                  "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF",
-//                permissions = Seq(
-//                  Permission(key = "phone", label = "Par contact téléphonique"),
-//                  Permission(key = "mail", label = "Par contact électronique"),
-//                  Permission(key = "sms", label = "Par SMS / MMS / VMS")
-//                )
-//              ))
-//            )
-//          )
-//        )
-//      )
-//
-//      postJson(s"/$tenant/organisations", orgWithOffer.asJson).status mustBe CREATED
-//      postJson(s"/$tenant/organisations/$orgKey/draft/_release", Json.obj()).status mustBe OK
-//
-//      val response: WSResponse =
-//        getJson(s"/$tenant/organisations/$orgKey/users/_template")
-//
-//      response.status mustBe OK
-//
-//      val value: JsValue = response.json
-//
-//      val offers: JsArray = (value \ "offers").as[JsArray]
-//      offers.value.length mustBe 2
-//
-//      (offers \ 0 \ "key").as[String] mustBe "offer1"
-//      (offers \ 0 \ "label").as[String] mustBe "offer 1"
-//      (offers \ 0 \ "groups").as[JsArray].value.length mustBe 1
-//      val offer1group1 = (offers \ 0 \ "groups" \ 0).as[JsValue]
-//
-//      (offer1group1 \ "key").as[String] mustBe "maifNotifs"
-//      (offer1group1 \ "label")
-//        .as[String] mustBe "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF"
-//
-//      (offer1group1 \ "consents").as[JsArray].value.length mustBe 3
-//
-//      val offer1group1perm1 = (offer1group1 \ "consents" \ 0).as[JsValue]
-//
-//      (offer1group1perm1 \ "key").as[String] mustBe "phone"
-//      (offer1group1perm1 \ "label").as[String] mustBe "Par contact téléphonique"
-//      (offer1group1perm1 \ "checked").as[Boolean] mustBe false
-//
-//      val offer1group1perm2 = (offer1group1 \ "consents" \ 1).as[JsValue]
-//
-//      (offer1group1perm2 \ "key").as[String] mustBe "mail"
-//      (offer1group1perm2 \ "label").as[String] mustBe "Par contact électronique"
-//      (offer1group1perm2 \ "checked").as[Boolean] mustBe false
-//
-//      val offer1group1perm3 = (offer1group1 \ "consents" \ 2).as[JsValue]
-//
-//      (offer1group1perm3 \ "key").as[String] mustBe "sms"
-//      (offer1group1perm3 \ "label").as[String] mustBe "Par SMS / MMS / VMS"
-//      (offer1group1perm3 \ "checked").as[Boolean] mustBe false
-//
-//      (offers \ 1 \ "key").as[String] mustBe "offer2"
-//      (offers \ 1 \ "label").as[String] mustBe "offer 2"
-//      (offers \ 1 \ "groups").as[JsArray].value.length mustBe 1
-//      val offer2group1 = (offers \ 1 \ "groups" \ 0).as[JsValue]
-//
-//      (offer2group1 \ "key").as[String] mustBe "maifNotifs"
-//      (offer2group1 \ "label")
-//        .as[String] mustBe "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF"
-//
-//      (offer2group1 \ "consents").as[JsArray].value.length mustBe 3
-//
-//      val offer2group1perm1 = (offer2group1 \ "consents" \ 0).as[JsValue]
-//
-//      (offer2group1perm1 \ "key").as[String] mustBe "phone"
-//      (offer2group1perm1 \ "label").as[String] mustBe "Par contact téléphonique"
-//      (offer2group1perm1 \ "checked").as[Boolean] mustBe false
-//
-//      val offer2group1perm2 = (offer2group1 \ "consents" \ 1).as[JsValue]
-//
-//      (offer2group1perm2 \ "key").as[String] mustBe "mail"
-//      (offer2group1perm2 \ "label").as[String] mustBe "Par contact électronique"
-//      (offer2group1perm2 \ "checked").as[Boolean] mustBe false
-//
-//      val offer2group1perm3 = (offer2group1 \ "consents" \ 2).as[JsValue]
-//
-//      (offer2group1perm3 \ "key").as[String] mustBe "sms"
-//      (offer2group1perm3 \ "label").as[String] mustBe "Par SMS / MMS / VMS"
-//      (offer2group1perm3 \ "checked").as[Boolean] mustBe false
-//    }
-//
-//    "generate template with user in reference" in {
-//
-//      val userId = "userIdOffer"
-//      val consent: ConsentFact = ConsentFact(
-//        userId = userId,
-//        doneBy = DoneBy(userId = userId, role = "USER"),
-//        version = 1,
-//        groups = Seq(
-//          ConsentGroup(
-//            key = "maifNotifs",
-//            label =
-//              "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF",
-//            consents = Seq(
-//              Consent(key = "phone",
-//                      label = "Par contact téléphonique",
-//                      checked = true),
-//              Consent(key = "mail",
-//                      label = "Par contact électronique",
-//                      checked = false),
-//              Consent(key = "sms",
-//                      label = "Par SMS / MMS / VMS",
-//                      checked = true)
-//            )
-//          )
-//        ),
-//        offers = Some(
-//          Seq(
-//            ConsentOffer(
-//              key = "offer1",
-//              label = "offer 1",
-//              Seq(
-//                ConsentGroup(
-//                  key = "maifNotifs",
-//                  label =
-//                    "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF",
-//                  consents = Seq(
-//                    Consent(key = "phone",
-//                            label = "Par contact téléphonique",
-//                            checked = false),
-//                    Consent(key = "mail",
-//                            label = "Par contact électronique",
-//                            checked = true),
-//                    Consent(key = "sms",
-//                            label = "Par SMS / MMS / VMS",
-//                            checked = false)
-//                  )
-//                )
-//              )
-//            ),
-//            ConsentOffer(
-//              key = "offer2",
-//              label = "offer 2",
-//              Seq(
-//                ConsentGroup(
-//                  key = "maifNotifs",
-//                  label =
-//                    "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF",
-//                  consents = Seq(
-//                    Consent(key = "phone",
-//                            label = "Par contact téléphonique",
-//                            checked = true),
-//                    Consent(key = "mail",
-//                            label = "Par contact électronique",
-//                            checked = true),
-//                    Consent(key = "sms",
-//                            label = "Par SMS / MMS / VMS",
-//                            checked = false)
-//                  )
-//                )
-//              )
-//            )
-//          )
-//        )
-//      )
-//
-//      putJson(s"/$tenant/organisations/$orgKey/users/$userId", consent.asJson).status mustBe OK
-//
-//      val response: WSResponse =
-//        getJson(
-//          s"/$tenant/organisations/$orgKey/users/_template?userId=$userId")
-//
-//      response.status mustBe OK
-//
-//      val value: JsValue = response.json
-//
-//      Logger.info(response.body)
-//      val offers: JsArray = (value \ "offers").as[JsArray]
-//      offers.value.length mustBe 2
-//
-//      (offers \ 0 \ "key").as[String] mustBe "offer1"
-//      (offers \ 0 \ "label").as[String] mustBe "offer 1"
-//      (offers \ 0 \ "groups").as[JsArray].value.length mustBe 1
-//      val offer1group1 = (offers \ 0 \ "groups" \ 0).as[JsValue]
-//
-//      (offer1group1 \ "key").as[String] mustBe "maifNotifs"
-//      (offer1group1 \ "label")
-//        .as[String] mustBe "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF"
-//
-//      (offer1group1 \ "consents").as[JsArray].value.length mustBe 3
-//
-//      val offer1group1perm1 = (offer1group1 \ "consents" \ 0).as[JsValue]
-//
-//      (offer1group1perm1 \ "key").as[String] mustBe "phone"
-//      (offer1group1perm1 \ "label").as[String] mustBe "Par contact téléphonique"
-//      (offer1group1perm1 \ "checked").as[Boolean] mustBe false
-//
-//      val offer1group1perm2 = (offer1group1 \ "consents" \ 1).as[JsValue]
-//
-//      (offer1group1perm2 \ "key").as[String] mustBe "mail"
-//      (offer1group1perm2 \ "label").as[String] mustBe "Par contact électronique"
-//      (offer1group1perm2 \ "checked").as[Boolean] mustBe true
-//
-//      val offer1group1perm3 = (offer1group1 \ "consents" \ 2).as[JsValue]
-//
-//      (offer1group1perm3 \ "key").as[String] mustBe "sms"
-//      (offer1group1perm3 \ "label").as[String] mustBe "Par SMS / MMS / VMS"
-//      (offer1group1perm3 \ "checked").as[Boolean] mustBe false
-//
-//      (offers \ 1 \ "key").as[String] mustBe "offer2"
-//      (offers \ 1 \ "label").as[String] mustBe "offer 2"
-//      (offers \ 1 \ "groups").as[JsArray].value.length mustBe 1
-//      val offer2group1 = (offers \ 1 \ "groups" \ 0).as[JsValue]
-//
-//      (offer2group1 \ "key").as[String] mustBe "maifNotifs"
-//      (offer2group1 \ "label")
-//        .as[String] mustBe "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF"
-//
-//      (offer2group1 \ "consents").as[JsArray].value.length mustBe 3
-//
-//      val offer2group1perm1 = (offer2group1 \ "consents" \ 0).as[JsValue]
-//
-//      (offer2group1perm1 \ "key").as[String] mustBe "phone"
-//      (offer2group1perm1 \ "label").as[String] mustBe "Par contact téléphonique"
-//      (offer2group1perm1 \ "checked").as[Boolean] mustBe true
-//
-//      val offer2group1perm2 = (offer2group1 \ "consents" \ 1).as[JsValue]
-//
-//      (offer2group1perm2 \ "key").as[String] mustBe "mail"
-//      (offer2group1perm2 \ "label").as[String] mustBe "Par contact électronique"
-//      (offer2group1perm2 \ "checked").as[Boolean] mustBe true
-//
-//      val offer2group1perm3 = (offer2group1 \ "consents" \ 2).as[JsValue]
-//
-//      (offer2group1perm3 \ "key").as[String] mustBe "sms"
-//      (offer2group1perm3 \ "label").as[String] mustBe "Par SMS / MMS / VMS"
-//      (offer2group1perm3 \ "checked").as[Boolean] mustBe false
-//    }
-//  }
+  "ConsentController with offer" should {
+    val orgKey: String = "orgWithOffer2"
+
+    "create organisation, offer1, offer2" in {
+      val orgWithOffer: Organisation = Organisation(
+        key = orgKey,
+        label = "organisation with offer",
+        groups = Seq(
+          PermissionGroup(
+            key = "maifNotifs",
+            label =
+              "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF",
+            permissions = Seq(
+              Permission(key = "phone", label = "Par contact téléphonique"),
+              Permission(key = "mail", label = "Par contact électronique"),
+              Permission(key = "sms", label = "Par SMS / MMS / VMS")
+            )
+          )
+        )
+      )
+
+      postJson(s"/$tenant/organisations", orgWithOffer.asJson).status mustBe CREATED
+      postJson(s"/$tenant/organisations/$orgKey/draft/_release", Json.obj()).status mustBe OK
+
+      val offer1: Offer = Offer(
+        "offer1",
+        "offer 1",
+        1,
+        Seq(
+          PermissionGroup(
+            key = "maifNotifs",
+            label =
+              "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF",
+            permissions = Seq(
+              Permission(key = "phone", label = "Par contact téléphonique"),
+              Permission(key = "mail", label = "Par contact électronique"),
+              Permission(key = "sms", label = "Par SMS / MMS / VMS")
+            )
+          ))
+      )
+
+      postJson(s"/$tenant/organisations/$orgKey/offers", offer1.asJson()).status mustBe CREATED
+
+      val offer2: Offer =
+        Offer(
+          "offer2",
+          "offer 2",
+          1,
+          Seq(
+            PermissionGroup(
+              key = "maifNotifs",
+              label =
+                "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF",
+              permissions = Seq(
+                Permission(key = "phone", label = "Par contact téléphonique"),
+                Permission(key = "mail", label = "Par contact électronique"),
+                Permission(key = "sms", label = "Par SMS / MMS / VMS")
+              )
+            ))
+        )
+
+      postJson(s"/$tenant/organisations/$orgKey/offers", offer2.asJson()).status mustBe CREATED
+    }
+
+    "generate empty template with offer" in {
+      val response: WSResponse =
+        getJson(s"/$tenant/organisations/$orgKey/users/_template")
+
+      response.status mustBe OK
+
+      val value: JsValue = response.json
+
+      val offers: JsArray = (value \ "offers").as[JsArray]
+      offers.value.length mustBe 2
+
+      (offers \ 0 \ "key").as[String] mustBe "offer1"
+      (offers \ 0 \ "label").as[String] mustBe "offer 1"
+      (offers \ 0 \ "groups").as[JsArray].value.length mustBe 1
+      val offer1group1 = (offers \ 0 \ "groups" \ 0).as[JsValue]
+
+      (offer1group1 \ "key").as[String] mustBe "maifNotifs"
+      (offer1group1 \ "label")
+        .as[String] mustBe "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF"
+
+      (offer1group1 \ "consents").as[JsArray].value.length mustBe 3
+
+      val offer1group1perm1 = (offer1group1 \ "consents" \ 0).as[JsValue]
+
+      (offer1group1perm1 \ "key").as[String] mustBe "phone"
+      (offer1group1perm1 \ "label").as[String] mustBe "Par contact téléphonique"
+      (offer1group1perm1 \ "checked").as[Boolean] mustBe false
+
+      val offer1group1perm2 = (offer1group1 \ "consents" \ 1).as[JsValue]
+
+      (offer1group1perm2 \ "key").as[String] mustBe "mail"
+      (offer1group1perm2 \ "label").as[String] mustBe "Par contact électronique"
+      (offer1group1perm2 \ "checked").as[Boolean] mustBe false
+
+      val offer1group1perm3 = (offer1group1 \ "consents" \ 2).as[JsValue]
+
+      (offer1group1perm3 \ "key").as[String] mustBe "sms"
+      (offer1group1perm3 \ "label").as[String] mustBe "Par SMS / MMS / VMS"
+      (offer1group1perm3 \ "checked").as[Boolean] mustBe false
+
+      (offers \ 1 \ "key").as[String] mustBe "offer2"
+      (offers \ 1 \ "label").as[String] mustBe "offer 2"
+      (offers \ 1 \ "groups").as[JsArray].value.length mustBe 1
+      val offer2group1 = (offers \ 1 \ "groups" \ 0).as[JsValue]
+
+      (offer2group1 \ "key").as[String] mustBe "maifNotifs"
+      (offer2group1 \ "label")
+        .as[String] mustBe "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF"
+
+      (offer2group1 \ "consents").as[JsArray].value.length mustBe 3
+
+      val offer2group1perm1 = (offer2group1 \ "consents" \ 0).as[JsValue]
+
+      (offer2group1perm1 \ "key").as[String] mustBe "phone"
+      (offer2group1perm1 \ "label").as[String] mustBe "Par contact téléphonique"
+      (offer2group1perm1 \ "checked").as[Boolean] mustBe false
+
+      val offer2group1perm2 = (offer2group1 \ "consents" \ 1).as[JsValue]
+
+      (offer2group1perm2 \ "key").as[String] mustBe "mail"
+      (offer2group1perm2 \ "label").as[String] mustBe "Par contact électronique"
+      (offer2group1perm2 \ "checked").as[Boolean] mustBe false
+
+      val offer2group1perm3 = (offer2group1 \ "consents" \ 2).as[JsValue]
+
+      (offer2group1perm3 \ "key").as[String] mustBe "sms"
+      (offer2group1perm3 \ "label").as[String] mustBe "Par SMS / MMS / VMS"
+      (offer2group1perm3 \ "checked").as[Boolean] mustBe false
+    }
+
+    "generate template with just the offer1" in {
+      val response: WSResponse =
+        getJson(
+          s"/$tenant/organisations/$orgKey/users/_template?offerKeys=offer1")
+
+      response.status mustBe OK
+
+      val value: JsValue = response.json
+
+      val offers: JsArray = (value \ "offers").as[JsArray]
+      offers.value.length mustBe 1
+
+      (offers \ 0 \ "key").as[String] mustBe "offer1"
+      (offers \ 0 \ "label").as[String] mustBe "offer 1"
+      (offers \ 0 \ "groups").as[JsArray].value.length mustBe 1
+      val offer1group1 = (offers \ 0 \ "groups" \ 0).as[JsValue]
+
+      (offer1group1 \ "key").as[String] mustBe "maifNotifs"
+      (offer1group1 \ "label")
+        .as[String] mustBe "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF"
+
+      (offer1group1 \ "consents").as[JsArray].value.length mustBe 3
+
+      val offer1group1perm1 = (offer1group1 \ "consents" \ 0).as[JsValue]
+
+      (offer1group1perm1 \ "key").as[String] mustBe "phone"
+      (offer1group1perm1 \ "label").as[String] mustBe "Par contact téléphonique"
+      (offer1group1perm1 \ "checked").as[Boolean] mustBe false
+
+      val offer1group1perm2 = (offer1group1 \ "consents" \ 1).as[JsValue]
+
+      (offer1group1perm2 \ "key").as[String] mustBe "mail"
+      (offer1group1perm2 \ "label").as[String] mustBe "Par contact électronique"
+      (offer1group1perm2 \ "checked").as[Boolean] mustBe false
+
+      val offer1group1perm3 = (offer1group1 \ "consents" \ 2).as[JsValue]
+
+      (offer1group1perm3 \ "key").as[String] mustBe "sms"
+      (offer1group1perm3 \ "label").as[String] mustBe "Par SMS / MMS / VMS"
+      (offer1group1perm3 \ "checked").as[Boolean] mustBe false
+    }
+
+    "generate template with just the unknowOfferKey" in {
+      val response: WSResponse =
+        getJson(
+          s"/$tenant/organisations/$orgKey/users/_template?offerKeys=unknowOfferKey")
+
+      response.status mustBe OK
+
+      val value: JsValue = response.json
+
+      val offers: JsArray = (value \ "offers").as[JsArray]
+      offers.value.length mustBe 0
+    }
+
+    "generate template with user in reference" in {
+
+      val userId = "userIdOffer"
+      val consent: ConsentFact = ConsentFact(
+        userId = userId,
+        doneBy = DoneBy(userId = userId, role = "USER"),
+        version = 1,
+        groups = Seq(
+          ConsentGroup(
+            key = "maifNotifs",
+            label =
+              "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF",
+            consents = Seq(
+              Consent(key = "phone",
+                      label = "Par contact téléphonique",
+                      checked = true),
+              Consent(key = "mail",
+                      label = "Par contact électronique",
+                      checked = false),
+              Consent(key = "sms",
+                      label = "Par SMS / MMS / VMS",
+                      checked = true)
+            )
+          )
+        ),
+        offers = Some(
+          Seq(
+            ConsentOffer(
+              key = "offer1",
+              label = "offer 1",
+              version = 1,
+              Seq(
+                ConsentGroup(
+                  key = "maifNotifs",
+                  label =
+                    "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF",
+                  consents = Seq(
+                    Consent(key = "phone",
+                            label = "Par contact téléphonique",
+                            checked = false),
+                    Consent(key = "mail",
+                            label = "Par contact électronique",
+                            checked = true),
+                    Consent(key = "sms",
+                            label = "Par SMS / MMS / VMS",
+                            checked = false)
+                  )
+                )
+              )
+            ),
+            ConsentOffer(
+              key = "offer2",
+              label = "offer 2",
+              version = 1,
+              Seq(
+                ConsentGroup(
+                  key = "maifNotifs",
+                  label =
+                    "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF",
+                  consents = Seq(
+                    Consent(key = "phone",
+                            label = "Par contact téléphonique",
+                            checked = true),
+                    Consent(key = "mail",
+                            label = "Par contact électronique",
+                            checked = true),
+                    Consent(key = "sms",
+                            label = "Par SMS / MMS / VMS",
+                            checked = false)
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+
+      putJson(s"/$tenant/organisations/$orgKey/users/$userId", consent.asJson).status mustBe OK
+
+      val response: WSResponse =
+        getJson(
+          s"/$tenant/organisations/$orgKey/users/_template?userId=$userId")
+
+      response.status mustBe OK
+
+      val value: JsValue = response.json
+
+      Logger.info(response.body)
+      val offers: JsArray = (value \ "offers").as[JsArray]
+      offers.value.length mustBe 2
+
+      (offers \ 0 \ "key").as[String] mustBe "offer1"
+      (offers \ 0 \ "label").as[String] mustBe "offer 1"
+      (offers \ 0 \ "groups").as[JsArray].value.length mustBe 1
+      val offer1group1 = (offers \ 0 \ "groups" \ 0).as[JsValue]
+
+      (offer1group1 \ "key").as[String] mustBe "maifNotifs"
+      (offer1group1 \ "label")
+        .as[String] mustBe "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF"
+
+      (offer1group1 \ "consents").as[JsArray].value.length mustBe 3
+
+      val offer1group1perm1 = (offer1group1 \ "consents" \ 0).as[JsValue]
+
+      (offer1group1perm1 \ "key").as[String] mustBe "phone"
+      (offer1group1perm1 \ "label").as[String] mustBe "Par contact téléphonique"
+      (offer1group1perm1 \ "checked").as[Boolean] mustBe false
+
+      val offer1group1perm2 = (offer1group1 \ "consents" \ 1).as[JsValue]
+
+      (offer1group1perm2 \ "key").as[String] mustBe "mail"
+      (offer1group1perm2 \ "label").as[String] mustBe "Par contact électronique"
+      (offer1group1perm2 \ "checked").as[Boolean] mustBe true
+
+      val offer1group1perm3 = (offer1group1 \ "consents" \ 2).as[JsValue]
+
+      (offer1group1perm3 \ "key").as[String] mustBe "sms"
+      (offer1group1perm3 \ "label").as[String] mustBe "Par SMS / MMS / VMS"
+      (offer1group1perm3 \ "checked").as[Boolean] mustBe false
+
+      (offers \ 1 \ "key").as[String] mustBe "offer2"
+      (offers \ 1 \ "label").as[String] mustBe "offer 2"
+      (offers \ 1 \ "groups").as[JsArray].value.length mustBe 1
+      val offer2group1 = (offers \ 1 \ "groups" \ 0).as[JsValue]
+
+      (offer2group1 \ "key").as[String] mustBe "maifNotifs"
+      (offer2group1 \ "label")
+        .as[String] mustBe "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF"
+
+      (offer2group1 \ "consents").as[JsArray].value.length mustBe 3
+
+      val offer2group1perm1 = (offer2group1 \ "consents" \ 0).as[JsValue]
+
+      (offer2group1perm1 \ "key").as[String] mustBe "phone"
+      (offer2group1perm1 \ "label").as[String] mustBe "Par contact téléphonique"
+      (offer2group1perm1 \ "checked").as[Boolean] mustBe true
+
+      val offer2group1perm2 = (offer2group1 \ "consents" \ 1).as[JsValue]
+
+      (offer2group1perm2 \ "key").as[String] mustBe "mail"
+      (offer2group1perm2 \ "label").as[String] mustBe "Par contact électronique"
+      (offer2group1perm2 \ "checked").as[Boolean] mustBe true
+
+      val offer2group1perm3 = (offer2group1 \ "consents" \ 2).as[JsValue]
+
+      (offer2group1perm3 \ "key").as[String] mustBe "sms"
+      (offer2group1perm3 \ "label").as[String] mustBe "Par SMS / MMS / VMS"
+      (offer2group1perm3 \ "checked").as[Boolean] mustBe false
+    }
+  }
 
 }
