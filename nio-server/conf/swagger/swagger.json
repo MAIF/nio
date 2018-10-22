@@ -40,6 +40,10 @@
     {
       "name": "suppression",
       "description": "La suppression des données des utilisateurs est à la charge des applications, Nio offre une API pour démarrer une suppression, obtenir le deétails d'une suppression, lister toutes les suppressions ainsi que de mettre a jour l'état d'une suppression."
+    },
+    {
+      "name": "offre",
+      "description": "La notion d'offre corresponds à l'ajout de permissions spécifiques à une  application sur une organisation donnée."
     }
   ],
   "host": "nio.foo.bar",
@@ -504,6 +508,234 @@
           },
           "404": {
             "description": "Le tenant, l'organisation ou la version spécifiée n'existe pas."
+          }
+        }
+      }
+    },
+    "/api/{tenant}/organisations/{orgKey}/offers": {
+      "get": {
+        "tags": [
+          "offre"
+        ],
+        "summary": "La liste des offres d'une organisation",
+        "description": "Récupération de la liste des offres pour une organisation données.",
+        "parameters": [
+          {
+            "name": "$CLIENT_ID",
+            "in": "header",
+            "description": "Otoroshi client id",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "$CLIENT_SECRET",
+            "in": "header",
+            "description": "Otoroshi client secret",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "tenant",
+            "in": "path",
+            "description": "Le nom du tenant",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "orgKey",
+            "in": "path",
+            "description": "La clé de l'organisation",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "La liste des offres pour une organisation donnée.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Offer"
+              }
+            }
+          },
+          "404": {
+            "description": "Le tenant ou l'organisation n'existe pas."
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "offre"
+        ],
+        "summary": "Créer une offre pour une organisation",
+        "description": "Création d'une offre pour une organisation données.",
+        "parameters": [
+          {
+            "name": "$CLIENT_ID",
+            "in": "header",
+            "description": "Otoroshi client id",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "$CLIENT_SECRET",
+            "in": "header",
+            "description": "Otoroshi client secret",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "tenant",
+            "in": "path",
+            "description": "Le nom du tenant",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "orgKey",
+            "in": "path",
+            "description": "La clé de l'organisation",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "L'offre a bien été créée sur l'organisation donnée.",
+            "schema": {
+              "$ref": "#/definitions/Offer"
+            }
+          },
+          "401": {
+            "description": "Le contexte utilisateur ne permet pas de créer une offre avec cette clé d'offre"
+          },
+          "404": {
+            "description": "Le tenant ou l'organisation n'existe pas ou l'organisation n'a jamais été passé au statut \"RELEASED\""
+          },
+          "409": {
+            "description": "La clé de l'offre existe déjà dans l'organisation."
+          }
+        }
+      }
+    },
+    "/api/{tenant}/organisations/{orgKey}/offers/{offerKey}": {
+      "put": {
+        "tags": [
+          "offre"
+        ],
+        "summary": "Mettre à jour une offre d'une organisation",
+        "description": "Mise à jour d'une offre pour une organisation données.",
+        "parameters": [
+          {
+            "name": "$CLIENT_ID",
+            "in": "header",
+            "description": "Otoroshi client id",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "$CLIENT_SECRET",
+            "in": "header",
+            "description": "Otoroshi client secret",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "tenant",
+            "in": "path",
+            "description": "Le nom du tenant",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "orgKey",
+            "in": "path",
+            "description": "La clé de l'organisation",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "offerKey",
+            "in": "path",
+            "description": "La clé de l'offre",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "L'offre a été mise à jour.",
+            "schema": {
+              "$ref": "#/definitions/Offer"
+            }
+          },
+          "401": {
+            "description": "Le contexte utilisateur ne permet pas de créer une offre avec cette clé d'offre"
+          },
+          "404": {
+            "description": "Le tenant ou l'organisation n'existe pas."
+          },
+          "409": {
+            "description": "La clé de l'offre existe déjà dans l'organisation."
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "offre"
+        ],
+        "summary": "Supprimer une offre d'une organisation",
+        "description": "Suppression d'une offre pour une organisation données.",
+        "parameters": [
+          {
+            "name": "$CLIENT_ID",
+            "in": "header",
+            "description": "Otoroshi client id",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "$CLIENT_SECRET",
+            "in": "header",
+            "description": "Otoroshi client secret",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "tenant",
+            "in": "path",
+            "description": "Le nom du tenant",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "orgKey",
+            "in": "path",
+            "description": "La clé de l'organisation",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "offerKey",
+            "in": "path",
+            "description": "La clé de l'offre",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "L'offre a été supprimé.",
+            "schema": {
+              "$ref": "#/definitions/Offer"
+            }
+          },
+          "401": {
+            "description": "Le contexte utilisateur ne permet pas de créer une offre avec cette clé d'offre"
+          },
+          "404": {
+            "description": "Le tenant, l'organisation ou l'offre n'existe pas."
           }
         }
       }
@@ -2071,7 +2303,7 @@
     },
     "AppDeletionState": {
       "type": "object",
-      "description": "informations relatives à une suppression des données d'un utilistaeur",
+      "description": "informations relatives à une suppression des données d'un utilisateur",
       "properties": {
         "appId": {
           "type": "string",
@@ -2085,7 +2317,7 @@
     },
     "DeletionTask": {
       "type": "object",
-      "description": "informations relatives à une suppression des données d'un utilistaeur",
+      "description": "informations relatives à une suppression des données d'un utilisateur",
       "properties": {
         "id": {
           "type": "string",
@@ -2234,6 +2466,31 @@
           "description": "Les élements de la page",
           "items": {
             "$ref": "#/definitions/UserExtractTask"
+          }
+        }
+      }
+    },
+    "Offer": {
+      "type": "object",
+      "description": "structure représentant une offre",
+      "properties": {
+        "key": {
+          "type": "string",
+          "description": "clé de l'offre"
+        },
+        "label": {
+          "type": "string",
+          "description": "libellé de l'offre"
+        },
+        "version": {
+          "type": "integer",
+          "description": "version de l'offre"
+        },
+        "groups": {
+          "type": "array",
+          "description": "liste des groupes associés à l'offre",
+          "items": {
+            "$ref": "#/definitions/PermissionGroup"
           }
         }
       }
