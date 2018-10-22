@@ -3,6 +3,7 @@ import PropTypes from "prop-types";
 import {LabelInput, TextInput} from "../../common/ui/inputs";
 import * as organisationService from "../services/OrganisationService";
 import {ConsentsPage} from "./Consents";
+import {GroupPermissionPage} from "./GroupPermissionPage";
 
 export class OrganisationPage extends Component {
 
@@ -14,8 +15,7 @@ export class OrganisationPage extends Component {
                 num: ''
             },
             label: '',
-            groups: [],
-            offers: []
+            groups: []
         },
         loading: true,
         visualizeConsents: false,
@@ -71,8 +71,7 @@ export class OrganisationPage extends Component {
                                     label: ''
                                 }
                             ]
-                    }],
-                    offers: []
+                    }]
                 };
 
                 this.setState({organisation, loading: false});
@@ -122,51 +121,6 @@ export class OrganisationPage extends Component {
 
     };
 
-    addOffer = () => {
-        if (!this.props.readOnlyMode) {
-            const offer = {
-                key: '',
-                label: '',
-                groups: [
-                    {
-                        key: '',
-                        label: '',
-                        permissions: [
-                            {
-                                key: '',
-                                label: ''
-                            }
-                        ]
-                    }
-                ]
-            };
-            const offers = [...this.state.organisation.offers || []];
-            offers.unshift(offer);
-
-            this.setState({organisation: {...this.state.organisation, offers}});
-        }
-    };
-
-    removeOffer = (index) => {
-        if (!this.props.readOnlyMode) {
-            const offers = [...this.state.organisation.offers];
-            offers.splice(index, 1);
-            this.setState({organisation: {...this.state.organisation, offers}});
-        }
-    };
-
-    onChangeOffer = (index, offer) => {
-        if (!this.props.readOnlyMode) {
-            const offers = [...this.state.organisation.offers];
-            offers[index] = offer;
-
-            this.setState({organisation: {...this.state.organisation, offers}}, () => {
-                if (this.state.errors && this.state.errors.length)
-                    this.validate(this.state);
-            });
-        }
-    };
-
     onChange = (value, name) => {
         if (!this.props.readOnlyMode)
             this.setState({organisation: {...this.state.organisation, [name]: value}}, () => {
@@ -209,39 +163,6 @@ export class OrganisationPage extends Component {
             })
         });
 
-        if (nextState.organisation.offers)
-        nextState.organisation.offers.forEach((offer, indexOffer) => {
-            if (!offer.key)
-                errors.push(`organisation.offers.${indexOffer}.key.required`);
-            else if (!/^\w+$/.test(offer.key)) {
-                errors.push(`organisation.offers.${indexOffer}.key.invalid`);
-            }
-
-            if (!offer.label)
-                errors.push(`organisation.offers.${indexOffer}.label.required`);
-
-            offer.groups.forEach((group, indexGroup) => {
-                if (!group.key)
-                    errors.push(`organisation.offers.${indexOffer}.groups.${indexGroup}.key.required`);
-                else if (!/^\w+$/.test(group.key)) {
-                    errors.push(`organisation.offers.${indexOffer}.groups.${indexGroup}.key.invalid`);
-                }
-
-                if (!group.label)
-                    errors.push(`organisation.offers.${indexOffer}.groups.${indexGroup}.label.required`);
-
-                group.permissions.forEach((permission, indexPermission) => {
-                    if (!permission.key)
-                        errors.push(`organisation.offers.${indexOffer}.groups.${indexGroup}.permissions.${indexPermission}.key.required`);
-                    else if (!/^\w+$/.test(permission.key)) {
-                        errors.push(`organisation.offers.${indexOffer}.groups.${indexGroup}.permissions.${indexPermission}.key.invalid`);
-                    }
-
-                    if (!permission.label)
-                        errors.push(`organisation.offers.${indexOffer}.groups.${indexGroup}.permissions.${indexPermission}.label.required`);
-                })
-            })
-        });
 
         this.setState({errors});
         console.log("errors ", errors);
@@ -279,9 +200,6 @@ export class OrganisationPage extends Component {
     release = () => {
         if (this.validate(this.state) && !this.props.readOnlyMode) {
             const organisation = {...this.state.organisation};
-
-            if (organisation.offers && !organisation.offers.length)
-                delete organisation.offers;
 
             if (this.props.organisationKey) {
                 if (organisation.version)
@@ -418,36 +336,14 @@ export class OrganisationPage extends Component {
                     </div>
                     {
                         this.state.organisation.groups.map((group, index) =>
-                            <Group key={index} index={index} group={group} onChange={this.onChangeGroup}
+                            <GroupPermissionPage key={index} index={index} group={group} onChange={this.onChangeGroup}
                                    onRemove={() => this.removeGroup(index)} readOnlyMode={this.props.readOnlyMode}
-                                   prefixe={"organisation."} errors={this.state.errors}/>
+                                   prefixe={"organisation."} errors={this.state.errors} />
                         )
                     }
-                </div>
 
-                <div className="col-md-12">
-                    <div className="row">
-                        <div className="col-md-12" style={{'marginTop': '20px'}}>
-                            {
-                                !this.props.readOnlyMode &&
-                                <div className="btn btn-xs btn-primary pull-right" onClick={this.addOffer}>Créer une
-                                    offre</div>
-                            }
-                        </div>
-                    </div>
-                    <div className="row">
-                        {
-                            this.state.organisation.offers && this.state.organisation.offers.map(
-                                (offer, index) =>
-                                    <Offer key={index} index={index} offer={offer} onChange={this.onChangeOffer}
-                                           onRemove={() => this.removeOffer(index)} errors={this.state.errors}
-                                           prefixe={"organisation."} readOnlyMode={this.state.readOnlyMode}/>
-                            )
-                        }
-                    </div>
                     {!this.props.readOnlyMode && actionButtons}
                 </div>
-
 
                 <div className="col-md-12">
                     {
@@ -482,22 +378,7 @@ export class OrganisationPage extends Component {
                                 }
                             })
                         ]
-                    }
-                    offers={[...this.state.organisation.offers.map(offer => ({
-                        key: offer.key,
-                        label: offer.label,
-                        groups: offer.groups.map(group => ({
-                            key: group.key,
-                            label: group.label,
-                            consents: group.permissions.map(permission => ({
-                                    key: permission.key,
-                                    label: permission.label,
-                                    checked: false
-                                })
-                            )
-                        }))
-
-                    }))]}/>
+                    }/>
                 }
             </div>
         );
@@ -511,332 +392,4 @@ OrganisationPage.propTypes = {
     reloadAfterSave: PropTypes.bool,
     readOnlyMode: PropTypes.bool,
     version: PropTypes.any
-};
-
-class Offer extends Component {
-
-    state = {
-        offer: {
-            name: '',
-            groups: []
-        }
-    };
-
-    componentDidMount() {
-        this.setState({offer: this.props.offer});
-    }
-
-    componentWillReceiveProps(nextProps) {
-        this.setState({offer: nextProps.offer});
-    }
-
-    onChange = (value, name) => {
-        if (!this.props.readOnlyMode)
-            this.setState({offer: {...this.state.offer, [name]: value}}, () => {
-                this.props.onChange(this.props.index, this.state.offer);
-            });
-    };
-
-
-    addGroup = () => {
-        if (!this.props.readOnlyMode) {
-
-            const group = {
-                key: '',
-                label: '',
-                permissions: [{
-                    key: '',
-                    label: ''
-                }]
-            };
-
-            const groups = [...this.state.offer.groups];
-            groups.unshift(group);
-
-            this.setState({offer: {...this.state.offer, groups}});
-        }
-    };
-
-    removeGroup = (index) => {
-        if (!this.props.readOnlyMode) {
-            const groups = [...this.state.offer.groups];
-            groups.splice(index, 1);
-            this.setState({offer: {...this.state.offer, groups}});
-        }
-    };
-
-    onChangeGroup = (index, group) => {
-        if (!this.props.readOnlyMode) {
-            const groups = [...this.state.offer.groups];
-            groups[index] = group;
-            this.setState({offer: {...this.state.offer, groups}}, () => {
-                this.props.onChange(this.props.index, this.state.offer);
-            });
-        }
-    };
-
-    render() {
-        return (
-            <div className="col-md-12">
-                <hr/>
-                <div className="form-group">
-                    <div className="row">
-                        <label className="col-sm-2 control-label"/>
-                        <div className="col-sm-10">
-                            <span className="groupe">Offre</span>
-                            {
-                                !this.props.readOnlyMode &&
-                                <button type="button" className="btn btn-danger pull-right btn-xs"
-                                        onClick={this.props.onRemove}>
-                                    <i className="glyphicon glyphicon-trash"/>
-                                </button>
-                            }
-                        </div>
-                    </div>
-                </div>
-
-                <div className="row">
-                    <div className="col-md-12" style={{'marginTop': '20px'}}>
-                        {
-                            !this.props.readOnlyMode &&
-                            <div className="btn btn-xs btn-primary pull-right" onClick={this.addGroup}>Créer un groupe
-                            </div>
-                        }
-                    </div>
-                </div>
-
-                <TextInput label={"Clé de l'offre"} value={this.state.offer.key}
-                           onChange={(e) => this.onChange(e, "key")}
-                           disabled={this.props.readOnlyMode}
-                           errorMessage={this.props.errors}
-                           errorKey={[`${this.props.prefixe}offers.${this.props.index}.key.required`, `${this.props.prefixe}offers.${this.props.index}.key.invalid`]}/>
-
-                <TextInput label={"Libellé de l'offre"} value={this.state.offer.label}
-                           onChange={(e) => this.onChange(e, "label")}
-                           disabled={this.props.readOnlyMode}
-                           errorMessage={this.props.errors}
-                           errorKey={[`${this.props.prefixe}offers.${this.props.index}.label.required`]}/>
-                {
-                    this.state.offer.groups.map(
-                        (group, index) =>
-                            <Group key={index} index={index} group={group} onChange={this.onChangeGroup}
-                                   onRemove={() => this.removeGroup(index)} readOnlyMode={this.props.readOnlyMode}
-                                   prefixe={`${this.props.prefixe}offers.${this.props.index}.`} errors={this.props.errors}/>
-                    )
-                }
-
-            </div>
-        )
-    }
-}
-
-Offer.propTypes = {
-    offer: PropTypes.object.isRequired,
-    index: PropTypes.number.isRequired,
-    onChange: PropTypes.func.isRequired,
-    onRemove: PropTypes.func.isRequired,
-    readOnlyMode: PropTypes.bool,
-    prefixe: PropTypes.string,
-    errors: PropTypes.array
-};
-
-class Group extends Component {
-
-    state = {
-        group: {
-            key: '',
-            label: '',
-            permissions: []
-        }
-    };
-
-    componentDidMount() {
-        this.setState({group: this.props.group});
-    }
-
-    componentWillReceiveProps(nextProps) {
-        this.setState({group: nextProps.group});
-    }
-
-    addPermission = () => {
-        if (!this.props.readOnlyMode) {
-            const permission = {
-                key: '',
-                label: ''
-            };
-
-            const permissions = [...this.state.group.permissions];
-            permissions.unshift(permission);
-
-            this.setState({group: {...this.state.group, permissions}}, () => {
-                this.props.onChange(this.props.index, this.state.group);
-            });
-        }
-    };
-
-    removePermission = (index) => {
-        if (!this.props.readOnlyMode) {
-            const permissions = [...this.state.group.permissions];
-            permissions.splice(index, 1);
-            this.setState({group: {...this.state.group, permissions}}, () => {
-                this.props.onChange(this.props.index, this.state.group);
-            });
-        }
-    };
-
-    onChange = (value, name) => {
-        if (!this.props.readOnlyMode)
-            this.setState({group: {...this.state.group, [name]: value}}, () => {
-                this.props.onChange(this.props.index, this.state.group);
-            });
-    };
-
-    onChangePermission = (index, permission) => {
-        if (!this.props.readOnlyMode) {
-            const permissions = [...this.state.group.permissions];
-            permissions[index] = permission;
-            this.setState({group: {...this.state.group, permissions}}, () => {
-                this.props.onChange(this.props.index, this.state.group);
-            });
-        }
-    };
-
-    render() {
-        return (
-
-            <div className="groupContent">
-                <hr/>
-                <div className="form-group">
-                    <div className="row">
-                        <label className="col-sm-2 control-label"/>
-                        <div className="col-sm-10">
-                            <span className="groupe">Groupe</span>
-                            {
-                                !this.props.readOnlyMode &&
-                                <button type="button" className="btn btn-danger pull-right btn-xs"
-                                        onClick={this.props.onRemove}>
-                                    <i className="glyphicon glyphicon-trash"/>
-                                </button>
-                            }
-                        </div>
-                    </div>
-                </div>
-
-                <TextInput label={"Clé du groupe"} value={this.state.group.key}
-                           onChange={(e) => this.onChange(e, "key")}
-                           disabled={this.props.readOnlyMode}
-                           errorMessage={this.props.errors}
-                           errorKey={[`${this.props.prefixe}groups.${this.props.index}.key.required`, `${this.props.prefixe}groups.${this.props.index}.key.invalid`]}/>
-                <TextInput label={"Libellé du groupe"} value={this.state.group.label}
-                           onChange={(e) => this.onChange(e, "label")}
-                           disabled={this.props.readOnlyMode}
-                           errorMessage={this.props.errors}
-                           errorKey={`${this.props.prefixe}groups.${this.props.index}.label.required`}/>
-
-                <div className="form-group">
-                    <div className="row">
-                        <label className="col-sm-2 control-label"/>
-                        <div className="col-sm-10" style={{'marginTop': '40px'}}>
-                            <span className="groupe">Permissions</span>
-                            {
-                                !this.props.readOnlyMode &&
-                                <button type="button" className="btn btn-primary btn-xs" style={{'marginLeft': '10px'}}
-                                        onClick={this.addPermission}>
-                                    <i className="glyphicon glyphicon-plus"/>
-                                </button>
-                            }
-                        </div>
-                    </div>
-                </div>
-
-
-                {
-                    this.state.group.permissions.map((permission, index) =>
-                        <Permission key={index} index={index} permission={permission} onChange={this.onChangePermission}
-                                    onRemove={() => this.removePermission(index)} readOnlyMode={this.props.readOnlyMode}
-                                    errors={this.props.errors}
-                                    prefixe={`${this.props.prefixe}groups.${this.props.index}.`}/>
-                    )
-                }
-            </div>
-        );
-    }
-}
-
-Group.propTypes = {
-    group: PropTypes.object.isRequired,
-    index: PropTypes.number.isRequired,
-    onChange: PropTypes.func.isRequired,
-    onRemove: PropTypes.func.isRequired,
-    readOnlyMode: PropTypes.bool,
-    prefixe: PropTypes.string,
-    errors: PropTypes.array
-};
-
-
-class Permission extends Component {
-
-    state = {
-        permission: {
-            key: '',
-            label: ''
-        }
-    };
-
-    componentDidMount() {
-        this.setState({permission: this.props.permission});
-    }
-
-    componentWillReceiveProps(nextProps) {
-        this.setState({permission: nextProps.permission});
-    }
-
-    onChange = (value, name) => {
-        if (!this.props.readOnlyMode)
-            this.setState({permission: {...this.state.permission, [name]: value}}, () => {
-                this.props.onChange(this.props.index, this.state.permission);
-            });
-    };
-
-    render() {
-        return (
-            <div className="blocOnePermission">
-                <div className="form-group">
-                    <div className="row">
-                        <label className="col-sm-2 control-label"/>
-                        <div className="col-sm-10" style={{'marginTop': '10px'}}>
-                            {
-                                !this.props.readOnlyMode &&
-                                <button className="btn btn-danger pull-right btn-xs" onClick={this.props.onRemove}>
-                                    <i className="glyphicon glyphicon-trash"/>
-                                </button>
-                            }
-                        </div>
-                    </div>
-                </div>
-                <TextInput label={"Clé de la permission"} value={this.state.permission.key}
-                           onChange={(e) => this.onChange(e, "key")}
-                           disabled={this.props.readOnlyMode}
-                           errorMessage={this.props.errors}
-                           errorKey={[`${this.props.prefixe}permissions.${this.props.index}.key.required`, `${this.props.prefixe}permissions.${this.props.index}.key.invalid`]}/>
-
-                <TextInput label={"Libellé de la permission"} value={this.state.permission.label}
-                           onChange={(e) => this.onChange(e, "label")}
-                           disabled={this.props.readOnlyMode}
-                           errorMessage={this.props.errors}
-                           errorKey={`${this.props.prefixe}permissions.${this.props.index}.label.required`}/>
-
-            </div>
-        );
-    }
-}
-
-Permission.propTypes = {
-    permission: PropTypes.object.isRequired,
-    index: PropTypes.number.isRequired,
-    onChange: PropTypes.func.isRequired,
-    onRemove: PropTypes.func.isRequired,
-    readOnlyMode: PropTypes.bool,
-    prefixe: PropTypes.string,
-    errors: PropTypes.array
 };
