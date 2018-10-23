@@ -746,7 +746,7 @@
           "utilisateur"
         ],
         "summary": "La structure de consentements.",
-        "description": "Récupération de la structure des consentements initialisée avec la structure de la dernière publiée de permissions de l'organisation spécifiée.",
+        "description": "Récupération de la structure des consentements initialisée avec la structure de la dernière publiée de permissions de l'organisation spécifiée filtrée par le contexte utilisateur",
         "parameters": [
           {
             "name": "$CLIENT_ID",
@@ -782,6 +782,13 @@
             "description": "Identifiant de l'utilisateur pour lequel vous souhaitez mettre à jour les consentements à partir de la dernière version publiée de l'organisation",
             "required": false,
             "type": "string"
+          },
+          {
+            "name": "offerKeys",
+            "in": "query",
+            "description": "Liste de clé d'offre pour lesquelles vous souhaitez récupérer la structure des consentements",
+            "required": false,
+            "type": "string"
           }
         ],
         "responses": {
@@ -803,7 +810,7 @@
           "utilisateur"
         ],
         "summary": "Consentements d'un utilisateur.",
-        "description": "Récupération des consentements enregistrés pour un utilisateur donné pour une organisation donnée.",
+        "description": "Récupération des consentements enregistrés pour un utilisateur donné pour une organisation donnée filtrés par le contexte utilisateur.",
         "parameters": [
           {
             "name": "$CLIENT_ID",
@@ -911,6 +918,9 @@
             "schema": {
               "$ref": "#/definitions/ConsentFact"
             }
+          },
+          "401": {
+            "description": "Le contexte utilisateur ne permet de souscrire à une offre ou de modifier ses consentements"
           },
           "404": {
             "description": "Le tenant ou l'organisation n'existe pas."
@@ -1083,6 +1093,73 @@
           },
           "404": {
             "description": "Le tenant n'existe pas."
+          }
+        }
+      }
+    },
+    "/api/:tenant/organisations/:orgKey/users/:userId/offers/:offerKey": {
+      "delete": {
+        "tags": [
+          "utilisateur"
+        ],
+        "summary": "Supprimer les consentements d'une offre souscrite",
+        "description": "Suppression des consentements d'une offre souscrite par l'utilisateur. Si l'offre n'est pas souscrite par l'utilisateur, l'api retournera erreur 400 ",
+        "parameters": [
+          {
+            "name": "$CLIENT_ID",
+            "in": "header",
+            "description": "Otoroshi client id",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "$CLIENT_SECRET",
+            "in": "header",
+            "description": "Otoroshi client secret",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "tenant",
+            "in": "path",
+            "description": "Le nom du tenant",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "orgKey",
+            "in": "path",
+            "description": "La clé de l'organisation",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "userId",
+            "in": "path",
+            "description": "L'identifiant utilisateur",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "offerKey",
+            "in": "path",
+            "description": "La clé de l'offre",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "L'offre supprimée",
+            "schema": {
+              "$ref": "#/definitions/Offer"
+            }
+          },
+          "401": {
+            "description": "Le contexte utilisateur ne permet pas de supprimer une offre avec cette clé d'offre"
+          },
+          "404": {
+            "description": "Le tenant, l'organisation, l'utilisateur ou l'offre n'existe pas"
           }
         }
       }
@@ -2210,6 +2287,13 @@
           "items": {
             "$ref": "#/definitions/ConsentGroup"
           }
+        },
+        "offers": {
+          "type": "array",
+          "description": "liste des offres souscrites par l'utilisateur",
+          "items": {
+            "$ref": "#/definitions/ConsentOffer"
+          }
         }
       }
     },
@@ -2491,6 +2575,31 @@
           "description": "liste des groupes associés à l'offre",
           "items": {
             "$ref": "#/definitions/PermissionGroup"
+          }
+        }
+      }
+    },
+    "ConsentOffer": {
+      "type": "object",
+      "description": "structure représentant les consentements d'une offre",
+      "properties": {
+        "key": {
+          "type": "string",
+          "description": "clé de l'offre"
+        },
+        "label": {
+          "type": "string",
+          "description": "libellé de l'offre"
+        },
+        "version": {
+          "type": "integer",
+          "description": "version de l'offre"
+        },
+        "groups": {
+          "type": "array",
+          "description": "liste des groupes de consentements associés à l'offre",
+          "items": {
+            "$ref": "#/definitions/ConsentGroup"
           }
         }
       }
