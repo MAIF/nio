@@ -16,6 +16,7 @@ import utils.Result.{AppErrors, ErrorMessage}
 
 import scala.concurrent.{ExecutionContext, Future}
 import play.api.mvc.Results._
+import reactivemongo.bson.BSONObjectID
 
 class ConsentManagerService(
     lastConsentFactMongoDataStore: LastConsentFactMongoDataStore,
@@ -438,14 +439,39 @@ class ConsentManagerService(
       .copy(userId = userId)
   }
 
-  def delete(
-      tenant: String,
-      orgKey: String,
-      userId: String,
-      offerKey: String): Future[Either[AppErrorWithStatus, ConsentOffer]] = {
-    lastConsentFactMongoDataStore.removeOfferById(tenant,
-                                                  orgKey,
-                                                  userId,
-                                                  offerKey)
+  def delete(tenant: String,
+             orgKey: String,
+             userId: String,
+             offerKey: String,
+             author: String,
+             metadata: Option[Seq[(String, String)]],
+             lastConsentFactStored: ConsentFact)
+    : Future[Either[AppErrorWithStatus, ConsentOffer]] = {
+    import cats.implicits._
+    for {
+      removeResult <- lastConsentFactMongoDataStore.removeOfferById(tenant,
+                                                                    orgKey,
+                                                                    userId,
+                                                                    offerKey)
+      mayBelastConsentFactToStore <- lastConsentFactMongoDataStore
+        .findByOrgKeyAndUserId(tenant, orgKey, userId)
+      _ <- mayBelastConsentFactToStore match {
+        case Some(lastConsentFactToStore) =>
+          val lastConsentFactToStoreCopy =
+            lastConsentFactToStore.copy(_id = BSONObjectID.generate().stringify)
+          consentFactMongoDataStore.insert(tenant, lastConsentFactToStoreCopy) *>
+            FastFuture.successful(
+              kafkaMessageBroker.publish(
+                ConsentFactUpdated(
+                  tenant = tenant,
+                  oldValue = lastConsentFactStored,
+                  payload = lastConsentFactToStore,
+                  author = author,
+                  metadata = metadata
+                )))
+        case None => FastFuture.successful(())
+      }
+
+    } yield removeResult
   }
 }

@@ -337,7 +337,13 @@ class ConsentController(
               Future.successful("error.offer.not.found".notFound())
             case Some(offer) =>
               consentManagerService
-                .delete(tenant, orgKey, userId, offer.key)
+                .delete(tenant,
+                        orgKey,
+                        userId,
+                        offer.key,
+                        req.authInfo.sub,
+                        req.authInfo.metadatas,
+                        consentFact)
                 .flatMap {
                   case Left(e) =>
                     Future.successful(e.renderError())

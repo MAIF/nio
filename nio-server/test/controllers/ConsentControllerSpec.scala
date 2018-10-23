@@ -1062,6 +1062,16 @@ class ConsentControllerSpec extends TestUtils {
       response.status mustBe OK
 
       (response.json \ "offers").as[JsArray].value.length mustBe 2
+      val msgAsJson = readLastKafkaEvent()
+      (msgAsJson \ "type").as[String] mustBe "ConsentFactCreated"
+      (msgAsJson \ "payload" \ "userId").as[String] mustBe consent.userId
+      val payloadOffers: JsArray =
+        (msgAsJson \ "payload" \ "offers").as[JsArray]
+      payloadOffers.value.size mustBe 2
+      (payloadOffers \ 0 \ "key")
+        .as[String] mustBe "offer1"
+      (payloadOffers \ 1 \ "key")
+        .as[String] mustBe "offer2"
 
       delete(
         s"/$tenant/organisations/$orgKey/users/$userId/offers/$offerKeyNotAuthorized").status mustBe NOT_FOUND
@@ -1077,6 +1087,16 @@ class ConsentControllerSpec extends TestUtils {
 
       (offers \ 0 \ "key").as[String] mustBe "offer2"
       (offers \ 0 \ "label").as[String] mustBe "offer two"
+
+      val msgAsJsonAfterDelete = readLastKafkaEvent()
+      (msgAsJsonAfterDelete \ "type").as[String] mustBe "ConsentFactUpdated"
+      (msgAsJsonAfterDelete \ "payload" \ "userId")
+        .as[String] mustBe consent.userId
+      val payloadOffers2: JsArray =
+        (msgAsJsonAfterDelete \ "payload" \ "offers").as[JsArray]
+      payloadOffers2.value.size mustBe 1
+      (payloadOffers2 \ 0 \ "key")
+        .as[String] mustBe "offer2"
     }
   }
 }
