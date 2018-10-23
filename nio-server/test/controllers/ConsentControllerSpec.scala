@@ -1074,7 +1074,7 @@ class ConsentControllerSpec extends TestUtils {
         .as[String] mustBe "offer2"
 
       delete(
-        s"/$tenant/organisations/$orgKey/users/$userId/offers/$offerKeyNotAuthorized").status mustBe NOT_FOUND
+        s"/$tenant/organisations/$orgKey/users/$userId/offers/$offerKeyNotAuthorized").status mustBe UNAUTHORIZED
       delete(s"/$tenant/organisations/$orgKey/users/$userId/offers/$offerKey1").status mustBe OK
 
       val deleteResponse =
@@ -1097,6 +1097,8 @@ class ConsentControllerSpec extends TestUtils {
       payloadOffers2.value.size mustBe 1
       (payloadOffers2 \ 0 \ "key")
         .as[String] mustBe "offer2"
+
+      delete(s"/$tenant/organisations/$orgKey/users/$userId/offers/$offerKey1").status mustBe NOT_FOUND
     }
   }
 }

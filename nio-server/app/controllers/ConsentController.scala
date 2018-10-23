@@ -323,34 +323,43 @@ class ConsentController(
                   orgKey: String,
                   userId: String,
                   offerKey: String) = AuthAction.async { implicit req =>
-    lastConsentFactMongoDataStore
-      .findByOrgKeyAndUserId(tenant, orgKey, userId)
-      .flatMap {
-        case None =>
-          // if this occurs it means a user is known but it has no consents, this is a BUG
-          Future.successful("error.unknown.user.or.organisation".notFound())
-        case Some(consentFact) =>
-          consentFact.offers.flatMap(offers =>
-            offers.find(o => o.key == offerKey)) match {
+    req.authInfo.offerRestrictionPatterns match {
+      case None =>
+        Logger.error(s"offer $offerKey unauthorized")
+        Future.successful("error.offer.unauthorized".unauthorized())
+      case Some(pattern) if !pattern.exists(p => offerKey.matches(p)) =>
+        Logger.error(s"offer $offerKey unauthorized")
+        Future.successful("error.offer.unauthorized".unauthorized())
+      case Some(_) =>
+        lastConsentFactMongoDataStore
+          .findByOrgKeyAndUserId(tenant, orgKey, userId)
+          .flatMap {
             case None =>
-              Logger.error(s"offer $offerKey not found")
-              Future.successful("error.offer.not.found".notFound())
-            case Some(offer) =>
-              consentManagerService
-                .delete(tenant,
-                        orgKey,
-                        userId,
-                        offer.key,
-                        req.authInfo.sub,
-                        req.authInfo.metadatas,
-                        consentFact)
-                .flatMap {
-                  case Left(e) =>
-                    Future.successful(e.renderError())
-                  case Right(o) =>
-                    Future.successful(renderMethod(o))
-                }
+              // if this occurs it means a user is known but it has no consents, this is a BUG
+              Future.successful("error.unknown.user.or.organisation".notFound())
+            case Some(consentFact) =>
+              consentFact.offers.flatMap(offers =>
+                offers.find(o => o.key == offerKey)) match {
+                case None =>
+                  Logger.error(s"offer $offerKey not found")
+                  Future.successful("error.offer.not.found".notFound())
+                case Some(offer) =>
+                  consentManagerService
+                    .delete(tenant,
+                            orgKey,
+                            userId,
+                            offer.key,
+                            req.authInfo.sub,
+                            req.authInfo.metadatas,
+                            consentFact)
+                    .flatMap {
+                      case Left(e) =>
+                        Future.successful(e.renderError())
+                      case Right(o) =>
+                        Future.successful(renderMethod(o))
+                    }
+              }
           }
-      }
+    }
   }
 }
