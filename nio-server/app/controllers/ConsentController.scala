@@ -147,9 +147,10 @@ class ConsentController(
               "error.unknown.user.or.organisation".notFound()
             case Some(consentFact) =>
               // TODO: later handle here new version template version check
-              val restrictedConsentFact = ConsentFact.withRestriction(
-                consentFact,
-                req.authInfo.offerRestrictionPatterns)
+              val restrictedConsentFact =
+                consentManagerService.consentFactWithAccessibleOffers(
+                  consentFact,
+                  req.authInfo.offerRestrictionPatterns)
 
               context.stop()
               renderMethod(restrictedConsentFact)
@@ -172,8 +173,10 @@ class ConsentController(
                 page,
                 pageSize,
                 count,
-                consentsFacts.map(ConsentFact
-                  .withRestriction(_, req.authInfo.offerRestrictionPatterns)))
+                consentsFacts.map(
+                  consentManagerService.consentFactWithAccessibleOffers(
+                    _,
+                    req.authInfo.offerRestrictionPatterns)))
 
             renderMethod(pagedConsentFacts)
         }
@@ -311,23 +314,15 @@ class ConsentController(
     )
   }
 
-  /**
-    * DELETE /api/:tenant/organisations/:orgKey/users/:userId/offers/:offerKey
-    * description : suppression d’une offre dans les consentements d’un utilisateur donné.
-    * La suppression d’une offre doit être tracé afin qu’elle ne soit plus proposée par la suite.
-    * erreur :
-    * code 404 : le tenant, l’organisation, l’utilisateur ou l’offre n’existe pas.
-    * code 404 : l’offre n’est pas accessible par le contexte utilisateur
-    */
   def deleteOffer(tenant: String,
                   orgKey: String,
                   userId: String,
                   offerKey: String) = AuthAction.async { implicit req =>
     req.authInfo.offerRestrictionPatterns match {
-      case None =>
-        Logger.error(s"offer $offerKey unauthorized")
-        Future.successful("error.offer.unauthorized".unauthorized())
-      case Some(pattern) if !pattern.exists(p => offerKey.matches(p)) =>
+      case Some(_)
+          if !accessibleOfferService.accessibleOfferKey(
+            offerKey,
+            req.authInfo.offerRestrictionPatterns) =>
         Logger.error(s"offer $offerKey unauthorized")
         Future.successful("error.offer.unauthorized".unauthorized())
       case Some(_) =>

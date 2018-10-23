@@ -398,19 +398,4 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
   def addOrgKey(consentFact: ConsentFact, orgKey: String): ConsentFact = {
     consentFact.copy(orgKey = Some(orgKey))
   }
-
-  def withRestriction(consentFact: ConsentFact,
-                      maybePattern: Option[Seq[String]]): ConsentFact = {
-    consentFact.copy(offers = consentFact.offers match {
-      case None => None
-      case Some(offers) =>
-        Some(
-          offers
-            .filter(offer =>
-              maybePattern match {
-                case None          => false
-                case Some(pattern) => pattern.exists(p => offer.key.matches(p))
-            }))
-    })
-  }
 }

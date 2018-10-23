@@ -23,9 +23,22 @@ class ConsentManagerService(
     consentFactMongoDataStore: ConsentFactMongoDataStore,
     userMongoDataStore: UserMongoDataStore,
     organisationMongoDataStore: OrganisationMongoDataStore,
+    accessibleOfferService: AccessibleOfferManagerService,
     kafkaMessageBroker: KafkaMessageBroker)(
     implicit val executionContext: ExecutionContext)
     extends ServiceUtils {
+
+  def consentFactWithAccessibleOffers(
+      consentFact: ConsentFact,
+      maybePattern: Option[Seq[String]]): ConsentFact = {
+    consentFact.copy(offers = consentFact.offers match {
+      case None => None
+      case Some(offers) =>
+        Some(offers
+          .filter(offer =>
+            accessibleOfferService.accessibleOfferKey(offer.key, maybePattern)))
+    })
+  }
 
   private def createOrReplace(tenant: String,
                               author: String,

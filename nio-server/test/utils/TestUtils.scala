@@ -33,6 +33,7 @@ import play.api.{Application, ApplicationLoader, Configuration, Environment}
 import play.core.DefaultWebCommands
 import play.modules.reactivemongo.ReactiveMongoApi
 import reactivemongo.play.json.collection.JSONCollection
+import service.ConsentManagerService
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -84,6 +85,9 @@ trait TestUtils
     new NioSpec(getContext, Some(authInfo))
 
   protected def ws: WSClient = nioComponents.wsClient
+
+  protected lazy val consentManagerService: ConsentManagerService =
+    nioComponents.consentManagerService
 
   private lazy val getContext: ApplicationLoader.Context = {
     val env = Environment.simple()
