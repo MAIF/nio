@@ -28,5 +28,3 @@ and general hints on how to prepare your pull request. You can also ask for clar
 ## License
 
 Nio is Open Source and available under the Apache 2 License.
-
-
