@@ -70,7 +70,7 @@ class ConsentController(
             req.authInfo.offerRestrictionPatterns)
           .flatMap {
             case Left(errors) =>
-              FastFuture.successful(NotFound("")) //FIXME: use renderError instead
+              FastFuture.successful(errors.renderError())
             case Right(maybeOrganisation) =>
               maybeOrganisation match {
                 case None =>

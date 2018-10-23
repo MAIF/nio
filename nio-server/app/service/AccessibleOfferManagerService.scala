@@ -1,11 +1,13 @@
 package service
 
 import akka.http.scaladsl.util.FastFuture
+import controllers.AppErrorWithStatus
 import db.OrganisationMongoDataStore
 import models.{Offer, Organisation}
 import play.api.Logger
 import play.api.libs.json.Json
 import utils.Result.{AppErrors, ErrorMessage}
+import play.api.mvc.Results._
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -55,7 +57,7 @@ class AccessibleOfferManagerService(
       tenant: String,
       orgKey: String,
       offerRestrictionPatterns: Option[Seq[String]])
-    : Future[Either[AppErrors, Option[Organisation]]] = {
+    : Future[Either[AppErrorWithStatus, Option[Organisation]]] = {
     offerRestrictionPatterns match {
       case None =>
         FastFuture.successful(Right(None))
@@ -73,7 +75,9 @@ class AccessibleOfferManagerService(
             Right(Some(filteredOrganisation))
           case None =>
             Left(
-              AppErrors(Seq(ErrorMessage(s"organisation.$orgKey.not.found"))))
+              AppErrorWithStatus(
+                AppErrors(Seq(ErrorMessage(s"organisation.$orgKey.not.found"))),
+                NotFound))
         }
     }
   }
