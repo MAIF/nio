@@ -36,6 +36,10 @@ build_server () {
   sbt 'project nio-server' ';clean;compile;dist;assembly'
 }
 
+run_test () {
+    cd $LOCATION
+    sbt test
+}
 
 case "${1}" in
   all)
@@ -43,7 +47,7 @@ case "${1}" in
     build_ui
     build_manual
     build_server
-    # test_server
+    run_test
     # build_cli
     ;;
   cli)
@@ -67,7 +71,7 @@ case "${1}" in
     build_manual
     build_server
     build_provider
-    # test_server
+    run_test
     # build_cli
 esac
 
