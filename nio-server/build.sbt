@@ -130,4 +130,4 @@ dockerEntrypoint ++= Seq(
 
 dockerUpdateLatest := true
 
-packageName in Universal := s"${name.value}_dist"
+packageName in Universal := s"nio"

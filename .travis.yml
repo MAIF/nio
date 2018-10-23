@@ -10,9 +10,21 @@ scala:
 services:
   - docker
 
+# Environment variables :
+
+# Bintray auth
+#  - User: BINTRAY_USER
+#  - Password: BINTRAY_PASS
+
+# Docker auth
+# - User: DOCKER_USER
+# - Password: DOCKER_PASSWORD
+
 before_install:
+  - docker login -u ${DOCKER_USER} -p ${DOCKER_PASSWORD}
   - docker-compose -f docker-compose.test.yml up -d
 
 
 script:
   - sh ./scripts/build.sh all
+  - sh ./scripts/bintray-publish.sh
