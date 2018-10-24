@@ -3,7 +3,7 @@ package controllers
 import akka.actor.ActorSystem
 import akka.http.scaladsl.util.FastFuture
 import akka.stream.ActorMaterializer
-import auth.AuthAction
+import auth.{AuthAction, AuthContext}
 import controllers.ErrorManager.{
   AppErrorManagerResult,
   ErrorManagerResult,
@@ -18,7 +18,7 @@ import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import service.OfferManagerService
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 class OrganisationOfferController(
     val authAction: AuthAction,
@@ -48,89 +48,109 @@ class OrganisationOfferController(
         }
     }
 
+  import play.api.mvc._
+
+  private def preSave(tenant: String,
+                      orgKey: String,
+                      saveAction: (String,
+                                   String,
+                                   AuthContext[XmlOrJson],
+                                   Offer,
+                                   Option[Offer]) => Future[Result])(
+      implicit req: AuthContext[XmlOrJson]) = {
+    req.body.read[Offer] match {
+      case Left(error) =>
+        Logger.error("Unable to parse offer  " + error)
+        FastFuture.successful(error.badRequest())
+      case Right(offer) =>
+        OfferValidator.validateOffer(offer) match {
+          case Right(_) =>
+            organisationMongoDataStore
+              .findOffer(tenant, orgKey, offer.key)
+              .flatMap {
+                case Left(e) =>
+                  FastFuture.successful(e.notFound())
+                case Right(maybeOffer) =>
+                  saveAction(tenant, orgKey, req, offer, maybeOffer)
+              }
+          case Left(e) =>
+            FastFuture.successful(e.badRequest())
+        }
+
+    }
+  }
+
   def add(tenant: String, orgKey: String): Action[XmlOrJson] =
     authAction.async(bodyParser) { implicit req =>
-      req.body.read[Offer] match {
-        case Left(error) =>
-          Logger.error("Unable to parse offer  " + error)
-          FastFuture.successful(error.badRequest())
-        case Right(offer) =>
-          OfferValidator.validateOffer(offer) match {
-            case Right(_) =>
-              organisationMongoDataStore
-                .findOffer(tenant, orgKey, offer.key)
-                .flatMap {
+      val addOffer: (String,
+                     String,
+                     AuthContext[XmlOrJson],
+                     Offer,
+                     Option[Offer]) => Future[Result] =
+        (tenant, orgKey, req, offer, maybeOffer) => {
+          implicit val request: AuthContext[XmlOrJson] = req
+          maybeOffer match {
+            case Some(_) =>
+              FastFuture.successful(
+                s"offer.with.key.${offer.key}.on.organisation.$orgKey.already.exist"
+                  .conflict())
+            case None =>
+              offerManagerService
+                .save(tenant,
+                      orgKey,
+                      None,
+                      offer.copy(version = 1),
+                      req.authInfo.offerRestrictionPatterns)
+                .map {
                   case Left(e) =>
-                    FastFuture.successful(e.notFound())
-                  case Right(maybeOffer) =>
-                    maybeOffer match {
-                      case Some(_) =>
-                        FastFuture.successful(
-                          s"offer.with.key.${offer.key}.on.organisation.$orgKey.already.exist"
-                            .conflict())
-                      case None =>
-                        offerManagerService
-                          .save(tenant,
-                                orgKey,
-                                None,
-                                offer.copy(version = 1),
-                                req.authInfo.offerRestrictionPatterns)
-                          .map {
-                            case Left(e) =>
-                              e.renderError()
-                            case Right(value) =>
-                              renderMethod(value, Created)
-                          }
-                    }
-
+                    e.renderError()
+                  case Right(value) =>
+                    renderMethod(value, Created)
                 }
-            case Left(e) =>
-              FastFuture.successful(e.badRequest())
           }
+        }
 
-      }
+      preSave(
+        tenant,
+        orgKey,
+        addOffer
+      )
     }
 
   def update(tenant: String,
              orgKey: String,
              offerKey: String): Action[XmlOrJson] =
     authAction.async(bodyParser) { implicit req =>
-      req.body.read[Offer] match {
-        case Left(error) =>
-          Logger.error("Unable to parse offer  " + error)
-          FastFuture.successful(error.badRequest())
-        case Right(offer) =>
-          OfferValidator.validateOffer(offer) match {
-            case Right(_) =>
-              organisationMongoDataStore
-                .findOffer(tenant, orgKey, offer.key)
-                .flatMap {
+      val updateOffer: (String,
+                        String,
+                        AuthContext[XmlOrJson],
+                        Offer,
+                        Option[Offer]) => Future[Result] =
+        (tenant, orgKey, req, offer, maybeOffer) => {
+          implicit val request: AuthContext[XmlOrJson] = req
+          maybeOffer match {
+            case Some(previousOffer) =>
+              offerManagerService
+                .save(tenant,
+                      orgKey,
+                      Some(offerKey),
+                      offer.copy(version = previousOffer.version + 1),
+                      req.authInfo.offerRestrictionPatterns)
+                .map {
                   case Left(e) =>
-                    FastFuture.successful(e.badRequest())
-                  case Right(maybeOffer) =>
-                    maybeOffer match {
-                      case Some(previousOffer) =>
-                        offerManagerService
-                          .save(tenant,
-                                orgKey,
-                                Some(offerKey),
-                                offer.copy(version = previousOffer.version + 1),
-                                req.authInfo.offerRestrictionPatterns)
-                          .map {
-                            case Left(e) =>
-                              e.renderError()
-                            case Right(value) =>
-                              renderMethod(value)
-                          }
-                      case None =>
-                        FastFuture.successful(
-                          s"offer.${offer.key}.not.found".notFound())
-                    }
+                    e.renderError()
+                  case Right(value) =>
+                    renderMethod(value)
                 }
-            case Left(e) =>
-              FastFuture.successful(e.badRequest())
+            case None =>
+              FastFuture.successful(s"offer.${offer.key}.not.found".notFound())
           }
-      }
+        }
+      preSave(
+        tenant,
+        orgKey,
+        updateOffer
+      )
     }
 
   def delete(tenant: String,
