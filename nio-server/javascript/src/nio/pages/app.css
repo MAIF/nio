@@ -334,6 +334,20 @@ footer {
     border-color: #5cb85c;
 }
 
+.btn-alert {
+  color: #fff;
+  border: 1px solid #D5443F;
+}
+
+.btn-alert-reverse{
+  color: #D5443F;
+}
+.btn-alert.active, .btn-alert.active:hover, .btn-alert:hover {
+  color: #fff;
+  border: 1px solid #D5443F;
+  background-color: #D5443F;
+}
+
 .btnsNewOrga{
   margin-top: 10px;
   margin-bottom: 10px;

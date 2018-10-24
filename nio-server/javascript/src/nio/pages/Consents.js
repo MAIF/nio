@@ -47,6 +47,16 @@ export class ConsentsPage extends Component {
         }
     };
 
+	unsubscribeOffer = (offer) => {
+		if (!this.props.readOnlyMode) {
+			consentService.removeOffer(this.props.tenant, this.props.organisationKey, this.props.userId, offer.key)
+				.then(() => {
+					if (this.props.onSave)
+						this.props.onSave();
+				});
+		}
+	};
+
     render() {
         return (
             <div className="col-md-12" style={{marginTop: "20px"}}>
@@ -60,7 +70,7 @@ export class ConsentsPage extends Component {
 
                 {
                     this.state.offers && this.state.offers.map((offer, index) =>
-                        <Offer key={index} offer={offer} index={index} onChange={this.onChangeOffer}
+                        <Offer key={index} offer={offer} index={index} onChange={this.onChangeOffer} onUnsubscribe={() => this.unsubscribeOffer(offer)}
                                readOnlyMode={this.props.readOnlyMode}/>
                     )
                 }
@@ -258,6 +268,14 @@ class Offer extends Component {
                                 )
                             }
                         </div>
+						{
+							!this.props.readOnlyMode &&
+							<div className="col-md-2">
+								<div className="btn btn-alert btn-alert-reverse" onClick={this.props.onUnsubscribe}>
+									désouscription
+								</div>
+							</div>
+						}
                     </div>
                 </div>
             </div>
@@ -270,5 +288,6 @@ Offer.propTypes = {
     index: PropTypes.number.isRequired,
     offer: PropTypes.object.isRequired,
     onChange: PropTypes.func.isRequired,
+	onUnsubscribe: PropTypes.func.isRequired,
     readOnlyMode: PropTypes.bool,
 };
