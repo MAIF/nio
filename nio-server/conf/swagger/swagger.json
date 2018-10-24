@@ -746,7 +746,7 @@
           "utilisateur"
         ],
         "summary": "La structure de consentements.",
-        "description": "Récupération de la structure des consentements initialisée avec la structure de la dernière publiée de permissions de l'organisation spécifiée filtrée par le contexte utilisateur",
+        "description": "Récupération de la structure de consentements à partir de la dernière version publiée de l'organisation. Les offres seront filtrées par le contexte utilisateur.",
         "parameters": [
           {
             "name": "$CLIENT_ID",
@@ -920,7 +920,7 @@
             }
           },
           "401": {
-            "description": "Le contexte utilisateur ne permet de souscrire à une offre ou de modifier ses consentements"
+            "description": "Le contexte utilisateur ne permet de souscrire ou de modifier les consentements d'une offre."
           },
           "404": {
             "description": "Le tenant ou l'organisation n'existe pas."
@@ -1102,8 +1102,8 @@
         "tags": [
           "utilisateur"
         ],
-        "summary": "Supprimer les consentements d'une offre souscrite",
-        "description": "Suppression des consentements d'une offre souscrite par l'utilisateur. Si l'offre n'est pas souscrite par l'utilisateur, l'api retournera erreur 400 ",
+        "summary": "Supprimer une offre des consentements utilisateur.",
+        "description": "Suppression d'une offre des consentements de l'utilisateur. Si l'offre n'est pas souscrite par l'utilisateur, l'api retournera erreur 400 ",
         "parameters": [
           {
             "name": "$CLIENT_ID",
