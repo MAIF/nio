@@ -10,7 +10,21 @@ scala:
 services:
   - docker
 
+# Environment variables :
+
+# Bintray auth
+#  - User: BINTRAY_USER
+#  - Password: BINTRAY_PASS
+
+# Docker auth
+# - User: DOCKER_USER
+# - Password: DOCKER_PASSWORD
+
 before_install:
-  - docker run -d -p 2181:2181 -p 9092:9092 --env ADVERTISED_HOST=127.0.0.1 --env ADVERTISED_PORT=9092 spotify/kafka
-  - docker run -d -p 27017:27017 mongo:3.4.3
-  - docker run -d -p 8000:8000 --env SCALITY_ACCESS_KEY_ID=newAccessKey --env SCALITY_SECRET_ACCESS_KEY=newSecretKey scality/s3server
+  - docker login -u ${DOCKER_USER} -p ${DOCKER_PASSWORD}
+  - docker-compose -f docker-compose.test.yml up -d
+
+
+script:
+  - sh ./scripts/build.sh all
+  - sh ./scripts/bintray-publish.sh

@@ -36,6 +36,39 @@ const translateObject = {
                     }
                 }
             }
+        },
+        offers: {
+            x: {
+                key: {
+                    required: "La clé de l'offre est obligatoire.",
+                    invalid: "Le format de la clé de l'offre est incorrect (un mot sans espace ni caractère spécial)."
+                },
+                label: {
+                    required: "Le libellé de l'offre est obligatoire."
+                },
+                groups: {
+                    x: {
+                        key: {
+                            required: "La clé du groupe de l'offre est obligatoire.",
+                            invalid: "Le format de la clé du groupe de l'offre est incorrect (un mot sans espace ni caractère spécial)."
+                        },
+                        label: {
+                            required: "Le libellé du groupe de l'offre est obligatoire."
+                        },
+                        permissions: {
+                            x: {
+                                key: {
+                                    required: "La clé de la permission de l'offre est obligatoire.",
+                                    invalid: "Le format de la clé de la permission de l'offre est incorrect (un mot sans espace ni caractère spécial)."
+                                },
+                                label: {
+                                    required: "Le libellé de la permission de l'offre est obligatoire."
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     consentsSample: {
@@ -47,6 +80,41 @@ const translateObject = {
         },
         userId: {
             required: "L'identifiant de l'utilisateur est obligatoire."
+        }
+    },
+    offers: {
+        x: {
+            key: {
+                required: "La clé de l'offre est obligatoire.",
+                invalid: "Le format de la clé de l'offre est incorrect (un mot sans espace ni caractère spécial)."
+            },
+            label: {
+                required: "Le libellé de l'offre est obligatoire."
+            },
+            groups: {
+                required: "Au moins un groupe doit être défini.",
+                x: {
+                    key: {
+                        required: "La clé du groupe est obligatoire.",
+                        invalid: "Le format de la clé du groupe est incorrect (un mot sans espace ni caractère spécial)."
+                    },
+                    label: {
+                        required: "Le libellé du groupe est obligatoire."
+                    },
+                    permissions: {
+                        required: "Au moins une permission doit être définie.",
+                        x: {
+                            key: {
+                                required: "La clé de la permission est obligatoire.",
+                                invalid: "Le format de la clé de la permission est incorrect (un mot sans espace ni caractère spécial)."
+                            },
+                            label: {
+                                required: "Le libellé de la permission est obligatoire."
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 };

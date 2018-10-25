@@ -20,7 +20,7 @@ export const ConsentFactDisplayPage = (props) => {
         <LabelInput value={props.user.version} label={"Basé sur la version"} alignLeft={true}/>
         <LabelInput value={lastUpdate} label={"Mis à jour le"} alignLeft={true}/>
 
-        <ConsentsPage {...props} groups={props.user.groups} user={props.user}
+        <ConsentsPage {...props} groups={props.user.groups} offers={props.user.offers} user={props.user}
                       submitable={false} readOnlyMode={true}/>
       </div>
     </div>

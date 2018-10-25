@@ -76,7 +76,42 @@ export class SampleConsentsPage extends Component {
         return errors.length === 0;
     };
 
+    compareWithCurrent = () => {
+        if (this.state.templateUser && this.state.user) {
+            if (this.state.templateUser.version !== this.state.user.version)
+                return true;
+            else {
+                if (this.state.templateUser.offers && !this.state.user.offers) {
+                    return true;
+                } else if (!this.state.templateUser.offers && this.state.user.offers) {
+                    return true;
+                } else {
+                    if (this.state.templateUser.offers.length !== this.state.user.offers.length)
+                        return true;
+                    else {
+                        let templateOfferKeys = this.state.templateUser.offers.map(o => o.key).sort();
+                        let userOfferKeys = this.state.user.offers.map(o => o.key).sort();
+
+                        if (_.eq(templateOfferKeys, userOfferKeys)) {
+                            return true;
+                        } else {
+                            let diff = false;
+                            this.state.templateUser.offers.forEach(o => {
+                                if (!diff && this.state.user.offers.find(uo => uo.key === o.key && uo.version !== o.version))
+                                    diff = true
+                            });
+
+                            return diff;
+                        }
+                    }
+                }
+            }
+        }
+    };
+
     render() {
+        const newTemplateAvailable = this.compareWithCurrent();
+
         return (
             <div className="row">
                 <div className="col-md-12">
@@ -124,7 +159,7 @@ export class SampleConsentsPage extends Component {
                                 <h3>Récupération d'un nouveau template de consentement basé sur l'organisation</h3>
                                 :
                                 <h3>Récupération des consentements de l'utilisateur {
-                                    this.state.templateUser && this.state.templateUser.version !== this.state.user.version &&
+                                    newTemplateAvailable &&
                                     <div className="btn btn-primary"
                                          onClick={() => this.setState({user: {...this.state.templateUser}})}>Mettre à
                                         jour les consentements
@@ -158,9 +193,10 @@ export class SampleConsentsPage extends Component {
 
                 {
                     this.state.user &&
-                    <ConsentsPage groups={this.state.user.groups} user={this.state.user} tenant={this.props.tenant}
+                    <ConsentsPage groups={this.state.user.groups} offers={this.state.user.offers}
+                                  user={this.state.user} tenant={this.props.tenant}
                                   organisationKey={this.state.organisationKey} userId={this.state.userId}
-                                  submitable={true}/>
+                                  submitable={true} onSave={this.getConsents}/>
                 }
             </div>
         )

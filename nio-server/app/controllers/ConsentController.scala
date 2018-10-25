@@ -1,27 +1,34 @@
 package controllers
 
 import akka.actor.ActorSystem
+import akka.http.scaladsl.util.FastFuture
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
 import auth.AuthAction
 import com.codahale.metrics.{MetricRegistry, Timer}
-import controllers.ErrorManager.{AppErrorManagerResult, ErrorManagerResult}
+import controllers.ErrorManager.{
+  AppErrorManagerResult,
+  ErrorManagerResult,
+  ErrorWithStatusManagerResult
+}
 import db.{
   ConsentFactMongoDataStore,
   LastConsentFactMongoDataStore,
   OrganisationMongoDataStore,
   UserMongoDataStore
 }
+import libs.xmlorjson.XmlOrJson
 import messaging.KafkaMessageBroker
 import models.{ConsentFact, _}
 import play.api.Logger
 import play.api.http.HttpEntity
-import play.api.mvc.{ControllerComponents, ResponseHeader, Result}
+import play.api.mvc.{Action, ControllerComponents, ResponseHeader, Result}
 import reactivemongo.api.{Cursor, QueryOpts}
 import reactivemongo.bson.BSONDocument
-import service.ConsentManagerService
+import service.{AccessibleOfferManagerService, ConsentManagerService}
 import utils.BSONUtils
+import utils.Result.{AppErrors, ErrorMessage}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -33,6 +40,7 @@ class ConsentController(
     val lastConsentFactMongoDataStore: LastConsentFactMongoDataStore,
     val organisationStore: OrganisationMongoDataStore,
     consentManagerService: ConsentManagerService,
+    val accessibleOfferService: AccessibleOfferManagerService,
     val metrics: MetricRegistry,
     val broker: KafkaMessageBroker)(implicit val ec: ExecutionContext,
                                     system: ActorSystem)
@@ -47,41 +55,82 @@ class ConsentController(
     metrics.timer("consentFact.getTemplate")
   private lazy val timerPutConsentFact: Timer = metrics.timer("consentFact.put")
 
-  def getTemplate(tenant: String, orgKey: String, maybeUserId: Option[String]) =
+  def getTemplate(tenant: String,
+                  orgKey: String,
+                  maybeUserId: Option[String],
+                  maybeOfferKeys: Option[Seq[String]]) =
     AuthAction.async { implicit req =>
       {
         val context: Timer.Context = timerGetConsentFactTemplate.time()
 
-        organisationStore.findLastReleasedByKey(tenant, orgKey).flatMap {
-          case None =>
-            Logger.error(s"Organisation $orgKey not found")
-            Future.successful("error.unknown.organisation".notFound())
-          case Some(organisation) =>
-            val groups = organisation.groups.map { pg =>
-              ConsentGroup(
-                key = pg.key,
-                label = pg.label,
-                consents = pg.permissions.map { p =>
-                  Consent(key = p.key, label = p.label, checked = false)
-                })
-            }
-            Logger.info(
-              s"Using default consents template in organisation $orgKey")
+        accessibleOfferService
+          .organisationWithAccessibleOffer(
+            tenant,
+            orgKey,
+            req.authInfo.offerRestrictionPatterns)
+          .flatMap {
+            case Left(errors) =>
+              FastFuture.successful(errors.renderError())
+            case Right(maybeOrganisation) =>
+              maybeOrganisation match {
+                case None =>
+                  Logger.error(s"Organisation $orgKey not found")
+                  Future.successful("error.unknown.organisation".notFound())
+                case Some(organisation) =>
+                  val toConsentGroup = (pg: PermissionGroup) =>
+                    ConsentGroup(
+                      key = pg.key,
+                      label = pg.label,
+                      consents = pg.permissions.map { p =>
+                        Consent(key = p.key, label = p.label, checked = false)
+                      })
 
-            val template =
-              ConsentFact.template(organisation.version.num, groups, orgKey)
+                  val groups = organisation.groups.map {
+                    toConsentGroup(_)
+                  }
 
-            consentManagerService
-              .mergeTemplateWithConsentFact(tenant,
-                                            orgKey,
-                                            organisation.version.num,
-                                            template,
-                                            maybeUserId)
-              .map { consentFact =>
-                context.stop()
-                renderMethod(consentFact)
+                  val offers: Option[Seq[ConsentOffer]] =
+                    organisation.offers.map(
+                      _.filter(o =>
+                        maybeOfferKeys match {
+                          case Some(offerKeys) if offerKeys.nonEmpty =>
+                            offerKeys.contains(o.key)
+                          case _ =>
+                            true
+                      }).map(
+                        offer =>
+                          ConsentOffer(
+                            key = offer.key,
+                            label = offer.label,
+                            version = offer.version,
+                            groups = offer.groups.map {
+                              toConsentGroup(_)
+                            }
+                        ))
+                    )
+
+                  Logger.info(
+                    s"Using default consents template in organisation $orgKey")
+
+                  val template =
+                    ConsentFact.template(orgVerNum = organisation.version.num,
+                                         groups = groups,
+                                         offers = offers,
+                                         orgKey = orgKey)
+
+                  consentManagerService
+                    .mergeTemplateWithConsentFact(tenant,
+                                                  orgKey,
+                                                  organisation.version.num,
+                                                  template,
+                                                  maybeUserId)
+                    .map { consentFact =>
+                      context.stop()
+                      renderMethod(consentFact)
+                    }
               }
-        }
+
+          }
       }
     }
 
@@ -98,8 +147,13 @@ class ConsentController(
               "error.unknown.user.or.organisation".notFound()
             case Some(consentFact) =>
               // TODO: later handle here new version template version check
+              val restrictedConsentFact =
+                consentManagerService.consentFactWithAccessibleOffers(
+                  consentFact,
+                  req.authInfo.offerRestrictionPatterns)
+
               context.stop()
-              renderMethod(consentFact)
+              renderMethod(restrictedConsentFact)
           }
       }
   }
@@ -115,45 +169,93 @@ class ConsentController(
         .map {
           case (consentsFacts, count) =>
             val pagedConsentFacts =
-              PagedConsentFacts(page, pageSize, count, consentsFacts)
+              PagedConsentFacts(
+                page,
+                pageSize,
+                count,
+                consentsFacts.map(
+                  consentManagerService.consentFactWithAccessibleOffers(
+                    _,
+                    req.authInfo.offerRestrictionPatterns)))
 
             renderMethod(pagedConsentFacts)
         }
     }
 
   // create or replace if exists
-  def createOrReplaceIfExists(tenant: String, orgKey: String, userId: String) =
+  def createOrReplaceIfExists(tenant: String,
+                              orgKey: String,
+                              userId: String): Action[XmlOrJson] =
     AuthAction.async(bodyParser) { implicit req =>
-      val context = timerPutConsentFact.time()
-
       req.body.read[ConsentFact] match {
         case Left(error) =>
-          context.stop()
           Logger.error(s"Unable to parse consentFact: $error")
           Future.successful(error.badRequest())
         case Right(o) if o.userId != userId =>
-          context.stop()
           Logger.error(
             s"error.userId.is.immutable : userId in path $userId // userId on body ${o.userId}")
           Future.successful("error.userId.is.immutable".badRequest())
         case Right(consentFact) if consentFact.userId == userId =>
           val cf: ConsentFact = ConsentFact.addOrgKey(consentFact, orgKey)
 
-          consentManagerService
-            .saveConsents(tenant,
-                          req.authInfo.sub,
-                          req.authInfo.metadatas,
-                          orgKey,
-                          userId,
-                          cf)
-            .map {
-              case Right(consentFactSaved) =>
-                context.stop()
-                renderMethod(consentFactSaved)
-              case Left(error) =>
-                context.stop()
-                error.badRequest()
-            }
+          (cf.offers, req.authInfo.offerRestrictionPatterns) match {
+            // case ask create or update offers but no pattern allowed
+            case (Some(offers), None) =>
+              val errorMessages =
+                offers.map(o => ErrorMessage(s"offer.${o.key}.not.authorized"))
+              Logger.error(s"not authorized : ${errorMessages.map(_.message)}")
+              Future.successful(AppErrors(errorMessages).unauthorized())
+
+            // case create or update consents without offers
+            case (None, _) =>
+              consentManagerService
+                .saveConsents(tenant,
+                              req.authInfo.sub,
+                              req.authInfo.metadatas,
+                              orgKey,
+                              userId,
+                              cf)
+                .map {
+                  case Right(consentFactSaved) =>
+                    renderMethod(consentFactSaved)
+                  case Left(error) =>
+                    error.renderError()
+                }
+
+            // case create or update offers and some patterns are specified
+            case (Some(offers), Some(pattern)) =>
+              // validate offers key are accessible
+              offers
+                .filterNot(
+                  o =>
+                    accessibleOfferService.accessibleOfferKey(
+                      o.key,
+                      req.authInfo.offerRestrictionPatterns)) match {
+                // case all offers in consent (body) are accessible
+                case Nil =>
+                  consentManagerService
+                    .saveConsents(tenant,
+                                  req.authInfo.sub,
+                                  req.authInfo.metadatas,
+                                  orgKey,
+                                  userId,
+                                  cf)
+                    .map {
+                      case Right(consentFactSaved) =>
+                        renderMethod(consentFactSaved)
+                      case Left(error) =>
+                        error.renderError()
+                    }
+
+                // case one or more offers are not accessible
+                case unauthorizedOffers =>
+                  val errorMessages = unauthorizedOffers.map(o =>
+                    ErrorMessage(s"offer.${o.key}.not.authorized"))
+                  Logger.error(
+                    s"not authorized : ${errorMessages.map(_.message)}")
+                  FastFuture.successful(AppErrors(errorMessages).unauthorized())
+              }
+          }
       }
     }
 
@@ -212,4 +314,47 @@ class ConsentController(
     )
   }
 
+  def deleteOffer(tenant: String,
+                  orgKey: String,
+                  userId: String,
+                  offerKey: String) = AuthAction.async { implicit req =>
+    req.authInfo.offerRestrictionPatterns match {
+      case Some(_)
+          if !accessibleOfferService.accessibleOfferKey(
+            offerKey,
+            req.authInfo.offerRestrictionPatterns) =>
+        Logger.error(s"offer $offerKey unauthorized")
+        Future.successful("error.offer.unauthorized".unauthorized())
+      case Some(_) =>
+        lastConsentFactMongoDataStore
+          .findByOrgKeyAndUserId(tenant, orgKey, userId)
+          .flatMap {
+            case None =>
+              // if this occurs it means a user is known but it has no consents, this is a BUG
+              Future.successful("error.unknown.user.or.organisation".notFound())
+            case Some(consentFact) =>
+              consentFact.offers.flatMap(offers =>
+                offers.find(o => o.key == offerKey)) match {
+                case None =>
+                  Logger.error(s"offer $offerKey not found")
+                  Future.successful("error.offer.not.found".notFound())
+                case Some(offer) =>
+                  consentManagerService
+                    .delete(tenant,
+                            orgKey,
+                            userId,
+                            offer.key,
+                            req.authInfo.sub,
+                            req.authInfo.metadatas,
+                            consentFact)
+                    .flatMap {
+                      case Left(e) =>
+                        Future.successful(e.renderError())
+                      case Right(o) =>
+                        Future.successful(renderMethod(o))
+                    }
+              }
+          }
+    }
+  }
 }

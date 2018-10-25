@@ -11,6 +11,7 @@ import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Sink
 import com.amazonaws.services.s3.model.PutObjectResult
 import com.typesafe.config.ConfigFactory
+import filters.AuthInfoMock
 import loader.NioLoader
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.common.TopicPartition
@@ -32,6 +33,7 @@ import play.api.{Application, ApplicationLoader, Configuration, Environment}
 import play.core.DefaultWebCommands
 import play.modules.reactivemongo.ReactiveMongoApi
 import reactivemongo.play.json.collection.JSONCollection
+import service.ConsentManagerService
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -70,16 +72,22 @@ trait TestUtils
   )
 
   val kafkaPort = 9092
-  val mongoPort = 27017
+  val mongoPort = 27018
   val tenant = "test"
 
   private lazy val actorSystem = ActorSystem("test")
   implicit val materializer: ActorMaterializer =
     ActorMaterializer()(actorSystem)
 
-  protected lazy val nioComponents: NioSpec = new NioSpec(getContext)
+  protected lazy val authInfo: AuthInfoMock = new AuthInfoTest
+
+  protected lazy val nioComponents: NioSpec =
+    new NioSpec(getContext, Some(authInfo))
 
   protected def ws: WSClient = nioComponents.wsClient
+
+  protected lazy val consentManagerService: ConsentManagerService =
+    nioComponents.consentManagerService
 
   private lazy val getContext: ApplicationLoader.Context = {
     val env = Environment.simple()
@@ -97,7 +105,7 @@ trait TestUtils
   }
 
   override def fakeApplication(): Application = {
-    new NioLoader().load(getContext)
+    new NioTestLoader(Some(authInfo)).load(getContext)
   }
 
   override protected def beforeAll(): Unit = {}
@@ -145,7 +153,7 @@ trait TestUtils
   val kafkaTopic = "test-nio-consent-events"
 
   val extraConfig: Configuration = {
-    val mongoUrl = s"mongodb://localhost:$mongoPort/nio"
+    val mongoUrl = s"mongodb://localhost:$mongoPort/nio-test"
     Configuration(
       ConfigFactory.parseString(s"""
            |nio.mongo.url="$mongoUrl"

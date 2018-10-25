@@ -1,7 +1,8 @@
 package controllers
 
-import models.{Organisation, Permission, PermissionGroup, VersionInfo}
+import models._
 import org.joda.time.{DateTime, DateTimeZone}
+import play.api.Logger
 import play.api.libs.json.{JsArray, JsValue, Json}
 import play.api.libs.ws.WSResponse
 import play.api.test.Helpers._
@@ -39,6 +40,53 @@ class OrganisationControllerSpec extends TestUtils {
 
     val org2Modified = org2.copy(label = "modified")
     val org2AsJsonModified = org2Modified.asJson
+
+    val org3Key = "orgTest3"
+    val org3 = Organisation(
+      key = org3Key,
+      label = "lbl",
+      groups = Seq(
+        PermissionGroup(key = "group1",
+                        label = "blalba",
+                        permissions =
+                          Seq(Permission("sms", "Please accept sms")))
+      ),
+      offers = Some(
+        Seq(
+          Offer("offer1",
+                "offer 1",
+                1,
+                Seq(
+                  PermissionGroup(
+                    key = "group2",
+                    label = "groupe 2",
+                    permissions =
+                      Seq(Permission("email", "Please accept email")))))
+        )
+      )
+    )
+    val org3Update = Organisation(
+      key = org3Key,
+      label = "lbl",
+      groups = Seq(
+        PermissionGroup(key = "group1",
+                        label = "blalba",
+                        permissions =
+                          Seq(Permission("sms", "Please accept sms")))
+      ),
+      offers = Some(
+        Seq(
+          Offer("offer1",
+                "offer 1",
+                1,
+                Seq(
+                  PermissionGroup(key = "group1",
+                                  label = "groupe 1",
+                                  permissions =
+                                    Seq(Permission("other", "other")))))
+        )
+      )
+    )
 
     "create new organisation" in {
       val beforeNewOrgCreation = DateTime.now(DateTimeZone.UTC).minusSeconds(1)
@@ -457,6 +505,65 @@ class OrganisationControllerSpec extends TestUtils {
       getJson(s"/$tenant/organisations/$orgKey").status mustBe NOT_FOUND
       getJson(s"/$tenant/organisations/$orgKey/users/$userId").status mustBe NOT_FOUND
     }
+
+    "create organisation with offer" in {
+      val respOrgaCreated: WSResponse =
+        postJson(s"/$tenant/organisations", org3.asJson)
+      respOrgaCreated.status mustBe CREATED
+
+      val value: JsValue = respOrgaCreated.json
+
+      (value \ "key").as[String] mustBe org3.key
+      (value \ "label").as[String] mustBe org3.label
+
+      (value \ "version" \ "status").as[String] mustBe org3.version.status
+      (value \ "version" \ "num").as[Int] mustBe org3.version.num
+      (value \ "version" \ "latest").as[Boolean] mustBe org3.version.latest
+      (value \ "version" \ "neverReleased").asOpt[Boolean] mustBe None
+
+      val groups = (value \ "groups").as[JsArray]
+      groups.value.size mustBe org3.groups.size
+
+      (groups \ 0 \ "key").as[String] mustBe org3.groups.head.key
+      (groups \ 0 \ "label").as[String] mustBe org3.groups.head.label
+
+      val permissions = (groups \ 0 \ "permissions").as[JsArray]
+      (permissions \ 0 \ "key")
+        .as[String] mustBe org3.groups.head.permissions.head.key
+      (permissions \ 0 \ "label")
+        .as[String] mustBe org3.groups.head.permissions.head.label
+
+      (value \ "offers").asOpt[String] mustBe None
+
+      val respOrgaUpdated: WSResponse =
+        putJson(s"/$tenant/organisations/$org3Key/draft", org3Update.asJson)
+      respOrgaUpdated.status mustBe OK
+
+      val valuePut: JsValue = respOrgaUpdated.json
+      (valuePut \ "key").as[String] mustBe org3Update.key
+      (valuePut \ "label").as[String] mustBe org3Update.label
+
+      (valuePut \ "version" \ "status").as[String] mustBe org3Update.version
+        .status
+      (valuePut \ "version" \ "num").as[Int] mustBe org3Update.version.num
+      (valuePut \ "version" \ "latest").as[Boolean] mustBe org3Update.version
+        .latest
+      (valuePut \ "version" \ "neverReleased").asOpt[Boolean] mustBe None
+
+      val groupsPut = (valuePut \ "groups").as[JsArray]
+      groupsPut.value.size mustBe org3Update.groups.size
+
+      (groupsPut \ 0 \ "key").as[String] mustBe org3Update.groups.head.key
+      (groupsPut \ 0 \ "label").as[String] mustBe org3Update.groups.head.label
+
+      val permissionsPut = (groupsPut \ 0 \ "permissions").as[JsArray]
+      (permissionsPut \ 0 \ "key")
+        .as[String] mustBe org3Update.groups.head.permissions.head.key
+      (permissionsPut \ 0 \ "label")
+        .as[String] mustBe org3Update.groups.head.permissions.head.label
+
+      (valuePut \ "offers").asOpt[String] mustBe None
+    }
   }
 
   "validate release management" should {
@@ -567,5 +674,50 @@ class OrganisationControllerSpec extends TestUtils {
 
     }
 
+  }
+
+  "organisation with error" should {
+    "error" in {
+
+      val orgKey = "error"
+      val org: Organisation = Organisation(
+        key = orgKey,
+        label = "lbl",
+        version = VersionInfo(
+          num = 5,
+          status = "RELEASED"
+        ),
+        groups = Seq(
+          PermissionGroup(key = "bla-qlkfqlj _lk",
+                          label = "label",
+                          permissions = Seq(
+                            Permission("fjslkjf sjklfl", "Please accept sms")))
+        ),
+        offers = Some(
+          Seq(
+            Offer(key = "toto",
+                  label = "toto",
+                  groups = Seq(
+                    PermissionGroup(key = "group1",
+                                    label = "bla-qlkfqlj _lk",
+                                    permissions = Seq.empty)
+                  ))
+          )
+        )
+      )
+
+      val response: WSResponse = postJson(s"/$tenant/organisations", org.asJson)
+
+      response.status mustBe BAD_REQUEST
+
+      val value: JsValue = response.json
+
+      (value \ "errors").as[JsArray].value.length mustBe 2
+
+      (value \ "errors" \ 0 \ "message")
+        .as[String] mustBe "error.organisation.groups.0.key"
+      (value \ "errors" \ 1 \ "message")
+        .as[String] mustBe "error.organisation.groups.0.permissions.0.key"
+    }
   }
 }

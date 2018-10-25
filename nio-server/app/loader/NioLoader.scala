@@ -7,13 +7,13 @@ import com.softwaremill.macwire.wire
 import configuration._
 import controllers._
 import db._
-import filters.OtoroshiFilter
+import filters.{AuthInfoDev, AuthInfoMock, OtoroshiFilter}
 import messaging.KafkaMessageBroker
 import play.api.ApplicationLoader.Context
 import play.api._
 import play.api.libs.ws.ahc.AhcWSComponents
 import play.api.mvc.BodyParsers.Default
-import play.api.mvc.EssentialFilter
+import play.api.mvc.{EssentialFilter, Filter}
 import play.api.routing.Router
 import play.filters.HttpFiltersComponents
 import play.filters.gzip._
@@ -23,12 +23,7 @@ import play.modules.reactivemongo.{
 }
 import router.Routes
 import s3._
-import service.{
-  ConsentManagerService,
-  MailGunService,
-  MailMockService,
-  MailService
-}
+import service.{AccessibleOfferManagerService, _}
 import utils.{DefaultLoader, S3Manager, SecureEvent}
 
 class NioLoader extends ApplicationLoader {
@@ -49,6 +44,8 @@ class NioComponents(context: Context)
     with GzipFilterComponents {
 
   implicit val system: ActorSystem = actorSystem
+
+  implicit lazy val authInfo: AuthInfoMock = wire[AuthInfoDev]
 
   // wire Reactive mongo
   implicit lazy val reactiveMongo: ReactiveMongoApi = reactiveMongoApi
@@ -79,6 +76,10 @@ class NioComponents(context: Context)
   // wire service
   implicit lazy val consentManagerService: ConsentManagerService =
     wire[ConsentManagerService]
+  implicit lazy val accessibleOfferManagerService
+    : AccessibleOfferManagerService = wire[AccessibleOfferManagerService]
+  implicit lazy val offerManagerService: OfferManagerService =
+    wire[OfferManagerService]
 
   // wire Kafka
   implicit lazy val kafkaMessageBroker: KafkaMessageBroker =
@@ -119,6 +120,8 @@ class NioComponents(context: Context)
   lazy val userController: UserController = wire[UserController]
   lazy val userExtractTaskController: UserExtractController =
     wire[UserExtractController]
+  lazy val organisationOfferController: OrganisationOfferController =
+    wire[OrganisationOfferController]
 
   lazy val mailService: MailService = if (env.config.mailSendingEnable) {
     wire[MailGunService]
@@ -132,8 +135,10 @@ class NioComponents(context: Context)
     wire[Routes]
   }
 
+  lazy val securityFilter: Filter = wire[OtoroshiFilter]
+
   override def httpFilters: Seq[EssentialFilter] = {
-    Seq(new OtoroshiFilter(env), gzipFilter)
+    Seq(securityFilter, gzipFilter)
   }
 
   implicit val config: Configuration = context.initialConfiguration

@@ -61,27 +61,42 @@ case class Organisation(_id: String = BSONObjectID.generate().stringify,
                         key: String,
                         label: String,
                         version: VersionInfo = VersionInfo(),
-                        groups: Seq[PermissionGroup])
+                        groups: Seq[PermissionGroup],
+                        offers: Option[Seq[Offer]] = None)
     extends ModelTransformAs {
 
   def asJson = Organisation.organisationWritesWithoutId.writes(this)
 
   def asXml = <organisation>
-      <key>{key}</key>
-      <label>{label}</label>
-      <version>
-        <status>{version.status}</status>
-        <num>{version.num}</num>
-        <latest>{version.latest}</latest>
-        <lastUpdate>{version.lastUpdate.toString(DateUtils.utcDateFormatter)}</lastUpdate>
-      </version>
-      <groups>{groups.map(_.asXml)}</groups>
-    </organisation>.clean()
+    <key>
+      {key}
+    </key>
+    <label>
+      {label}
+    </label>
+    <version>
+      <status>
+        {version.status}
+      </status>
+      <num>
+        {version.num}
+      </num>
+      <latest>
+        {version.latest}
+      </latest>
+      <lastUpdate>
+        {version.lastUpdate.toString(DateUtils.utcDateFormatter)}
+      </lastUpdate>
+    </version>
+    <groups>
+      {groups.map(_.asXml)}
+    </groups>{offers.map(l => <offers>l.map(_.asXml())</offers>)}
+  </organisation>.clean()
 
-  def newWith(version: VersionInfo) =
+  def newWith(version: VersionInfo): Organisation =
     this.copy(_id = BSONObjectID.generate().stringify, version = version)
 
-  def isValidWith(cf: ConsentFact) = {
+  def isValidWith(cf: ConsentFact): Option[String] = {
     if (cf.groups.length != groups.length) {
       Some("error.invalid.groups.length")
     } else {
@@ -103,7 +118,7 @@ case class Organisation(_id: String = BSONObjectID.generate().stringify,
   }
 }
 
-object Organisation extends ReadableEntity[Organisation] {
+object OrganisationDraft extends ReadableEntity[Organisation] {
 
   implicit val organisationReads: Reads[Organisation] = (
     (__ \ "_id").readNullable[String].map { mayBeId =>
@@ -115,37 +130,8 @@ object Organisation extends ReadableEntity[Organisation] {
         maybeVersion.getOrElse(VersionInfo())
       } and
       (__ \ "groups").read[Seq[PermissionGroup]]
-  )(Organisation.apply _)
-
-  implicit val organisationWrites: Writes[Organisation] = (
-    (JsPath \ "_id").write[String] and
-      (JsPath \ "key").write[String] and
-      (JsPath \ "label").write[String] and
-      (JsPath \ "version").write[VersionInfo] and
-      (JsPath \ "groups").write[Seq[PermissionGroup]]
-  )(unlift(Organisation.unapply))
-
-  implicit val organisationOWrites: OWrites[Organisation] = (
-    (JsPath \ "_id").write[String] and
-      (JsPath \ "key").write[String] and
-      (JsPath \ "label").write[String] and
-      (JsPath \ "version").write[VersionInfo] and
-      (JsPath \ "groups").write[Seq[PermissionGroup]]
-  )(unlift(Organisation.unapply))
-
-  implicit val formats = Format(organisationReads, organisationWrites)
-  implicit val oFormats = OFormat(organisationReads, organisationOWrites)
-
-  implicit val organisationWritesWithoutId: Writes[Organisation] = Writes {
-    org =>
-      Json.obj(
-        "key" -> org.key,
-        "label" -> org.label,
-        "version" -> VersionInfo.versionInfoWritesWithoutNeverReleased.writes(
-          org.version),
-        "groups" -> org.groups
-      )
-  }
+  )((_id, key, label, version, groups) =>
+    Organisation(_id, key, label, version, groups))
 
   implicit val readXml: XMLRead[Organisation] =
     (node: NodeSeq, path: Option[String]) =>
@@ -158,7 +144,7 @@ object Organisation extends ReadableEntity[Organisation] {
         (node \ "version").validate[VersionInfo](
           Some(s"${path.convert()}version")),
         (node \ "groups").validate[Seq[PermissionGroup]](
-          Some(s"${path.convert()}groups")),
+          Some(s"${path.convert()}groups"))
       ).mapN(
         (_id, key, label, version, groups) =>
           Organisation(_id = _id,
@@ -180,10 +166,105 @@ object Organisation extends ReadableEntity[Organisation] {
   }
 }
 
+object Organisation extends ReadableEntity[Organisation] {
+
+  implicit val organisationReads: Reads[Organisation] = (
+    (__ \ "_id").readNullable[String].map { mayBeId =>
+      mayBeId.getOrElse(BSONObjectID.generate().stringify)
+    } and
+      (__ \ "key").read[String] and
+      (__ \ "label").read[String] and
+      (__ \ "version").readNullable[VersionInfo].map { maybeVersion =>
+        maybeVersion.getOrElse(VersionInfo())
+      } and
+      (__ \ "groups").read[Seq[PermissionGroup]] and
+      (__ \ "offers").readNullable[Seq[Offer]]
+  )(Organisation.apply _)
+
+  implicit val organisationWrites: Writes[Organisation] = (
+    (JsPath \ "_id").write[String] and
+      (JsPath \ "key").write[String] and
+      (JsPath \ "label").write[String] and
+      (JsPath \ "version").write[VersionInfo] and
+      (JsPath \ "groups").write[Seq[PermissionGroup]] and
+      (JsPath \ "offers").writeNullable[Seq[Offer]]
+  )(unlift(Organisation.unapply))
+
+  implicit val organisationOWrites: OWrites[Organisation] = (
+    (JsPath \ "_id").write[String] and
+      (JsPath \ "key").write[String] and
+      (JsPath \ "label").write[String] and
+      (JsPath \ "version").write[VersionInfo] and
+      (JsPath \ "groups").write[Seq[PermissionGroup]] and
+      (JsPath \ "offers").writeNullable[Seq[Offer]]
+  )(unlift(Organisation.unapply))
+
+  implicit val formats: Format[Organisation] =
+    Format(organisationReads, organisationWrites)
+  implicit val oFormats: OFormat[Organisation] =
+    OFormat(organisationReads, organisationOWrites)
+
+  implicit val organisationWritesWithoutId: Writes[Organisation] = Writes {
+    org =>
+      {
+
+        val organisation: JsObject = Json.obj(
+          "key" -> org.key,
+          "label" -> org.label,
+          "version" -> VersionInfo.versionInfoWritesWithoutNeverReleased.writes(
+            org.version),
+          "groups" -> org.groups
+        )
+
+        if (org.offers.isDefined) {
+          organisation ++ Json.obj("offers" -> org.offers.get.map(_.asJson()))
+        } else
+          organisation
+      }
+  }
+
+  implicit val readXml: XMLRead[Organisation] =
+    (node: NodeSeq, path: Option[String]) =>
+      (
+        (node \ "_id").validateNullable[String](
+          BSONObjectID.generate().stringify,
+          Some(s"${path.convert()}_id")),
+        (node \ "key").validate[String](Some(s"${path.convert()}key")),
+        (node \ "label").validate[String](Some(s"${path.convert()}label")),
+        (node \ "version").validate[VersionInfo](
+          Some(s"${path.convert()}version")),
+        (node \ "groups").validate[Seq[PermissionGroup]](
+          Some(s"${path.convert()}groups")),
+        (node \ "offers").validateNullable[Seq[Offer]](
+          Some(s"${path.convert()}offers")),
+      ).mapN(
+        (_id, key, label, version, groups, offers) =>
+          Organisation(_id = _id,
+                       key = key,
+                       label = label,
+                       version = version,
+                       groups = groups,
+                       offers = offers)
+    )
+
+  def fromXml(xml: Elem): Either[AppErrors, Organisation] = {
+    readXml.read(xml, Some("organisation")).toEither
+  }
+
+  def fromJson(json: JsValue) = {
+    json.validate[Organisation] match {
+      case JsSuccess(o, _) => Right(o)
+      case JsError(errors) => Left(AppErrors.fromJsError(errors))
+    }
+  }
+}
+
 case class Organisations(organisations: Seq[Organisation])
     extends ModelTransformAs {
   override def asXml(): Elem =
-    <organisations>{organisations.map(_.asXml)}</organisations>.clean()
+    <organisations>
+      {organisations.map(_.asXml)}
+    </organisations>.clean()
 
   override def asJson(): JsValue = JsArray(organisations.map(_.asJson))
 }
@@ -196,14 +277,24 @@ case class OrganisationLight(key: String,
                              label: String,
                              version: VersionInfoLight) {
   def asXml = <organisationLight>
-      <key>{key}</key>
-      <label>{label}</label>
-      <version>
-        <status>{version.status}</status>
-        <num>{version.num}</num>
-        <lastUpdate>{version.lastUpdate.toString(DateUtils.utcDateFormatter)}</lastUpdate>
-      </version>
-    </organisationLight>.clean()
+    <key>
+      {key}
+    </key>
+    <label>
+      {label}
+    </label>
+    <version>
+      <status>
+        {version.status}
+      </status>
+      <num>
+        {version.num}
+      </num>
+      <lastUpdate>
+        {version.lastUpdate.toString(DateUtils.utcDateFormatter)}
+      </lastUpdate>
+    </version>
+  </organisationLight>.clean()
 
   def asJson = {
     Json.obj(
@@ -230,7 +321,9 @@ object OrganisationLight {
 case class OrganisationsLights(organisations: Seq[OrganisationLight])
     extends ModelTransformAs {
   override def asXml(): Elem =
-    <organisationLights>{organisations.map(_.asXml)}</organisationLights>
+    <organisationLights>
+      {organisations.map(_.asXml)}
+    </organisationLights>
       .clean()
 
   override def asJson(): JsValue = JsArray(organisations.map(_.asJson))
@@ -259,19 +352,29 @@ sealed trait PermissionValidator {
   private def validateKey(
       key: String,
       indexGroup: Int,
-      index: Int): ValidatorUtils.ValidationResult[String] = {
+      index: Int,
+      prefix: String): ValidatorUtils.ValidationResult[String] = {
     key match {
       case k if k.matches(ValidatorUtils.keyPattern) => key.validNel
       case _ =>
-        s"error.organisation.groups.$indexGroup.permissions.$index.key".invalidNel
+        s"$prefix.permissions.$index.key".invalidNel
     }
   }
 
-  def validatePermission(
-      permission: Permission,
-      indexGroup: Int,
-      index: Int): ValidatorUtils.ValidationResult[Permission] = {
-    validateKey(permission.key, indexGroup, index).map(_ => permission)
+  def validatePermission(permission: Permission,
+                         indexGroup: Int,
+                         index: Int,
+                         maybePrefix: Option[String])
+    : ValidatorUtils.ValidationResult[Permission] = {
+
+    val prefix: String = maybePrefix match {
+      case Some(p) =>
+        p
+      case None =>
+        s"error.organisation.groups.$indexGroup"
+    }
+
+    validateKey(permission.key, indexGroup, index, prefix).map(_ => permission)
   }
 }
 
@@ -281,33 +384,45 @@ sealed trait GroupValidator {
 
   private def validateKey(
       key: String,
-      index: Int): ValidatorUtils.ValidationResult[String] = {
+      index: Int,
+      prefix: String): ValidatorUtils.ValidationResult[String] = {
     key match {
       case k if k.matches(ValidatorUtils.keyPattern) => key.validNel
-      case _                                         => s"error.organisation.groups.$index.key".invalidNel
+      case _                                         => s"$prefix.groups.$index.key".invalidNel
     }
   }
 
   private def validatePermissions(
       permissions: Seq[Permission],
-      index: Int): ValidatorUtils.ValidationResult[Seq[Permission]] = {
+      index: Int,
+      prefix: String): ValidatorUtils.ValidationResult[Seq[Permission]] = {
     if (permissions.nonEmpty)
       permissions.validNel
     else
-      s"error.organisation.groups.$index.permissions.empty".invalidNel
+      s"$prefix.groups.$index.permissions.empty".invalidNel
   }
 
-  def validateGroup(
-      group: PermissionGroup,
-      index: Int): ValidatorUtils.ValidationResult[PermissionGroup] = {
+  def validateGroup(group: PermissionGroup,
+                    index: Int,
+                    maybePrefix: Option[String] = None)
+    : ValidatorUtils.ValidationResult[PermissionGroup] = {
+
+    val prefix: String = maybePrefix match {
+      case Some(p) =>
+        p
+      case None =>
+        "error.organisation"
+    }
+
     (
-      validateKey(group.key, index),
-      validatePermissions(group.permissions, index),
+      validateKey(group.key, index, prefix),
+      validatePermissions(group.permissions, index, prefix),
       ValidatorUtils.sequence(group.permissions.zipWithIndex.map {
         case (permission, indexPermission) =>
           PermissionValidator.validatePermission(permission,
                                                  index,
-                                                 indexPermission)
+                                                 indexPermission,
+                                                 Some(s"$prefix.groups.$index"))
       })
     ).mapN((_, _, _) => group)
   }

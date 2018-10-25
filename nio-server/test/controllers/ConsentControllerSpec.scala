@@ -1,8 +1,11 @@
 package controllers
 
-import models.{Consent, ConsentFact, ConsentGroup, DoneBy}
+import akka.japi.Option
+import models._
 import org.joda.time.{DateTime, DateTimeZone}
+import play.api.Logger
 import play.api.libs.json.{JsArray, JsValue, Json}
+import play.api.libs.ws.WSResponse
 import utils.{DateUtils, TestUtils}
 import play.api.test.Helpers._
 
@@ -125,6 +128,70 @@ class ConsentControllerSpec extends TestUtils {
           )
         )
       )
+    )
+  )
+
+  private def offerToConsentOffer(offer: Offer): ConsentOffer =
+    ConsentOffer(
+      offer.key,
+      offer.label,
+      offer.version,
+      offer.groups.map(
+        group =>
+          ConsentGroup(group.key,
+                       group.label,
+                       group.permissions.map(perm =>
+                         Consent(perm.key, perm.label, false))))
+    )
+
+  private val offerKey1 = "offer1"
+  private val offer1: Offer = Offer(
+    key = offerKey1,
+    label = "offer one",
+    groups = Seq(
+      PermissionGroup(
+        key = "maifNotifs",
+        label =
+          "J'accepte de recevoir par téléphone, mail et SMS des offres commerciales du groupe MAIF",
+        permissions = Seq(
+          Permission(key = "phone", label = "Par contact téléphonique"),
+          Permission(key = "mail", label = "Par contact électronique"),
+          Permission(key = "sms", label = "Par SMS / MMS / VMS")
+        )
+      )
+    )
+  )
+
+  private val offerKey2 = "offer2"
+  private val offer2: Offer = Offer(
+    key = offerKey2,
+    label = "offer two",
+    groups = Seq(
+      PermissionGroup(
+        key = "maifPartnerNotifs",
+        label =
+          "J'accepte de recevoir par téléphone, mail et SMS des offres commerciales des partenaires du groupe MAIF",
+        permissions = Seq(
+          Permission(key = "phone", label = "Par contact téléphonique"),
+          Permission(key = "mail", label = "Par contact électronique"),
+          Permission(key = "sms", label = "Par SMS / MMS / VMS")
+        )
+      )
+    )
+  )
+  private val offer2V2OnError: Offer =
+    offer2.copy(version = 2, label = "offer 2")
+  private val offer2V3OnError: Offer =
+    offer2.copy(version = 3, label = "offer 2")
+
+  private val offerKeyNotAuthorized = "offerTwo"
+  private val offerNotAuthorized: Offer = Offer(
+    key = offerKeyNotAuthorized,
+    label = "offer not authorized",
+    groups = Seq(
+      PermissionGroup(key = "offerGrp1",
+                      label = "offer group one",
+                      permissions = Seq(Permission("sms", "Please accept sms")))
     )
   )
 
@@ -615,5 +682,489 @@ class ConsentControllerSpec extends TestUtils {
         DateUtils.utcDateFormatter)
     }
 
+  }
+
+  "Consent with offer" should {
+    val orgKey: String = "orgWithOffer"
+
+    val orgWithOffer: Organisation = Organisation(
+      key = orgKey,
+      label = "organisation with offer",
+      groups = Seq(
+        PermissionGroup(
+          key = "maifNotifs",
+          label =
+            "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF",
+          permissions = Seq(
+            Permission(key = "phone", label = "Par contact téléphonique"),
+            Permission(key = "mail", label = "Par contact électronique"),
+            Permission(key = "sms", label = "Par SMS / MMS / VMS")
+          )
+        )
+      )
+    )
+
+    val userId = "userIdOffer"
+    val consent: ConsentFact = ConsentFact(
+      userId = userId,
+      doneBy = DoneBy(userId = userId, role = "USER"),
+      version = 1,
+      groups = Seq(
+        ConsentGroup(
+          key = "maifNotifs",
+          label =
+            "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF",
+          consents = Seq(
+            Consent(key = "phone",
+                    label = "Par contact téléphonique",
+                    checked = true),
+            Consent(key = "mail",
+                    label = "Par contact électronique",
+                    checked = false),
+            Consent(key = "sms", label = "Par SMS / MMS / VMS", checked = true)
+          )
+        )
+      ),
+      offers = Some(
+        Seq(
+          ConsentOffer(
+            key = "offer1",
+            label = "offer one",
+            version = 1,
+            Seq(
+              ConsentGroup(
+                key = "maifNotifs",
+                label =
+                  "J'accepte de recevoir par téléphone, mail et SMS des offres commerciales du groupe MAIF",
+                consents = Seq(
+                  Consent(key = "phone",
+                          label = "Par contact téléphonique",
+                          checked = false),
+                  Consent(key = "mail",
+                          label = "Par contact électronique",
+                          checked = true),
+                  Consent(key = "sms",
+                          label = "Par SMS / MMS / VMS",
+                          checked = false)
+                )
+              )
+            )
+          ),
+          ConsentOffer(
+            key = "offer2",
+            label = "offer two",
+            version = 2,
+            Seq(
+              ConsentGroup(
+                key = "maifPartnerNotifs",
+                label =
+                  "J'accepte de recevoir par téléphone, mail et SMS des offres commerciales des partenaires du groupe MAIF",
+                consents = Seq(
+                  Consent(key = "phone",
+                          label = "Par contact téléphonique",
+                          checked = true),
+                  Consent(key = "mail",
+                          label = "Par contact électronique",
+                          checked = true),
+                  Consent(key = "sms",
+                          label = "Par SMS / MMS / VMS",
+                          checked = false)
+                )
+              )
+            )
+          )
+        )
+      )
+    )
+
+    val basicConsentFact: ConsentFact = ConsentFact(
+      userId = userId,
+      doneBy = DoneBy(userId = userId, role = "USER"),
+      version = 1,
+      groups = Seq(
+        ConsentGroup(
+          key = "maifNotifs",
+          label =
+            "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF",
+          consents = Seq(
+            Consent(key = "phone",
+                    label = "Par contact téléphonique",
+                    checked = true),
+            Consent(key = "mail",
+                    label = "Par contact électronique",
+                    checked = false),
+            Consent(key = "sms", label = "Par SMS / MMS / VMS", checked = true)
+          )
+        )
+      )
+    )
+
+    "create organisation, released, add offer" in {
+      postJson(s"/$tenant/organisations", orgWithOffer.asJson).status mustBe CREATED
+      postJson(s"/$tenant/organisations/$orgKey/draft/_release", Json.obj()).status mustBe OK
+
+      // offer 1 with version 1
+      postJson(s"/$tenant/organisations/$orgKey/offers", offer1.asJson()).status mustBe CREATED
+
+      // offer 2 with version 2
+      postJson(s"/$tenant/organisations/$orgKey/offers", offer2.asJson()).status mustBe CREATED
+      putJson(s"/$tenant/organisations/$orgKey/offers/${offer2.key}",
+              offer2.asJson()).status mustBe OK
+    }
+
+    "add offer" in {
+      putJson(s"/$tenant/organisations/$orgKey/users/$userId", consent.asJson).status mustBe OK
+
+      val response: WSResponse =
+        getJson(s"/$tenant/organisations/$orgKey/users/$userId")
+
+      response.status mustBe OK
+
+      val value: JsValue = response.json
+
+      val offers: JsArray = (value \ "offers").as[JsArray]
+      offers.value.length mustBe 2
+
+      (offers \ 0 \ "key").as[String] mustBe "offer1"
+      (offers \ 0 \ "label").as[String] mustBe "offer one"
+      (offers \ 0 \ "version").as[Int] mustBe 1
+      (offers \ 0 \ "groups").as[JsArray].value.length mustBe 1
+      val offer1group1 = (offers \ 0 \ "groups" \ 0).as[JsValue]
+
+      (offer1group1 \ "key").as[String] mustBe "maifNotifs"
+      (offer1group1 \ "label")
+        .as[String] mustBe "J'accepte de recevoir par téléphone, mail et SMS des offres commerciales du groupe MAIF"
+
+      (offer1group1 \ "consents").as[JsArray].value.length mustBe 3
+
+      val offer1group1perm1 = (offer1group1 \ "consents" \ 0).as[JsValue]
+
+      (offer1group1perm1 \ "key").as[String] mustBe "phone"
+      (offer1group1perm1 \ "label").as[String] mustBe "Par contact téléphonique"
+      (offer1group1perm1 \ "checked").as[Boolean] mustBe false
+
+      val offer1group1perm2 = (offer1group1 \ "consents" \ 1).as[JsValue]
+
+      (offer1group1perm2 \ "key").as[String] mustBe "mail"
+      (offer1group1perm2 \ "label").as[String] mustBe "Par contact électronique"
+      (offer1group1perm2 \ "checked").as[Boolean] mustBe true
+
+      val offer1group1perm3 = (offer1group1 \ "consents" \ 2).as[JsValue]
+
+      (offer1group1perm3 \ "key").as[String] mustBe "sms"
+      (offer1group1perm3 \ "label").as[String] mustBe "Par SMS / MMS / VMS"
+      (offer1group1perm3 \ "checked").as[Boolean] mustBe false
+
+      (offers \ 1 \ "key").as[String] mustBe "offer2"
+      (offers \ 1 \ "label").as[String] mustBe "offer two"
+      (offers \ 1 \ "version").as[Int] mustBe 2
+      (offers \ 1 \ "groups").as[JsArray].value.length mustBe 1
+      val offer2group1 = (offers \ 1 \ "groups" \ 0).as[JsValue]
+
+      (offer2group1 \ "key").as[String] mustBe "maifPartnerNotifs"
+      (offer2group1 \ "label")
+        .as[String] mustBe "J'accepte de recevoir par téléphone, mail et SMS des offres commerciales des partenaires du groupe MAIF"
+
+      (offer2group1 \ "consents").as[JsArray].value.length mustBe 3
+
+      val offer2group1perm1 = (offer2group1 \ "consents" \ 0).as[JsValue]
+
+      (offer2group1perm1 \ "key").as[String] mustBe "phone"
+      (offer2group1perm1 \ "label").as[String] mustBe "Par contact téléphonique"
+      (offer2group1perm1 \ "checked").as[Boolean] mustBe true
+
+      val offer2group1perm2 = (offer2group1 \ "consents" \ 1).as[JsValue]
+
+      (offer2group1perm2 \ "key").as[String] mustBe "mail"
+      (offer2group1perm2 \ "label").as[String] mustBe "Par contact électronique"
+      (offer2group1perm2 \ "checked").as[Boolean] mustBe true
+
+      val offer2group1perm3 = (offer2group1 \ "consents" \ 2).as[JsValue]
+
+      (offer2group1perm3 \ "key").as[String] mustBe "sms"
+      (offer2group1perm3 \ "label").as[String] mustBe "Par SMS / MMS / VMS"
+      (offer2group1perm3 \ "checked").as[Boolean] mustBe false
+
+    }
+
+    "version consent >  version org on error" in {
+      // offer 2 version 3
+      putJson(s"/$tenant/organisations/$orgKey/offers/${offer2.key}",
+              offer2.asJson()).status mustBe OK
+
+      val consentWithVersionHighThanOrg: ConsentFact = basicConsentFact.copy(
+        offers = Some(Seq(offerToConsentOffer(offer2.copy(version = 10)))))
+
+      val putErrorResponse: WSResponse =
+        putJson(s"/$tenant/organisations/$orgKey/users/$userId",
+                consentWithVersionHighThanOrg.asJson)
+      putErrorResponse.status mustBe BAD_REQUEST
+
+    }
+
+    "version consent 1 < version org 3 => version consent 1 < version  lastconsent 2" in {
+      val consentWithVersionLowThanOrgAndLastCons: ConsentFact =
+        basicConsentFact.copy(
+          offers = Some(Seq(offerToConsentOffer(offer2).copy(version = 1))))
+      putJson(
+        s"/$tenant/organisations/$orgKey/users/$userId",
+        consentWithVersionLowThanOrgAndLastCons.asJson).status mustBe BAD_REQUEST
+    }
+
+    "version consent 2 <  version org 3 => version consent 2 = version  lastconsent 2 ==> struct KO" in {
+      val consentWithVersionLowThanOrgAndEqualToLastConsAndStrucDif
+        : ConsentFact = basicConsentFact.copy(
+        offers = Some(Seq(offerToConsentOffer(offer2V2OnError))))
+      val putErrorResponse: WSResponse = putJson(
+        s"/$tenant/organisations/$orgKey/users/$userId",
+        consentWithVersionLowThanOrgAndEqualToLastConsAndStrucDif.asJson)
+      putErrorResponse.status mustBe BAD_REQUEST
+    }
+
+    "version consent =  version org ==> 200  si structure OK / 400 si pas OK" in {
+      val consentWithVersionEqualToOrgAndStrucEq: ConsentFact =
+        basicConsentFact.copy(
+          offers = Some(Seq(offerToConsentOffer(offer2).copy(version = 3))))
+
+      putJson(s"/$tenant/organisations/$orgKey/users/$userId",
+              consentWithVersionEqualToOrgAndStrucEq.asJson).status mustBe OK
+
+      val consentWithVersionEqualToOrgAndStrucDif: ConsentFact =
+        basicConsentFact.copy(
+          offers = Some(Seq(offerToConsentOffer(offer2V3OnError))))
+      val putErrorResponse: WSResponse =
+        putJson(s"/$tenant/organisations/$orgKey/users/$userId",
+                consentWithVersionEqualToOrgAndStrucDif.asJson)
+      putErrorResponse.status mustBe BAD_REQUEST
+    }
+
+    "version consent 2 <  version org 3 => version consent 2 = version lastconsent 2 ==> struct OK" in {
+      val consentWithVersionLowThanOrgAndEqualToLastConsAndStrucEq
+        : ConsentFact =
+        basicConsentFact.copy(
+          offers = Some(Seq(offerToConsentOffer(offer2).copy(version = 3))))
+
+      // Update offer version
+      val updateOfferResponse: WSResponse =
+        putJson(s"/$tenant/organisations/$orgKey/offers/${offer2.key}",
+                offer2.asJson())
+      updateOfferResponse.status mustBe OK
+
+      val putErrorResponse: WSResponse =
+        putJson(s"/$tenant/organisations/$orgKey/users/$userId",
+                consentWithVersionLowThanOrgAndEqualToLastConsAndStrucEq.asJson)
+      putErrorResponse.status mustBe OK
+    }
+
+    "delete offer" in {
+      val orgKey: String = "orgWithOfferToDelete"
+
+      val orgWithOfferToDelete: Organisation = Organisation(
+        key = orgKey,
+        label = "organisation with offer",
+        groups = Seq(
+          PermissionGroup(
+            key = "maifNotifs",
+            label =
+              "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF",
+            permissions = Seq(
+              Permission(key = "phone", label = "Par contact téléphonique"),
+              Permission(key = "mail", label = "Par contact électronique"),
+              Permission(key = "sms", label = "Par SMS / MMS / VMS")
+            )
+          )
+        )
+      )
+
+      postJson(s"/$tenant/organisations", orgWithOfferToDelete.asJson).status mustBe CREATED
+      postJson(s"/$tenant/organisations/$orgKey/draft/_release", Json.obj()).status mustBe OK
+
+      postJson(s"/$tenant/organisations/$orgKey/offers", offer1.asJson()).status mustBe CREATED
+      postJson(s"/$tenant/organisations/$orgKey/offers", offer2.asJson()).status mustBe CREATED
+
+      val userId = "deleteUser"
+      val consent: ConsentFact = ConsentFact(
+        userId = userId,
+        doneBy = DoneBy(userId = userId, role = "USER"),
+        version = 1,
+        groups = Seq(
+          ConsentGroup(
+            key = "maifNotifs",
+            label =
+              "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF",
+            consents = Seq(
+              Consent(key = "phone",
+                      label = "Par contact téléphonique",
+                      checked = true),
+              Consent(key = "mail",
+                      label = "Par contact électronique",
+                      checked = false),
+              Consent(key = "sms",
+                      label = "Par SMS / MMS / VMS",
+                      checked = true)
+            )
+          )
+        ),
+        offers = Some(
+          Seq(
+            ConsentOffer(
+              key = "offer1",
+              label = "offer one",
+              version = 1,
+              Seq(
+                ConsentGroup(
+                  key = "maifNotifs",
+                  label =
+                    "J'accepte de recevoir par téléphone, mail et SMS des offres commerciales du groupe MAIF",
+                  consents = Seq(
+                    Consent(key = "phone",
+                            label = "Par contact téléphonique",
+                            checked = false),
+                    Consent(key = "mail",
+                            label = "Par contact électronique",
+                            checked = true),
+                    Consent(key = "sms",
+                            label = "Par SMS / MMS / VMS",
+                            checked = false)
+                  )
+                )
+              )
+            ),
+            ConsentOffer(
+              key = "offer2",
+              label = "offer two",
+              version = 1,
+              Seq(
+                ConsentGroup(
+                  key = "maifPartnerNotifs",
+                  label =
+                    "J'accepte de recevoir par téléphone, mail et SMS des offres commerciales des partenaires du groupe MAIF",
+                  consents = Seq(
+                    Consent(key = "phone",
+                            label = "Par contact téléphonique",
+                            checked = true),
+                    Consent(key = "mail",
+                            label = "Par contact électronique",
+                            checked = true),
+                    Consent(key = "sms",
+                            label = "Par SMS / MMS / VMS",
+                            checked = false)
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+      putJson(s"/$tenant/organisations/$orgKey/users/$userId", consent.asJson).status mustBe OK
+      val response: WSResponse =
+        getJson(s"/$tenant/organisations/$orgKey/users/$userId")
+      response.status mustBe OK
+
+      (response.json \ "offers").as[JsArray].value.length mustBe 2
+      val msgAsJson = readLastKafkaEvent()
+      (msgAsJson \ "type").as[String] mustBe "ConsentFactCreated"
+      (msgAsJson \ "payload" \ "userId").as[String] mustBe consent.userId
+      val payloadOffers: JsArray =
+        (msgAsJson \ "payload" \ "offers").as[JsArray]
+      payloadOffers.value.size mustBe 2
+      (payloadOffers \ 0 \ "key")
+        .as[String] mustBe "offer1"
+      (payloadOffers \ 1 \ "key")
+        .as[String] mustBe "offer2"
+
+      delete(
+        s"/$tenant/organisations/$orgKey/users/$userId/offers/$offerKeyNotAuthorized").status mustBe UNAUTHORIZED
+      delete(s"/$tenant/organisations/$orgKey/users/$userId/offers/$offerKey1").status mustBe OK
+
+      val deleteResponse =
+        getJson(s"/$tenant/organisations/$orgKey/users/$userId")
+      deleteResponse.status mustBe OK
+      val value: JsValue = deleteResponse.json
+
+      val offers: JsArray = (value \ "offers").as[JsArray]
+      offers.value.length mustBe 1
+
+      (offers \ 0 \ "key").as[String] mustBe "offer2"
+      (offers \ 0 \ "label").as[String] mustBe "offer two"
+
+      val msgAsJsonAfterDelete = readLastKafkaEvent()
+      (msgAsJsonAfterDelete \ "type").as[String] mustBe "ConsentFactUpdated"
+      (msgAsJsonAfterDelete \ "payload" \ "userId")
+        .as[String] mustBe consent.userId
+      val payloadOffers2: JsArray =
+        (msgAsJsonAfterDelete \ "payload" \ "offers").as[JsArray]
+      payloadOffers2.value.size mustBe 1
+      (payloadOffers2 \ 0 \ "key")
+        .as[String] mustBe "offer2"
+
+      delete(s"/$tenant/organisations/$orgKey/users/$userId/offers/$offerKey1").status mustBe NOT_FOUND
+    }
+
+    "restricted with pattern" in {
+      val consentFact = ConsentFact(
+        _id = "cf",
+        userId = "userId4",
+        doneBy = DoneBy("a1", "admin"),
+        version = 1,
+        groups = Seq(
+          ConsentGroup("a", "a", Seq(Consent("a", "a", false))),
+          ConsentGroup("b", "b", Seq(Consent("b", "b", false)))
+        ),
+        lastUpdate = DateTime.now(DateTimeZone.UTC),
+        metaData = Some(Map("mdKey1" -> "mdVal1", "tata" -> "val2"))
+      )
+
+      val consentFactWithOffers = consentFact
+        .copy(
+          offers = Some(Seq(
+            ConsentOffer(
+              key = "offer1",
+              label = "offer 1",
+              version = 1,
+              groups = Seq(
+                ConsentGroup("a", "a", Seq(Consent("a", "a", false))),
+                ConsentGroup("b", "b", Seq(Consent("b", "b", false)))
+              )
+            ),
+            ConsentOffer(
+              key = "offer2",
+              label = "offer 2",
+              version = 1,
+              groups = Seq(
+                ConsentGroup("a", "a", Seq(Consent("a", "a", false))),
+                ConsentGroup("b", "b", Seq(Consent("b", "b", false)))
+              )
+            )
+          )))
+      val consentFactWithOffer1 = consentFact
+        .copy(
+          offers = Some(
+            Seq(
+              ConsentOffer(
+                key = "offer1",
+                label = "offer 1",
+                version = 1,
+                groups = Seq(
+                  ConsentGroup("a", "a", Seq(Consent("a", "a", false))),
+                  ConsentGroup("b", "b", Seq(Consent("b", "b", false)))
+                )
+              )
+            )))
+
+      consentManagerService
+        .consentFactWithAccessibleOffers(consentFactWithOffers, Some(Seq(".*")))
+        .asJson mustBe consentFactWithOffers.asJson
+      consentManagerService
+        .consentFactWithAccessibleOffers(consentFactWithOffers,
+                                         Some(Seq("offer1")))
+        .asJson mustBe consentFactWithOffer1.asJson
+      consentManagerService
+        .consentFactWithAccessibleOffers(consentFactWithOffers,
+                                         Some(Seq("otherOffer")))
+        .offers
+        .getOrElse(Seq())
+        .length mustBe 0
+    }
   }
 }

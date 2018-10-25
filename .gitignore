@@ -6,6 +6,7 @@
 target/
 
 nio-server/javascript/node_modules
+nio-server/logs/
 /.idea/
 /project/project/
 /project/target/

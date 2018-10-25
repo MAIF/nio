@@ -129,3 +129,5 @@ dockerEntrypoint ++= Seq(
 )
 
 dockerUpdateLatest := true
+
+packageName in Universal := s"nio"
