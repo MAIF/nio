@@ -75,7 +75,8 @@ class ConsentController(
               maybeOrganisation match {
                 case None =>
                   Logger.error(s"Organisation $orgKey not found")
-                  Future.successful("error.unknown.organisation".notFound())
+                  Future.successful(
+                    s"error.unknown.organisation.$orgKey".notFound())
                 case Some(organisation) =>
                   val toConsentGroup = (pg: PermissionGroup) =>
                     ConsentGroup(
@@ -144,7 +145,7 @@ class ConsentController(
             case None =>
               // if this occurs it means a user is known but it has no consents, this is a BUG
               context.stop()
-              "error.unknown.user.or.organisation".notFound()
+              s"error.unknown.user.$userId.or.organisation.$orgKey".notFound()
             case Some(consentFact) =>
               // TODO: later handle here new version template version check
               val restrictedConsentFact =
@@ -324,20 +325,23 @@ class ConsentController(
             offerKey,
             req.authInfo.offerRestrictionPatterns) =>
         Logger.error(s"offer $offerKey unauthorized")
-        Future.successful("error.offer.unauthorized".unauthorized())
+        Future.successful(s"error.offer.$offerKey.unauthorized".unauthorized())
       case Some(_) =>
         lastConsentFactMongoDataStore
           .findByOrgKeyAndUserId(tenant, orgKey, userId)
           .flatMap {
             case None =>
               // if this occurs it means a user is known but it has no consents, this is a BUG
-              Future.successful("error.unknown.user.or.organisation".notFound())
+              Future.successful(
+                s"error.unknown.user.$userId.or.organisation.$orgKey"
+                  .notFound())
             case Some(consentFact) =>
               consentFact.offers.flatMap(offers =>
                 offers.find(o => o.key == offerKey)) match {
                 case None =>
                   Logger.error(s"offer $offerKey not found")
-                  Future.successful("error.offer.not.found".notFound())
+                  Future.successful(
+                    s"error.offer.$offerKey.not.found".notFound())
                 case Some(offer) =>
                   consentManagerService
                     .delete(tenant,
