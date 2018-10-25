@@ -81,7 +81,9 @@ export class SampleConsentsPage extends Component {
             if (this.state.templateUser.version !== this.state.user.version)
                 return true;
             else {
-                if (this.state.templateUser.offers && !this.state.user.offers) {
+                if (!this.state.templateUser.offers && !this.state.user.offers)  {
+                    return false;
+                } else if (this.state.templateUser.offers && !this.state.user.offers) {
                     return true;
                 } else if (!this.state.templateUser.offers && this.state.user.offers) {
                     return true;
