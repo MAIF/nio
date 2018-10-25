@@ -2,7 +2,6 @@ package loader
 
 import akka.actor.ActorSystem
 import auth._
-import com.codahale.metrics.MetricRegistry
 import com.softwaremill.macwire.wire
 import configuration._
 import controllers._
@@ -94,9 +93,6 @@ class NioComponents(context: Context)
 
   // wire utils
   implicit lazy val defaultLoader: DefaultLoader = wire[DefaultLoader]
-
-  // metrics registry
-  implicit lazy val metrics: MetricRegistry = new MetricRegistry
 
   // wire Action
   lazy val bodyParserDefault: Default =

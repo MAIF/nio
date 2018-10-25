@@ -6,7 +6,6 @@ import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
 import auth.AuthAction
-import com.codahale.metrics.{MetricRegistry, Timer}
 import controllers.ErrorManager.{
   AppErrorManagerResult,
   ErrorManagerResult,
@@ -41,7 +40,6 @@ class ConsentController(
     val organisationStore: OrganisationMongoDataStore,
     consentManagerService: ConsentManagerService,
     val accessibleOfferService: AccessibleOfferManagerService,
-    val metrics: MetricRegistry,
     val broker: KafkaMessageBroker)(implicit val ec: ExecutionContext,
                                     system: ActorSystem)
     extends ControllerUtils(cc) {
@@ -50,19 +48,12 @@ class ConsentController(
 
   implicit val materializer = ActorMaterializer()(system)
 
-  private lazy val timerGetConsentFact: Timer = metrics.timer("consentFact.get")
-  private lazy val timerGetConsentFactTemplate: Timer =
-    metrics.timer("consentFact.getTemplate")
-  private lazy val timerPutConsentFact: Timer = metrics.timer("consentFact.put")
-
   def getTemplate(tenant: String,
                   orgKey: String,
                   maybeUserId: Option[String],
                   maybeOfferKeys: Option[Seq[String]]) =
     AuthAction.async { implicit req =>
       {
-        val context: Timer.Context = timerGetConsentFactTemplate.time()
-
         accessibleOfferService
           .organisationWithAccessibleOffer(
             tenant,
@@ -125,10 +116,7 @@ class ConsentController(
                                                   organisation.version.num,
                                                   template,
                                                   maybeUserId)
-                    .map { consentFact =>
-                      context.stop()
-                      renderMethod(consentFact)
-                    }
+                    .map(renderMethod(_))
               }
 
           }
@@ -138,13 +126,11 @@ class ConsentController(
   def find(tenant: String, orgKey: String, userId: String) = AuthAction.async {
     implicit req =>
       {
-        val context: Timer.Context = timerGetConsentFact.time()
         lastConsentFactMongoDataStore
           .findByOrgKeyAndUserId(tenant, orgKey, userId)
           .map {
             case None =>
               // if this occurs it means a user is known but it has no consents, this is a BUG
-              context.stop()
               s"error.unknown.user.$userId.or.organisation.$orgKey".notFound()
             case Some(consentFact) =>
               // TODO: later handle here new version template version check
@@ -153,7 +139,6 @@ class ConsentController(
                   consentFact,
                   req.authInfo.offerRestrictionPatterns)
 
-              context.stop()
               renderMethod(restrictedConsentFact)
           }
       }
