@@ -267,11 +267,6 @@ class ConsentManagerService(
                       c.key == permission.key && c.label == permission.label))))
   }
 
-  private def sequence[A, B](s: Seq[Either[A, B]]): Either[Seq[A], B] =
-    s.foldLeft(Left(Nil): Either[List[A], B]) { (acc, e) =>
-      for (xs <- acc.left; x <- e.left) yield x :: xs
-    }
-
   def saveConsents(tenant: String,
                    author: String,
                    metadata: Option[Seq[(String, String)]],

@@ -2,7 +2,7 @@ package service
 
 import akka.http.scaladsl.util.FastFuture
 import controllers.AppErrorWithStatus
-import db.OrganisationMongoDataStore
+import db.{LastConsentFactMongoDataStore, OrganisationMongoDataStore}
 import models.{Offer, Organisation}
 import play.api.mvc.Results._
 import reactivemongo.bson.BSONObjectID
@@ -11,6 +11,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class OfferManagerService(
     organisationMongoDataStore: OrganisationMongoDataStore,
+    lastConsentFactMongoDataStore: LastConsentFactMongoDataStore,
     accessibleOfferManagerService: AccessibleOfferManagerService)(
     implicit val executionContext: ExecutionContext)
     extends ServiceUtils {
@@ -104,7 +105,19 @@ class OfferManagerService(
           case Left(e) =>
             FastFuture.successful(Left(e))
           case Right(_) =>
-            organisationMongoDataStore.deleteOffer(tenant, orgKey, offerKey)
+            organisationMongoDataStore
+              .deleteOffer(tenant, orgKey, offerKey)
+              .flatMap { o =>
+                // clean existing consent fact
+                lastConsentFactMongoDataStore
+                  .removeOffer(tenant, orgKey, offerKey)
+                  .map {
+                    case Left(errors) =>
+                      Left(errors)
+                    case Right(_) =>
+                      o
+                  }
+              }
         }
       case false =>
         toErrorWithStatus(s"offer.$offerKey.not.accessible", Unauthorized)

@@ -85,6 +85,45 @@ class LastConsentFactMongoDataStore(val mongoApi: ReactiveMongoApi)(
     deleteOneById(tenant, id)
   }
 
+  import play.api.mvc.Results._
+
+  def removeOffer(
+      tenant: String,
+      orgKey: String,
+      offerKey: String): Future[Either[AppErrorWithStatus, Boolean]] = {
+    findManyByQuery(tenant,
+                    Json.obj("orgKey" -> orgKey, "offers.key" -> offerKey))
+      .flatMap {
+        case Nil =>
+          FastFuture.successful(Right(true))
+        case consentFacts =>
+          Future
+            .sequence(
+              consentFacts.map(c =>
+                removeOfferById(tenant, orgKey, c.userId, offerKey))
+            )
+            .map(sequence)
+            .map { e =>
+              e.left.map(
+                m =>
+                  controllers.AppErrorWithStatus(
+                    AppErrors(
+                      m.flatMap(_.appErrors.errors)
+                    ),
+                    BadRequest
+                ))
+            }
+            .map { e =>
+              e.right.map(_ => true)
+            }
+      }
+  }
+
+  private def sequence[A, B](s: Seq[Either[A, B]]): Either[Seq[A], B] =
+    s.foldLeft(Left(Nil): Either[List[A], B]) { (acc, e) =>
+      for (xs <- acc.left; x <- e.left) yield x :: xs
+    }
+
   def findConsentOffer(
       tenant: String,
       orgKey: String,
