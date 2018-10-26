@@ -6,7 +6,7 @@ import com.softwaremill.macwire.wire
 import configuration._
 import controllers._
 import db._
-import filters.{AuthInfoDev, AuthInfoMock, OtoroshiFilter}
+import filters.{AuthInfoDev, AuthInfoMock, NioDefaultFilter, OtoroshiFilter}
 import messaging.KafkaMessageBroker
 import play.api.ApplicationLoader.Context
 import play.api._
@@ -72,6 +72,9 @@ class NioComponents(context: Context)
   implicit lazy val userExtractTaskDataStore: UserExtractTaskDataStore =
     wire[UserExtractTaskDataStore]
 
+  implicit lazy val userAccountMongoDataStore: UserAccountMongoDataStore =
+    wire[UserAccountMongoDataStore]
+
   // wire service
   implicit lazy val consentManagerService: ConsentManagerService =
     wire[ConsentManagerService]
@@ -131,7 +134,11 @@ class NioComponents(context: Context)
     wire[Routes]
   }
 
-  lazy val securityFilter: Filter = wire[OtoroshiFilter]
+  lazy val securityFilter: Filter = env.config.filter.securityMode match {
+    case "otoroshi" => wire[OtoroshiFilter]
+    case "default"  => wire[NioDefaultFilter]
+    case _          => wire[NioDefaultFilter]
+  }
 
   override def httpFilters: Seq[EssentialFilter] = {
     Seq(securityFilter, gzipFilter)

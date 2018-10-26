@@ -3,7 +3,7 @@ package auth
 import db.ExtractionTaskMongoDataStore
 import play.api.Logger
 import play.api.mvc._
-import filters.OtoroshiFilter
+import filters.{FilterAttributes, OtoroshiFilter}
 import play.api.mvc.Results.Unauthorized
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -28,8 +28,8 @@ class AuthActionWithEmail(val parser: BodyParsers.Default)(
       request: Request[A],
       block: AuthContextWithEmail[A] => Future[Result]): Future[Result] = {
     (
-      request.attrs.get(OtoroshiFilter.Email),
-      request.attrs.get(OtoroshiFilter.AuthInfo)
+      request.attrs.get(FilterAttributes.Email),
+      request.attrs.get(FilterAttributes.AuthInfo)
     ) match {
       case (Some(email), Some(authInfo)) =>
         block(AuthContextWithEmail(request, email, authInfo))
@@ -56,7 +56,7 @@ class AuthAction(val parser: BodyParsers.Default)(
       s"Request ${request.method} : ${request.uri} \n ${request.body}")
 
     request.attrs
-      .get(OtoroshiFilter.AuthInfo)
+      .get(FilterAttributes.AuthInfo)
       .map { e =>
         block(AuthContext(request, e))
       }
@@ -86,7 +86,7 @@ class ExtractionAction[A](val tenant: String,
     store.findById(tenant, taskId).flatMap {
       case Some(task) =>
         request.attrs
-          .get(OtoroshiFilter.AuthInfo)
+          .get(FilterAttributes.AuthInfo)
           .map { e =>
             block(ReqWithExtractionTask[A](task, request, e))
           }
