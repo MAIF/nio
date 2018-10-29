@@ -547,7 +547,7 @@ class ConsentControllerSpec extends TestUtils {
     }
 
     "force lastUpdate date" in {
-      val yesterday: DateTime = DateTime.now(DateTimeZone.UTC).minusDays(1)
+      val tomorrow: DateTime = DateTime.now(DateTimeZone.UTC).plusDays(1)
 
       val consentFact = ConsentFact(
         _id = "cf",
@@ -570,7 +570,7 @@ class ConsentControllerSpec extends TestUtils {
                 Consent("sms", "Par SMS / MMS / VMS", false))
           )
         ),
-        lastUpdate = yesterday
+        lastUpdate = tomorrow
       )
 
       val resp =
@@ -581,7 +581,7 @@ class ConsentControllerSpec extends TestUtils {
 
       val json: JsValue = resp.json
 
-      (json \ "lastUpdate").as[String] mustBe yesterday.toString(
+      (json \ "lastUpdate").as[String] mustBe tomorrow.toString(
         DateUtils.utcDateFormatter)
 
       val respGet =
@@ -591,7 +591,7 @@ class ConsentControllerSpec extends TestUtils {
 
       val jsonGet: JsValue = respGet.json
 
-      (jsonGet \ "lastUpdate").as[String] mustBe yesterday.toString(
+      (jsonGet \ "lastUpdate").as[String] mustBe tomorrow.toString(
         DateUtils.utcDateFormatter)
     }
 
@@ -1165,6 +1165,87 @@ class ConsentControllerSpec extends TestUtils {
         .offers
         .getOrElse(Seq())
         .length mustBe 0
+    }
+  }
+
+  "last update date must be >= last update date in db" should {
+    val lastUpdate = DateTime.now(DateTimeZone.UTC)
+
+    val userIdDate = "userIdWithLastUpdateDate"
+    val consentFact = ConsentFact(
+      _id = "cf",
+      userId = userIdDate,
+      doneBy = DoneBy("a1", "admin"),
+      version = 1,
+      groups = Seq(
+        ConsentGroup(
+          key = "maifNotifs",
+          label =
+            "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF",
+          consents = Seq(
+            Consent(key = "phone",
+                    label = "Par contact téléphonique",
+                    checked = true),
+            Consent(key = "mail",
+                    label = "Par contact électronique",
+                    checked = false),
+            Consent(key = "sms", label = "Par SMS / MMS / VMS", checked = true)
+          )
+        )
+      ),
+      lastUpdate = lastUpdate,
+      metaData = Some(Map("mdKey1" -> "mdVal1", "tata" -> "val2"))
+    )
+
+    val orgKey: String = "organisationForLastUpdate"
+
+    val organisation: Organisation = Organisation(
+      key = orgKey,
+      label = "organisation",
+      groups = Seq(
+        PermissionGroup(
+          key = "maifNotifs",
+          label =
+            "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF",
+          permissions = Seq(
+            Permission(key = "phone", label = "Par contact téléphonique"),
+            Permission(key = "mail", label = "Par contact électronique"),
+            Permission(key = "sms", label = "Par SMS / MMS / VMS")
+          )
+        )
+      )
+    )
+
+    "initialize organisation" in {
+      postJson(s"/$tenant/organisations", organisation.asJson).status mustBe CREATED
+      postJson(s"/$tenant/organisations/$orgKey/draft/_release",
+               organisation.asJson).status mustBe OK
+
+      // insert consent fact on db
+      putJson(s"/$tenant/organisations/$orgKey/users/$userIdDate",
+              consentFact.asJson).status mustBe OK
+    }
+
+    "case last update date in body < last update date in db" in {
+      val response =
+        putJson(s"/$tenant/organisations/$orgKey/users/$userIdDate",
+                consentFact.copy(lastUpdate = lastUpdate.minusDays(1)).asJson)
+      response.status mustBe CONFLICT
+
+      (response.json \ "errors" \ 0 \ "message")
+        .as[String] mustBe "the.specified.update.date.must.be.greater.than.the.saved.update.date"
+    }
+
+    "case last update date in body = last update date in db" in {
+      putJson(s"/$tenant/organisations/$orgKey/users/$userIdDate",
+              consentFact.asJson).status mustBe OK
+    }
+
+    "case last update date in body > last update date in db" in {
+      putJson(s"/$tenant/organisations/$orgKey/users/$userIdDate",
+              consentFact
+                .copy(lastUpdate = lastUpdate.plusDays(1))
+                .asJson).status mustBe OK
     }
   }
 }

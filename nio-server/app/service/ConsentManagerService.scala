@@ -92,9 +92,11 @@ class ConsentManagerService(
                 } yield Right(consentFact)
               // Update user, consent fact and last consent fact
               case Some(lastConsentFactStored)
-                  if consentFact.version >= lastConsentFactStored.version =>
+                  if consentFact.version >= lastConsentFactStored.version && !consentFact.lastUpdate
+                    .isBefore(lastConsentFactStored.lastUpdate) =>
                 val lastConsentFactToStore =
                   consentFact.copy(lastConsentFactStored._id)
+
                 for {
                   _ <- lastConsentFactMongoDataStore.update(
                     tenant,
@@ -115,6 +117,14 @@ class ConsentManagerService(
                   )
                 } yield Right(consentFact)
 
+              case Some(lastConsentFactStored)
+                  if consentFact.lastUpdate.isBefore(
+                    lastConsentFactStored.lastUpdate) =>
+                Logger.error(
+                  s"consentFact.lastUpdate < lastConsentFactStored.lastUpdate (${consentFact.lastUpdate} < ${lastConsentFactStored.lastUpdate}) for ${lastConsentFactStored._id}")
+                toErrorWithStatus(
+                  "the.specified.update.date.must.be.greater.than.the.saved.update.date",
+                  Conflict)
               case Some(lastConsentFactStored) =>
                 Logger.error(
                   s"lastConsentFactStored.version > consentFact.version (${lastConsentFactStored.version} > ${consentFact.version}) for ${lastConsentFactStored._id}")
