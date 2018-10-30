@@ -8,7 +8,7 @@ import akka.japi.Option.Some
 import akka.stream.ActorMaterializer
 import configuration.Env
 import db.{UserExtractTaskDataStore, _}
-import models.{Tenant, UserAccount}
+import models.{Tenant, NioAccount}
 import play.api.{Configuration, Logger}
 import s3.S3
 import utils.{DefaultLoader, SecureEvent}
@@ -29,7 +29,7 @@ class Starter(
     deletionTaskDataStore: DeletionTaskMongoDataStore,
     extractionTaskDataStore: ExtractionTaskMongoDataStore,
     userExtractTaskDataStore: UserExtractTaskDataStore,
-    userAccountMongoDataStore: UserAccountMongoDataStore,
+    userAccountMongoDataStore: NioAccountMongoDataStore,
     defaultLoader: DefaultLoader,
     s3: S3,
     secureEvent: SecureEvent)(implicit val executionContext: ExecutionContext) {
@@ -127,11 +127,13 @@ class Starter(
           .findMany()
           .flatMap {
             case Nil =>
-              val clientId = "admin"
-              val clientSecret = "password"
+              val config = env.config.filter.default.defaultUser
 
-              val email = "admin@nio.fr"
-              val password = "admin123"
+              val clientId: String = config.clientId
+              val clientSecret: String = config.clientSecret
+
+              val email: String = config.username
+              val password: String = config.password
 
               Logger.info(
                 s"create an admin user with email/password = ( $email : $password )")
@@ -140,7 +142,7 @@ class Starter(
                 s"access to API with clientId/clientSecret = ( $clientId : $clientSecret ) ")
 
               userAccountMongoDataStore.insertOne(
-                new UserAccount(
+                new NioAccount(
                   email = email,
                   password = password,
                   isAdmin = true,

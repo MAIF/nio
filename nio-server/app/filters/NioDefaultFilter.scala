@@ -9,7 +9,7 @@ import com.auth0.jwt.algorithms.Algorithm
 import com.auth0.jwt.interfaces.DecodedJWT
 import com.google.common.base.Charsets
 import configuration.{DefaultFilterConfig, Env}
-import db.UserAccountMongoDataStore
+import db.NioAccountMongoDataStore
 import play.api.Logger
 import play.api.libs.json.Json
 import play.api.mvc.{Filter, RequestHeader, Result, Results}
@@ -19,7 +19,7 @@ import scala.util.{Success, Try}
 
 class NioDefaultFilter(env: Env,
                        authInfoMock: AuthInfoMock,
-                       userAccountMongoDataStore: UserAccountMongoDataStore)(
+                       userAccountMongoDataStore: NioAccountMongoDataStore)(
     implicit ec: ExecutionContext,
     val mat: Materializer)
     extends Filter {
@@ -48,6 +48,8 @@ class NioDefaultFilter(env: Env,
     val maybeClientSecret =
       requestHeader.headers.get(config.apiKeys.headerClientSecret)
 
+    val allowedPaths: Seq[String] = config.allowedPaths
+
     Try((env.env,
          maybeClaim,
          maybeAuthorization,
@@ -57,7 +59,7 @@ class NioDefaultFilter(env: Env,
         next(
           requestHeader
             .addAttr(FilterAttributes.Email, "test@test.com")
-            .addAttr(FilterAttributes.AuthInfo, authInfoMock.getAuthInfo)
+            .addAttr(FilterAttributes.AuthInfo, Some(authInfoMock.getAuthInfo))
         ).map { result =>
           Logger.debug(
             s"Request => ${requestHeader.method} ${requestHeader.uri} returned ${result.header.status}"
@@ -70,6 +72,37 @@ class NioDefaultFilter(env: Env,
       //      case ("prod", _, Some((clientId, clientSecret)), _, _) =>
       case (_, _, Some((clientId, clientSecret)), _, _) =>
         validateByApiKey(next, requestHeader, clientId, clientSecret)
+      //      case ("prod", Some(claim), _, _, _) if allowedPaths.exists(path => requestHeader.path.matches(path)) =>
+      case (_, Some(claim), _, _, _)
+          if allowedPaths.exists(path => requestHeader.path.matches(path)) =>
+        val tryDecode = Try {
+          val algorithm = Algorithm.HMAC512(config.sharedKey)
+          val verifier =
+            JWT.require(algorithm).withIssuer(config.issuer).build()
+          val decoded: DecodedJWT = verifier.verify(claim)
+          next(
+            requestHeader.addAttr(FilterAttributes.AuthInfo,
+                                  decodeJWTToken(decoded))).map {
+            result =>
+              logger.debug(
+                s"Request claim with exclusion => ${requestHeader.method} ${requestHeader.uri} with request headers ${requestHeader.headers.headers
+                  .map(h => s"""   "${h._1}": "${h._2}"\n""")
+                  .mkString(",")} returned ${result.header.status} hasBody ${requestHeader.hasBody}"
+              )
+              result
+          }
+        } recoverWith {
+          case e =>
+            Success(
+              Future.successful(
+                Results
+                  .Unauthorized(
+                    Json.obj("error" -> "Claim error !!!", "m" -> e.getMessage)
+                  )
+              )
+            )
+        }
+        tryDecode.get
       //      case ("prod", Some(claim), _, _, _) =>
       case (_, Some(claim), _, _, _) =>
         val tryDecode = Try {
@@ -100,6 +133,18 @@ class NioDefaultFilter(env: Env,
             )
         }
         tryDecode.get
+      //      case ("prod", _, _, _, _) if allowedPaths.exists(path => requestHeader.path.matches(path)) =>
+      case (_, _, _, _, _)
+          if allowedPaths.exists(path => requestHeader.path.matches(path)) =>
+        next(requestHeader.addAttr(FilterAttributes.AuthInfo, None)).map {
+          result =>
+            logger.debug(
+              s"Request claim with exclusion => ${requestHeader.method} ${requestHeader.uri} with request headers ${requestHeader.headers.headers
+                .map(h => s"""   "${h._1}": "${h._2}"\n""")
+                .mkString(",")} returned ${result.header.status} hasBody ${requestHeader.hasBody}"
+            )
+            result
+        }
       case _ =>
         Future.successful(
           Results
@@ -120,10 +165,10 @@ class NioDefaultFilter(env: Env,
     }.get
   }
 
-  private def decodeJWTToken(jwt: DecodedJWT): AuthInfo = {
+  private def decodeJWTToken(jwt: DecodedJWT): Option[AuthInfo] = {
     import scala.collection.JavaConverters._
     val claims = jwt.getClaims.asScala
-    val maybeInfo = for {
+    for {
       email <- claims.get("email").map(_.asString())
       isAdmin <- claims.get("isAdmin").map(_.asBoolean())
       metadatas = claims
@@ -139,8 +184,6 @@ class NioDefaultFilter(env: Env,
         .map(_.toSeq)
     } yield
       AuthInfo(email, isAdmin, Some(metadatas), maybeOfferRestrictionPatterns)
-
-    maybeInfo.get
   }
 
   private def validateByApiKey(next: RequestHeader => Future[Result],
@@ -151,7 +194,7 @@ class NioDefaultFilter(env: Env,
       case Some(userAccount) if userAccount.clientSecret == clientSecret =>
         next(
           requestHeader
-            .addAttr(FilterAttributes.AuthInfo, userAccount.toAuthInfo())
+            .addAttr(FilterAttributes.AuthInfo, Some(userAccount.toAuthInfo()))
         )
       case _ =>
         Future.successful(

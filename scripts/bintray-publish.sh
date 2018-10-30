@@ -5,10 +5,17 @@ then
 
     if test "$TRAVIS_PULL_REQUEST" = "false"
     then
-        CI='true' sbt -J-Xmx2G -J-Xss20M -J-XX:ReservedCodeCacheSize=128m ++$TRAVIS_SCALA_VERSION ";test;nio-server/assembly;nio-server/dist;nio-server/docker:publish"
-        echo "Uploading nio.jar"
-        curl -T ./nio-server/target/scala-2.12/nio.jar -u${BINTRAY_USER}:${BINTRAY_PASS} -H 'X-Bintray-Publish: 1' -H 'X-Bintray-Override: 1' -H 'X-Bintray-Version: latest' -H 'X-Bintray-Package: nio.jar' https://api.bintray.com/content/maif/binaries/nio.jar/latest/nio.jar
-        curl -T ./nio-server/target/universal/nio.zip -u${BINTRAY_USER}:${BINTRAY_PASS} -H 'X-Bintray-Publish: 1' -H 'X-Bintray-Override: 1' -H 'X-Bintray-Version: latest' -H 'X-Bintray-Package: nio-dist' https://api.bintray.com/content/maif/binaries/nio-dist/latest/nio-dist.zip
+        if test "$TRAVIS_BRANCH" = "master"
+        then
+            echo "Publish to docker and bintray for master branch"
+            CI='true' sbt -J-Xmx2G -J-Xss20M -J-XX:ReservedCodeCacheSize=128m ++$TRAVIS_SCALA_VERSION ";test;nio-server/assembly;nio-server/dist;nio-server/docker:publish"
+            echo "Uploading nio.jar"
+            curl -T ./nio-server/target/scala-2.12/nio.jar -u${BINTRAY_USER}:${BINTRAY_PASS} -H 'X-Bintray-Publish: 1' -H 'X-Bintray-Override: 1' -H 'X-Bintray-Version: latest' -H 'X-Bintray-Package: nio.jar' https://api.bintray.com/content/maif/binaries/nio.jar/latest/nio.jar
+            curl -T ./nio-server/target/universal/nio.zip -u${BINTRAY_USER}:${BINTRAY_PASS} -H 'X-Bintray-Publish: 1' -H 'X-Bintray-Override: 1' -H 'X-Bintray-Version: latest' -H 'X-Bintray-Package: nio-dist' https://api.bintray.com/content/maif/binaries/nio-dist/latest/nio-dist.zip
+        else
+            echo "It's not the master branch, just run test"
+            sbt -J-XX:ReservedCodeCacheSize=128m ++$TRAVIS_SCALA_VERSION ";test"
+        fi
     else
         sbt -J-XX:ReservedCodeCacheSize=128m ++$TRAVIS_SCALA_VERSION ";test"
     fi

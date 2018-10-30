@@ -1,7 +1,7 @@
 package controllers
 
 import akka.actor.ActorSystem
-import auth.AuthAction
+import auth.{AuthAction, SecuredAction, SecuredAuthContext}
 import db.{
   ConsentFactMongoDataStore,
   DeletionTaskMongoDataStore,
@@ -11,21 +11,21 @@ import db.{
 import messaging.KafkaMessageBroker
 import models._
 import play.api.Logger
-import play.api.mvc.ControllerComponents
-
+import play.api.mvc.{ActionBuilder, AnyContent, ControllerComponents}
 import ErrorManager.ErrorManagerResult
 import ErrorManager.AppErrorManagerResult
+
 import scala.concurrent.{ExecutionContext, Future}
 
-class DeletionController(val AuthAction: AuthAction,
-                         val cc: ControllerComponents,
-                         val userStore: UserMongoDataStore,
-                         val consentFactStore: ConsentFactMongoDataStore,
-                         val organisationStore: OrganisationMongoDataStore,
-                         val deletionTaskStore: DeletionTaskMongoDataStore,
-                         val broker: KafkaMessageBroker)(
-    implicit val ec: ExecutionContext,
-    system: ActorSystem)
+class DeletionController(
+    val AuthAction: ActionBuilder[SecuredAuthContext, AnyContent],
+    val cc: ControllerComponents,
+    val userStore: UserMongoDataStore,
+    val consentFactStore: ConsentFactMongoDataStore,
+    val organisationStore: OrganisationMongoDataStore,
+    val deletionTaskStore: DeletionTaskMongoDataStore,
+    val broker: KafkaMessageBroker)(implicit val ec: ExecutionContext,
+                                    system: ActorSystem)
     extends ControllerUtils(cc) {
 
   implicit val readable: ReadableEntity[AppIds] = AppIds

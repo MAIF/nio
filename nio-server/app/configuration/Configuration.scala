@@ -15,7 +15,8 @@ object NioConfiguration {
   }
 }
 
-case class NioConfiguration(logoutUrl: String,
+case class NioConfiguration(baseUrl: String,
+                            logoutUrl: String,
                             downloadFileHost: String,
                             mailSendingEnable: Boolean,
                             filter: SecurityFilter,
@@ -40,10 +41,17 @@ case class OtoroshiFilterConfig(sharedKey: String,
                                 headerGatewayHeaderClientId: String,
                                 headerGatewayHeaderClientSecret: String)
 
-case class DefaultFilterConfig(sharedKey: String,
+case class DefaultFilterConfig(allowedPaths: Seq[String],
+                               sharedKey: String,
                                cookieClaim: String,
                                issuer: String,
-                               apiKeys: ApiKeysConfig)
+                               apiKeys: ApiKeysConfig,
+                               defaultUser: DefaultUserConfig)
+
+case class DefaultUserConfig(username: String,
+                             password: String,
+                             clientId: String,
+                             clientSecret: String)
 
 case class ApiKeysConfig(headerClientId: String, headerClientSecret: String)
 

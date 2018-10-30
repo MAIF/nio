@@ -3,20 +3,20 @@ package controllers
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.util.ByteString
-import auth.AuthAction
+import auth.{AuthAction, SecuredAction, SecuredAuthContext}
 import db.UserMongoDataStore
 import models.PagedUsers
 import play.api.http.HttpEntity
 import play.api.libs.json.Json
-import play.api.mvc.{ControllerComponents, ResponseHeader, Result}
+import play.api.mvc._
 
 import scala.concurrent.ExecutionContext
 
-class UserController(val AuthAction: AuthAction,
-                     val cc: ControllerComponents,
-                     val ds: UserMongoDataStore)(
-    implicit val ec: ExecutionContext,
-    system: ActorSystem)
+class UserController(
+    val AuthAction: ActionBuilder[SecuredAuthContext, AnyContent],
+    val cc: ControllerComponents,
+    val ds: UserMongoDataStore)(implicit val ec: ExecutionContext,
+                                system: ActorSystem)
     extends ControllerUtils(cc) {
 
   implicit val materializer = ActorMaterializer()(system)

@@ -12,7 +12,7 @@ import play.api.ApplicationLoader.Context
 import play.api._
 import play.api.libs.ws.ahc.AhcWSComponents
 import play.api.mvc.BodyParsers.Default
-import play.api.mvc.{EssentialFilter, Filter}
+import play.api.mvc.{ActionBuilder, AnyContent, EssentialFilter, Filter}
 import play.api.routing.Router
 import play.filters.HttpFiltersComponents
 import play.filters.gzip._
@@ -72,8 +72,8 @@ class NioComponents(context: Context)
   implicit lazy val userExtractTaskDataStore: UserExtractTaskDataStore =
     wire[UserExtractTaskDataStore]
 
-  implicit lazy val userAccountMongoDataStore: UserAccountMongoDataStore =
-    wire[UserAccountMongoDataStore]
+  implicit lazy val nioAccountMongoDataStore: NioAccountMongoDataStore =
+    wire[NioAccountMongoDataStore]
 
   // wire service
   implicit lazy val consentManagerService: ConsentManagerService =
@@ -100,9 +100,13 @@ class NioComponents(context: Context)
   // wire Action
   lazy val bodyParserDefault: Default =
     wire[Default]
-  lazy val authAction: AuthAction = wire[AuthAction]
-  lazy val authActionWithEmail: AuthActionWithEmail =
+
+  lazy val authAction: ActionBuilder[AuthContext, AnyContent] = wire[AuthAction]
+  lazy val authActionWithEmail
+    : ActionBuilder[AuthContextWithEmail, AnyContent] =
     wire[AuthActionWithEmail]
+  lazy val securedAuthAction: ActionBuilder[SecuredAuthContext, AnyContent] =
+    wire[SecuredAction]
 
   // wire Controller
   lazy val accountController: AccountController = wire[AccountController]
@@ -121,6 +125,11 @@ class NioComponents(context: Context)
     wire[UserExtractController]
   lazy val organisationOfferController: OrganisationOfferController =
     wire[OrganisationOfferController]
+
+  lazy val nioAccountController: NioAccountController =
+    wire[NioAccountController]
+  lazy val nioAuthenticateController: NioAuthenticateController =
+    wire[NioAuthenticateController]
 
   lazy val mailService: MailService = if (env.config.mailSendingEnable) {
     wire[MailGunService]

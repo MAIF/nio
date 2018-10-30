@@ -50,6 +50,10 @@ object ErrorManager {
                        f: ErrorManagerSuite): Result = {
       f.convert(appErrors, Unauthorized)
     }
+    def forbidden()(implicit req: Request[Any],
+                    f: ErrorManagerSuite): Result = {
+      f.convert(appErrors, Forbidden)
+    }
     def notFound()(implicit req: Request[Any], f: ErrorManagerSuite): Result = {
       f.convert(appErrors, NotFound)
     }

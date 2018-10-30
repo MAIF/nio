@@ -5,7 +5,7 @@ import akka.http.scaladsl.util.FastFuture
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
-import auth.AuthAction
+import auth.{AuthAction, SecuredAction, SecuredAuthContext}
 import controllers.ErrorManager.{
   AppErrorManagerResult,
   ErrorManagerResult,
@@ -22,7 +22,7 @@ import messaging.KafkaMessageBroker
 import models.{ConsentFact, _}
 import play.api.Logger
 import play.api.http.HttpEntity
-import play.api.mvc.{Action, ControllerComponents, ResponseHeader, Result}
+import play.api.mvc._
 import reactivemongo.api.{Cursor, QueryOpts}
 import reactivemongo.bson.BSONDocument
 import service.{AccessibleOfferManagerService, ConsentManagerService}
@@ -32,7 +32,7 @@ import utils.Result.{AppErrors, ErrorMessage}
 import scala.concurrent.{ExecutionContext, Future}
 
 class ConsentController(
-    val AuthAction: AuthAction,
+    val AuthAction: ActionBuilder[SecuredAuthContext, AnyContent],
     val cc: ControllerComponents,
     val userStore: UserMongoDataStore,
     val consentFactStore: ConsentFactMongoDataStore,

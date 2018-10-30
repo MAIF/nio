@@ -3,23 +3,22 @@ package controllers
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.util.ByteString
-import auth.AuthAction
+import auth.{AuthAction, SecuredAction, SecuredAuthContext}
 import db._
 import models._
 import messaging.KafkaMessageBroker
 import play.api.Logger
 import play.api.http.HttpEntity
 import play.api.libs.json.Json
-import play.api.mvc.{ControllerComponents, ResponseHeader, Result}
+import play.api.mvc._
 import reactivemongo.bson.BSONObjectID
 
 import scala.concurrent.{ExecutionContext, Future}
-
 import ErrorManager.ErrorManagerResult
 import ErrorManager.AppErrorManagerResult
 
 class OrganisationController(
-    val AuthAction: AuthAction,
+    val AuthAction: ActionBuilder[SecuredAuthContext, AnyContent],
     val cc: ControllerComponents,
     val ds: OrganisationMongoDataStore,
     val consentFactDataStore: ConsentFactMongoDataStore,

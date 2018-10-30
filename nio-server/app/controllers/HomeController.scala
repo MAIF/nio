@@ -3,22 +3,23 @@ package controllers
 import java.nio.file.Files
 
 import akka.actor.ActorSystem
-import auth.AuthActionWithEmail
+import akka.http.scaladsl.util.FastFuture
+import auth.{AuthActionWithEmail, AuthContextWithEmail}
 import configuration.Env
+import controllers.ErrorManager.ErrorManagerResult
 import db.TenantMongoDataStore
-import play.api.mvc.{AbstractController, ControllerComponents}
+import play.api.mvc.{ActionBuilder, AnyContent, ControllerComponents}
 
 import scala.collection.JavaConverters._
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 
-import ErrorManager.ErrorManagerResult
-
-class HomeController(val AuthAction: AuthActionWithEmail,
-                     val cc: ControllerComponents,
-                     val tenantStore: TenantMongoDataStore,
-                     val env: Env,
-                     val actorSystem: ActorSystem,
-                     implicit val ec: ExecutionContext)
+class HomeController(
+    val AuthAction: ActionBuilder[AuthContextWithEmail, AnyContent],
+    val cc: ControllerComponents,
+    val tenantStore: TenantMongoDataStore,
+    val env: Env,
+    val actorSystem: ActorSystem,
+    implicit val ec: ExecutionContext)
     extends ControllerUtils(cc) {
 
   lazy val swaggerContent: String = Files
@@ -31,35 +32,48 @@ class HomeController(val AuthAction: AuthActionWithEmail,
              env.config.filter.otoroshi.headerGatewayHeaderClientSecret)
 
   def index(tenant: String) = AuthAction.async { implicit req =>
-    if (req.authInfo.isAdmin) {
-      tenantStore.findByKey(tenant).map {
-        case Some(_) => Ok(views.html.index(env, tenant, req.email))
-        case None    => "error.tenant.not.found".notFound()
-      }
-    } else {
-      Future.successful("error.forbidden.backoffice.access".forbidden())
+    req.authInfo match {
+      case Some(authInfo) if authInfo.isAdmin =>
+        tenantStore.findByKey(tenant).map {
+          case Some(_) => Ok(views.html.index(env, tenant, req.email))
+          case None    => "error.tenant.not.found".notFound()
+        }
+      case Some(_) =>
+        FastFuture.successful("error.forbidden.backoffice.access".forbidden())
+      case None =>
+        FastFuture.successful(Redirect(s"${env.config.baseUrl}/login"))
     }
   }
 
   def indexNoTenant = AuthAction { implicit req =>
-    if (req.authInfo.isAdmin) {
-      Ok(views.html.indexNoTenant(env, req.email))
-    } else {
-      "error.forbidden.backoffice.access".forbidden()
+    req.authInfo match {
+      case Some(authInfo) if authInfo.isAdmin =>
+        Ok(views.html.indexNoTenant(env, req.email))
+      case Some(_) =>
+        "error.forbidden.backoffice.access".forbidden()
+      case None =>
+        Redirect(s"${env.config.baseUrl}/login")
     }
+  }
+
+  def login = AuthAction { ctx =>
+    Ok(views.html.indexLogin(env))
   }
 
   def indexOther(tenant: String) = index(tenant)
 
   def otherRoutes(tenant: String, route: String) = AuthAction.async {
     implicit req =>
-      if (req.authInfo.isAdmin) {
-        tenantStore.findByKey(tenant).map {
-          case Some(_) => Ok(views.html.index(env, tenant, req.email))
-          case None    => "error.tenant.not.found".notFound()
-        }
-      } else {
-        Future.successful("error.forbidden.backoffice.access".forbidden())
+      req.authInfo match {
+        case Some(authInfo) if authInfo.isAdmin =>
+          tenantStore.findByKey(tenant).map {
+            case Some(_) => Ok(views.html.index(env, tenant, req.email))
+            case None    => "error.tenant.not.found".notFound()
+          }
+        case Some(_) =>
+          FastFuture.successful("error.forbidden.backoffice.access".forbidden())
+        case None =>
+          FastFuture.successful(Redirect(s"${env.config.baseUrl}/login"))
       }
   }
 

@@ -7,7 +7,7 @@ import akka.actor.ActorSystem
 import akka.stream.IOResult
 import akka.stream.scaladsl.{Source, StreamConverters}
 import akka.util.ByteString
-import auth.AuthAction
+import auth.{AuthAction, SecuredAction, SecuredAuthContext}
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import configuration.Env
@@ -21,7 +21,7 @@ import play.api.http.HttpEntity
 import play.api.libs.Files
 import play.api.libs.json.Json
 import play.api.libs.streams.Accumulator
-import play.api.mvc.{BodyParser, ControllerComponents, ResponseHeader, Result}
+import play.api.mvc._
 import service.MailService
 import utils.Result.AppErrors
 import utils.{FSUserExtractManager, S3ExecutionContext}
@@ -31,7 +31,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class UserExtractController(
     env: Env,
     actorSystem: ActorSystem,
-    val AuthAction: AuthAction,
+    val AuthAction: ActionBuilder[SecuredAuthContext, AnyContent],
     val cc: ControllerComponents,
     userExtractTaskDataStore: UserExtractTaskDataStore,
     organisationMongoDataStore: OrganisationMongoDataStore,

@@ -3,7 +3,7 @@ package controllers
 import akka.actor.ActorSystem
 import akka.http.scaladsl.util.FastFuture
 import akka.stream.ActorMaterializer
-import auth.{AuthAction, AuthContext}
+import auth.{SecuredAuthContext}
 import controllers.ErrorManager.{
   AppErrorManagerResult,
   ErrorManagerResult,
@@ -15,13 +15,13 @@ import messaging.KafkaMessageBroker
 import models.{Offer, OfferValidator, Offers}
 import play.api.Logger
 import play.api.libs.json.Json
-import play.api.mvc.{Action, AnyContent, ControllerComponents}
+import play.api.mvc.{Action, ActionBuilder, AnyContent, ControllerComponents}
 import service.OfferManagerService
 
 import scala.concurrent.{ExecutionContext, Future}
 
 class OrganisationOfferController(
-    val authAction: AuthAction,
+    val authAction: ActionBuilder[SecuredAuthContext, AnyContent],
     val cc: ControllerComponents,
     val offerManagerService: OfferManagerService,
     val organisationMongoDataStore: OrganisationMongoDataStore,
@@ -34,7 +34,7 @@ class OrganisationOfferController(
   implicit val materializer: ActorMaterializer =
     ActorMaterializer()(actorSystem)
 
-  def findAll(tenant: String, orgKey: String): Action[AnyContent] =
+  def findAll(tenant: String, orgKey: String) =
     authAction.async { implicit req =>
       Logger.info(s"get offers for $orgKey")
       offerManagerService
@@ -54,10 +54,10 @@ class OrganisationOfferController(
                       orgKey: String,
                       saveAction: (String,
                                    String,
-                                   AuthContext[XmlOrJson],
+                                   SecuredAuthContext[XmlOrJson],
                                    Offer,
                                    Option[Offer]) => Future[Result])(
-      implicit req: AuthContext[XmlOrJson]) = {
+      implicit req: SecuredAuthContext[XmlOrJson]) = {
     req.body.read[Offer] match {
       case Left(error) =>
         Logger.error("Unable to parse offer  " + error)
@@ -80,15 +80,15 @@ class OrganisationOfferController(
     }
   }
 
-  def add(tenant: String, orgKey: String): Action[XmlOrJson] =
+  def add(tenant: String, orgKey: String) =
     authAction.async(bodyParser) { implicit req =>
       val addOffer: (String,
                      String,
-                     AuthContext[XmlOrJson],
+                     SecuredAuthContext[XmlOrJson],
                      Offer,
                      Option[Offer]) => Future[Result] =
         (tenant, orgKey, req, offer, maybeOffer) => {
-          implicit val request: AuthContext[XmlOrJson] = req
+          implicit val request: SecuredAuthContext[XmlOrJson] = req
           maybeOffer match {
             case Some(_) =>
               FastFuture.successful(
@@ -117,17 +117,15 @@ class OrganisationOfferController(
       )
     }
 
-  def update(tenant: String,
-             orgKey: String,
-             offerKey: String): Action[XmlOrJson] =
+  def update(tenant: String, orgKey: String, offerKey: String) =
     authAction.async(bodyParser) { implicit req =>
       val updateOffer: (String,
                         String,
-                        AuthContext[XmlOrJson],
+                        SecuredAuthContext[XmlOrJson],
                         Offer,
                         Option[Offer]) => Future[Result] =
         (tenant, orgKey, req, offer, maybeOffer) => {
-          implicit val request: AuthContext[XmlOrJson] = req
+          implicit val request: SecuredAuthContext[XmlOrJson] = req
           maybeOffer match {
             case Some(previousOffer) =>
               offerManagerService

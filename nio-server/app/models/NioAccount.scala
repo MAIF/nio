@@ -16,13 +16,13 @@ import utils.Result.AppErrors
 
 import scala.xml.{Elem, NodeSeq}
 
-case class UserAccount(_id: String = BSONObjectID.generate().stringify,
-                       email: String,
-                       password: String,
-                       clientId: String,
-                       clientSecret: String,
-                       isAdmin: Boolean,
-                       offerRestrictionPatterns: Option[Seq[String]] = None)
+case class NioAccount(_id: String = BSONObjectID.generate().stringify,
+                      email: String,
+                      password: String,
+                      clientId: String,
+                      clientSecret: String,
+                      isAdmin: Boolean,
+                      offerRestrictionPatterns: Option[Seq[String]] = None)
     extends ModelTransformAs {
   override def asXml(): Elem = <UserAccount>
     <email>
@@ -48,7 +48,7 @@ case class UserAccount(_id: String = BSONObjectID.generate().stringify,
       )}
   </UserAccount>.clean()
 
-  override def asJson(): JsValue = UserAccount.writeWithoutId.writes(this)
+  override def asJson(): JsValue = NioAccount.writeWithoutId.writes(this)
 
   def toAuthInfo(): AuthInfo = {
     val maybeOfferRestrictionPatterns: Option[Seq[String]] = isAdmin match {
@@ -60,9 +60,9 @@ case class UserAccount(_id: String = BSONObjectID.generate().stringify,
   }
 }
 
-object UserAccount extends ReadableEntity[UserAccount] {
+object NioAccount extends ReadableEntity[NioAccount] {
 
-  implicit val read: Reads[UserAccount] = (
+  implicit val read: Reads[NioAccount] = (
     (__ \ "_id").readNullable[String].map { mayBeId =>
       mayBeId.getOrElse(BSONObjectID.generate().stringify)
     } and
@@ -72,9 +72,9 @@ object UserAccount extends ReadableEntity[UserAccount] {
       (__ \ "clientSecret").read[String] and
       (__ \ "isAdmin").read[Boolean] and
       (__ \ "offerRestrictionPatterns").readNullable[Seq[String]]
-  )(UserAccount.apply _)
+  )(NioAccount.apply _)
 
-  implicit val writeWithoutId: Writes[UserAccount] = Writes { userAccount =>
+  implicit val writeWithoutId: Writes[NioAccount] = Writes { userAccount =>
     Json.obj(
       "email" -> userAccount.email,
       "clientId" -> userAccount.clientId,
@@ -84,7 +84,7 @@ object UserAccount extends ReadableEntity[UserAccount] {
     )
   }
 
-  implicit val write: Writes[UserAccount] = (
+  implicit val write: Writes[NioAccount] = (
     (JsPath \ "_id").write[String] and
       (JsPath \ "email").write[String] and
       (JsPath \ "password").write[String] and
@@ -92,9 +92,9 @@ object UserAccount extends ReadableEntity[UserAccount] {
       (JsPath \ "clientSecret").write[String] and
       (JsPath \ "isAdmin").write[Boolean] and
       (JsPath \ "offerRestrictionPatterns").writeNullable[Seq[String]]
-  )(unlift(UserAccount.unapply))
+  )(unlift(NioAccount.unapply))
 
-  implicit val owrite: OWrites[UserAccount] = (
+  implicit val owrite: OWrites[NioAccount] = (
     (JsPath \ "_id").write[String] and
       (JsPath \ "email").write[String] and
       (JsPath \ "password").write[String] and
@@ -102,13 +102,13 @@ object UserAccount extends ReadableEntity[UserAccount] {
       (JsPath \ "clientSecret").write[String] and
       (JsPath \ "isAdmin").write[Boolean] and
       (JsPath \ "offerRestrictionPatterns").writeNullable[Seq[String]]
-  )(unlift(UserAccount.unapply))
+  )(unlift(NioAccount.unapply))
 
-  implicit val formats: Format[UserAccount] = Format(read, write)
-  implicit val oformats: OFormat[UserAccount] = OFormat(read, owrite)
+  implicit val formats: Format[NioAccount] = Format(read, write)
+  implicit val oformats: OFormat[NioAccount] = OFormat(read, owrite)
 
   implicit val readXml
-    : XMLRead[UserAccount] = (node: NodeSeq, path: Option[String]) =>
+    : XMLRead[NioAccount] = (node: NodeSeq, path: Option[String]) =>
     (
       (node \ "_id").validateNullable[String](BSONObjectID.generate().stringify,
                                               Some(s"${path.convert()}_id")),
@@ -128,7 +128,7 @@ object UserAccount extends ReadableEntity[UserAccount] {
        clientSecret,
        isAdmin,
        offerRestrictionPatterns) =>
-        UserAccount(
+        NioAccount(
           _id = _id,
           email = email,
           password = password,
@@ -139,15 +139,34 @@ object UserAccount extends ReadableEntity[UserAccount] {
       )
   )
 
-  def fromXml(xml: Elem): Either[AppErrors, UserAccount] = {
+  def fromXml(xml: Elem): Either[AppErrors, NioAccount] = {
     readXml.read(xml, Some("UserAccount")).toEither
   }
 
   def fromJson(json: JsValue) = {
-    json.validate[UserAccount] match {
+    json.validate[NioAccount] match {
       case JsSuccess(o, _) => Right(o)
       case JsError(errors) => Left(AppErrors.fromJsError(errors))
     }
   }
 
+}
+
+case class NioAccounts(page: Int,
+                       pageSize: Int,
+                       count: Int,
+                       items: Seq[NioAccount])
+    extends ModelTransformAs {
+  def asJson =
+    Json.obj("page" -> page,
+             "pageSize" -> pageSize,
+             "count" -> count,
+             "items" -> JsArray(items.map(_.asJson)))
+
+  def asXml = <nioAccounts>
+    <page>{page}</page>
+    <pageSize>{pageSize}</pageSize>
+    <count>{count}</count>
+    <items>{items.map(_.asXml)}</items>
+  </nioAccounts>
 }

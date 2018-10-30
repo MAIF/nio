@@ -5,7 +5,7 @@ import play.api.libs.typedmap.TypedKey
 
 object FilterAttributes {
   val Email: TypedKey[String] = TypedKey("email")
-  val AuthInfo: TypedKey[AuthInfo] = TypedKey("authInfo")
+  val AuthInfo: TypedKey[Option[AuthInfo]] = TypedKey("authInfo")
 }
 
 trait AuthInfoMock {

@@ -13,6 +13,8 @@ GET           /:tenant/bo/                                                      
 
 GET           /                                                                                                           controllers.HomeController.indexNoTenant
 
+GET           /login                                                                                                      controllers.HomeController.login
+
 # Deletions
 
 GET           /api/:tenant/organisations/:orgKey/users/deletions                                                          controllers.DeletionController.allDeletionTasksByOrgKey(tenant: String, orgKey: String)
@@ -118,5 +120,18 @@ GET           /_healthCheck                                                     
 
 GET           /_download/*name                                                                                            controllers.UserExtractController.downloadFile(name: String, uploadToken: String)
 
+GET           /api/nio/accounts                                                                                           controllers.NioAccountController.findAll(page: Int ?= 0, pageSize: Int ?= 10)
+
+GET           /api/nio/accounts/:nioAccountId                                                                             controllers.NioAccountController.find(nioAccountId: String)
+
+POST          /api/nio/accounts                                                                                           controllers.NioAccountController.create
+
+PUT           /api/nio/accounts/:nioAccountId                                                                             controllers.NioAccountController.update(nioAccountId: String)
+
+DELETE        /api/nio/accounts/:nioAccountId                                                                             controllers.NioAccountController.delete(nioAccountId: String)
+
+POST          /api/nio/login                                                                                              controllers.NioAuthenticateController.login
+
+POST          /api/nio/logout                                                                                              controllers.NioAuthenticateController.logout
 
 GET           /:tenant/bo/*other                                                                                          controllers.HomeController.otherRoutes(tenant: String, other: String)

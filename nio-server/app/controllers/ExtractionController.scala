@@ -6,7 +6,7 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Flow, Source}
 import akka.util.ByteString
-import auth.{AuthAction, ExtractionAction, ReqWithExtractionTask}
+import auth._
 import com.amazonaws.services.s3.model.{
   CompleteMultipartUploadRequest,
   InitiateMultipartUploadRequest,
@@ -18,20 +18,25 @@ import messaging.KafkaMessageBroker
 import models._
 import play.api.Logger
 import play.api.libs.streams.Accumulator
-import play.api.mvc.{BodyParser, ControllerComponents}
+import play.api.mvc.{
+  ActionBuilder,
+  AnyContent,
+  BodyParser,
+  ControllerComponents
+}
 import s3.{S3, S3Configuration, S3FileDataStore}
 import utils.UploadTracker
 
 import scala.concurrent.{ExecutionContext, Future}
-
 import ErrorManager.ErrorManagerResult
 import ErrorManager.AppErrorManagerResult
 
-class ExtractionController(val AuthAction: AuthAction,
-                           val cc: ControllerComponents,
-                           val s3Conf: S3Configuration,
-                           val s3: S3,
-                           val s3FileDataStore: S3FileDataStore)(
+class ExtractionController(
+    val AuthAction: ActionBuilder[SecuredAuthContext, AnyContent],
+    val cc: ControllerComponents,
+    val s3Conf: S3Configuration,
+    val s3: S3,
+    val s3FileDataStore: S3FileDataStore)(
     implicit val ec: ExecutionContext,
     val system: ActorSystem,
     val store: ExtractionTaskMongoDataStore,

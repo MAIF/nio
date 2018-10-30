@@ -38,7 +38,7 @@ class OtoroshiFilter(env: Env, authInfoMock: AuthInfoMock)(
         nextFilter(
           requestHeader
             .addAttr(FilterAttributes.Email, "test@test.com")
-            .addAttr(FilterAttributes.AuthInfo, authInfoMock.getAuthInfo)
+            .addAttr(FilterAttributes.AuthInfo, Some(authInfoMock.getAuthInfo))
         ).map {
           result =>
             val requestTime = System.currentTimeMillis - startTime
@@ -222,10 +222,11 @@ class OtoroshiFilter(env: Env, authInfoMock: AuthInfoMock)(
         }
         .getOrElse(requestHeader)
         .addAttr(FilterAttributes.AuthInfo,
-                 AuthInfo(sub,
-                          isAdmin,
-                          Some(metadatas),
-                          maybeOfferRestrictionPatterns))
+                 Some(
+                   AuthInfo(sub,
+                            isAdmin,
+                            Some(metadatas),
+                            maybeOfferRestrictionPatterns)))
     }
 
     nextFilter(requestWithAuthInfo.getOrElse(requestHeader)).map { result =>
