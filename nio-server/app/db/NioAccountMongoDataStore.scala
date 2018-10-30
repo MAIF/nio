@@ -34,6 +34,12 @@ class NioAccountMongoDataStore(val mongoApi: ReactiveMongoApi)(
   def findByEmail(email: String): Future[Option[NioAccount]] = {
     findOneByQuery("", Json.obj("email" -> email))
   }
+  def findByEmailOrClientId(email: String, clientId: String): Future[Option[NioAccount]] = {
+    findOneByQuery("", Json.obj("$or" -> Json.arr(
+      Json.obj("email" -> email),
+      Json.obj("clientId" -> clientId)
+    )))
+  }
 
   def findByClientId(clientId: String): Future[Option[NioAccount]] = {
     findOneByQuery("", Json.obj("clientId" -> clientId))

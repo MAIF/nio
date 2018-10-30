@@ -48,7 +48,7 @@ case class NioAccount(_id: String = BSONObjectID.generate().stringify,
       )}
   </UserAccount>.clean()
 
-  override def asJson(): JsValue = NioAccount.writeWithoutId.writes(this)
+  override def asJson(): JsValue = NioAccount.writeClean.writes(this)
 
   def toAuthInfo(): AuthInfo = {
     val maybeOfferRestrictionPatterns: Option[Seq[String]] = isAdmin match {
@@ -74,8 +74,9 @@ object NioAccount extends ReadableEntity[NioAccount] {
       (__ \ "offerRestrictionPatterns").readNullable[Seq[String]]
   )(NioAccount.apply _)
 
-  implicit val writeWithoutId: Writes[NioAccount] = Writes { userAccount =>
+  implicit val writeClean: Writes[NioAccount] = Writes { userAccount =>
     Json.obj(
+      "_id" -> userAccount._id,
       "email" -> userAccount.email,
       "clientId" -> userAccount.clientId,
       "clientSecret" -> userAccount.clientSecret,
@@ -140,7 +141,7 @@ object NioAccount extends ReadableEntity[NioAccount] {
   )
 
   def fromXml(xml: Elem): Either[AppErrors, NioAccount] = {
-    readXml.read(xml, Some("UserAccount")).toEither
+    readXml.read(xml, Some("NioAccount")).toEither
   }
 
   def fromJson(json: JsValue) = {

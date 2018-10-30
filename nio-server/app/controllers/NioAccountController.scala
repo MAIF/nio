@@ -1,6 +1,6 @@
 package controllers
 
-import auth.{AuthAction, SecuredAction, SecuredAuthContext}
+import auth.SecuredAuthContext
 import controllers.ErrorManager.{AppErrorManagerResult, ErrorManagerResult}
 import db.NioAccountMongoDataStore
 import libs.xmlorjson.XmlOrJson
@@ -25,10 +25,14 @@ class NioAccountController(
       case Left(e) =>
         Future.successful(e.badRequest())
       case Right(nioAccount) =>
-        nioAccountMongoDataStore.findByEmail(nioAccount.email).flatMap {
-          case Some(_) =>
+        nioAccountMongoDataStore.findByEmailOrClientId(nioAccount.email, nioAccount.clientId).flatMap {
+          case Some(nioAccountStored) if nioAccountStored.email == nioAccount.email =>
             Future.successful(
-              s"error.account.email.${nioAccount.email}.already.used"
+              s"error.account.email.already.used"
+                .conflict())
+          case Some(nioAccountStored) if nioAccountStored.clientId == nioAccount.clientId  =>
+            Future.successful(
+              s"error.account.client.id.already.used"
                 .conflict())
 
           case None =>
@@ -48,17 +52,22 @@ class NioAccountController(
         case Left(e) =>
           Future.successful(e.badRequest())
         case Right(nioAccount) =>
-          nioAccountMongoDataStore.findByEmail(nioAccount.email).flatMap {
+
+          nioAccountMongoDataStore.findById(nioAccountId).flatMap {
             case Some(nioAccountStored)
-                if nioAccountStored.email == nioAccount.email =>
+                if nioAccountStored.email == nioAccount.email &&
+                  nioAccountStored.clientId == nioAccount.clientId =>
               val nioAccountToStore =
                 nioAccount.copy(password = Sha.hexSha512(nioAccount.password))
               nioAccountMongoDataStore
                 .updateOne(nioAccountStored._id, nioAccountToStore)
                 .map(_ => renderMethod(nioAccountToStore))
-            case Some(_) =>
+            case Some(nioAccountStored) if nioAccountStored.email != nioAccount.email =>
               Future.successful(
                 s"error.account.email.is.immutable".badRequest())
+            case Some(_) =>
+              Future.successful(
+                s"error.account.clientId.is.immutable".badRequest())
             case None =>
               Future.successful(
                 s"error.account.id.$nioAccountId.not.found".notFound())
