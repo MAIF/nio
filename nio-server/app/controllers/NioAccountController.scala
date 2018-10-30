@@ -1,5 +1,6 @@
 package controllers
 
+import akka.http.scaladsl.util.FastFuture
 import auth.SecuredAuthContext
 import controllers.ErrorManager.{AppErrorManagerResult, ErrorManagerResult}
 import db.NioAccountMongoDataStore
@@ -21,57 +22,74 @@ class NioAccountController(
   implicit val readable: ReadableEntity[NioAccount] = NioAccount
 
   def create: Action[XmlOrJson] = AuthAction(bodyParser).async { implicit req =>
-    req.body.read[NioAccount] match {
-      case Left(e) =>
-        Future.successful(e.badRequest())
-      case Right(nioAccount) =>
-        nioAccountMongoDataStore.findByEmailOrClientId(nioAccount.email, nioAccount.clientId).flatMap {
-          case Some(nioAccountStored) if nioAccountStored.email == nioAccount.email =>
-            Future.successful(
-              s"error.account.email.already.used"
-                .conflict())
-          case Some(nioAccountStored) if nioAccountStored.clientId == nioAccount.clientId  =>
-            Future.successful(
-              s"error.account.client.id.already.used"
-                .conflict())
-
-          case None =>
-            val accountToStore: NioAccount =
-              nioAccount.copy(password = Sha.hexSha512(nioAccount.password))
+    req.authInfo.isAdmin match {
+      case true =>
+        req.body.read[NioAccount] match {
+          case Left(e) =>
+            Future.successful(e.badRequest())
+          case Right(nioAccount) =>
             nioAccountMongoDataStore
-              .insertOne(accountToStore)
-              .map(_ => renderMethod(accountToStore, Created))
-        }
+              .findByEmailOrClientId(nioAccount.email, nioAccount.clientId)
+              .flatMap {
+                case Some(nioAccountStored)
+                    if nioAccountStored.email == nioAccount.email =>
+                  Future.successful(
+                    s"error.account.email.already.used"
+                      .conflict())
+                case Some(nioAccountStored)
+                    if nioAccountStored.clientId == nioAccount.clientId =>
+                  Future.successful(
+                    s"error.account.client.id.already.used"
+                      .conflict())
 
+                case None =>
+                  val accountToStore: NioAccount =
+                    nioAccount.copy(
+                      password = Sha.hexSha512(nioAccount.password))
+                  nioAccountMongoDataStore
+                    .insertOne(accountToStore)
+                    .map(_ => renderMethod(accountToStore, Created))
+              }
+
+        }
+      case false =>
+        FastFuture.successful("admin.action.forbidden".forbidden())
     }
+
   }
 
   def update(nioAccountId: String): Action[XmlOrJson] =
     AuthAction(bodyParser).async { implicit req =>
-      req.body.read[NioAccount] match {
-        case Left(e) =>
-          Future.successful(e.badRequest())
-        case Right(nioAccount) =>
-
-          nioAccountMongoDataStore.findById(nioAccountId).flatMap {
-            case Some(nioAccountStored)
-                if nioAccountStored.email == nioAccount.email &&
-                  nioAccountStored.clientId == nioAccount.clientId =>
-              val nioAccountToStore =
-                nioAccount.copy(password = Sha.hexSha512(nioAccount.password))
-              nioAccountMongoDataStore
-                .updateOne(nioAccountStored._id, nioAccountToStore)
-                .map(_ => renderMethod(nioAccountToStore))
-            case Some(nioAccountStored) if nioAccountStored.email != nioAccount.email =>
-              Future.successful(
-                s"error.account.email.is.immutable".badRequest())
-            case Some(_) =>
-              Future.successful(
-                s"error.account.clientId.is.immutable".badRequest())
-            case None =>
-              Future.successful(
-                s"error.account.id.$nioAccountId.not.found".notFound())
+      req.authInfo.isAdmin match {
+        case true =>
+          req.body.read[NioAccount] match {
+            case Left(e) =>
+              Future.successful(e.badRequest())
+            case Right(nioAccount) =>
+              nioAccountMongoDataStore.findById(nioAccountId).flatMap {
+                case Some(nioAccountStored)
+                    if nioAccountStored.email == nioAccount.email &&
+                      nioAccountStored.clientId == nioAccount.clientId =>
+                  val nioAccountToStore =
+                    nioAccount.copy(
+                      password = Sha.hexSha512(nioAccount.password))
+                  nioAccountMongoDataStore
+                    .updateOne(nioAccountStored._id, nioAccountToStore)
+                    .map(_ => renderMethod(nioAccountToStore))
+                case Some(nioAccountStored)
+                    if nioAccountStored.email != nioAccount.email =>
+                  Future.successful(
+                    s"error.account.email.is.immutable".badRequest())
+                case Some(_) =>
+                  Future.successful(
+                    s"error.account.clientId.is.immutable".badRequest())
+                case None =>
+                  Future.successful(
+                    s"error.account.id.$nioAccountId.not.found".notFound())
+              }
           }
+        case false =>
+          FastFuture.successful("admin.action.forbidden".forbidden())
       }
     }
 
@@ -98,14 +116,20 @@ class NioAccountController(
 
   def delete(nioAccountId: String): Action[AnyContent] = AuthAction.async {
     implicit req =>
-      nioAccountMongoDataStore.findById(nioAccountId).flatMap {
-        case Some(nioAccountStored) =>
-          nioAccountMongoDataStore
-            .deleteOne(nioAccountId)
-            .map(_ => renderMethod(nioAccountStored))
-        case None =>
-          Future.successful(
-            s"error.account.id.$nioAccountId.not.found".notFound())
+      req.authInfo.isAdmin match {
+        case true =>
+          nioAccountMongoDataStore.findById(nioAccountId).flatMap {
+            case Some(nioAccountStored) =>
+              nioAccountMongoDataStore
+                .deleteOne(nioAccountId)
+                .map(_ => renderMethod(nioAccountStored))
+            case None =>
+              Future.successful(
+                s"error.account.id.$nioAccountId.not.found".notFound())
+          }
+
+        case false =>
+          FastFuture.successful("admin.action.forbidden".forbidden())
       }
   }
 

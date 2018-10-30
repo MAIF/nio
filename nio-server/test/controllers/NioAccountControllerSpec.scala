@@ -32,8 +32,10 @@ class NioAccountControllerSpec extends TestUtils {
   "NioAccountController" should {
 
     "clean" in {
-      val store: NioAccountMongoDataStore = nioComponents.nioAccountMongoDataStore
-      Await.result(store.deleteByQuery("", Json.obj()), Duration(10, TimeUnit.SECONDS))
+      val store: NioAccountMongoDataStore =
+        nioComponents.nioAccountMongoDataStore
+      Await.result(store.deleteByQuery("", Json.obj()),
+                   Duration(10, TimeUnit.SECONDS))
     }
 
     "create nio account" in {
@@ -115,14 +117,14 @@ class NioAccountControllerSpec extends TestUtils {
       (items \ 0 \ "clientId").as[String] mustBe "clientId2"
       (items \ 0 \ "clientSecret").as[String] mustBe "clientSecret"
       (items \ 0 \ "isAdmin").as[Boolean] mustBe true
-      
+
       (items \ 1 \ "email").as[String] mustBe "admin@test.fr"
       (items \ 1 \ "password").asOpt[String] mustBe None
       (items \ 1 \ "clientId").as[String] mustBe "clientId"
       (items \ 1 \ "clientSecret").as[String] mustBe "clientSecret"
       (items \ 1 \ "isAdmin").as[Boolean] mustBe true
     }
-    
+
     "update nio account" in {
 
       val nioAccount: JsValue = Json.obj(
@@ -147,8 +149,9 @@ class NioAccountControllerSpec extends TestUtils {
         "isAdmin" -> false
       )
 
-      val updateResponse: WSResponse = putJson(s"/nio/accounts/$id", nioAccountUpdated)
-      
+      val updateResponse: WSResponse =
+        putJson(s"/nio/accounts/$id", nioAccountUpdated)
+
       updateResponse.status mustBe OK
 
       val value: JsValue = updateResponse.json
@@ -160,7 +163,7 @@ class NioAccountControllerSpec extends TestUtils {
       (value \ "isAdmin").as[Boolean] mustBe false
 
       val getResponse: WSResponse = getJson(s"/nio/accounts/$id")
-      
+
       getResponse.status mustBe OK
 
       val getValue: JsValue = getResponse.json
@@ -171,7 +174,6 @@ class NioAccountControllerSpec extends TestUtils {
       (getValue \ "clientSecret").as[String] mustBe "clientSecret123"
       (getValue \ "isAdmin").as[Boolean] mustBe false
 
-
       val nioAccountUpdatedChangeMail: JsValue = Json.obj(
         "_id" -> id,
         "email" -> "admin4@test.fr",
@@ -181,7 +183,8 @@ class NioAccountControllerSpec extends TestUtils {
         "isAdmin" -> false
       )
 
-      val updateResponseError1: WSResponse = putJson(s"/nio/accounts/$id", nioAccountUpdatedChangeMail)
+      val updateResponseError1: WSResponse =
+        putJson(s"/nio/accounts/$id", nioAccountUpdatedChangeMail)
 
       updateResponseError1.status mustBe BAD_REQUEST
 
@@ -197,13 +200,13 @@ class NioAccountControllerSpec extends TestUtils {
         "isAdmin" -> false
       )
 
-      val updateResponseError2: WSResponse = putJson(s"/nio/accounts/$id", nioAccountUpdatedChangeClientId)
+      val updateResponseError2: WSResponse =
+        putJson(s"/nio/accounts/$id", nioAccountUpdatedChangeClientId)
 
       updateResponseError2.status mustBe BAD_REQUEST
 
       (updateResponseError2.json \ "errors" \ 0 \ "message")
         .as[String] mustBe "error.account.clientId.is.immutable"
-
 
     }
 
