@@ -64,37 +64,38 @@ export class AccountPage extends Component {
     validate = (state) => {
         const errors = [];
 
-        if (!state.account.email) {
-            errors.push("account.email.required");
-        } else {
-            const re = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+        if (!state.accountId) {
+            if (!state.account.email) {
+                errors.push("account.email.required");
+            } else {
+                const re = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
 
-            if (!re.test(state.account.email)) {
-                errors.push("account.email.invalidFormat")
+                if (!re.test(state.account.email)) {
+                    errors.push("account.email.invalidFormat")
+                }
             }
+
+            if (!state.account.password)
+                errors.push("account.password.required");
+
+            if (!state.account.confirmPassword)
+                errors.push("account.confirmPassword.required");
+
+            if (state.account.password && state.account.confirmPassword && state.account.password !== state.account.confirmPassword)
+                errors.push("account.confirmPassword.invalid");
+
+            const regexClient = /^[a-zA-Z\-0-9]*$/;
+
+            if (!state.account.clientId)
+                errors.push("account.clientId.required");
+            else if (!regexClient.test(state.account.clientId))
+                errors.push("account.clientId.invalidFormat");
+
+            if (!state.account.clientSecret)
+                errors.push("account.clientSecret.required");
+            else if (!regexClient.test(state.account.clientSecret))
+                errors.push("account.clientSecret.invalidFormat");
         }
-
-        if (!state.account.password)
-            errors.push("account.password.required");
-
-        if (!state.account.confirmPassword)
-            errors.push("account.confirmPassword.required");
-
-        if (state.account.password && state.account.confirmPassword && state.account.password !== state.account.confirmPassword)
-            errors.push("account.confirmPassword.invalid");
-
-        const regexClient = /^[a-zA-Z\-0-9]*$/;
-
-        if (!state.account.clientId)
-            errors.push("account.clientId.required");
-        else if (!regexClient.test(state.account.clientId))
-            errors.push("account.clientId.invalidFormat");
-
-        if (!state.account.clientSecret)
-            errors.push("account.clientSecret.required");
-        else if (!regexClient.test(state.account.clientSecret))
-            errors.push("account.clientSecret.invalidFormat");
-
         this.setState({errors});
 
         return errors.length === 0;
@@ -181,13 +182,13 @@ export class AccountPage extends Component {
 
                     {
                         !this.state.account.isAdmin &&
-                            <TextInput
-                                label={"Pattern d'offre disponible"}
-                                value={(this.state.account.offerRestrictionPatterns || []).join(", ")}
-                                onChange={(e) => this.onChangeOfferPatterns(e, "offerRestrictionPatterns")}
-                                errorMessage={this.state.errors}
-                                errorKey={[]}
-                            />
+                        <TextInput
+                            label={"Pattern d'offre disponible"}
+                            value={(this.state.account.offerRestrictionPatterns || []).join(", ")}
+                            onChange={(e) => this.onChangeOfferPatterns(e, "offerRestrictionPatterns")}
+                            errorMessage={this.state.errors}
+                            errorKey={[]}
+                        />
                     }
 
 
@@ -195,7 +196,6 @@ export class AccountPage extends Component {
                                   onChange={(v) => this.onChange(v, "isAdmin")}
                                   label={"Administrateur"}
                     />
-
 
 
                 </div>
