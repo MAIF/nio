@@ -215,3 +215,29 @@ case class NioAccounts(page: Int,
     </items>
   </nioAccounts>
 }
+
+import cats.implicits._
+import utils.Result.{AppErrors, ErrorMessage, Result}
+
+sealed trait NioAccountValidator {
+  private def validateClientKey(
+      clientKey: String,
+      errorKey: String): ValidatorUtils.ValidationResult[String] = {
+    clientKey match {
+      case k if k.matches(ValidatorUtils.keyPattern) => clientKey.validNel
+      case _                                         => errorKey.invalidNel
+    }
+  }
+
+  def validateNioAccount(nioAccount: NioAccount): Result[NioAccount] = {
+    (
+      validateClientKey(nioAccount.clientId, "account.clientId"),
+      validateClientKey(nioAccount.clientSecret, "account.clientSecret")
+    ).mapN((_, _) => nioAccount)
+      .toEither
+      .leftMap(s =>
+        AppErrors(s.toList.map(errorMessage => ErrorMessage(errorMessage))))
+  }
+}
+
+object NioAccountValidator extends NioAccountValidator

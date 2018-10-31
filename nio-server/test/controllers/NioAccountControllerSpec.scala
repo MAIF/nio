@@ -95,6 +95,36 @@ class NioAccountControllerSpec extends TestUtils {
         .as[String] mustBe "error.account.client.id.already.used"
     }
 
+    "create nio account with invalid clientId" in {
+      val nioAccountClientIdExist: JsValue = Json.obj(
+        "email" -> "admin-test@test.fr",
+        "password" -> "admin",
+        "clientId" -> "client Id",
+        "clientSecret" -> "clientSecret",
+        "isAdmin" -> true
+      )
+
+      val response: WSResponse =
+        postJson("/nio/accounts", nioAccountClientIdExist)
+
+      response.status mustBe BAD_REQUEST
+    }
+
+    "create nio account with invalid clientSecret" in {
+      val nioAccountClientIdExist: JsValue = Json.obj(
+        "email" -> "admin-test@test.fr",
+        "password" -> "admin",
+        "clientId" -> "clientId1234",
+        "clientSecret" -> "client Secret",
+        "isAdmin" -> true
+      )
+
+      val response: WSResponse =
+        postJson("/nio/accounts", nioAccountClientIdExist)
+
+      response.status mustBe BAD_REQUEST
+    }
+
     "get nio accounts" in {
       postJson("/nio/accounts", nioAccount2).status mustBe CREATED
 

@@ -46,11 +46,16 @@ class NioAccountController(
                   val accountToStore: NioAccount =
                     nioAccount.copy(
                       password = Sha.hexSha512(nioAccount.password))
-                  nioAccountMongoDataStore
-                    .insertOne(accountToStore)
-                    .map(_ => renderMethod(accountToStore, Created))
-              }
 
+                  NioAccountValidator.validateNioAccount(accountToStore) match {
+                    case Right(_) =>
+                      nioAccountMongoDataStore
+                        .insertOne(accountToStore)
+                        .map(_ => renderMethod(accountToStore, Created))
+                    case Left(e) =>
+                      FastFuture.successful(e.badRequest())
+                  }
+              }
         }
       case false =>
         FastFuture.successful("admin.action.forbidden".forbidden())
