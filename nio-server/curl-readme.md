@@ -14,6 +14,8 @@ curl -X GET "http://localhost:9000/api/tenants" \
 ```
 curl -X POST "http://localhost:9000/api/tenants" \
 -H 'tenant-admin-secret: changeme' \
+-H 'Nio-Client-Id: nioClientId' \
+-H 'Nio-Client-Secret: nioClientSecret' \
 -H 'Content-Type: application/json' \
 -H 'Accept: application/json' \
 --include \
@@ -35,6 +37,8 @@ curl -X DELETE "http://localhost:9000/api/tenants/demo" \
 ```
 curl -X POST \
   http://localhost:9000/api/demo/organisations \
+-H 'Nio-Client-Id: nioClientId' \
+-H 'Nio-Client-Secret: nioClientSecret' \
   -H 'accept: application/json' \
   -H 'content-type: application/json' \
   -d '{

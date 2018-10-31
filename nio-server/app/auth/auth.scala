@@ -29,13 +29,17 @@ class AuthActionWithEmail(val parser: BodyParsers.Default)(
   override def invokeBlock[A](
       request: Request[A],
       block: AuthContextWithEmail[A] => Future[Result]): Future[Result] = {
-    (
-      request.attrs.get(FilterAttributes.Email),
-      request.attrs.get(FilterAttributes.AuthInfo)
-    ) match {
-      case (Some(email), Some(authInfo)) =>
-        block(AuthContextWithEmail(request, email, authInfo))
-      case _ =>
+
+    val maybeMaybeInfo = request.attrs.get(FilterAttributes.AuthInfo)
+
+    maybeMaybeInfo.map { authInfo =>
+      AuthContextWithEmail(
+        request,
+        request.attrs.get(FilterAttributes.Email).getOrElse(""),
+        authInfo)
+    } match {
+      case Some(ctx) => block(ctx)
+      case None =>
         Logger.info("Auth info is missing => Unauthorized")
         Future.successful(Unauthorized)
     }

@@ -2,7 +2,6 @@ package controllers
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.util.FastFuture
-import auth.AuthAction
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import configuration.{DefaultFilterConfig, Env}
@@ -57,7 +56,7 @@ class NioAuthenticateController(
   }
 
   def logout() = Action { _ =>
-    Redirect(s"${env.config.baseUrl}/api/nio/login")
+    Redirect(s"${env.config.baseUrl}")
       .withCookies(Cookie(name = cookieName, value = "", maxAge = Some(0)))
   }
 

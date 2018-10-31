@@ -81,8 +81,10 @@ class NioDefaultFilter(env: Env,
             JWT.require(algorithm).withIssuer(config.issuer).build()
           val decoded: DecodedJWT = verifier.verify(claim)
           next(
-            requestHeader.addAttr(FilterAttributes.AuthInfo,
-                                  decodeJWTToken(decoded))).map {
+            requestHeader.addAttr(FilterAttributes.Email,
+                                  decodeJWTTokenEmail(decoded))
+              addAttr (FilterAttributes.AuthInfo,
+              decodeJWTToken(decoded))).map {
             result =>
               logger.debug(
                 s"Request claim with exclusion => ${requestHeader.method} ${requestHeader.uri} with request headers ${requestHeader.headers.headers
@@ -111,8 +113,10 @@ class NioDefaultFilter(env: Env,
             JWT.require(algorithm).withIssuer(config.issuer).build()
           val decoded: DecodedJWT = verifier.verify(claim)
           next(
-            requestHeader.addAttr(FilterAttributes.AuthInfo,
-                                  decodeJWTToken(decoded))).map {
+            requestHeader.addAttr(FilterAttributes.Email,
+                                  decodeJWTTokenEmail(decoded))
+              addAttr (FilterAttributes.AuthInfo,
+              decodeJWTToken(decoded))).map {
             result =>
               logger.debug(
                 s"Request claim with exclusion => ${requestHeader.method} ${requestHeader.uri} with request headers ${requestHeader.headers.headers
@@ -168,6 +172,7 @@ class NioDefaultFilter(env: Env,
   private def decodeJWTToken(jwt: DecodedJWT): Option[AuthInfo] = {
     import scala.collection.JavaConverters._
     val claims = jwt.getClaims.asScala
+
     for {
       email <- claims.get("email").map(_.asString())
       isAdmin <- claims.get("isAdmin").map(_.asBoolean())
@@ -184,6 +189,13 @@ class NioDefaultFilter(env: Env,
         .map(_.toSeq)
     } yield
       AuthInfo(email, isAdmin, Some(metadatas), maybeOfferRestrictionPatterns)
+  }
+
+  private def decodeJWTTokenEmail(jwt: DecodedJWT): String = {
+    import scala.collection.JavaConverters._
+    val claims = jwt.getClaims.asScala
+
+    claims.get("email").map(_.asString()).get
   }
 
   private def validateByApiKey(next: RequestHeader => Future[Result],

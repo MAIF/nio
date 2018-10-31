@@ -4,7 +4,7 @@ import java.nio.file.Files
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.util.FastFuture
-import auth.{AuthActionWithEmail, AuthContextWithEmail}
+import auth.AuthContextWithEmail
 import configuration.Env
 import controllers.ErrorManager.ErrorManagerResult
 import db.TenantMongoDataStore
@@ -22,6 +22,8 @@ class HomeController(
     implicit val ec: ExecutionContext)
     extends ControllerUtils(cc) {
 
+  val securityDefault: Boolean = env.config.filter.securityMode == "default"
+
   lazy val swaggerContent: String = Files
     .readAllLines(env.environment.getFile("conf/swagger/swagger.json").toPath)
     .asScala
@@ -35,8 +37,9 @@ class HomeController(
     req.authInfo match {
       case Some(authInfo) if authInfo.isAdmin =>
         tenantStore.findByKey(tenant).map {
-          case Some(_) => Ok(views.html.index(env, tenant, req.email))
-          case None    => "error.tenant.not.found".notFound()
+          case Some(_) =>
+            Ok(views.html.index(env, tenant, req.email, securityDefault))
+          case None => "error.tenant.not.found".notFound()
         }
       case Some(_) =>
         FastFuture.successful("error.forbidden.backoffice.access".forbidden())
@@ -48,7 +51,7 @@ class HomeController(
   def indexNoTenant = AuthAction { implicit req =>
     req.authInfo match {
       case Some(authInfo) if authInfo.isAdmin =>
-        Ok(views.html.indexNoTenant(env, req.email))
+        Ok(views.html.indexNoTenant(env, req.email, securityDefault))
       case Some(_) =>
         "error.forbidden.backoffice.access".forbidden()
       case None =>
@@ -67,8 +70,9 @@ class HomeController(
       req.authInfo match {
         case Some(authInfo) if authInfo.isAdmin =>
           tenantStore.findByKey(tenant).map {
-            case Some(_) => Ok(views.html.index(env, tenant, req.email))
-            case None    => "error.tenant.not.found".notFound()
+            case Some(_) =>
+              Ok(views.html.index(env, tenant, req.email, securityDefault))
+            case None => "error.tenant.not.found".notFound()
           }
         case Some(_) =>
           FastFuture.successful("error.forbidden.backoffice.access".forbidden())

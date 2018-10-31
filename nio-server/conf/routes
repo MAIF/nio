@@ -29,7 +29,7 @@ DELETE        /api/nio/accounts/:nioAccountId                                   
 
 POST          /api/nio/login                                                                                              controllers.NioAuthenticateController.login
 
-POST          /api/nio/logout                                                                                              controllers.NioAuthenticateController.logout
+GET           /api/nio/logout                                                                                              controllers.NioAuthenticateController.logout
 
 
 # Deletions

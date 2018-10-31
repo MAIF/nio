@@ -8,10 +8,10 @@ import akka.japi.Option.Some
 import akka.stream.ActorMaterializer
 import configuration.Env
 import db.{UserExtractTaskDataStore, _}
-import models.{Tenant, NioAccount}
+import models.{NioAccount, Tenant}
 import play.api.{Configuration, Logger}
 import s3.S3
-import utils.{DefaultLoader, SecureEvent}
+import utils.{DefaultLoader, SecureEvent, Sha}
 
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration.Duration
@@ -144,7 +144,7 @@ class Starter(
               userAccountMongoDataStore.insertOne(
                 new NioAccount(
                   email = email,
-                  password = password,
+                  password = Sha.hexSha512(password),
                   isAdmin = true,
                   clientId = clientId,
                   clientSecret = clientSecret,
