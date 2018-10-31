@@ -159,7 +159,7 @@ class NioAccountControllerSpec extends TestUtils {
       (value \ "email").as[String] mustBe "admin3@test.fr"
       (value \ "password").asOpt[String] mustBe None
       (value \ "clientId").as[String] mustBe "clientId3"
-      (value \ "clientSecret").as[String] mustBe "clientSecret123"
+      (value \ "clientSecret").as[String] mustBe "clientSecret"
       (value \ "isAdmin").as[Boolean] mustBe false
 
       val getResponse: WSResponse = getJson(s"/nio/accounts/$id")
@@ -171,43 +171,8 @@ class NioAccountControllerSpec extends TestUtils {
       (getValue \ "email").as[String] mustBe "admin3@test.fr"
       (getValue \ "password").asOpt[String] mustBe None
       (getValue \ "clientId").as[String] mustBe "clientId3"
-      (getValue \ "clientSecret").as[String] mustBe "clientSecret123"
+      (getValue \ "clientSecret").as[String] mustBe "clientSecret"
       (getValue \ "isAdmin").as[Boolean] mustBe false
-
-      val nioAccountUpdatedChangeMail: JsValue = Json.obj(
-        "_id" -> id,
-        "email" -> "admin4@test.fr",
-        "password" -> "admin123",
-        "clientId" -> "clientId3",
-        "clientSecret" -> "clientSecret123",
-        "isAdmin" -> false
-      )
-
-      val updateResponseError1: WSResponse =
-        putJson(s"/nio/accounts/$id", nioAccountUpdatedChangeMail)
-
-      updateResponseError1.status mustBe BAD_REQUEST
-
-      (updateResponseError1.json \ "errors" \ 0 \ "message")
-        .as[String] mustBe "error.account.email.is.immutable"
-
-      val nioAccountUpdatedChangeClientId: JsValue = Json.obj(
-        "_id" -> id,
-        "email" -> "admin3@test.fr",
-        "password" -> "admin123",
-        "clientId" -> "clientId4",
-        "clientSecret" -> "clientSecret123",
-        "isAdmin" -> false
-      )
-
-      val updateResponseError2: WSResponse =
-        putJson(s"/nio/accounts/$id", nioAccountUpdatedChangeClientId)
-
-      updateResponseError2.status mustBe BAD_REQUEST
-
-      (updateResponseError2.json \ "errors" \ 0 \ "message")
-        .as[String] mustBe "error.account.clientId.is.immutable"
-
     }
 
     "delete nio account" in {

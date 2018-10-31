@@ -60,29 +60,23 @@ class NioAccountController(
 
   def update(nioAccountId: String): Action[XmlOrJson] =
     AuthAction(bodyParser).async { implicit req =>
+      implicit val readable: ReadableEntity[NioAccountUpdate] = NioAccountUpdate
+
       req.authInfo.isAdmin match {
         case true =>
-          req.body.read[NioAccount] match {
+          req.body.read[NioAccountUpdate] match {
             case Left(e) =>
               Future.successful(e.badRequest())
             case Right(nioAccount) =>
               nioAccountMongoDataStore.findById(nioAccountId).flatMap {
-                case Some(nioAccountStored)
-                    if nioAccountStored.email == nioAccount.email &&
-                      nioAccountStored.clientId == nioAccount.clientId =>
+                case Some(nioAccountStored) =>
                   val nioAccountToStore =
-                    nioAccount.copy(
-                      password = Sha.hexSha512(nioAccount.password))
+                    nioAccountStored.copy(isAdmin = nioAccount.isAdmin,
+                                          offerRestrictionPatterns =
+                                            nioAccount.offerRestrictionPatterns)
                   nioAccountMongoDataStore
                     .updateOne(nioAccountStored._id, nioAccountToStore)
                     .map(_ => renderMethod(nioAccountToStore))
-                case Some(nioAccountStored)
-                    if nioAccountStored.email != nioAccount.email =>
-                  Future.successful(
-                    s"error.account.email.is.immutable".badRequest())
-                case Some(_) =>
-                  Future.successful(
-                    s"error.account.clientId.is.immutable".badRequest())
                 case None =>
                   Future.successful(
                     s"error.account.id.$nioAccountId.not.found".notFound())

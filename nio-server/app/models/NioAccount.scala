@@ -16,6 +16,42 @@ import utils.Result.AppErrors
 
 import scala.xml.{Elem, NodeSeq}
 
+case class NioAccountUpdate(
+    isAdmin: Boolean,
+    offerRestrictionPatterns: Option[Seq[String]] = None)
+
+object NioAccountUpdate extends ReadableEntity[NioAccountUpdate] {
+  implicit val read: Reads[NioAccountUpdate] = (
+    (__ \ "isAdmin").read[Boolean] and
+      (__ \ "offerRestrictionPatterns").readNullable[Seq[String]]
+  )(NioAccountUpdate.apply _)
+
+  implicit val readXml: XMLRead[NioAccountUpdate] =
+    (node: NodeSeq, path: Option[String]) =>
+      (
+        (node \ "isAdmin").validate[Boolean](Some(s"${path.convert()}isAdmin")),
+        (node \ "offerRestrictionPatterns").validateNullable[Seq[String]](
+          Some(s"${path.convert()}offerRestrictionPatterns"))
+      ).mapN(
+        (isAdmin, offerRestrictionPatterns) =>
+          NioAccountUpdate(
+            isAdmin = isAdmin,
+            offerRestrictionPatterns = offerRestrictionPatterns
+        )
+    )
+
+  def fromXml(xml: Elem): Either[AppErrors, NioAccountUpdate] = {
+    readXml.read(xml, Some("NioAccount")).toEither
+  }
+
+  def fromJson(json: JsValue) = {
+    json.validate[NioAccountUpdate] match {
+      case JsSuccess(o, _) => Right(o)
+      case JsError(errors) => Left(AppErrors.fromJsError(errors))
+    }
+  }
+}
+
 case class NioAccount(_id: String = BSONObjectID.generate().stringify,
                       email: String,
                       password: String,
@@ -165,9 +201,17 @@ case class NioAccounts(page: Int,
              "items" -> JsArray(items.map(_.asJson)))
 
   def asXml = <nioAccounts>
-    <page>{page}</page>
-    <pageSize>{pageSize}</pageSize>
-    <count>{count}</count>
-    <items>{items.map(_.asXml)}</items>
+    <page>
+      {page}
+    </page>
+    <pageSize>
+      {pageSize}
+    </pageSize>
+    <count>
+      {count}
+    </count>
+    <items>
+      {items.map(_.asXml)}
+    </items>
   </nioAccounts>
 }
