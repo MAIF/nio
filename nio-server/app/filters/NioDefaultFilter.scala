@@ -55,7 +55,7 @@ class NioDefaultFilter(env: Env,
          maybeAuthorization,
          maybeClientId,
          maybeClientSecret) match {
-      case (test, _, _, _, _) if Seq("test").contains(test) =>
+      case (devOrTest, _, _, _, _) if Seq("test", "dev").contains(devOrTest) =>
         next(
           requestHeader
             .addAttr(FilterAttributes.Email, "test@test.com")

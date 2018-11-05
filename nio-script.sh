@@ -72,7 +72,7 @@ then
 	sbt 'project nio-server' 'dist'
 
 	mkdir -p $BUILD_DIRECTORY
-	cp nio-server/target/universal/nio-server-*.zip $BUILD_DIRECTORY
+	cp nio-server/target/universal/nio.zip $BUILD_DIRECTORY
 	cp Dockerfile $BUILD_DIRECTORY
 
 	cd $BUILD_DIRECTORY

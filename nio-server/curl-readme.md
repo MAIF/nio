@@ -79,7 +79,9 @@ curl -X POST \
 ```
 curl -X POST "http://localhost:9000/api/demo/organisations/test/draft/_release" \
 -H 'accept: application/json' \
--H 'content-type: application/json'
+-H 'content-type: application/json' \
+-H 'Nio-Client-Id: nioClientId' \
+-H 'Nio-Client-Secret: nioClientSecret'
 ```
 
 ## create an offer on test organisation 
