@@ -3,6 +3,7 @@ import * as accountService from "../services/AccountService";
 import {Link} from 'react-router-dom';
 import ReactTable from 'react-table';
 import 'react-table/react-table.css';
+import {BooleanInput} from "../../common/ui/inputs";
 
 export class AccountsPage extends Component {
     columns = [
@@ -25,7 +26,31 @@ export class AccountsPage extends Component {
             notFilterable: true,
             content: item => item.isAdmin,
             cell: (v, item) => {
-                return `${item.isAdmin}`
+                return <BooleanInput value={item.isAdmin}
+                                     onChange={(v) => this.updateItem(item, v)}
+                                     label={""}
+                />
+            }
+        },
+        {
+            title: 'Actions',
+            notFilterable: true,
+            content: item => item._id,
+            cell: (v, item) => {
+                return (
+                    <div className="form-buttons">
+                        <Link to={`/accounts/${item._id}`}
+                              style={{cursor: 'pointer'}}>
+                            <button className="btn btn-success">
+                                <span className="glyphicon glyphicon-pencil" />
+                            </button>
+                        </Link>
+
+                        <button className="btn btn-danger" onClick={() => this.deleteItem(item._id)}>
+                            <span className="glyphicon glyphicon-trash" />
+                        </button>
+                    </div>
+                )
             }
         }
     ];
@@ -36,6 +61,19 @@ export class AccountsPage extends Component {
         pageSize: 20,
         count: 0,
         loading: true
+    };
+
+    deleteItem = (id) => {
+        accountService.deleteAccount(id)
+            .then(() => this.fetchData(this.state))
+    };
+
+    updateItem = (item, value) => {
+        const account = {...item};
+        account.isAdmin = value;
+
+        accountService.updateAccount(account._id, account)
+            .then(() => this.fetchData(this.state))
     };
 
     fetchData = (state, instance) => {
