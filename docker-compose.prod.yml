@@ -135,6 +135,7 @@ services:
       - MONGODB_ADDON_URI=mongodb://mongo:27017/nio
       - DOWNLOAD_FILE_HOST=http://nio-download.foo.bar:8889
       - DB_FLUSH=true
+      - SECURITY_MODE=otoroshi
     depends_on:
       - mongo
       - kafka

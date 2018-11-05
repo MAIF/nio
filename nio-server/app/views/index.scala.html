@@ -1,4 +1,4 @@
-@(_env: configuration.Env, tenant: String, userEmail: String)
+@(_env: configuration.Env, tenant: String, userEmail: String, securityDefault: Boolean)
 
 <!DOCTYPE html>
 <html lang="en">
@@ -24,7 +24,7 @@
         <div id="app"></div>
 
         <script type="application/javascript">
-            Nio.init(document.getElementById("app"), '@tenant', '@_env.config.logoutUrl', '@userEmail');
+            Nio.init(document.getElementById("app"), '@tenant', '@_env.config.logoutUrl', '@userEmail', @securityDefault);
         </script>
     </body>
 </html>

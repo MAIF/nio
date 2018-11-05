@@ -7,7 +7,7 @@ import akka.actor.ActorSystem
 import akka.stream.IOResult
 import akka.stream.scaladsl.{Source, StreamConverters}
 import akka.util.ByteString
-import auth.AuthAction
+import auth.{AuthAction, SecuredAction, SecuredAuthContext}
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import configuration.Env
@@ -21,7 +21,7 @@ import play.api.http.HttpEntity
 import play.api.libs.Files
 import play.api.libs.json.Json
 import play.api.libs.streams.Accumulator
-import play.api.mvc.{BodyParser, ControllerComponents, ResponseHeader, Result}
+import play.api.mvc._
 import service.MailService
 import utils.Result.AppErrors
 import utils.{FSUserExtractManager, S3ExecutionContext}
@@ -31,7 +31,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class UserExtractController(
     env: Env,
     actorSystem: ActorSystem,
-    val AuthAction: AuthAction,
+    val AuthAction: ActionBuilder[SecuredAuthContext, AnyContent],
     val cc: ControllerComponents,
     userExtractTaskDataStore: UserExtractTaskDataStore,
     organisationMongoDataStore: OrganisationMongoDataStore,
@@ -171,7 +171,7 @@ class UserExtractController(
               _ <- userExtractTaskDataStore.update(extractTask._id,
                                                    taskUpdateUploadDate)
               downloadedFileUrl <- Future {
-                s"${env.config.downloadFileHost}/$name?uploadToken=${encryptToken(tenant, orgKey, userId, extractTask._id, name)}"
+                s"${env.config.downloadFileHost}/$name?uploadToken=${encryptToken(tenant, orgKey, userId, extractTask._id, name, req.body.files.head.contentType)}"
               }
               _ <- fSUserExtractManager.userExtractUpload(tenant,
                                                           orgKey,
@@ -211,7 +211,8 @@ class UserExtractController(
                            orgKey: String,
                            userId: String,
                            extractTaskId: String,
-                           name: String) = {
+                           name: String,
+                           maybeContentType: Option[String]) = {
     val config = env.config.filter.otoroshi
     val algorithm = Algorithm.HMAC512(config.sharedKey)
 
@@ -225,12 +226,13 @@ class UserExtractController(
           .withClaim("userId", userId)
           .withClaim("extractTaskId", extractTaskId)
           .withClaim("name", name)
+          .withClaim("contentType", maybeContentType.getOrElse(""))
           .sign(algorithm)
           .getBytes())
   }
 
   private def decryptToken(token: String)
-    : Either[AppErrors, (String, String, String, String, String)] = {
+    : Either[AppErrors, (String, String, String, String, String, String)] = {
     val config = env.config.filter.otoroshi
     val algorithm = Algorithm.HMAC512(config.sharedKey)
     val verifier = JWT
@@ -245,20 +247,23 @@ class UserExtractController(
     import scala.collection.JavaConverters._
     val claims = decoded.getClaims.asScala
 
-    val maybeTuple: Option[(String, String, String, String, String)] = for {
-      tenant <- claims.get("tenant").map(_.asString)
-      orgKey <- claims.get("orgKey").map(_.asString)
-      userId <- claims.get("userId").map(_.asString)
-      extractTaskId <- claims.get("extractTaskId").map(_.asString)
-      name <- claims.get("name").map(_.asString)
-    } yield
-      (
-        tenant,
-        orgKey,
-        userId,
-        extractTaskId,
-        name
-      )
+    val maybeTuple: Option[(String, String, String, String, String, String)] =
+      for {
+        tenant <- claims.get("tenant").map(_.asString)
+        orgKey <- claims.get("orgKey").map(_.asString)
+        userId <- claims.get("userId").map(_.asString)
+        extractTaskId <- claims.get("extractTaskId").map(_.asString)
+        name <- claims.get("name").map(_.asString)
+        contentType <- claims.get("contentType").map(_.asString)
+      } yield
+        (
+          tenant,
+          orgKey,
+          userId,
+          extractTaskId,
+          name,
+          contentType
+        )
 
     maybeTuple match {
       case Some(valid) => Right(valid)
@@ -275,6 +280,7 @@ class UserExtractController(
           val userId = data._3
           val extractTaskId = data._4
           val name = data._5
+          val contentType = data._6
 
           val maybeSource: Future[Source[ByteString, Future[IOResult]]] =
             fSUserExtractManager.getUploadedFile(tenant,
@@ -292,7 +298,7 @@ class UserExtractController(
                                         CONTENT_DISPOSITION -> "attachment",
                                         "filename" -> filename
                                       )),
-              body = HttpEntity.Streamed(src, None, None)
+              body = HttpEntity.Streamed(src, None, Some(contentType))
             )
           })
         }

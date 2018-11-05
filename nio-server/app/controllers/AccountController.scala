@@ -1,17 +1,17 @@
 package controllers
 
-import auth.AuthAction
+import auth.{AuthAction, SecuredAction, SecuredAuthContext}
 import controllers.ErrorManager.ErrorManagerResult
 import db.AccountMongoDataStore
 import messaging.KafkaMessageBroker
 import models._
 import play.api.Logger
-import play.api.mvc.ControllerComponents
+import play.api.mvc.{ActionBuilder, AnyContent, ControllerComponents}
 
 import scala.concurrent.{ExecutionContext, Future}
 
 class AccountController(
-    val AuthAction: AuthAction,
+    val AuthAction: ActionBuilder[SecuredAuthContext, AnyContent],
     val cc: ControllerComponents,
     val accountStore: AccountMongoDataStore,
     broker: KafkaMessageBroker)(implicit ec: ExecutionContext)

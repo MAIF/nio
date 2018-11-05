@@ -14,11 +14,13 @@ import {UsersPage} from "./pages/UsersPage";
 
 import {ConsentFactPage} from "./pages/ConsentFactPage";
 import {UploadFilePage} from "./pages/UploadFilePage";
+import {AccountsPage} from "./pages/AccountsPage";
+import {AccountPage} from "./pages/AccountPage";
 
 export class NioApp extends Component {
 
     state = {
-        currentActive : 'organisation'
+        currentActive: 'organisation'
     };
 
     decorate = (Component, props, currentActive) => {
@@ -51,7 +53,7 @@ export class NioApp extends Component {
         return (
             <div className="nio-container container-fluid">
                 <TopHeader tenant={this.props.tenant} logoutUrl={this.props.logoutUrl}
-                           userEmail={this.props.userEmail}/>
+                           userEmail={this.props.userEmail} securityDefault={this.props.securityDefault}/>
                 <div className="container-fluid">
                     <div className="row">
                         <div className="analytics-viewer-bottom-container"
@@ -66,7 +68,7 @@ export class NioApp extends Component {
                                         </Link>
                                     </li>
                                     <li className={
-                                            this.state.currentActive === "organisation" ?
+                                        this.state.currentActive === "organisation" ?
                                             "active"
                                             :
                                             ""}>
@@ -151,6 +153,32 @@ export class NioApp extends Component {
                                                ...this.props,
                                                props
                                            }, "user")}/>
+
+                                    {
+                                        this.props.securityDefault &&
+                                        <Route exact path="/accounts"
+                                               component={props => this.decorate(AccountsPage, {
+                                                   ...this.props,
+                                                   props
+                                               }, "")}/>
+                                    }
+                                    {
+                                        this.props.securityDefault &&
+                                        <Route exact path="/accounts/new"
+                                               component={props => this.decorate(AccountPage, {
+                                                   ...this.props,
+                                                   props
+                                               }, "")}/>
+                                    }
+                                    {
+                                        this.props.securityDefault &&
+                                        <Route exact path="/accounts/:accountId"
+                                               component={props => this.decorate(AccountPage, {
+                                                   ...this.props,
+                                                   accountId: props.match.params.accountId,
+                                                   props
+                                               }, "")}/>
+                                    }
                                 </Switch>
                             </div>
                         </div>

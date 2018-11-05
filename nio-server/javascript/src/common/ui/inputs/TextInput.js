@@ -53,5 +53,7 @@ TextInput.propTypes = {
     value: PropTypes.string,
     onChange: PropTypes.func,
     errorKey: PropTypes.oneOfType([PropTypes.array, PropTypes.string]),
-    errorMessage: PropTypes.array
+    errorMessage: PropTypes.array,
+    type: PropTypes.string,
+    disabled: PropTypes.bool
 };

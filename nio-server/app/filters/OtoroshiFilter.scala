@@ -8,30 +8,11 @@ import com.auth0.jwt.interfaces.Claim
 import configuration._
 import play.api.Logger
 import play.api.libs.json.Json
-import play.api.libs.typedmap.TypedKey
 import play.api.mvc._
 
 import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util._
-
-object OtoroshiFilter {
-  val Email: TypedKey[String] = TypedKey("email")
-  val AuthInfo: TypedKey[AuthInfo] = TypedKey("authInfo")
-}
-
-trait AuthInfoMock {
-
-  def getAuthInfo: AuthInfo
-}
-
-class AuthInfoDev extends AuthInfoMock {
-  override def getAuthInfo: AuthInfo =
-    AuthInfo("test@test.com",
-             isAdmin = true,
-             Some(Seq(("foo", "bar"), ("foo2", "bar2"))),
-             Some(Seq("offer1", "offer2")))
-}
 
 class OtoroshiFilter(env: Env, authInfoMock: AuthInfoMock)(
     implicit ec: ExecutionContext,
@@ -56,8 +37,8 @@ class OtoroshiFilter(env: Env, authInfoMock: AuthInfoMock)(
       case devOrTest if devOrTest == "dev" || devOrTest == "test" =>
         nextFilter(
           requestHeader
-            .addAttr(OtoroshiFilter.Email, "test@test.com")
-            .addAttr(OtoroshiFilter.AuthInfo, authInfoMock.getAuthInfo)
+            .addAttr(FilterAttributes.Email, "test@test.com")
+            .addAttr(FilterAttributes.AuthInfo, Some(authInfoMock.getAuthInfo))
         ).map {
           result =>
             val requestTime = System.currentTimeMillis - startTime
@@ -237,14 +218,15 @@ class OtoroshiFilter(env: Env, authInfoMock: AuthInfoMock)(
       logger.info(s"Request from sub: $sub, name:$name, isAdmin:$isAdmin")
       email
         .map { email =>
-          requestHeader.addAttr(OtoroshiFilter.Email, email)
+          requestHeader.addAttr(FilterAttributes.Email, email)
         }
         .getOrElse(requestHeader)
-        .addAttr(OtoroshiFilter.AuthInfo,
-                 AuthInfo(sub,
-                          isAdmin,
-                          Some(metadatas),
-                          maybeOfferRestrictionPatterns))
+        .addAttr(FilterAttributes.AuthInfo,
+                 Some(
+                   AuthInfo(sub,
+                            isAdmin,
+                            Some(metadatas),
+                            maybeOfferRestrictionPatterns)))
     }
 
     nextFilter(requestWithAuthInfo.getOrElse(requestHeader)).map { result =>

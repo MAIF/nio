@@ -1,10 +1,12 @@
 package auth
 
+import akka.http.scaladsl.util.FastFuture
+import configuration.Env
 import db.ExtractionTaskMongoDataStore
 import play.api.Logger
 import play.api.mvc._
-import filters.OtoroshiFilter
-import play.api.mvc.Results.Unauthorized
+import filters.FilterAttributes
+import play.api.mvc.Results.{Forbidden, Unauthorized}
 
 import scala.concurrent.{ExecutionContext, Future}
 import models.ExtractionTask
@@ -16,7 +18,7 @@ case class AuthInfo(sub: String,
 
 case class AuthContextWithEmail[A](request: Request[A],
                                    email: String,
-                                   authInfo: AuthInfo)
+                                   authInfo: Option[AuthInfo])
     extends WrappedRequest[A](request)
 
 class AuthActionWithEmail(val parser: BodyParsers.Default)(
@@ -27,20 +29,27 @@ class AuthActionWithEmail(val parser: BodyParsers.Default)(
   override def invokeBlock[A](
       request: Request[A],
       block: AuthContextWithEmail[A] => Future[Result]): Future[Result] = {
-    (
-      request.attrs.get(OtoroshiFilter.Email),
-      request.attrs.get(OtoroshiFilter.AuthInfo)
-    ) match {
-      case (Some(email), Some(authInfo)) =>
-        block(AuthContextWithEmail(request, email, authInfo))
-      case _ =>
+
+    val maybeMaybeInfo = request.attrs.get(FilterAttributes.AuthInfo)
+
+    maybeMaybeInfo.map { authInfo =>
+      AuthContextWithEmail(
+        request,
+        request.attrs.get(FilterAttributes.Email).getOrElse(""),
+        authInfo)
+    } match {
+      case Some(ctx) => block(ctx)
+      case None =>
         Logger.info("Auth info is missing => Unauthorized")
         Future.successful(Unauthorized)
     }
   }
 }
 
-case class AuthContext[A](request: Request[A], authInfo: AuthInfo)
+case class SecuredAuthContext[A](request: Request[A], authInfo: AuthInfo)
+    extends WrappedRequest[A](request)
+
+case class AuthContext[A](request: Request[A], authInfo: Option[AuthInfo])
     extends WrappedRequest[A](request)
 
 class AuthAction(val parser: BodyParsers.Default)(
@@ -51,19 +60,39 @@ class AuthAction(val parser: BodyParsers.Default)(
   override def invokeBlock[A](
       request: Request[A],
       block: AuthContext[A] => Future[Result]): Future[Result] = {
-
-    Logger.info(
-      s"Request ${request.method} : ${request.uri} \n ${request.body}")
-
-    request.attrs
-      .get(OtoroshiFilter.AuthInfo)
-      .map { e =>
-        block(AuthContext(request, e))
-      }
-      .getOrElse {
+    val maybeMaybeInfo: Option[Option[AuthInfo]] =
+      request.attrs.get(FilterAttributes.AuthInfo)
+    maybeMaybeInfo.map { auth =>
+      AuthContext(request, auth)
+    } match {
+      case Some(ctx) => block(ctx)
+      case None =>
         Logger.info("Auth info is missing => Unauthorized")
-        Future.successful(Unauthorized)
-      }
+        FastFuture.successful(Unauthorized)
+    }
+  }
+}
+
+class SecuredAction(val env: Env, val parser: BodyParser[AnyContent])(
+    implicit val executionContext: ExecutionContext
+) extends ActionBuilder[SecuredAuthContext, AnyContent]
+    with ActionFunction[Request, SecuredAuthContext] {
+
+  override def invokeBlock[A](
+      request: Request[A],
+      block: SecuredAuthContext[A] => Future[Result]): Future[Result] = {
+    val maybeMaybeInfo: Option[Option[AuthInfo]] =
+      request.attrs.get(FilterAttributes.AuthInfo)
+
+    maybeMaybeInfo match {
+      case Some(Some(info)) => block(SecuredAuthContext(request, info))
+      case Some(None) =>
+        Logger.debug("Auth info is empty => Forbidden")
+        FastFuture.successful(Forbidden)
+      case _ =>
+        Logger.debug("Auth info is missing => Unauthorized")
+        FastFuture.successful(Unauthorized)
+    }
   }
 }
 
@@ -85,16 +114,19 @@ class ExtractionAction[A](val tenant: String,
       block: ReqWithExtractionTask[A] => Future[Result]): Future[Result] = {
     store.findById(tenant, taskId).flatMap {
       case Some(task) =>
-        request.attrs
-          .get(OtoroshiFilter.AuthInfo)
-          .map { e =>
-            block(ReqWithExtractionTask[A](task, request, e))
-          }
-          .getOrElse {
-            Logger.info("Auth info is missing => Unauthorized")
-            Future.successful(Unauthorized)
-          }
+        val maybeMaybeInfo: Option[Option[AuthInfo]] =
+          request.attrs.get(FilterAttributes.AuthInfo)
 
+        maybeMaybeInfo match {
+          case Some(Some(info)) =>
+            block(ReqWithExtractionTask[A](task, request, info))
+          case Some(None) =>
+            Logger.debug("Auth info is empty => Forbidden")
+            FastFuture.successful(Forbidden)
+          case _ =>
+            Logger.debug("Auth info is missing => Unauthorized")
+            FastFuture.successful(Unauthorized)
+        }
       case _ =>
         Future.successful(Results.NotFound("error.extraction.task.not.found"))
     }

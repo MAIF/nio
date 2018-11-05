@@ -40,7 +40,8 @@ module.exports = {
     libraryTarget: 'umd'
   },
   entry: {
-    Nio: './src/nio.js'
+    Nio: './src/nio.js',
+    NioLogin: './src/nioLogin.js'
   },
   resolve: {
     extensions: ['*', '.js', '.css', '.scss']

@@ -3,18 +3,22 @@ package loader
 import java.util.concurrent.TimeUnit
 
 import akka.actor.ActorSystem
+import akka.http.scaladsl.util.FastFuture
+import akka.japi.Option.Some
 import akka.stream.ActorMaterializer
+import configuration.Env
 import db.{UserExtractTaskDataStore, _}
-import models.Tenant
+import models.{NioAccount, Tenant}
 import play.api.{Configuration, Logger}
 import s3.S3
-import utils.{DefaultLoader, SecureEvent}
+import utils.{DefaultLoader, SecureEvent, Sha}
 
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration.Duration
 
 class Starter(
     config: Configuration,
+    env: Env,
     system: ActorSystem,
     tenantDataStore: TenantMongoDataStore,
     organisationDataStore: OrganisationMongoDataStore,
@@ -25,6 +29,7 @@ class Starter(
     deletionTaskDataStore: DeletionTaskMongoDataStore,
     extractionTaskDataStore: ExtractionTaskMongoDataStore,
     userExtractTaskDataStore: UserExtractTaskDataStore,
+    userAccountMongoDataStore: NioAccountMongoDataStore,
     defaultLoader: DefaultLoader,
     s3: S3,
     secureEvent: SecureEvent)(implicit val executionContext: ExecutionContext) {
@@ -104,6 +109,9 @@ class Starter(
                     Logger.info(
                       s"Ensuring indices for user extract task on ${t.key}")
                     userExtractTaskDataStore.ensureIndices(t.key)
+                  }, {
+                    Logger.info(s"Ensuring indices for user account ${t.key}")
+                    userAccountMongoDataStore.ensureIndices(t.key)
                   }
                 )
               )
@@ -113,7 +121,44 @@ class Starter(
       Duration(5, TimeUnit.MINUTES)
     )
 
-    // Run secure event action to store and secure events
-    secureEvent.initialize()
+    if (env.config.filter.securityMode == "default")
+      Await.result(
+        userAccountMongoDataStore
+          .findMany()
+          .flatMap {
+            case Nil =>
+              val config = env.config.filter.default.defaultUser
+
+              val clientId: String = config.clientId
+              val clientSecret: String = config.clientSecret
+
+              val email: String = config.username
+              val password: String = config.password
+
+              Logger.info(
+                s"create an admin user with email/password = ( $email : $password )")
+
+              Logger.info(
+                s"access to API with clientId/clientSecret = ( $clientId : $clientSecret ) ")
+
+              userAccountMongoDataStore.insertOne(
+                new NioAccount(
+                  email = email,
+                  password = Sha.hexSha512(password),
+                  isAdmin = true,
+                  clientId = clientId,
+                  clientSecret = clientSecret,
+                  offerRestrictionPatterns = Some(Seq("*"))
+                )
+              )
+            case _ =>
+              FastFuture.successful(true)
+          },
+        Duration(5, TimeUnit.SECONDS)
+      )
   }
+
+  // Run secure event action to store and secure events
+  secureEvent.initialize()
+
 }

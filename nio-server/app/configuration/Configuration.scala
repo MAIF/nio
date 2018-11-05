@@ -15,15 +15,20 @@ object NioConfiguration {
   }
 }
 
-case class NioConfiguration(logoutUrl: String,
+case class NioConfiguration(baseUrl: String,
+                            logoutUrl: String,
                             downloadFileHost: String,
                             mailSendingEnable: Boolean,
-                            filter: Otoroshi,
+                            filter: SecurityFilter,
                             recordManagementEnabled: Boolean,
                             s3ManagementEnabled: Boolean,
                             kafka: KafkaConfig,
                             s3Config: S3Config,
                             mailGunConfig: MailGunConfig)
+
+case class SecurityFilter(securityMode: String,
+                          otoroshi: OtoroshiFilterConfig,
+                          default: DefaultFilterConfig)
 
 case class ApiKeyHeaders(headerClientId: String, headerClientSecret: String)
 
@@ -35,6 +40,20 @@ case class OtoroshiFilterConfig(sharedKey: String,
                                 headerGatewayStateResp: String,
                                 headerGatewayHeaderClientId: String,
                                 headerGatewayHeaderClientSecret: String)
+
+case class DefaultFilterConfig(allowedPaths: Seq[String],
+                               sharedKey: String,
+                               cookieClaim: String,
+                               issuer: String,
+                               apiKeys: ApiKeysConfig,
+                               defaultUser: DefaultUserConfig)
+
+case class DefaultUserConfig(username: String,
+                             password: String,
+                             clientId: String,
+                             clientSecret: String)
+
+case class ApiKeysConfig(headerClientId: String, headerClientSecret: String)
 
 case class Otoroshi(otoroshi: OtoroshiFilterConfig)
 

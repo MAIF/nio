@@ -1,19 +1,19 @@
 package controllers
 
 import akka.actor.ActorSystem
-import auth.AuthAction
+import auth.{AuthAction, SecuredAction, SecuredAuthContext}
 import com.fasterxml.jackson.databind.ObjectMapper
 import configuration.Env
 import controllers.ErrorManager.ErrorManagerResult
 import db.TenantMongoDataStore
 import messaging.KafkaSettings
 import org.apache.kafka.clients.consumer.Consumer
-import play.api.mvc.ControllerComponents
+import play.api.mvc.{ActionBuilder, AnyContent, ControllerComponents}
 
 import scala.collection.JavaConverters._
 import scala.concurrent.{ExecutionContext, Future}
 class MetricsController(
-    val AuthAction: AuthAction,
+    val AuthAction: ActionBuilder[SecuredAuthContext, AnyContent],
     tenantStore: TenantMongoDataStore,
     env: Env,
     actorSystem: ActorSystem,

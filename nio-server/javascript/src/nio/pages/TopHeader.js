@@ -19,8 +19,11 @@ export class TopHeader extends Component {
     }
 
     logout = () => {
-        if (this.props.tenant)
-            window.location = `${this.props.logoutUrl}${this.props.tenant}/bo`;
+        if (!this.props.securityDefault)
+            if (this.props.tenant)
+                window.location = `${this.props.logoutUrl}${this.props.tenant}/bo`;
+            else
+                window.location = `${this.props.logoutUrl}`;
         else
             window.location = `${this.props.logoutUrl}`;
     };
@@ -48,6 +51,12 @@ export class TopHeader extends Component {
                 <div className="container-fluid">
                     <div id="navbar" className="navbar-collapse collapse">
                         <ul className="nav navbar-nav navbar-right">
+
+                            {
+                                this.props.securityDefault &&
+                                <li><Link to={"/accounts"}>comptes</Link></li>
+                            }
+
                             <li><a onClick={this.logout}>{(this.state.user || "")} <span
                                 className="glyphicon glyphicon-off"/></a></li>
                         </ul>
@@ -61,5 +70,6 @@ export class TopHeader extends Component {
 TopHeader.propTypes = {
     user: PropTypes.string,
     tenant: PropTypes.string,
-    logoutUrl: PropTypes.string
+    logoutUrl: PropTypes.string,
+    securityDefault: PropTypes.bool
 };

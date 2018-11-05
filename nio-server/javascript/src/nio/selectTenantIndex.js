@@ -44,7 +44,7 @@ export class NioTenantApp extends Component {
     render() {
         return (
             <div className="nio-container container-fluid">
-                <TopHeader logoutUrl={this.props.logoutUrl} userEmail={this.props.userEmail}/>
+                <TopHeader logoutUrl={this.props.logoutUrl} userEmail={this.props.userEmail} securityDefault={this.props.securityDefault}/>
                 <div className="container-fluid">
                     <div className="row">
                         <div className="analytics-viewer-bottom-container"
