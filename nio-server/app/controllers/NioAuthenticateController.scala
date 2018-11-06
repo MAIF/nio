@@ -55,7 +55,7 @@ class NioAuthenticateController(
       .sign(algorithm)
   }
 
-  def logout() = Action { _ =>
+  def logout = Action { _ =>
     Redirect(s"${env.config.baseUrl}")
       .withCookies(Cookie(name = cookieName, value = "", maxAge = Some(0)))
   }

@@ -24,6 +24,17 @@ class HomeController(
 
   val securityDefault: Boolean = env.config.filter.securityMode == "default"
 
+  private lazy val redirectSecurity: String = {
+    env.config.filter.securityMode match {
+      case "auth0" =>
+        s"${env.config.baseUrl}/auth0/login"
+      case "default" =>
+        s"${env.config.baseUrl}/login"
+      case _ =>
+        s"${env.config.baseUrl}/login"
+    }
+  }
+
   lazy val swaggerContent: String = Files
     .readAllLines(env.environment.getFile("conf/swagger/swagger.json").toPath)
     .asScala
@@ -44,7 +55,7 @@ class HomeController(
       case Some(_) =>
         FastFuture.successful("error.forbidden.backoffice.access".forbidden())
       case None =>
-        FastFuture.successful(Redirect(s"${env.config.baseUrl}/login"))
+        FastFuture.successful(Redirect(redirectSecurity))
     }
   }
 
@@ -55,7 +66,7 @@ class HomeController(
       case Some(_) =>
         "error.forbidden.backoffice.access".forbidden()
       case None =>
-        Redirect(s"${env.config.baseUrl}/login")
+        Redirect(redirectSecurity)
     }
   }
 
@@ -77,7 +88,7 @@ class HomeController(
         case Some(_) =>
           FastFuture.successful("error.forbidden.backoffice.access".forbidden())
         case None =>
-          FastFuture.successful(Redirect(s"${env.config.baseUrl}/login"))
+          FastFuture.successful(Redirect(redirectSecurity))
       }
   }
 

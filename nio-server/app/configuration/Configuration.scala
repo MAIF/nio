@@ -28,7 +28,15 @@ case class NioConfiguration(baseUrl: String,
 
 case class SecurityFilter(securityMode: String,
                           otoroshi: OtoroshiFilterConfig,
+                          auth0: Auth0Config,
                           default: DefaultFilterConfig)
+
+case class Auth0Config(allowedPaths: Seq[String],
+                       clientId: String,
+                       clientSecret: String,
+                       domain: String,
+                       callbackUrl: String,
+                       audience: String)
 
 case class ApiKeyHeaders(headerClientId: String, headerClientSecret: String)
 

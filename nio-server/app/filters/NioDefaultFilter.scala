@@ -55,10 +55,11 @@ class NioDefaultFilter(env: Env,
          maybeAuthorization,
          maybeClientId,
          maybeClientSecret) match {
-      case (devOrTest, _, _, _, _) if Seq("test", "dev").contains(devOrTest) =>
+      case (test, _, _, _, _) if Seq("test").contains(test) =>
+//      case (devOrTest, _, _, _, _) if Seq("test", "dev").contains(devOrTest) =>
         next(
           requestHeader
-            .addAttr(FilterAttributes.Email, "test@test.com")
+            .addAttr(FilterAttributes.Email, authInfoMock.getAuthInfo.sub)
             .addAttr(FilterAttributes.AuthInfo, Some(authInfoMock.getAuthInfo))
         ).map { result =>
           Logger.debug(
