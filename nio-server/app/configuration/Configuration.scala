@@ -36,7 +36,8 @@ case class Auth0Config(allowedPaths: Seq[String],
                        clientSecret: String,
                        domain: String,
                        callbackUrl: String,
-                       audience: String)
+                       audience: String,
+                       signInSecret: String)
 
 case class ApiKeyHeaders(headerClientId: String, headerClientSecret: String)
 
