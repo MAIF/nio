@@ -57,7 +57,6 @@ class UserExtractTaskDataStore(val mongoApi: ReactiveMongoApi)(
       Json.obj("tenant" -> tenant,
                "orgKey" -> orgKey,
                "userId" -> userId,
-               "uploadStartedAt" -> Json.obj("$exists" -> false),
                "endedAt" -> Json.obj("$exists" -> false))
     )
 

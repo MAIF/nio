@@ -162,14 +162,9 @@ class UserExtractController(
               s"user.extract.task.for.user.$userId.and.organisation.$orgKey.not.found"
                 .notFound())
           case Some(extractTask) =>
+            val startUploadAt = DateTime.now(DateTimeZone.UTC)
+
             val future: Future[Either[AppErrors, String]] = for {
-              taskUpdateUploadDate: UserExtractTask <- Future {
-                extractTask.copy(
-                  uploadStartedAt = Some(DateTime.now(DateTimeZone.UTC))
-                )
-              }
-              _ <- userExtractTaskDataStore.update(extractTask._id,
-                                                   taskUpdateUploadDate)
               downloadedFileUrl <- Future {
                 s"${env.config.downloadFileHost}/$name?uploadToken=${encryptToken(tenant, orgKey, userId, extractTask._id, name, req.body.files.head.contentType)}"
               }
@@ -182,8 +177,8 @@ class UserExtractController(
               _ <- mailService.sendDownloadedFile(extractTask.email,
                                                   downloadedFileUrl.toString)
               taskUpdateEndedDate: UserExtractTask <- Future {
-                taskUpdateUploadDate.copy(
-                  endedAt = Some(DateTime.now(DateTimeZone.UTC)))
+                extractTask.copy(endedAt = Some(DateTime.now(DateTimeZone.UTC)),
+                                 uploadStartedAt = Some(startUploadAt))
               }
               _ <- userExtractTaskDataStore.update(extractTask._id,
                                                    taskUpdateEndedDate)
