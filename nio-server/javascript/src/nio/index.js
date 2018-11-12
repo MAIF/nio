@@ -16,6 +16,8 @@ import {ConsentFactPage} from "./pages/ConsentFactPage";
 import {UploadFilePage} from "./pages/UploadFilePage";
 import {AccountsPage} from "./pages/AccountsPage";
 import {AccountPage} from "./pages/AccountPage";
+import {ApiKeysPage} from "./pages/ApiKeysPage";
+import {ApiKeyPage} from "./pages/ApiKeyPage";
 
 export class NioApp extends Component {
 
@@ -53,7 +55,7 @@ export class NioApp extends Component {
         return (
             <div className="nio-container container-fluid">
                 <TopHeader tenant={this.props.tenant} logoutUrl={this.props.logoutUrl}
-                           userEmail={this.props.userEmail} securityDefault={this.props.securityDefault}/>
+                           userEmail={this.props.userEmail} securityDefault={this.props.securityDefault} securityAuth0={this.props.securityAuth0}/>
                 <div className="container-fluid">
                     <div className="row">
                         <div className="analytics-viewer-bottom-container"
@@ -176,6 +178,31 @@ export class NioApp extends Component {
                                                component={props => this.decorate(AccountPage, {
                                                    ...this.props,
                                                    accountId: props.match.params.accountId,
+                                                   props
+                                               }, "")}/>
+                                    }
+                                    {
+                                        this.props.securityAuth0 &&
+                                        <Route exact path="/apiKeys"
+                                               component={props => this.decorate(ApiKeysPage, {
+                                                   ...this.props,
+                                                   props
+                                               }, "")}/>
+                                    }
+                                    {
+                                        this.props.securityAuth0 &&
+                                        <Route exact path="/apiKeys/new"
+                                               component={props => this.decorate(ApiKeyPage, {
+                                                   ...this.props,
+                                                   props
+                                               }, "")}/>
+                                    }
+                                    {
+                                        this.props.securityAuth0 &&
+                                        <Route exact path="/apiKeys/:apiKeyId"
+                                               component={props => this.decorate(ApiKeyPage, {
+                                                   ...this.props,
+                                                   apiKeyId: props.match.params.apiKeyId,
                                                    props
                                                }, "")}/>
                                     }

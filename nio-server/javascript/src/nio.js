@@ -22,10 +22,10 @@ window.jQuery = $;
 
 require('bootstrap/dist/js/bootstrap.min');
 
-export function init(node, tenant, logoutUrl, userEmail, securityDefault) {
-  ReactDOM.render(<RoutedNioApp tenant={tenant} logoutUrl={logoutUrl} userEmail={userEmail} securityDefault={securityDefault}/>, node)
+export function init(node, tenant, logoutUrl, userEmail, securityDefault, securityAuth0) {
+  ReactDOM.render(<RoutedNioApp tenant={tenant} logoutUrl={logoutUrl} userEmail={userEmail} securityDefault={securityDefault} securityAuth0={securityAuth0}/>, node)
 }
 
-export function initTenant(node, logoutUrl, userEmail, securityDefault) {
-  ReactDOM.render(<NioTenantAppWithRouter logoutUrl={logoutUrl} userEmail={userEmail} securityDefault={securityDefault}/>, node)
+export function initTenant(node, logoutUrl, userEmail, securityDefault, securityAuth0) {
+  ReactDOM.render(<NioTenantAppWithRouter logoutUrl={logoutUrl} userEmail={userEmail} securityDefault={securityDefault} securityAuth0={securityAuth0}/>, node)
 }

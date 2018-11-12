@@ -23,6 +23,7 @@ class HomeController(
     extends ControllerUtils(cc) {
 
   val securityDefault: Boolean = env.config.filter.securityMode == "default"
+  val securityAuth0: Boolean = env.config.filter.securityMode == "auth0"
 
   private lazy val redirectSecurity: String = {
     env.config.filter.securityMode match {
@@ -49,7 +50,9 @@ class HomeController(
       case Some(authInfo) if authInfo.isAdmin =>
         tenantStore.findByKey(tenant).map {
           case Some(_) =>
-            Ok(views.html.index(env, tenant, req.email, securityDefault))
+            Ok(
+              views.html
+                .index(env, tenant, req.email, securityDefault, securityAuth0))
           case None => "error.tenant.not.found".notFound()
         }
       case Some(_) =>
@@ -62,7 +65,9 @@ class HomeController(
   def indexNoTenant = AuthAction { implicit req =>
     req.authInfo match {
       case Some(authInfo) if authInfo.isAdmin =>
-        Ok(views.html.indexNoTenant(env, req.email, securityDefault))
+        Ok(
+          views.html
+            .indexNoTenant(env, req.email, securityDefault, securityAuth0))
       case Some(_) =>
         "error.forbidden.backoffice.access".forbidden()
       case None =>
@@ -82,7 +87,8 @@ class HomeController(
         case Some(authInfo) if authInfo.isAdmin =>
           tenantStore.findByKey(tenant).map {
             case Some(_) =>
-              Ok(views.html.index(env, tenant, req.email, securityDefault))
+              Ok(views.html
+                .index(env, tenant, req.email, securityDefault, securityAuth0))
             case None => "error.tenant.not.found".notFound()
           }
         case Some(_) =>

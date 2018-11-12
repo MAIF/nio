@@ -14,7 +14,7 @@ class NioAccountMongoDataStore(val mongoApi: ReactiveMongoApi)(
   val format: OFormat[NioAccount] = models.NioAccount.oformats
 
   override protected def collectionName(tenant: String = ""): String = {
-    s"UserAccount"
+    s"NioAccount"
   }
 
   override protected def indices: Seq[Index] = Seq(

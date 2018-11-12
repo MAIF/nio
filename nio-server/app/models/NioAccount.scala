@@ -60,7 +60,7 @@ case class NioAccount(_id: String = BSONObjectID.generate().stringify,
                       isAdmin: Boolean,
                       offerRestrictionPatterns: Option[Seq[String]] = None)
     extends ModelTransformAs {
-  override def asXml(): Elem = <UserAccount>
+  override def asXml(): Elem = <NioAccount>
     <email>
       {email}
     </email>
@@ -82,7 +82,7 @@ case class NioAccount(_id: String = BSONObjectID.generate().stringify,
         )}
         </offerRestrictionPatterns>
       )}
-  </UserAccount>.clean()
+  </NioAccount>.clean()
 
   override def asJson(): JsValue = NioAccount.writeClean.writes(this)
 
