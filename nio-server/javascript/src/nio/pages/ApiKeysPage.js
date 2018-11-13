@@ -22,15 +22,15 @@ export class ApiKeysPage extends Component {
             content: item => item._id,
             cell: (v, item) => {
                 return (
-                    <div className="form-buttons">
+                    <div className="form-buttons text-center">
                         <Link to={`/apiKeys/${item._id}`}
                               style={{cursor: 'pointer'}}>
-                            <button className="btn btn-success">
+                            <button className="btn btn-success btn-xs">
                                 <span className="glyphicon glyphicon-pencil" />
                             </button>
                         </Link>
 
-                        <button className="btn btn-danger" onClick={() => this.deleteItem(item._id)}>
+                        <button className="btn btn-danger btn-xs" onClick={() => this.deleteItem(item._id)}>
                             <span className="glyphicon glyphicon-trash" />
                         </button>
                     </div>
@@ -114,7 +114,7 @@ export class ApiKeysPage extends Component {
         return (
             <div className="row">
                 <div className="col-md-12">
-                    <h1>Api Keys</h1>
+                    <h3>Api Keys</h3>
                 </div>
                 <div className="col-md-12 clearfix" style={{marginBottom: 20}}>
                     <Link className="btn btn-success pull-right" to="/apiKeys/new" style={{cursor: 'pointer'}}>Nouvelle api key</Link>
