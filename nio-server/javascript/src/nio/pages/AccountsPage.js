@@ -18,6 +18,7 @@ export class AccountsPage extends Component {
         },
         {
             title: 'Administrateur',
+            class:'center-content',
             notFilterable: true,
             content: item => item.isAdmin,
             cell: (v, item) => {
@@ -33,15 +34,15 @@ export class AccountsPage extends Component {
             content: item => item._id,
             cell: (v, item) => {
                 return (
-                    <div className="form-buttons">
+                    <div className="form-buttons text-center">
                         <Link to={`/accounts/${item._id}`}
                               style={{cursor: 'pointer'}}>
-                            <button className="btn btn-success">
+                            <button className="btn btn-success btn-xs">
                                 <span className="glyphicon glyphicon-pencil" />
                             </button>
                         </Link>
 
-                        <button className="btn btn-danger" onClick={() => this.deleteItem(item._id)}>
+                        <button className="btn btn-danger btn-xs" onClick={() => this.deleteItem(item._id)}>
                             <span className="glyphicon glyphicon-trash" />
                         </button>
                     </div>
@@ -92,6 +93,7 @@ export class AccountsPage extends Component {
         const columns = this.columns.map(c => {
             return {
                 Header: c.title,
+                className : c.class,
                 id: c.title,
                 headerStyle: c.style,
                 width: c.style && c.style.width ? c.style.width : undefined,
@@ -125,10 +127,10 @@ export class AccountsPage extends Component {
         return (
             <div className="row">
                 <div className="col-md-12">
-                    <h1>Comptes</h1>
+                    <h3>Comptes</h3>
                 </div>
                 <div className="col-md-12 clearfix" style={{marginBottom: 20}}>
-                    <Link className="btn btn-success pull-right" to="/accounts/new" style={{cursor: 'pointer'}}>Nouveau compte</Link>
+                    <Link className="btn btn-primary pull-right" to="/accounts/new" style={{cursor: 'pointer'}}>Nouveau compte</Link>
                 </div>
                 <div className="row">
                     <div className="col-md-12">

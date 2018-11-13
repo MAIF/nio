@@ -411,3 +411,16 @@ tr:nth-child(even) {background: #424241;}
   color : #b5b5b3;
   margin-top: 10px;
 }
+
+
+.center-content{
+  text-align: center;
+}
+
+.center-content .form-group{
+  display: inline-block;
+}
+
+.center-content label{
+  display: none;
+}

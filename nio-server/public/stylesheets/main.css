@@ -1,0 +1,39 @@
+body {
+    font-family: Raleway,Helvetica,sans-serif;
+    font-weight: 500;
+    background-color: #373735;
+    color: #b5b3b3;
+}
+
+h3{color: #00ad45;}
+@media (min-width: 768px) {
+  .container {
+    max-width: 730px;
+  }
+}
+
+#app {
+    padding-top: 60px;
+    padding-bottom: 20px;
+}
+
+.jumbotron {
+  text-align: center;
+  border-bottom: 1px solid #e5e5e5;
+  background-color: #494948;
+  padding-top: 20px;
+  border-bottom: 0;
+}
+
+.jumbotron .btn {
+  background: none;
+  margin-left: 20px;
+}
+
+.jumbotron .text-danger {
+  color:#d74947;
+}
+
+label{
+  color: #fff;
+}

@@ -99,7 +99,7 @@ export class UsersPage extends Component {
         return (
             <div className="row">
                 <div className="col-md-12">
-                    <h1>Utilisateurs</h1>
+                    <h3>Utilisateurs</h3>
                 </div>
                 <div className="col-md-12">
                     <div className="row">

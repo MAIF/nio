@@ -41,33 +41,29 @@ export class NioLoginPage extends Component {
 
     render() {
         return (
-            <div className="container-fluid">
-                <div className="text-center">
-                    <img className="logo_izanami_dashboard" src={`/assets/images/opun-nio.png`}/>
-                </div>
-                <div className="col-md-4 col-md-offset-4" style={{marginTop: "20px"}}>
+            <div className="container">
+                <div className="jumbotron">
+                    <h3>Login to Niō</h3>
+                      <div className="form-horizontal col-md-12" style={{marginTop: "20px"}}>
+                          <TextInput label={"email"} value={this.state.email} onChange={(v) => this.onChange(v, "email")}/>
+                          <TextInput label={"password"} value={this.state.password}
+                                     onChange={(v) => this.onChange(v, "password")} type={"password"}/>
+                          {
+                              this.state.error &&
+                              <p className="text-danger">Invalid login or password</p>
+                          }
 
-                    <TextInput label={"email"} value={this.state.email} onChange={(v) => this.onChange(v, "email")}/>
-
-                    <TextInput label={"password"} value={this.state.password}
-                               onChange={(v) => this.onChange(v, "password")} type={"password"}/>
-
-                    <hr/>
-
-                    {
-                        this.state.error &&
-                        <div>Invalid login or password</div>
-                    }
-
-                    <div className="form-buttons pull-right">
-                        <button type="button" className="btn btn-danger" onClick={this.clean}>
-                            Cancel
-                        </button>
-                        <button type="button" className="btn btn-primary" onClick={this.login}>
-                            <i className="glyphicon glyphicon-hdd"/> Login
-                        </button>
-                    </div>
-                </div>
+                          <div className="form-buttons pull-right">
+                              <button type="button" className="btn btn-danger" onClick={this.clean}>
+                                  Cancel
+                              </button>
+                              <button type="button" className="btn btn-success" onClick={this.login}>
+                                  <i className="glyphicon glyphicon-hdd"/> Login
+                              </button>
+                          </div>
+                      </div>
+                  <img className="logo_izanami_dashboard" style={{width:'300px'}} src={`/assets/images/opun-nio.png`}/>
+              </div>
             </div>
         )
     }
