@@ -126,25 +126,31 @@ export class AccountPage extends Component {
                         disabled={updateMode}
                     />
 
-                    <TextInput
-                        label={"Mot de passe"}
-                        value={updateMode ? "updateMode" : this.state.account.password}
-                        onChange={(e) => this.onChange(e, "password")}
-                        errorMessage={this.state.errors}
-                        errorKey={["account.password.required"]}
-                        type="password"
-                        disabled={updateMode}
-                    />
+                    {
+                        !this.state.accountId &&
+                        <TextInput
+                            label={"Mot de passe"}
+                            value={updateMode ? "updateMode" : this.state.account.password}
+                            onChange={(e) => this.onChange(e, "password")}
+                            errorMessage={this.state.errors}
+                            errorKey={["account.password.required"]}
+                            type="password"
+                            disabled={updateMode}
+                        />
+                    }
 
-                    <TextInput
-                        label={"Confirmation Mot de passe"}
-                        value={updateMode ? "updateMode" : this.state.account.confirmPassword}
-                        onChange={(e) => this.onChange(e, "confirmPassword")}
-                        errorMessage={this.state.errors}
-                        errorKey={["account.confirmPassword.required", "account.confirmPassword.invalid"]}
-                        type="password"
-                        disabled={updateMode}
-                    />
+                    {
+                        !this.state.accountId &&
+                        <TextInput
+                            label={"Confirmation Mot de passe"}
+                            value={updateMode ? "updateMode" : this.state.account.confirmPassword}
+                            onChange={(e) => this.onChange(e, "confirmPassword")}
+                            errorMessage={this.state.errors}
+                            errorKey={["account.confirmPassword.required", "account.confirmPassword.invalid"]}
+                            type="password"
+                            disabled={updateMode}
+                        />
+                    }
 
                     {
                         !this.state.account.isAdmin &&
