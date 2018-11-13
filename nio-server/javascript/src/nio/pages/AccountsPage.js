@@ -17,11 +17,6 @@ export class AccountsPage extends Component {
             }
         },
         {
-            title: 'Client Id',
-            notFilterable: true,
-            content: item => item.clientId
-        },
-        {
             title: 'Administrateur',
             notFilterable: true,
             content: item => item.isAdmin,

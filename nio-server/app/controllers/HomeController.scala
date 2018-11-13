@@ -22,8 +22,19 @@ class HomeController(
     implicit val ec: ExecutionContext)
     extends ControllerUtils(cc) {
 
-  val securityDefault: Boolean = env.config.filter.securityMode == "default"
-  val securityAuth0: Boolean = env.config.filter.securityMode == "auth0"
+  val accountManagement: Boolean = env.config.filter.securityMode match {
+    case "default"  => true
+    case "auth0"    => false
+    case "otoroshi" => false
+    case _          => true
+  }
+
+  val apiKeyManagement: Boolean = env.config.filter.securityMode match {
+    case "default"  => true
+    case "auth0"    => true
+    case "otoroshi" => false
+    case _          => true
+  }
 
   private lazy val redirectSecurity: String = {
     env.config.filter.securityMode match {
@@ -52,7 +63,11 @@ class HomeController(
           case Some(_) =>
             Ok(
               views.html
-                .index(env, tenant, req.email, securityDefault, securityAuth0))
+                .index(env,
+                       tenant,
+                       req.email,
+                       accountManagement,
+                       apiKeyManagement))
           case None => "error.tenant.not.found".notFound()
         }
       case Some(_) =>
@@ -67,7 +82,7 @@ class HomeController(
       case Some(authInfo) if authInfo.isAdmin =>
         Ok(
           views.html
-            .indexNoTenant(env, req.email, securityDefault, securityAuth0))
+            .indexNoTenant(env, req.email, accountManagement, apiKeyManagement))
       case Some(_) =>
         "error.forbidden.backoffice.access".forbidden()
       case None =>
@@ -87,8 +102,13 @@ class HomeController(
         case Some(authInfo) if authInfo.isAdmin =>
           tenantStore.findByKey(tenant).map {
             case Some(_) =>
-              Ok(views.html
-                .index(env, tenant, req.email, securityDefault, securityAuth0))
+              Ok(
+                views.html
+                  .index(env,
+                         tenant,
+                         req.email,
+                         accountManagement,
+                         apiKeyManagement))
             case None => "error.tenant.not.found".notFound()
           }
         case Some(_) =>

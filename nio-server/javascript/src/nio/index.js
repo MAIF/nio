@@ -55,7 +55,7 @@ export class NioApp extends Component {
         return (
             <div className="nio-container container-fluid">
                 <TopHeader tenant={this.props.tenant} logoutUrl={this.props.logoutUrl}
-                           userEmail={this.props.userEmail} securityDefault={this.props.securityDefault} securityAuth0={this.props.securityAuth0}/>
+                           userEmail={this.props.userEmail} accountManagement={this.props.accountManagement} apiKeyManagement={this.props.apiKeyManagement}/>
                 <div className="container-fluid">
                     <div className="row">
                         <div className="analytics-viewer-bottom-container"
@@ -157,7 +157,7 @@ export class NioApp extends Component {
                                            }, "user")}/>
 
                                     {
-                                        this.props.securityDefault &&
+                                        this.props.accountManagement &&
                                         <Route exact path="/accounts"
                                                component={props => this.decorate(AccountsPage, {
                                                    ...this.props,
@@ -165,7 +165,7 @@ export class NioApp extends Component {
                                                }, "")}/>
                                     }
                                     {
-                                        this.props.securityDefault &&
+                                        this.props.accountManagement &&
                                         <Route exact path="/accounts/new"
                                                component={props => this.decorate(AccountPage, {
                                                    ...this.props,
@@ -173,7 +173,7 @@ export class NioApp extends Component {
                                                }, "")}/>
                                     }
                                     {
-                                        this.props.securityDefault &&
+                                        this.props.accountManagement &&
                                         <Route exact path="/accounts/:accountId"
                                                component={props => this.decorate(AccountPage, {
                                                    ...this.props,
@@ -182,7 +182,7 @@ export class NioApp extends Component {
                                                }, "")}/>
                                     }
                                     {
-                                        this.props.securityAuth0 &&
+                                        this.props.apiKeyManagement &&
                                         <Route exact path="/apiKeys"
                                                component={props => this.decorate(ApiKeysPage, {
                                                    ...this.props,
@@ -190,7 +190,7 @@ export class NioApp extends Component {
                                                }, "")}/>
                                     }
                                     {
-                                        this.props.securityAuth0 &&
+                                        this.props.apiKeyManagement &&
                                         <Route exact path="/apiKeys/new"
                                                component={props => this.decorate(ApiKeyPage, {
                                                    ...this.props,
@@ -198,7 +198,7 @@ export class NioApp extends Component {
                                                }, "")}/>
                                     }
                                     {
-                                        this.props.securityAuth0 &&
+                                        this.props.apiKeyManagement &&
                                         <Route exact path="/apiKeys/:apiKeyId"
                                                component={props => this.decorate(ApiKeyPage, {
                                                    ...this.props,

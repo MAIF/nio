@@ -11,8 +11,6 @@ export class AccountPage extends Component {
             email: '',
             password: '',
             confirmPassword: '',
-            clientId: '',
-            clientSecret: '',
             isAdmin: false,
             offerRestrictionPatterns: []
         },
@@ -39,8 +37,6 @@ export class AccountPage extends Component {
                     email: '',
                     password: '',
                     confirmPassword: '',
-                    clientId: '',
-                    clientSecret: '',
                     isAdmin: false,
                     offerRestrictionPatterns: []
                 }
@@ -83,18 +79,6 @@ export class AccountPage extends Component {
 
             if (state.account.password && state.account.confirmPassword && state.account.password !== state.account.confirmPassword)
                 errors.push("account.confirmPassword.invalid");
-
-            const regexClient = /^[a-zA-Z\-0-9]*$/;
-
-            if (!state.account.clientId)
-                errors.push("account.clientId.required");
-            else if (!regexClient.test(state.account.clientId))
-                errors.push("account.clientId.invalidFormat");
-
-            if (!state.account.clientSecret)
-                errors.push("account.clientSecret.required");
-            else if (!regexClient.test(state.account.clientSecret))
-                errors.push("account.clientSecret.invalidFormat");
         }
         this.setState({errors});
 
@@ -159,24 +143,6 @@ export class AccountPage extends Component {
                         errorMessage={this.state.errors}
                         errorKey={["account.confirmPassword.required", "account.confirmPassword.invalid"]}
                         type="password"
-                        disabled={updateMode}
-                    />
-
-                    <TextInput
-                        label={"Client id"}
-                        value={this.state.account.clientId}
-                        onChange={(e) => this.onChange(e, "clientId")}
-                        errorMessage={this.state.errors}
-                        errorKey={["account.clientId.required", "account.clientId.invalidFormat"]}
-                        disabled={updateMode}
-                    />
-
-                    <TextInput
-                        label={"Client secret"}
-                        value={this.state.account.clientSecret}
-                        onChange={(e) => this.onChange(e, "clientSecret")}
-                        errorMessage={this.state.errors}
-                        errorKey={["account.clientSecret.required", "account.clientSecret.invalidFormat"]}
                         disabled={updateMode}
                     />
 

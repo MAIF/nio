@@ -9,7 +9,7 @@ import com.auth0.jwt.algorithms.Algorithm
 import com.auth0.jwt.interfaces.DecodedJWT
 import com.google.common.base.Charsets
 import configuration.{DefaultFilterConfig, Env}
-import db.NioAccountMongoDataStore
+import db.{ApiKeyMongoDataStore, NioAccountMongoDataStore}
 import play.api.Logger
 import play.api.libs.json.Json
 import play.api.mvc.{Filter, RequestHeader, Result, Results}
@@ -19,7 +19,8 @@ import scala.util.{Success, Try}
 
 class NioDefaultFilter(env: Env,
                        authInfoMock: AuthInfoMock,
-                       userAccountMongoDataStore: NioAccountMongoDataStore)(
+                       userAccountMongoDataStore: NioAccountMongoDataStore,
+                       apiKeyMongoDataStore: ApiKeyMongoDataStore)(
     implicit ec: ExecutionContext,
     val mat: Materializer)
     extends Filter {
@@ -203,11 +204,11 @@ class NioDefaultFilter(env: Env,
                                requestHeader: RequestHeader,
                                clientId: String,
                                clientSecret: String): Future[Result] = {
-    userAccountMongoDataStore.findByClientId(clientId).flatMap {
-      case Some(userAccount) if userAccount.clientSecret == clientSecret =>
+    apiKeyMongoDataStore.findByClientId(clientId).flatMap {
+      case Some(apiKey) if apiKey.clientSecret == clientSecret =>
         next(
           requestHeader
-            .addAttr(FilterAttributes.AuthInfo, Some(userAccount.toAuthInfo()))
+            .addAttr(FilterAttributes.AuthInfo, Some(apiKey.toAuthInfo()))
         )
       case _ =>
         Future.successful(

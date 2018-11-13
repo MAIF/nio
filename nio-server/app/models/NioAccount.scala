@@ -55,8 +55,6 @@ object NioAccountUpdate extends ReadableEntity[NioAccountUpdate] {
 case class NioAccount(_id: String = BSONObjectID.generate().stringify,
                       email: String,
                       password: String,
-                      clientId: String,
-                      clientSecret: String,
                       isAdmin: Boolean,
                       offerRestrictionPatterns: Option[Seq[String]] = None)
     extends ModelTransformAs {
@@ -64,12 +62,6 @@ case class NioAccount(_id: String = BSONObjectID.generate().stringify,
     <email>
       {email}
     </email>
-    <clientId>
-      {clientId}
-    </clientId>
-    <clientSecret>
-      {clientSecret}
-    </clientSecret>
     <isAdmin>
       {isAdmin}
     </isAdmin>{offerRestrictionPatterns
@@ -104,8 +96,6 @@ object NioAccount extends ReadableEntity[NioAccount] {
     } and
       (__ \ "email").read[String] and
       (__ \ "password").read[String] and
-      (__ \ "clientId").read[String] and
-      (__ \ "clientSecret").read[String] and
       (__ \ "isAdmin").read[Boolean] and
       (__ \ "offerRestrictionPatterns").readNullable[Seq[String]]
   )(NioAccount.apply _)
@@ -114,8 +104,6 @@ object NioAccount extends ReadableEntity[NioAccount] {
     Json.obj(
       "_id" -> userAccount._id,
       "email" -> userAccount.email,
-      "clientId" -> userAccount.clientId,
-      "clientSecret" -> userAccount.clientSecret,
       "isAdmin" -> userAccount.isAdmin,
       "offerRestrictionPatterns" -> userAccount.offerRestrictionPatterns
     )
@@ -125,8 +113,6 @@ object NioAccount extends ReadableEntity[NioAccount] {
     (JsPath \ "_id").write[String] and
       (JsPath \ "email").write[String] and
       (JsPath \ "password").write[String] and
-      (JsPath \ "clientId").write[String] and
-      (JsPath \ "clientSecret").write[String] and
       (JsPath \ "isAdmin").write[Boolean] and
       (JsPath \ "offerRestrictionPatterns").writeNullable[Seq[String]]
   )(unlift(NioAccount.unapply))
@@ -135,8 +121,6 @@ object NioAccount extends ReadableEntity[NioAccount] {
     (JsPath \ "_id").write[String] and
       (JsPath \ "email").write[String] and
       (JsPath \ "password").write[String] and
-      (JsPath \ "clientId").write[String] and
-      (JsPath \ "clientSecret").write[String] and
       (JsPath \ "isAdmin").write[Boolean] and
       (JsPath \ "offerRestrictionPatterns").writeNullable[Seq[String]]
   )(unlift(NioAccount.unapply))
@@ -144,37 +128,28 @@ object NioAccount extends ReadableEntity[NioAccount] {
   implicit val formats: Format[NioAccount] = Format(read, write)
   implicit val oformats: OFormat[NioAccount] = OFormat(read, owrite)
 
-  implicit val readXml
-    : XMLRead[NioAccount] = (node: NodeSeq, path: Option[String]) =>
-    (
-      (node \ "_id").validateNullable[String](BSONObjectID.generate().stringify,
-                                              Some(s"${path.convert()}_id")),
-      (node \ "email").validate[String](Some(s"${path.convert()}email")),
-      (node \ "password").validate[String](Some(s"${path.convert()}password")),
-      (node \ "clientId").validate[String](Some(s"${path.convert()}clientId")),
-      (node \ "clientSecret").validate[String](
-        Some(s"${path.convert()}clientSecret")),
-      (node \ "isAdmin").validate[Boolean](Some(s"${path.convert()}isAdmin")),
-      (node \ "offerRestrictionPatterns").validateNullable[Seq[String]](
-        Some(s"${path.convert()}offerRestrictionPatterns"))
-    ).mapN(
-      (_id,
-       email,
-       password,
-       clientId,
-       clientSecret,
-       isAdmin,
-       offerRestrictionPatterns) =>
-        NioAccount(
-          _id = _id,
-          email = email,
-          password = password,
-          clientId = clientId,
-          clientSecret = clientSecret,
-          isAdmin = isAdmin,
-          offerRestrictionPatterns = offerRestrictionPatterns
-      )
-  )
+  implicit val readXml: XMLRead[NioAccount] =
+    (node: NodeSeq, path: Option[String]) =>
+      (
+        (node \ "_id").validateNullable[String](
+          BSONObjectID.generate().stringify,
+          Some(s"${path.convert()}_id")),
+        (node \ "email").validate[String](Some(s"${path.convert()}email")),
+        (node \ "password").validate[String](
+          Some(s"${path.convert()}password")),
+        (node \ "isAdmin").validate[Boolean](Some(s"${path.convert()}isAdmin")),
+        (node \ "offerRestrictionPatterns").validateNullable[Seq[String]](
+          Some(s"${path.convert()}offerRestrictionPatterns"))
+      ).mapN(
+        (_id, email, password, isAdmin, offerRestrictionPatterns) =>
+          NioAccount(
+            _id = _id,
+            email = email,
+            password = password,
+            isAdmin = isAdmin,
+            offerRestrictionPatterns = offerRestrictionPatterns
+        )
+    )
 
   def fromXml(xml: Elem): Either[AppErrors, NioAccount] = {
     readXml.read(xml, Some("NioAccount")).toEither
@@ -215,29 +190,3 @@ case class NioAccounts(page: Int,
     </items>
   </nioAccounts>
 }
-
-import cats.implicits._
-import utils.Result.{AppErrors, ErrorMessage, Result}
-
-sealed trait NioAccountValidator {
-  private def validateClientKey(
-      clientKey: String,
-      errorKey: String): ValidatorUtils.ValidationResult[String] = {
-    clientKey match {
-      case k if k.matches(ValidatorUtils.keyPattern) => clientKey.validNel
-      case _                                         => errorKey.invalidNel
-    }
-  }
-
-  def validateNioAccount(nioAccount: NioAccount): Result[NioAccount] = {
-    (
-      validateClientKey(nioAccount.clientId, "account.clientId"),
-      validateClientKey(nioAccount.clientSecret, "account.clientSecret")
-    ).mapN((_, _) => nioAccount)
-      .toEither
-      .leftMap(s =>
-        AppErrors(s.toList.map(errorMessage => ErrorMessage(errorMessage))))
-  }
-}
-
-object NioAccountValidator extends NioAccountValidator

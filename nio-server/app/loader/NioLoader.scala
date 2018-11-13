@@ -225,6 +225,7 @@ class Auth0Router(auth0Controller: Auth0Controller,
 }
 
 class NioAccountRouter(nioAccountController: NioAccountController,
+                       apiKeyController: ApiKeyController,
                        nioAuthenticateController: NioAuthenticateController)
     extends SimpleRouter {
   import play.api.routing.sird._
@@ -243,9 +244,24 @@ class NioAccountRouter(nioAccountController: NioAccountController,
       nioAccountController.update(nioAccountId)
     case DELETE(p"/api/nio/accounts/${nioAccountId}") =>
       nioAccountController.delete(nioAccountId)
+
     case POST(p"/api/nio/login") =>
       nioAuthenticateController.login
     case GET(p"/api/nio/logout") =>
       nioAuthenticateController.logout
+
+    case GET(
+        p"/api/apikeys" ? q_o"page=${int(maybePage)}" ? q_o"pageSize=${int(maybePageSize)}") =>
+      val page = maybePage.getOrElse(0)
+      val pageSize = maybePageSize.getOrElse(10)
+      apiKeyController.findAll(page, pageSize)
+    case GET(p"/api/apikeys/${apiKeyId}") =>
+      apiKeyController.find(apiKeyId)
+    case POST(p"/api/apikeys") =>
+      apiKeyController.create()
+    case PUT(p"/api/apikeys/${apiKeyId}") =>
+      apiKeyController.update(apiKeyId)
+    case DELETE(p"/api/apikeys/${apiKeyId}") =>
+      apiKeyController.delete(apiKeyId)
   }
 }

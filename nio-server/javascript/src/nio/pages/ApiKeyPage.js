@@ -1,7 +1,7 @@
 import React, {Component} from 'react';
 import PropTypes from "prop-types";
 import * as apiKeyService from "../services/ApiKeyService";
-import {BooleanInput, TextInput} from "../../common/ui/inputs";
+import {TextInput} from "../../common/ui/inputs";
 
 export class ApiKeyPage extends Component {
 

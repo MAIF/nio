@@ -1,4 +1,4 @@
-@(_env: configuration.Env, userEmail: String, securityDefault: Boolean, securityAuth0: Boolean)
+@(_env: configuration.Env, userEmail: String, accountManagement: Boolean, apiKeyManagement: Boolean)
 
 <!DOCTYPE html>
 <html lang="en">
@@ -24,7 +24,7 @@
         <div id="app"></div>
 
         <script type="application/javascript">
-            Nio.initTenant(document.getElementById("app"), '@_env.config.logoutUrl', '@userEmail', @securityDefault, @securityAuth0);
+            Nio.initTenant(document.getElementById("app"), '@_env.config.logoutUrl', '@userEmail', @accountManagement, @apiKeyManagement);
         </script>
     </body>
 </html>

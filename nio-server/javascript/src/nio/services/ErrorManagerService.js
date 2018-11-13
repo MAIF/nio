@@ -128,14 +128,6 @@ const translateObject = {
         confirmPassword: {
             required: "La confirmation de mot de passe est obligatoire.",
             invalid: "Le mot de passe est différent de la valeur saisie."
-        },
-        clientId: {
-            required: "Le client id est obligatoire.",
-            invalidFormat: "Le format du client id est invalide (il doit des lettres et des chiffres uniquement)"
-        },
-        clientSecret: {
-            required: "Le client secret est obligatoire.",
-            invalidFormat: "Le format du client secret est invalide (il doit des lettres et des chiffres uniquement)"
         }
     },
     apiKey: {

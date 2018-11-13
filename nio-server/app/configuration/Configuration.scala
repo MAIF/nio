@@ -57,10 +57,7 @@ case class DefaultFilterConfig(allowedPaths: Seq[String],
                                apiKeys: ApiKeysConfig,
                                defaultUser: DefaultUserConfig)
 
-case class DefaultUserConfig(username: String,
-                             password: String,
-                             clientId: String,
-                             clientSecret: String)
+case class DefaultUserConfig(username: String, password: String)
 
 case class ApiKeysConfig(headerClientId: String, headerClientSecret: String)
 

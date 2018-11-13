@@ -1,4 +1,5 @@
 package models
+
 import auth.AuthInfo
 import cats.data.Validated._
 import cats.implicits._
@@ -15,28 +16,24 @@ import utils.Result.AppErrors
 
 import scala.xml.{Elem, NodeSeq}
 
-case class ApiKeyUpdate(isAdmin: Boolean,
-                        offerRestrictionPatterns: Option[Seq[String]] = None)
+case class ApiKeyUpdate(offerRestrictionPatterns: Option[Seq[String]] = None)
 
 object ApiKeyUpdate extends ReadableEntity[ApiKeyUpdate] {
-  implicit val read: Reads[ApiKeyUpdate] = (
-    (__ \ "isAdmin").read[Boolean] and
-      (__ \ "offerRestrictionPatterns").readNullable[Seq[String]]
-  )(ApiKeyUpdate.apply _)
+  implicit val read: Reads[ApiKeyUpdate] = (__ \ "offerRestrictionPatterns")
+    .readNullable[Seq[String]]
+    .map(ApiKeyUpdate(_))
 
   implicit val readXml: XMLRead[ApiKeyUpdate] =
     (node: NodeSeq, path: Option[String]) =>
-      (
-        (node \ "isAdmin").validate[Boolean](Some(s"${path.convert()}isAdmin")),
-        (node \ "offerRestrictionPatterns").validateNullable[Seq[String]](
+      (node \ "offerRestrictionPatterns")
+        .validateNullable[Seq[String]](
           Some(s"${path.convert()}offerRestrictionPatterns"))
-      ).mapN(
-        (isAdmin, offerRestrictionPatterns) =>
-          ApiKeyUpdate(
-            isAdmin = isAdmin,
-            offerRestrictionPatterns = offerRestrictionPatterns
-        )
-    )
+        .map(
+          offerRestrictionPatterns =>
+            ApiKeyUpdate(
+              offerRestrictionPatterns = offerRestrictionPatterns
+          )
+      )
 
   def fromXml(xml: Elem): Either[AppErrors, ApiKeyUpdate] = {
     readXml.read(xml, Some("ApiKey")).toEither
@@ -61,8 +58,7 @@ case class ApiKey(_id: String = BSONObjectID.generate().stringify,
     </clientId>
     <clientSecret>
       {clientSecret}
-    </clientSecret>
-    {offerRestrictionPatterns
+    </clientSecret>{offerRestrictionPatterns
       .map(o =>
         <offerRestrictionPatterns>
           {o.map(
