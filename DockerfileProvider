@@ -2,10 +2,10 @@ FROM openjdk:8
 
 LABEL MAINTAINER="MAIF Team <maif@maif.fr>"
 
-ADD nio-provider-*.zip /opt
-RUN unzip -q /opt/nio-provider-*.zip -d /opt
-RUN rm /opt/nio-provider-*.zip
-RUN mv /opt/nio-provider-* /opt/backend
+ADD nio-provider.zip /opt
+RUN unzip -q /opt/nio-provider.zip -d /opt
+RUN rm /opt/nio-provider.zip
+RUN mv /opt/nio-provider /opt/backend
 
 WORKDIR /opt/backend
 
