@@ -5,10 +5,15 @@ import 'react-table/react-table.css';
 import Moment from 'react-moment';
 import {UploadFilePage} from "./UploadFilePage";
 
+import moment from 'moment'
+
 
 export class UserExtractPage extends Component {
     websocket = null;
     ping = null;
+
+    dateFormat = "DD/MM/YYYY HH:mm:ss";
+    datePattern = "YYYY-MM-DDTHH:mm:ssZ";
 
     columns = [
         {
@@ -36,17 +41,17 @@ export class UserExtractPage extends Component {
             content: item => item.payload.startedAt,
             cell: (v, item) => {
                 return item.payload.startedAt ?
-                    <Moment locale="fr" parse="YYYY-MM-DDTHH:mm:ssZ"
-                            format="DD/MM/YYYY HH:mm:ss">{item.payload.startedAt}</Moment> : "NC";
+                    <Moment locale="fr" parse={this.datePattern}
+                            format={this.dateFormat}>{item.payload.startedAt}</Moment> : "NC";
             }
         }, {
             title: 'Traité le',
             notFilterable: true,
-            content: item => item.payload.startedAt,
+            content: item => item.payload.endedAt,
             cell: (v, item) => {
                 return item.payload.endedAt ?
-                    <Moment locale="fr" parse="YYYY-MM-DDTHH:mm:ssZ"
-                            format="DD/MM/YYYY HH:mm:ss">{item.payload.endedAt}</Moment> : "NC";
+                    <Moment locale="fr" parse={this.datePattern}
+                            format={this.dateFormat}>{item.payload.endedAt}</Moment> : "NC";
             }
         },
         {
@@ -54,7 +59,7 @@ export class UserExtractPage extends Component {
             content: item => item.payload.userId,
             cell: (v, item) => {
                 return item.type === "UserExtractTaskAsked" ?
-                    <a onClick={() => this.setState({selectedEvent: item})}
+                    <a onClick={() => this.setState({selectedEvent: item.payload})}
                        style={{cursor: 'pointer'}}><i className="glyphicon glyphicon-share"/></a>
                     :
                     ""
@@ -66,7 +71,7 @@ export class UserExtractPage extends Component {
     state = {
         messages: [],
         selectedEvent: null,
-        url: null
+        urls: []
     };
 
     componentDidMount() {
@@ -112,7 +117,25 @@ export class UserExtractPage extends Component {
             }
         }
 
-        return messages;
+        let sortedMessages = messages.sort((m1, m2) => {
+            if (m1.payload.endedAt && m2.payload.endedAt) {
+                const m1Ended = moment(m1.payload.endedAt, this.datePattern);
+                const m2Ended = moment(m2.payload.endedAt, this.datePattern);
+
+                return this.compareDate(m1Ended, m2Ended);
+            } else if (!m1.payload.endedAt && !m2.payload.endedAt) {
+                const m1Started = moment(m1.payload.startedAt, this.datePattern);
+                const m2Started = moment(m2.payload.startedAt, this.datePattern);
+
+                return this.compareDate(m1Started, m2Started);
+            } else if (m1.payload.endedAt && !m2.payload.endedAt) {
+                return -1;
+            } else if (!m1.payload.endedAt && m2.payload.endedAt) {
+                return 1;
+            }
+        });
+
+        return sortedMessages;
     };
 
     closeWebSocket = () => {
@@ -128,8 +151,22 @@ export class UserExtractPage extends Component {
         }
     };
 
-    onUpload = (url) => {
-        this.setState({selectedEvent: null, url})
+    onUpload = (url, user) => {
+        const urls = [...this.state.urls];
+
+        urls.push({user, url});
+
+        this.setState({selectedEvent: null, urls})
+    };
+
+    compareDate = (a, b) => {
+        if (a.isBefore(b)) {
+            return 1;
+        } else if (a.isAfter(b)) {
+            return -1;
+        } else {
+            return 0;
+        }
     };
 
     render() {
@@ -201,20 +238,24 @@ export class UserExtractPage extends Component {
                 </div>
 
                 {
-                    this.state.selectedEvent &&
-                    <div className="col-md-12">
-                        <UploadFilePage tenant={this.state.selectedEvent.payload.tenant}
-                                        organisationKey={this.state.selectedEvent.payload.orgKey}
-                                        userId={this.state.selectedEvent.payload.userId} onUpload={this.onUpload}/>
-                    </div>
+                    this.state.urls &&
+                    this.state.urls.map(url =>
+                        <div className="col-md-12" key={url.user}>
+                            <a href={url.url} target="_blank">Voir le fichier téléchargé pour l'utilisateur {url.user}</a>
+                        </div>
+                    )
+
                 }
 
                 {
-                    this.state.url &&
+                    this.state.selectedEvent &&
                     <div className="col-md-12">
-                        <a href={this.state.url} target="_blank">Voir le fichier téléchargé</a>
+                        <UploadFilePage tenant={this.state.selectedEvent.tenant}
+                                        organisationKey={this.state.selectedEvent.orgKey}
+                                        userId={this.state.selectedEvent.userId} onUpload={this.onUpload}/>
                     </div>
                 }
+
             </div>
         )
     }
