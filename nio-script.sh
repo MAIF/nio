@@ -32,7 +32,7 @@ then
 	sbt 'project nio-provider' 'dist'
 	
 	mkdir -p $BUILD_DIRECTORY
-	cp nio-provider/target/universal/nio-provider-*.zip $BUILD_DIRECTORY
+	cp nio-provider/target/universal/nio-provider.zip $BUILD_DIRECTORY
 	cp DockerfileProvider $BUILD_DIRECTORY
 
 	cd $BUILD_DIRECTORY

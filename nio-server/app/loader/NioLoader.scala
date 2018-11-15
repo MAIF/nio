@@ -6,14 +6,14 @@ import com.softwaremill.macwire.wire
 import configuration._
 import controllers._
 import db._
-import filters.{AuthInfoDev, AuthInfoMock, NioDefaultFilter, OtoroshiFilter}
+import filters._
 import messaging.KafkaMessageBroker
 import play.api.ApplicationLoader.Context
 import play.api._
 import play.api.libs.ws.ahc.AhcWSComponents
 import play.api.mvc.BodyParsers.Default
 import play.api.mvc.{ActionBuilder, AnyContent, EssentialFilter, Filter}
-import play.api.routing.Router
+import play.api.routing.{Router, SimpleRouter}
 import play.filters.HttpFiltersComponents
 import play.filters.gzip._
 import play.modules.reactivemongo.{
@@ -74,6 +74,8 @@ class NioComponents(context: Context)
 
   implicit lazy val nioAccountMongoDataStore: NioAccountMongoDataStore =
     wire[NioAccountMongoDataStore]
+  implicit lazy val apiKeyMongoDataStore: ApiKeyMongoDataStore =
+    wire[ApiKeyMongoDataStore]
 
   // wire service
   implicit lazy val consentManagerService: ConsentManagerService =
@@ -131,20 +133,38 @@ class NioComponents(context: Context)
   lazy val nioAuthenticateController: NioAuthenticateController =
     wire[NioAuthenticateController]
 
+  lazy val auth0Controller: Auth0Controller = wire[Auth0Controller]
+  lazy val apiKeyController: ApiKeyController = wire[ApiKeyController]
+
   lazy val mailService: MailService = if (env.config.mailSendingEnable) {
     wire[MailGunService]
   } else {
     wire[MailMockService]
   }
 
+  lazy val nioAccountRouter: SimpleRouter = wire[NioAccountRouter]
+  lazy val auth0Router: SimpleRouter = wire[Auth0Router]
+
   override def router: Router = {
     lazy val prefix: String = "/"
 
-    wire[Routes]
+    val routes: Routes = wire[Routes]
+
+    env.config.filter.securityMode match {
+      case "otoroshi" =>
+        new AppRouter(routes)
+      case "auth0" =>
+        new AppRouter(routes, Some(auth0Router))
+      case "default" =>
+        new AppRouter(routes, Some(nioAccountRouter))
+      case _ =>
+        new AppRouter(routes, Some(nioAccountRouter))
+    }
   }
 
   lazy val securityFilter: Filter = env.config.filter.securityMode match {
     case "otoroshi" => wire[OtoroshiFilter]
+    case "auth0"    => wire[Auth0Filter]
     case "default"  => wire[NioDefaultFilter]
     case _          => wire[NioDefaultFilter]
   }
@@ -157,4 +177,91 @@ class NioComponents(context: Context)
   val starter: Starter = wire[Starter]
 
   starter.initialize()
+}
+
+class AppRouter(allRoutes: Routes,
+                maybeExtraRoutes: Option[SimpleRouter] = None)
+    extends SimpleRouter {
+
+  override def routes: Router.Routes =
+    maybeExtraRoutes match {
+      case Some(extraRoutes) =>
+        extraRoutes.routes.orElse(allRoutes.routes)
+      case None =>
+        allRoutes.routes
+    }
+
+}
+
+class Auth0Router(auth0Controller: Auth0Controller,
+                  apiKeyController: ApiKeyController)
+    extends SimpleRouter {
+  import play.api.routing.sird._
+
+  override def routes: Router.Routes = {
+    case GET(
+        p"/api/auth0/callback" ? q_o"code=${codeOpt}" ? q_o"state=${stateOpt}") =>
+      auth0Controller.callback(codeOpt, stateOpt)
+    case GET(p"/auth0/login") =>
+      auth0Controller.login
+    case GET(p"/auth0/logout") =>
+      auth0Controller.logout
+
+    case GET(
+        p"/api/apikeys" ? q_o"page=${int(maybePage)}" ? q_o"pageSize=${int(maybePageSize)}") =>
+      val page = maybePage.getOrElse(0)
+      val pageSize = maybePageSize.getOrElse(10)
+      apiKeyController.findAll(page, pageSize)
+    case GET(p"/api/apikeys/${apiKeyId}") =>
+      apiKeyController.find(apiKeyId)
+    case POST(p"/api/apikeys") =>
+      apiKeyController.create()
+    case PUT(p"/api/apikeys/${apiKeyId}") =>
+      apiKeyController.update(apiKeyId)
+    case DELETE(p"/api/apikeys/${apiKeyId}") =>
+      apiKeyController.delete(apiKeyId)
+
+  }
+}
+
+class NioAccountRouter(nioAccountController: NioAccountController,
+                       apiKeyController: ApiKeyController,
+                       nioAuthenticateController: NioAuthenticateController)
+    extends SimpleRouter {
+  import play.api.routing.sird._
+
+  override def routes: Router.Routes = {
+    case GET(
+        p"/api/nio/accounts" ? q_o"page=${int(maybePage)}" ? q_o"pageSize=${int(maybePageSize)}") =>
+      val page = maybePage.getOrElse(0)
+      val pageSize = maybePageSize.getOrElse(10)
+      nioAccountController.findAll(page, pageSize)
+    case GET(p"/api/nio/accounts/${nioAccountId}") =>
+      nioAccountController.find(nioAccountId)
+    case POST(p"/api/nio/accounts") =>
+      nioAccountController.create()
+    case PUT(p"/api/nio/accounts/${nioAccountId}") =>
+      nioAccountController.update(nioAccountId)
+    case DELETE(p"/api/nio/accounts/${nioAccountId}") =>
+      nioAccountController.delete(nioAccountId)
+
+    case POST(p"/api/nio/login") =>
+      nioAuthenticateController.login
+    case GET(p"/api/nio/logout") =>
+      nioAuthenticateController.logout
+
+    case GET(
+        p"/api/apikeys" ? q_o"page=${int(maybePage)}" ? q_o"pageSize=${int(maybePageSize)}") =>
+      val page = maybePage.getOrElse(0)
+      val pageSize = maybePageSize.getOrElse(10)
+      apiKeyController.findAll(page, pageSize)
+    case GET(p"/api/apikeys/${apiKeyId}") =>
+      apiKeyController.find(apiKeyId)
+    case POST(p"/api/apikeys") =>
+      apiKeyController.create()
+    case PUT(p"/api/apikeys/${apiKeyId}") =>
+      apiKeyController.update(apiKeyId)
+    case DELETE(p"/api/apikeys/${apiKeyId}") =>
+      apiKeyController.delete(apiKeyId)
+  }
 }

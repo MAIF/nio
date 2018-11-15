@@ -129,25 +129,17 @@ class Starter(
             case Nil =>
               val config = env.config.filter.default.defaultUser
 
-              val clientId: String = config.clientId
-              val clientSecret: String = config.clientSecret
-
               val email: String = config.username
               val password: String = config.password
 
               Logger.info(
                 s"create an admin user with email/password = ( $email : $password )")
 
-              Logger.info(
-                s"access to API with clientId/clientSecret = ( $clientId : $clientSecret ) ")
-
               userAccountMongoDataStore.insertOne(
                 new NioAccount(
                   email = email,
                   password = Sha.hexSha512(password),
                   isAdmin = true,
-                  clientId = clientId,
-                  clientSecret = clientSecret,
                   offerRestrictionPatterns = Some(Seq("*"))
                 )
               )

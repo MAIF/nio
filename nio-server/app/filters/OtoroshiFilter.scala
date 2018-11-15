@@ -37,7 +37,7 @@ class OtoroshiFilter(env: Env, authInfoMock: AuthInfoMock)(
       case devOrTest if devOrTest == "dev" || devOrTest == "test" =>
         nextFilter(
           requestHeader
-            .addAttr(FilterAttributes.Email, "test@test.com")
+            .addAttr(FilterAttributes.Email, authInfoMock.getAuthInfo.sub)
             .addAttr(FilterAttributes.AuthInfo, Some(authInfoMock.getAuthInfo))
         ).map {
           result =>

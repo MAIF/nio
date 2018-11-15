@@ -16,16 +16,12 @@ class NioAccountControllerSpec extends TestUtils {
   private val nioAccount: JsValue = Json.obj(
     "email" -> "admin@test.fr",
     "password" -> "admin",
-    "clientId" -> "clientId",
-    "clientSecret" -> "clientSecret",
     "isAdmin" -> true
   )
 
   private val nioAccount2: JsValue = Json.obj(
     "email" -> "admin2@test.fr",
     "password" -> "admin",
-    "clientId" -> "clientId2",
-    "clientSecret" -> "clientSecret",
     "isAdmin" -> true
   )
 
@@ -48,8 +44,6 @@ class NioAccountControllerSpec extends TestUtils {
 
       (value \ "email").as[String] mustBe "admin@test.fr"
       (value \ "password").asOpt[String] mustBe None
-      (value \ "clientId").as[String] mustBe "clientId"
-      (value \ "clientSecret").as[String] mustBe "clientSecret"
       (value \ "isAdmin").as[Boolean] mustBe true
 
       val id: String = (value \ "_id").as[String]
@@ -62,8 +56,6 @@ class NioAccountControllerSpec extends TestUtils {
 
       (getValue \ "email").as[String] mustBe "admin@test.fr"
       (getValue \ "password").asOpt[String] mustBe None
-      (getValue \ "clientId").as[String] mustBe "clientId"
-      (getValue \ "clientSecret").as[String] mustBe "clientSecret"
       (getValue \ "isAdmin").as[Boolean] mustBe true
     }
 
@@ -75,54 +67,6 @@ class NioAccountControllerSpec extends TestUtils {
 
       (response.json \ "errors" \ 0 \ "message")
         .as[String] mustBe "error.account.email.already.used"
-    }
-
-    "create nio account with client conflict" in {
-      val nioAccountClientIdExist: JsValue = Json.obj(
-        "email" -> "admin-test@test.fr",
-        "password" -> "admin",
-        "clientId" -> "clientId",
-        "clientSecret" -> "clientSecret",
-        "isAdmin" -> true
-      )
-
-      val response: WSResponse =
-        postJson("/nio/accounts", nioAccountClientIdExist)
-
-      response.status mustBe CONFLICT
-
-      (response.json \ "errors" \ 0 \ "message")
-        .as[String] mustBe "error.account.client.id.already.used"
-    }
-
-    "create nio account with invalid clientId" in {
-      val nioAccountClientIdExist: JsValue = Json.obj(
-        "email" -> "admin-test@test.fr",
-        "password" -> "admin",
-        "clientId" -> "client Id",
-        "clientSecret" -> "clientSecret",
-        "isAdmin" -> true
-      )
-
-      val response: WSResponse =
-        postJson("/nio/accounts", nioAccountClientIdExist)
-
-      response.status mustBe BAD_REQUEST
-    }
-
-    "create nio account with invalid clientSecret" in {
-      val nioAccountClientIdExist: JsValue = Json.obj(
-        "email" -> "admin-test@test.fr",
-        "password" -> "admin",
-        "clientId" -> "clientId1234",
-        "clientSecret" -> "client Secret",
-        "isAdmin" -> true
-      )
-
-      val response: WSResponse =
-        postJson("/nio/accounts", nioAccountClientIdExist)
-
-      response.status mustBe BAD_REQUEST
     }
 
     "get nio accounts" in {
@@ -144,14 +88,10 @@ class NioAccountControllerSpec extends TestUtils {
 
       (items \ 0 \ "email").as[String] mustBe "admin2@test.fr"
       (items \ 0 \ "password").asOpt[String] mustBe None
-      (items \ 0 \ "clientId").as[String] mustBe "clientId2"
-      (items \ 0 \ "clientSecret").as[String] mustBe "clientSecret"
       (items \ 0 \ "isAdmin").as[Boolean] mustBe true
 
       (items \ 1 \ "email").as[String] mustBe "admin@test.fr"
       (items \ 1 \ "password").asOpt[String] mustBe None
-      (items \ 1 \ "clientId").as[String] mustBe "clientId"
-      (items \ 1 \ "clientSecret").as[String] mustBe "clientSecret"
       (items \ 1 \ "isAdmin").as[Boolean] mustBe true
     }
 
@@ -160,8 +100,6 @@ class NioAccountControllerSpec extends TestUtils {
       val nioAccount: JsValue = Json.obj(
         "email" -> "admin3@test.fr",
         "password" -> "admin",
-        "clientId" -> "clientId3",
-        "clientSecret" -> "clientSecret",
         "isAdmin" -> true
       )
 
@@ -174,8 +112,6 @@ class NioAccountControllerSpec extends TestUtils {
         "_id" -> id,
         "email" -> "admin3@test.fr",
         "password" -> "admin123",
-        "clientId" -> "clientId3",
-        "clientSecret" -> "clientSecret123",
         "isAdmin" -> false
       )
 
@@ -188,8 +124,6 @@ class NioAccountControllerSpec extends TestUtils {
 
       (value \ "email").as[String] mustBe "admin3@test.fr"
       (value \ "password").asOpt[String] mustBe None
-      (value \ "clientId").as[String] mustBe "clientId3"
-      (value \ "clientSecret").as[String] mustBe "clientSecret"
       (value \ "isAdmin").as[Boolean] mustBe false
 
       val getResponse: WSResponse = getJson(s"/nio/accounts/$id")
@@ -200,8 +134,6 @@ class NioAccountControllerSpec extends TestUtils {
 
       (getValue \ "email").as[String] mustBe "admin3@test.fr"
       (getValue \ "password").asOpt[String] mustBe None
-      (getValue \ "clientId").as[String] mustBe "clientId3"
-      (getValue \ "clientSecret").as[String] mustBe "clientSecret"
       (getValue \ "isAdmin").as[Boolean] mustBe false
     }
 

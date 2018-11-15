@@ -29,33 +29,22 @@ class NioAccountController(
             Future.successful(e.badRequest())
           case Right(nioAccount) =>
             nioAccountMongoDataStore
-              .findByEmailOrClientId(nioAccount.email, nioAccount.clientId)
+              .findByEmail(nioAccount.email)
               .flatMap {
-                case Some(nioAccountStored)
-                    if nioAccountStored.email == nioAccount.email =>
+                case Some(nioAccountStored) =>
                   Future.successful(
                     s"error.account.email.already.used"
                       .conflict())
-                case Some(nioAccountStored)
-                    if nioAccountStored.clientId == nioAccount.clientId =>
-                  Future.successful(
-                    s"error.account.client.id.already.used"
-                      .conflict())
-
                 case None =>
                   val accountToStore: NioAccount =
                     nioAccount.copy(
                       password = Sha.hexSha512(nioAccount.password))
 
-                  NioAccountValidator.validateNioAccount(accountToStore) match {
-                    case Right(_) =>
-                      nioAccountMongoDataStore
-                        .insertOne(accountToStore)
-                        .map(_ => renderMethod(accountToStore, Created))
-                    case Left(e) =>
-                      FastFuture.successful(e.badRequest())
-                  }
+                  nioAccountMongoDataStore
+                    .insertOne(accountToStore)
+                    .map(_ => renderMethod(accountToStore, Created))
               }
+
         }
       case false =>
         FastFuture.successful("admin.action.forbidden".forbidden())

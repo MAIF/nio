@@ -1,31 +1,19 @@
 import React, {Component} from 'react';
-import * as accountService from "../services/AccountService";
+import * as apiKeyService from "../services/ApiKeyService";
 import {Link} from 'react-router-dom';
 import ReactTable from 'react-table';
 import 'react-table/react-table.css';
 import {BooleanInput} from "../../common/ui/inputs";
 
-export class AccountsPage extends Component {
+export class ApiKeysPage extends Component {
     columns = [
         {
-            title: 'Email',
+            title: 'Client Id',
             notFilterable: true,
-            content: item => item.email,
+            content: item => item.clientId,
             cell: (v, item) => {
-                return <Link to={`/accounts/${item._id}`}
-                             style={{cursor: 'pointer'}}>{item.email}</Link>
-            }
-        },
-        {
-            title: 'Administrateur',
-            class:'center-content',
-            notFilterable: true,
-            content: item => item.isAdmin,
-            cell: (v, item) => {
-                return <BooleanInput value={item.isAdmin}
-                                     onChange={(v) => this.updateItem(item, v)}
-                                     label={""}
-                />
+                return <Link to={`/apiKeys/${item._id}`}
+                             style={{cursor: 'pointer'}}>{item.clientId}</Link>
             }
         },
         {
@@ -35,7 +23,7 @@ export class AccountsPage extends Component {
             cell: (v, item) => {
                 return (
                     <div className="form-buttons text-center">
-                        <Link to={`/accounts/${item._id}`}
+                        <Link to={`/apiKeys/${item._id}`}
                               style={{cursor: 'pointer'}}>
                             <button className="btn btn-success btn-xs">
                                 <span className="glyphicon glyphicon-pencil" />
@@ -60,27 +48,27 @@ export class AccountsPage extends Component {
     };
 
     deleteItem = (id) => {
-        accountService.deleteAccount(id)
+        apiKeyService.deleteApiKey(id)
             .then(() => this.fetchData(this.state))
     };
 
     updateItem = (item, value) => {
-        const account = {...item};
-        account.isAdmin = value;
+        const apiKey = {...item};
+        apiKey.isAdmin = value;
 
-        accountService.updateAccount(account._id, account)
+        apiKeyService.updateApiKey(apiKey._id, apiKey)
             .then(() => this.fetchData(this.state))
     };
 
     fetchData = (state, instance) => {
         this.setState({loading: true});
 
-        accountService.getAccounts(state.page, state.pageSize)
-            .then(pagedAccounts => this.setState({
-                items: pagedAccounts.items,
-                count: pagedAccounts.count,
-                page: pagedAccounts.page,
-                pageSize: pagedAccounts.pageSize,
+        apiKeyService.getApiKeys(state.page, state.pageSize)
+            .then(pagedApiKeys => this.setState({
+                items: pagedApiKeys.items,
+                count: pagedApiKeys.count,
+                page: pagedApiKeys.page,
+                pageSize: pagedApiKeys.pageSize,
                 loading: false
             }));
     };
@@ -93,7 +81,6 @@ export class AccountsPage extends Component {
         const columns = this.columns.map(c => {
             return {
                 Header: c.title,
-                className : c.class,
                 id: c.title,
                 headerStyle: c.style,
                 width: c.style && c.style.width ? c.style.width : undefined,
@@ -127,10 +114,10 @@ export class AccountsPage extends Component {
         return (
             <div className="row">
                 <div className="col-md-12">
-                    <h3>Comptes</h3>
+                    <h3>Api Keys</h3>
                 </div>
                 <div className="col-md-12 clearfix" style={{marginBottom: 20}}>
-                    <Link className="btn btn-primary pull-right" to="/accounts/new" style={{cursor: 'pointer'}}>Nouveau compte</Link>
+                    <Link className="btn btn-success pull-right" to="/apiKeys/new" style={{cursor: 'pointer'}}>Nouvelle api key</Link>
                 </div>
                 <div className="row">
                     <div className="col-md-12">
@@ -168,4 +155,4 @@ export class AccountsPage extends Component {
     }
 }
 
-AccountsPage.propTypes = {};
+ApiKeysPage.propTypes = {};

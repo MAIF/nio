@@ -168,6 +168,7 @@ trait TestUtils
            |nio.s3ManagementEnabled=false
            |nio.mailSendingEnable=false
            |db.tenants=["$tenant"]
+           |nio.filter.securityMode="default"
        """.stripMargin).resolve()
     )
   }

@@ -112,7 +112,7 @@ export class OrganisationsPage extends Component {
     return (
       <div className="row">
         <div className="col-md-12">
-          <h1>Organisations</h1>
+          <h3>Organisations</h3>
         </div>
         <div className="col-md-12 clearfix" style={{marginBottom: 20}}>
           <Link className="btn btn-success pull-right" to="/organisations/new" style={{cursor: 'pointer'}}>Nouvelle

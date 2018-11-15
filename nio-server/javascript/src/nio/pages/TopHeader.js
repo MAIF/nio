@@ -19,13 +19,13 @@ export class TopHeader extends Component {
     }
 
     logout = () => {
-        if (!this.props.securityDefault)
+        if (this.props.accountManagement || this.props.apiKeyManagement)
+            window.location = `${this.props.logoutUrl}`;
+        else
             if (this.props.tenant)
                 window.location = `${this.props.logoutUrl}${this.props.tenant}/bo`;
             else
                 window.location = `${this.props.logoutUrl}`;
-        else
-            window.location = `${this.props.logoutUrl}`;
     };
 
 
@@ -53,8 +53,13 @@ export class TopHeader extends Component {
                         <ul className="nav navbar-nav navbar-right">
 
                             {
-                                this.props.securityDefault &&
+                                this.props.accountManagement &&
                                 <li><Link to={"/accounts"}>comptes</Link></li>
+                            }
+
+                            {
+                                this.props.apiKeyManagement &&
+                                <li><Link to={"/apiKeys"}>api keys</Link></li>
                             }
 
                             <li><a onClick={this.logout}>{(this.state.user || "")} <span
@@ -71,5 +76,6 @@ TopHeader.propTypes = {
     user: PropTypes.string,
     tenant: PropTypes.string,
     logoutUrl: PropTypes.string,
-    securityDefault: PropTypes.bool
+    accountManagement: PropTypes.bool,
+    apiKeyManagement: PropTypes.bool
 };

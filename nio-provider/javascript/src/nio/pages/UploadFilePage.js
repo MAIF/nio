@@ -31,7 +31,7 @@ export class UploadFilePage extends Component {
             userExtractService.uploadFile(this.props.tenant, this.state.organisationKey, this.state.userId, this.state.data, this.state.fileName)
                 .then(fileUrl => {
                         this.setState({fileUrl: fileUrl.url});
-                        this.props.onUpload(fileUrl.url);
+                        this.props.onUpload(fileUrl.url, this.state.userId);
                     }
                 )
     };
