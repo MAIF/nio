@@ -4,7 +4,7 @@ This is a quick start guide to start with **Nio**.
 
 ## Docker Image
 
-You want to start quick ? We provide a docker image in order to be able to start whithout installing all elements of the Architecture.
+You want to start quick? We provide a docker image in order to be able to start without installing all elements of the Architecture.
 
 @@@ div { .centered-img }
 <img src="./img/nio-architecture-quickstart.png"/>
@@ -16,7 +16,7 @@ You want to start quick ? We provide a docker image in order to be able to start
 
 First install [Docker](https://docs.docker.com/install/) and [Docker Compose](https://docs.docker.com/compose/install/) for your favorite operating system.
 
-Start Docker, in order to provide [MongoDB](https://www.mongodb.com/), [Kafka](https://kafka.apache.org/) and [S3-compliant](https://fr.wikipedia.org/wiki/Amazon_S3) services in dev mode (for production mode, you'll need to install these services) :
+Start Docker, in order to provide [MongoDB](https://www.mongodb.com/), [Kafka](https://kafka.apache.org/) and [S3-compliant](https://fr.wikipedia.org/wiki/Amazon_S3) services in dev mode (for production mode, you'll need to install these services):
 
 ```sh
 sudo docker-compose up
