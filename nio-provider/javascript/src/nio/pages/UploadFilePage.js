@@ -7,14 +7,26 @@ import {TextInput} from "../../common/ui/inputs";
 export class UploadFilePage extends Component {
 
     state = {
-        organisationKey: this.props.organisationKey,
-        userId: this.props.userId,
+        organisationKey: '',
+        userId: '',
         fileUrl: '',
         errors: [],
         data: null,
         fileName: '',
         type: ''
     };
+
+    componentDidMount() {
+        this.setState({organisationKey: this.props.organisationKey, userId: this.props.userId});
+    }
+
+    componentWillReceiveProps(nextProps) {
+        if (nextProps.organisationKey !== this.props.organisationKey)
+            this.setState({organisationKey: nextProps.organisationKey});
+
+        if (nextProps.userId !== this.props.userId)
+            this.setState({userId: nextProps.userId});
+    }
 
 
     handleUploadFile = (event) => {
