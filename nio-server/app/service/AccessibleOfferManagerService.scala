@@ -1,5 +1,7 @@
 package service
 
+import java.util.regex.Pattern
+
 import akka.http.scaladsl.util.FastFuture
 import controllers.AppErrorWithStatus
 import db.OrganisationMongoDataStore
@@ -23,7 +25,10 @@ class AccessibleOfferManagerService(
     offerRestrictionPatterns match {
       case None => false
       case Some(offerPatterns) =>
-        offerPatterns.exists(p => offerKey.matches(p))
+        offerPatterns.exists {
+          case "*"   => true
+          case other => offerKey.matches(other)
+        }
     }
   }
 
