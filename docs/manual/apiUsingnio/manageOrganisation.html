@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html class="no-js" lang="en">
+
+<head>
+<title>Manage Organisation · Nio</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="description" content='nio-manual'/>
+<link href="https://fonts.googleapis.com/css?family=Roboto:100normal,100italic,300normal,300italic,400normal,400italic,500normal,500italic,700normal,700italic,900normal,900italicc" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="../lib/jquery/jquery.min.js"></script>
+<script type="text/javascript" src="../js/page.js"></script>
+<script type="text/javascript" src="../js/groups.js"></script>
+<link rel="stylesheet" type="text/css" href="../lib/normalize.css/normalize.css"/>
+<link rel="stylesheet" type="text/css" href="../lib/foundation/dist/foundation.min.css"/>
+<link rel="stylesheet" type="text/css" href="../css/page.css"/>
+
+<!--
+<link rel="shortcut icon" href="../images/favicon.ico" />
+-->
+</head>
+
+<body>
+<div class="off-canvas-wrapper">
+<div class="off-canvas-wrapper-inner" data-off-canvas-wrapper>
+
+<div class="off-canvas position-left" id="off-canvas-menu" data-off-canvas>
+<nav class="off-canvas-nav">
+<div class="nav-home">
+<a href="../index.html" >
+<span class="home-icon">⌂</span>Nio
+</a>
+<div class="version-number">
+2.0.4
+</div>
+</div>
+<div class="nav-toc">
+<ul>
+  <li><a href="../about.html" class="page">About Nio</a></li>
+  <li><a href="../architecture.html" class="page">Architecture</a></li>
+  <li><a href="../features.html" class="page">Features</a></li>
+  <li><a href="../getnio/index.html" class="page">Get Nio</a>
+  <ul>
+    <li><a href="../getnio/fromsources.html" class="page">From sources</a></li>
+    <li><a href="../getnio/frombinaries.html" class="page">From binaries</a></li>
+    <li><a href="../getnio/fromdocker.html" class="page">From Docker</a></li>
+  </ul></li>
+  <li><a href="../firstrun/index.html" class="page">First run</a>
+  <ul>
+    <li><a href="../firstrun/configWithEnv.html" class="page">Config. with ENVs</a></li>
+    <li><a href="../firstrun/runNio.html" class="page">Run Nio</a></li>
+  </ul></li>
+  <li><a href="../uiUsingnio/index.html" class="page">UI : Using Nio</a>
+  <ul>
+    <li><a href="../uiUsingnio/uiManageOrganisations.html" class="page">Manage Organisations</a></li>
+    <li><a href="../uiUsingnio/uiManageConsents.html" class="page">Manage Consents</a></li>
+    <li><a href="../uiUsingnio/uiManageUsers.html" class="page">Manage Users</a></li>
+  </ul></li>
+  <li><a href="../apiUsingnio/index.html" class="page">API : Using Nio</a>
+  <ul>
+    <li><a href="../apiUsingnio/manageTenant.html" class="page">Manage Tenant</a></li>
+    <li><a href="../apiUsingnio/manageOrganisation.html" class="active page">Manage Organisation</a></li>
+    <li><a href="../apiUsingnio/manageConsent.html" class="page">Manage Consents</a></li>
+    <li><a href="../apiUsingnio/manageExtraction.html" class="page">Manage Data extraction</a></li>
+    <li><a href="../apiUsingnio/manageOffer.html" class="page">Manage Offer</a></li>
+  </ul></li>
+</ul>
+</div>
+
+</nav>
+</div>
+
+<div class="off-canvas-content" data-off-canvas-content>
+
+<header class="site-header expanded row">
+<div class="small-12 column">
+<a href="#" class="off-canvas-toggle hide-for-medium" data-toggle="off-canvas-menu"><svg class="svg-icon svg-icon-menu" version="1.1" id="Menu" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 20 20" enable-background="new 0 0 20 20" xml:space="preserve"> <path class="svg-icon-menu-path" fill="#53CDEC" d="M16.4,9H3.6C3.048,9,3,9.447,3,10c0,0.553,0.048,1,0.6,1H16.4c0.552,0,0.6-0.447,0.6-1C17,9.447,16.952,9,16.4,9z M16.4,13
+H3.6C3.048,13,3,13.447,3,14c0,0.553,0.048,1,0.6,1H16.4c0.552,0,0.6-0.447,0.6-1C17,13.447,16.952,13,16.4,13z M3.6,7H16.4
+C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.048,7,3.6,7z"/></svg>
+</a>
+<div class="title-wrapper">
+<div class="title-logo"></div>
+<div class="title"><a href="../index.html">Nio</a></div>
+</div>
+<!--
+<a href="https://www.example.com" class="logo show-for-medium">logo</a>
+-->
+</div>
+</header>
+
+<div class="expanded row">
+
+<div class="medium-3 large-2 show-for-medium column">
+<nav class="site-nav">
+<div class="nav-home">
+<a href="../index.html" >
+<span class="home-icon">⌂</span>Nio
+</a>
+<div class="version-number">
+2.0.4
+</div>
+</div>
+<div class="nav-toc">
+<ul>
+  <li><a href="../about.html" class="page">About Nio</a></li>
+  <li><a href="../architecture.html" class="page">Architecture</a></li>
+  <li><a href="../features.html" class="page">Features</a></li>
+  <li><a href="../getnio/index.html" class="page">Get Nio</a>
+  <ul>
+    <li><a href="../getnio/fromsources.html" class="page">From sources</a></li>
+    <li><a href="../getnio/frombinaries.html" class="page">From binaries</a></li>
+    <li><a href="../getnio/fromdocker.html" class="page">From Docker</a></li>
+  </ul></li>
+  <li><a href="../firstrun/index.html" class="page">First run</a>
+  <ul>
+    <li><a href="../firstrun/configWithEnv.html" class="page">Config. with ENVs</a></li>
+    <li><a href="../firstrun/runNio.html" class="page">Run Nio</a></li>
+  </ul></li>
+  <li><a href="../uiUsingnio/index.html" class="page">UI : Using Nio</a>
+  <ul>
+    <li><a href="../uiUsingnio/uiManageOrganisations.html" class="page">Manage Organisations</a></li>
+    <li><a href="../uiUsingnio/uiManageConsents.html" class="page">Manage Consents</a></li>
+    <li><a href="../uiUsingnio/uiManageUsers.html" class="page">Manage Users</a></li>
+  </ul></li>
+  <li><a href="../apiUsingnio/index.html" class="page">API : Using Nio</a>
+  <ul>
+    <li><a href="../apiUsingnio/manageTenant.html" class="page">Manage Tenant</a></li>
+    <li><a href="../apiUsingnio/manageOrganisation.html" class="active page">Manage Organisation</a></li>
+    <li><a href="../apiUsingnio/manageConsent.html" class="page">Manage Consents</a></li>
+    <li><a href="../apiUsingnio/manageExtraction.html" class="page">Manage Data extraction</a></li>
+    <li><a href="../apiUsingnio/manageOffer.html" class="page">Manage Offer</a></li>
+  </ul></li>
+</ul>
+</div>
+
+</nav>
+</div>
+
+<div class="small-12 medium-9 large-10 column">
+<section class="site-content">
+
+<div class="page-header row">
+<div class="medium-12 show-for-medium column">
+<div class="nav-breadcrumbs">
+<ul>
+  <li><a href="../index.html">Nio</a></li>
+  <li><a href="../apiUsingnio/index.html">API : Using Nio</a></li>
+  <li>Manage Organisation</li>
+</ul>
+</div>
+</div>
+</div>
+
+<div class="page-content row">
+<div class="small-12 large-9 column" id="docs">
+<h1><a href="#manage-organisation" name="manage-organisation" class="anchor"><span class="anchor-link"></span></a>Manage Organisation</h1>
+<p>An <em>Organization</em> is a logical entity, for example Maif, Altima &hellip; Groups can be defined in an organization, for example within the Maif organization one can have a Maif group and a Maif partner group. Permissions are defined for each of these groups (eg contact by email, phone &hellip;). Version management is done in draft or in publication. The draft version can be published, so it will become unmodifiable, but a new draft version will be created.</p>
+<h2><a href="#data-model" name="data-model" class="anchor"><span class="anchor-link"></span></a>Data model</h2>
+<pre class="prettyprint"><code class="language-json">[
+  {
+    &quot;key&quot;: &quot;string&quot;,
+    &quot;label&quot;: &quot;string&quot;,
+    &quot;groups&quot;: [
+      {
+        &quot;key&quot;: &quot;string&quot;,
+        &quot;label&quot;: &quot;string&quot;,
+        &quot;permissions&quot;: [
+          {
+            &quot;key&quot;: &quot;string&quot;,
+            &quot;label&quot;: &quot;string&quot;
+          }
+        ]
+      }
+    ],
+    &quot;version&quot;: {
+      &quot;status&quot;: &quot;string&quot;,
+      &quot;num&quot;: 0,
+      &quot;latest&quot;: true,
+      &quot;neverReleased&quot;: true,
+      &quot;lastUpdate&quot;: &quot;string&quot;
+    }
+  }
+]
+</code></pre>
+<h2><a href="#api" name="api" class="anchor"><span class="anchor-link"></span></a>API</h2>
+<p><strong>Create an organisation</strong></p>
+<p>When you create an organisation, you create a <em>draft</em> version of this organisation. A draft is just a copy to work on and perform your groups and your permissions. You can not use it as is to manage users.</p>
+<pre class="prettyprint"><code class="language-sh">curl --include -X POST http://localhost:9000/api/demo/organisations \
+    -H &#39;Content-Type: application/json&#39; \
+    -H &#39;Accept: application/json&#39; \
+    -H &#39;Nio-Client-Id: xxx&#39; \
+    -H &#39;Nio-Client-Secret: xxx&#39; \
+    -d &#39;{
+      &quot;key&quot;: &quot;newOrga&quot;,
+      &quot;label&quot;: &quot;Ma nouvelle organisation&quot;,
+      &quot;groups&quot;: [
+        {
+          &quot;key&quot;: &quot;grp1&quot;,
+          &quot;label&quot;: &quot;J&#39;\&#39;&#39;accepte de recevoir les offres personnalisées&quot;,
+          &quot;permissions&quot;: [
+            {
+              &quot;key&quot;: &quot;phone&quot;,
+              &quot;label&quot;: &quot;Par téléphone&quot;
+            },
+            {
+              &quot;key&quot;: &quot;email&quot;,
+              &quot;label&quot;: &quot;Par e-mail&quot;
+            }
+          ]
+        }
+      ]
+    }&#39;
+</code></pre>
+<p>Will respond with a 201 status code :</p>
+<pre class="prettyprint"><code class="language-json">{
+  &quot;key&quot;: &quot;newOrga&quot;,
+  &quot;label&quot;: &quot;Ma nouvelle organisation&quot;,
+  &quot;version&quot;: {
+    &quot;status&quot;: &quot;DRAFT&quot;,
+    &quot;num&quot;: 1,
+    &quot;latest&quot;: false,
+    &quot;lastUpdate&quot;: &quot;2018-11-23T08:25:49Z&quot;
+  },
+  &quot;groups&quot;: [
+    {
+      &quot;key&quot;: &quot;grp1&quot;,
+      &quot;label&quot;: &quot;J&#39;accepte de recevoir les offres personnalisées&quot;,
+      &quot;permissions&quot;: [
+        {
+          &quot;key&quot;: &quot;phone&quot;,
+          &quot;label&quot;: &quot;Par téléphone&quot;
+        },
+        {
+          &quot;key&quot;: &quot;email&quot;,
+          &quot;label&quot;: &quot;Par e-mail&quot;
+        }
+      ]
+    }
+  ]
+}
+</code></pre>
+<h3><a href="#organisation-draft-lifecycle" name="organisation-draft-lifecycle" class="anchor"><span class="anchor-link"></span></a>Organisation draft lifecycle</h3>
+<p><strong>Get the draft version</strong></p>
+<pre class="prettyprint"><code class="language-sh">curl --include -X GET http://localhost:9000/api/demo/organisations/newOrga/draft \
+    -H &#39;Content-Type: application/json&#39; \
+    -H &#39;Accept: application/json&#39; \
+    -H &#39;Nio-Client-Id: xxx&#39; \
+    -H &#39;Nio-Client-Secret: xxx&#39;
+</code></pre>
+<p>Will respond with a 200 status code : </p>
+<pre class="prettyprint"><code class="language-json">{
+  &quot;key&quot;: &quot;newOrga&quot;,
+  &quot;label&quot;: &quot;Ma nouvelle organisation&quot;,
+  &quot;version&quot;: {
+    &quot;status&quot;: &quot;DRAFT&quot;,
+    &quot;num&quot;: 1,
+    &quot;latest&quot;: false,
+    &quot;lastUpdate&quot;: &quot;2018-11-23T08:25:49Z&quot;
+  },
+  &quot;groups&quot;: [
+    {
+      &quot;key&quot;: &quot;grp1&quot;,
+      &quot;label&quot;: &quot;J&#39;accepte de recevoir les offres personnalisées&quot;,
+      &quot;permissions&quot;: [
+        {
+          &quot;key&quot;: &quot;phone&quot;,
+          &quot;label&quot;: &quot;Par téléphone&quot;
+        },
+        {
+          &quot;key&quot;: &quot;email&quot;,
+          &quot;label&quot;: &quot;Par e-mail&quot;
+        }
+      ]
+    }
+  ]
+}
+</code></pre>
+<p><strong>Update a draft</strong></p>
+<p><em>Note</em> : You cannot update the status, version number, latest. This fields are only managed by the Nio backend.</p>
+<pre class="prettyprint"><code class="language-sh ">curl --include -X PUT http://localhost:9000/api/demo/organisations/newOrga/draft \
+    -H &#39;Content-Type: application/json&#39; \
+    -H &#39;Accept: application/json&#39; \
+    -H &#39;Nio-Client-Id: xxx&#39; \
+    -H &#39;Nio-Client-Secret: xxx&#39; \
+-d &#39;{
+  &quot;key&quot;: &quot;newOrga&quot;,
+  &quot;label&quot;: &quot;Ma nouvelle organisation&quot;,
+  &quot;groups&quot;: [
+    {
+      &quot;key&quot;: &quot;grp1&quot;,
+      &quot;label&quot;: &quot;J&#39;\&#39;&#39;accepte de recevoir les offres personnalisées&quot;,
+      &quot;permissions&quot;: [
+        {
+          &quot;key&quot;: &quot;phone&quot;,
+          &quot;label&quot;: &quot;Par téléphone&quot;
+        },
+        {
+          &quot;key&quot;: &quot;email&quot;,
+          &quot;label&quot;: &quot;Par e-mail&quot;
+        }
+      ]
+    },
+    {
+      &quot;key&quot;: &quot;grp2&quot;,
+      &quot;label&quot;: &quot;J&#39;\&#39;&#39;accepte de recevoir les offres personnalisées des partenaires&quot;,
+      &quot;permissions&quot;: [
+        {
+          &quot;key&quot;: &quot;phone&quot;,
+          &quot;label&quot;: &quot;Par téléphone&quot;
+        }
+      ]
+    }
+  ]
+}&#39;
+</code></pre>
+<p>Will respond with a 200 status code : </p>
+<pre class="prettyprint"><code class="language-json">{
+  &quot;key&quot;: &quot;newOrga&quot;,
+  &quot;label&quot;: &quot;Ma nouvelle organisation&quot;,
+  &quot;version&quot;: {
+    &quot;status&quot;: &quot;DRAFT&quot;,
+    &quot;num&quot;: 1,
+    &quot;latest&quot;: false,
+    &quot;lastUpdate&quot;: &quot;2018-11-23T08:42:34Z&quot;
+  },
+  &quot;groups&quot;: [
+    {
+      &quot;key&quot;: &quot;grp1&quot;,
+      &quot;label&quot;: &quot;J&#39;accepte de recevoir les offres personnalisées&quot;,
+      &quot;permissions&quot;: [
+        {
+          &quot;key&quot;: &quot;phone&quot;,
+          &quot;label&quot;: &quot;Par téléphone&quot;
+        },
+        {
+          &quot;key&quot;: &quot;email&quot;,
+          &quot;label&quot;: &quot;Par e-mail&quot;
+        }
+      ]
+    },
+    {
+      &quot;key&quot;: &quot;grp2&quot;,
+      &quot;label&quot;: &quot;J&#39;accepte de recevoir les offres personnalisées des partenaires&quot;,
+      &quot;permissions&quot;: [
+        {
+          &quot;key&quot;: &quot;phone&quot;,
+          &quot;label&quot;: &quot;Par téléphone&quot;
+        }
+      ]
+    }
+  ]
+}
+</code></pre>
+<p><strong>Release draft</strong></p>
+<pre class="prettyprint"><code class="language-sh ">curl --include -X POST http://localhost:9000/api/demo/organisations/newOrga/draft/_release \
+    -H &#39;Content-Type: application/json&#39; \
+    -H &#39;Accept: application/json&#39; \
+    -H &#39;Nio-Client-Id: xxx&#39; \
+    -H &#39;Nio-Client-Secret: xxx&#39;
+</code></pre>
+<p>Will respond with a 200 status code : </p>
+<pre class="prettyprint"><code class="language-json">{
+  &quot;key&quot;: &quot;newOrga&quot;,
+  &quot;label&quot;: &quot;Ma nouvelle organisation&quot;,
+  &quot;version&quot;: {
+    &quot;status&quot;: &quot;RELEASED&quot;,
+    &quot;num&quot;: 1,
+    &quot;latest&quot;: true,
+    &quot;lastUpdate&quot;: &quot;2018-11-23T08:49:31Z&quot;
+  },
+  &quot;groups&quot;: [
+    {
+      &quot;key&quot;: &quot;grp1&quot;,
+      &quot;label&quot;: &quot;J&#39;accepte de recevoir les offres personnalisées&quot;,
+      &quot;permissions&quot;: [
+        {
+          &quot;key&quot;: &quot;phone&quot;,
+          &quot;label&quot;: &quot;Par téléphone&quot;
+        },
+        {
+          &quot;key&quot;: &quot;email&quot;,
+          &quot;label&quot;: &quot;Par e-mail&quot;
+        }
+      ]
+    },
+    {
+      &quot;key&quot;: &quot;grp2&quot;,
+      &quot;label&quot;: &quot;J&#39;accepte de recevoir les offres personnalisées des partenaires&quot;,
+      &quot;permissions&quot;: [
+        {
+          &quot;key&quot;: &quot;phone&quot;,
+          &quot;label&quot;: &quot;Par téléphone&quot;
+        }
+      ]
+    }
+  ]
+}
+</code></pre>
+<p><em>Note</em> : You can now use this organisation to associate consent facts.</p>
+<h3><a href="#organisation-recovery" name="organisation-recovery" class="anchor"><span class="anchor-link"></span></a>Organisation recovery</h3>
+<p><strong>Get all</strong></p>
+<p>Retrieving the list of known organizations either by taking the latest version published for this organization or by taking the draft version.</p>
+<pre class="prettyprint"><code class="language-sh">curl --include -X GET http://localhost:9000/api/demo/organisations \
+    -H &#39;Content-Type: application/json&#39; \
+    -H &#39;Accept: application/json&#39; \
+    -H &#39;Nio-Client-Id: xxx&#39; \
+    -H &#39;Nio-Client-Secret: xxx&#39;
+</code></pre>
+<p>Will respond with a 200 status code : </p>
+<pre class="prettyprint"><code class="language-json">[
+  {
+    &quot;key&quot;: &quot;newOrga&quot;,
+    &quot;label&quot;: &quot;Ma nouvelle organisation&quot;,
+    &quot;version&quot;: {
+      &quot;status&quot;: &quot;RELEASED&quot;,
+      &quot;num&quot;: 1,
+      &quot;lastUpdate&quot;: &quot;2018-11-23T08:49:31Z&quot;
+    }
+  }
+]
+</code></pre>
+<p><strong>Get the last published version of a given organisation</strong></p>
+<pre class="prettyprint"><code class="language-sh">curl --include -X GET http://localhost:9000/api/demo/organisations/newOrga/last \
+    -H &#39;Content-Type: application/json&#39; \
+    -H &#39;Accept: application/json&#39; \
+    -H &#39;Nio-Client-Id: xxx&#39; \
+    -H &#39;Nio-Client-Secret: xxx&#39;
+</code></pre>
+<p>Will respond with a 200 status code : </p>
+<pre class="prettyprint"><code class="language-json">{
+  &quot;key&quot;: &quot;newOrga&quot;,
+  &quot;label&quot;: &quot;Ma nouvelle organisation&quot;,
+  &quot;version&quot;: {
+    &quot;status&quot;: &quot;RELEASED&quot;,
+    &quot;num&quot;: 1,
+    &quot;latest&quot;: true,
+    &quot;lastUpdate&quot;: &quot;2018-11-23T08:49:31Z&quot;
+  },
+  &quot;groups&quot;: [
+    {
+      &quot;key&quot;: &quot;grp1&quot;,
+      &quot;label&quot;: &quot;J&#39;accepte de recevoir les offres personnalisées&quot;,
+      &quot;permissions&quot;: [
+        {
+          &quot;key&quot;: &quot;phone&quot;,
+          &quot;label&quot;: &quot;Par téléphone&quot;
+        },
+        {
+          &quot;key&quot;: &quot;email&quot;,
+          &quot;label&quot;: &quot;Par e-mail&quot;
+        }
+      ]
+    },
+    {
+      &quot;key&quot;: &quot;grp2&quot;,
+      &quot;label&quot;: &quot;J&#39;accepte de recevoir les offres personnalisées des partenaires&quot;,
+      &quot;permissions&quot;: [
+        {
+          &quot;key&quot;: &quot;phone&quot;,
+          &quot;label&quot;: &quot;Par téléphone&quot;
+        }
+      ]
+    }
+  ]
+}
+</code></pre>
+<p><strong>Get the specific published version of a given organisation</strong></p>
+<pre class="prettyprint"><code class="language-sh">curl --include -X GET http://localhost:9000/api/demo/organisations/newOrga/1\
+    -H &#39;Content-Type: application/json&#39; \
+    -H &#39;Accept: application/json&#39; \
+    -H &#39;Nio-Client-Id: xxx&#39; \
+    -H &#39;Nio-Client-Secret: xxx&#39;
+</code></pre>
+<p>Will respond with a 200 status code : </p>
+<pre class="prettyprint"><code class="language-json">{
+  &quot;key&quot;: &quot;newOrga&quot;,
+  &quot;label&quot;: &quot;Ma nouvelle organisation&quot;,
+  &quot;version&quot;: {
+    &quot;status&quot;: &quot;RELEASED&quot;,
+    &quot;num&quot;: 1,
+    &quot;latest&quot;: true,
+    &quot;lastUpdate&quot;: &quot;2018-11-23T08:49:31Z&quot;
+  },
+  &quot;groups&quot;: [
+    {
+      &quot;key&quot;: &quot;grp1&quot;,
+      &quot;label&quot;: &quot;J&#39;accepte de recevoir les offres personnalisées&quot;,
+      &quot;permissions&quot;: [
+        {
+          &quot;key&quot;: &quot;phone&quot;,
+          &quot;label&quot;: &quot;Par téléphone&quot;
+        },
+        {
+          &quot;key&quot;: &quot;email&quot;,
+          &quot;label&quot;: &quot;Par e-mail&quot;
+        }
+      ]
+    },
+    {
+      &quot;key&quot;: &quot;grp2&quot;,
+      &quot;label&quot;: &quot;J&#39;accepte de recevoir les offres personnalisées des partenaires&quot;,
+      &quot;permissions&quot;: [
+        {
+          &quot;key&quot;: &quot;phone&quot;,
+          &quot;label&quot;: &quot;Par téléphone&quot;
+        }
+      ]
+    }
+  ]
+}
+</code></pre>
+<div class="nav-next">
+<p><strong>Next:</strong> <a href="../apiUsingnio/manageConsent.html">Manage Consents</a></p>
+</div>
+</div>
+<div class="large-3 show-for-large column" data-sticky-container>
+<nav class="sidebar sticky" data-sticky data-anchor="docs" data-sticky-on="large">
+<div class="page-nav">
+<div class="nav-title">On this page:</div>
+<div class="nav-toc">
+<ul>
+  <li><a href="../apiUsingnio/manageOrganisation.html#manage-organisation" class="header">Manage Organisation</a>
+  <ul>
+    <li><a href="../apiUsingnio/manageOrganisation.html#data-model" class="header">Data model</a></li>
+    <li><a href="../apiUsingnio/manageOrganisation.html#api" class="header">API</a></li>
+  </ul></li>
+</ul>
+</div>
+</div>
+</nav>
+</div>
+</div>
+
+</section>
+</div>
+
+</div>
+
+<footer class="site-footer">
+
+<section class="site-footer-nav">
+<div class="expanded row">
+<div class="small-12 large-offset-2 large-10 column">
+<div class="row site-footer-content">
+
+<div class="small-12 medium-4 large-3 text-center column">
+<div class="nav-links">
+<ul>
+<!-- <li><a href="https://www.example.com/products/">Products</a> -->
+</ul>
+</div>
+</div>
+
+</div>
+</div>
+</div>
+</section>
+
+<section class="site-footer-base">
+<div class="expanded row">
+<div class="small-12 large-offset-2 large-10 column">
+<div class="row site-footer-content">
+
+<div class="small-12 text-center large-9 column">
+
+<!--
+<div class="copyright">
+<span class="text">&copy; 2018</span>
+<a href="https://www.example.com" class="logo">logo</a>
+</div>
+-->
+</div>
+
+</div>
+</div>
+</div>
+</section>
+</footer>
+
+</div>
+</div>
+</div>
+</body>
+
+<script type="text/javascript" src="../lib/foundation/dist/foundation.min.js"></script>
+<script type="text/javascript">jQuery(document).foundation();</script>
+<script type="text/javascript" src="../js/magellan.js"></script>
+
+<style type="text/css">@import "../lib/prettify/prettify.css";</style>
+<script type="text/javascript" src="../lib/prettify/prettify.js"></script>
+<script type="text/javascript" src="../lib/prettify/lang-scala.js"></script>
+<script type="text/javascript">jQuery(function(){window.prettyPrint && prettyPrint()});</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-112498312-1"></script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+
+gtag('config', 'UA-112498312-1');
+</script>
+</html>
+
+
+
+

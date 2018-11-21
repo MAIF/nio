@@ -25,10 +25,15 @@ build_provider () {
 }
 
 build_manual () {
+  rm -rf $LOCATION/docs/manual
+
   cd $LOCATION/manual
   sbt ';clean;paradox'
   cp -r $LOCATION/manual/target/paradox/site/main $LOCATION/docs
   mv $LOCATION/docs/main $LOCATION/docs/manual
+
+  mkdir -p $LOCATION/docs/manual/code
+  cp $LOCATION/nio-server/conf/swagger/swagger.json $LOCATION/docs/manual/code/swagger.json
 }
 
 build_server () {

@@ -1,23 +1,17 @@
-# Features
+## Features
 
-Right now **Nio** provides the following features.
+All features supported by **Nio** are listed below 
 
-## Consents management API
-
-**Nio** provides an [API](api.md) to manage consents for your users.
-
-## Right of erasure API and event service
-
-**Nio** handles data erasure requests from users and provide these requests to concerned operating systems.
-
-## Right of access API and event service
-
-**Nio** handles data access requests from users and provide these requests to concerned operating systems.
-
-## Record Management
-
-**Nio** provides an optional record management feature to increase traceability.
-
-## Soon : Mailgun integration for end-user notifications
-
-**Nio** will provide mailgun integration in order to notify users of any actions performed on their personal data.
+* Organisations management API 
+    * Manage Draft, Release status
+    * Manage release version of an organisation
+    * Manage offers on released organisation
+* Consents management API
+    * Manage consents relying on organisation definition with versionning
+* Right of erasure API
+* Right of access API
+* Support record Management
+* Support Mailgun integration
+* Kafka event service
+* Client Play2 + Scala + React with a Kafka consumer example for extraction request
+* @ref:[Official Docker image](getnio/fromdocker.md)

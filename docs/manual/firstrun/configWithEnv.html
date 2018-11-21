@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html class="no-js" lang="en">
+
+<head>
+<title>Config. with ENVs · Nio</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="description" content='nio-manual'/>
+<link href="https://fonts.googleapis.com/css?family=Roboto:100normal,100italic,300normal,300italic,400normal,400italic,500normal,500italic,700normal,700italic,900normal,900italicc" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="../lib/jquery/jquery.min.js"></script>
+<script type="text/javascript" src="../js/page.js"></script>
+<script type="text/javascript" src="../js/groups.js"></script>
+<link rel="stylesheet" type="text/css" href="../lib/normalize.css/normalize.css"/>
+<link rel="stylesheet" type="text/css" href="../lib/foundation/dist/foundation.min.css"/>
+<link rel="stylesheet" type="text/css" href="../css/page.css"/>
+
+<!--
+<link rel="shortcut icon" href="../images/favicon.ico" />
+-->
+</head>
+
+<body>
+<div class="off-canvas-wrapper">
+<div class="off-canvas-wrapper-inner" data-off-canvas-wrapper>
+
+<div class="off-canvas position-left" id="off-canvas-menu" data-off-canvas>
+<nav class="off-canvas-nav">
+<div class="nav-home">
+<a href="../index.html" >
+<span class="home-icon">⌂</span>Nio
+</a>
+<div class="version-number">
+2.0.4
+</div>
+</div>
+<div class="nav-toc">
+<ul>
+  <li><a href="../about.html" class="page">About Nio</a></li>
+  <li><a href="../architecture.html" class="page">Architecture</a></li>
+  <li><a href="../features.html" class="page">Features</a></li>
+  <li><a href="../getnio/index.html" class="page">Get Nio</a>
+  <ul>
+    <li><a href="../getnio/fromsources.html" class="page">From sources</a></li>
+    <li><a href="../getnio/frombinaries.html" class="page">From binaries</a></li>
+    <li><a href="../getnio/fromdocker.html" class="page">From Docker</a></li>
+  </ul></li>
+  <li><a href="../firstrun/index.html" class="page">First run</a>
+  <ul>
+    <li><a href="../firstrun/configWithEnv.html" class="active page">Config. with ENVs</a></li>
+    <li><a href="../firstrun/runNio.html" class="page">Run Nio</a></li>
+  </ul></li>
+  <li><a href="../uiUsingnio/index.html" class="page">UI : Using Nio</a>
+  <ul>
+    <li><a href="../uiUsingnio/uiManageOrganisations.html" class="page">Manage Organisations</a></li>
+    <li><a href="../uiUsingnio/uiManageConsents.html" class="page">Manage Consents</a></li>
+    <li><a href="../uiUsingnio/uiManageUsers.html" class="page">Manage Users</a></li>
+  </ul></li>
+  <li><a href="../apiUsingnio/index.html" class="page">API : Using Nio</a>
+  <ul>
+    <li><a href="../apiUsingnio/manageTenant.html" class="page">Manage Tenant</a></li>
+    <li><a href="../apiUsingnio/manageOrganisation.html" class="page">Manage Organisation</a></li>
+    <li><a href="../apiUsingnio/manageConsent.html" class="page">Manage Consents</a></li>
+    <li><a href="../apiUsingnio/manageExtraction.html" class="page">Manage Data extraction</a></li>
+    <li><a href="../apiUsingnio/manageOffer.html" class="page">Manage Offer</a></li>
+  </ul></li>
+</ul>
+</div>
+
+</nav>
+</div>
+
+<div class="off-canvas-content" data-off-canvas-content>
+
+<header class="site-header expanded row">
+<div class="small-12 column">
+<a href="#" class="off-canvas-toggle hide-for-medium" data-toggle="off-canvas-menu"><svg class="svg-icon svg-icon-menu" version="1.1" id="Menu" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 20 20" enable-background="new 0 0 20 20" xml:space="preserve"> <path class="svg-icon-menu-path" fill="#53CDEC" d="M16.4,9H3.6C3.048,9,3,9.447,3,10c0,0.553,0.048,1,0.6,1H16.4c0.552,0,0.6-0.447,0.6-1C17,9.447,16.952,9,16.4,9z M16.4,13
+H3.6C3.048,13,3,13.447,3,14c0,0.553,0.048,1,0.6,1H16.4c0.552,0,0.6-0.447,0.6-1C17,13.447,16.952,13,16.4,13z M3.6,7H16.4
+C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.048,7,3.6,7z"/></svg>
+</a>
+<div class="title-wrapper">
+<div class="title-logo"></div>
+<div class="title"><a href="../index.html">Nio</a></div>
+</div>
+<!--
+<a href="https://www.example.com" class="logo show-for-medium">logo</a>
+-->
+</div>
+</header>
+
+<div class="expanded row">
+
+<div class="medium-3 large-2 show-for-medium column">
+<nav class="site-nav">
+<div class="nav-home">
+<a href="../index.html" >
+<span class="home-icon">⌂</span>Nio
+</a>
+<div class="version-number">
+2.0.4
+</div>
+</div>
+<div class="nav-toc">
+<ul>
+  <li><a href="../about.html" class="page">About Nio</a></li>
+  <li><a href="../architecture.html" class="page">Architecture</a></li>
+  <li><a href="../features.html" class="page">Features</a></li>
+  <li><a href="../getnio/index.html" class="page">Get Nio</a>
+  <ul>
+    <li><a href="../getnio/fromsources.html" class="page">From sources</a></li>
+    <li><a href="../getnio/frombinaries.html" class="page">From binaries</a></li>
+    <li><a href="../getnio/fromdocker.html" class="page">From Docker</a></li>
+  </ul></li>
+  <li><a href="../firstrun/index.html" class="page">First run</a>
+  <ul>
+    <li><a href="../firstrun/configWithEnv.html" class="active page">Config. with ENVs</a></li>
+    <li><a href="../firstrun/runNio.html" class="page">Run Nio</a></li>
+  </ul></li>
+  <li><a href="../uiUsingnio/index.html" class="page">UI : Using Nio</a>
+  <ul>
+    <li><a href="../uiUsingnio/uiManageOrganisations.html" class="page">Manage Organisations</a></li>
+    <li><a href="../uiUsingnio/uiManageConsents.html" class="page">Manage Consents</a></li>
+    <li><a href="../uiUsingnio/uiManageUsers.html" class="page">Manage Users</a></li>
+  </ul></li>
+  <li><a href="../apiUsingnio/index.html" class="page">API : Using Nio</a>
+  <ul>
+    <li><a href="../apiUsingnio/manageTenant.html" class="page">Manage Tenant</a></li>
+    <li><a href="../apiUsingnio/manageOrganisation.html" class="page">Manage Organisation</a></li>
+    <li><a href="../apiUsingnio/manageConsent.html" class="page">Manage Consents</a></li>
+    <li><a href="../apiUsingnio/manageExtraction.html" class="page">Manage Data extraction</a></li>
+    <li><a href="../apiUsingnio/manageOffer.html" class="page">Manage Offer</a></li>
+  </ul></li>
+</ul>
+</div>
+
+</nav>
+</div>
+
+<div class="small-12 medium-9 large-10 column">
+<section class="site-content">
+
+<div class="page-header row">
+<div class="medium-12 show-for-medium column">
+<div class="nav-breadcrumbs">
+<ul>
+  <li><a href="../index.html">Nio</a></li>
+  <li><a href="../firstrun/index.html">First run</a></li>
+  <li>Config. with ENVs</li>
+</ul>
+</div>
+</div>
+</div>
+
+<div class="page-content row">
+<div class="small-12 large-9 column" id="docs">
+<h1><a href="#config-with-envs" name="config-with-envs" class="anchor"><span class="anchor-link"></span></a>Config. with ENVs</h1>
+<p>Every property in the following block can be overriden by an environment variable (an environment variable is written like <code>${?ENV_VARIABLE}</code>).</p>
+<h2><a href="#play-settings" name="play-settings" class="anchor"><span class="anchor-link"></span></a>Play settings</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Config property </th>
+      <th>Env variable </th>
+      <th>Description </th>
+      <th>Default value </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>play.http.secret.key</code> </td>
+      <td><code>APPLICATION_SECRET</code> </td>
+      <td>A token to sign cookies </td>
+      <td><code>nioSecret</code> </td>
+    </tr>
+    <tr>
+      <td><code>http.port</code> </td>
+      <td><code>HTTP_PORT</code> </td>
+      <td>The port used </td>
+      <td><code>9000</code> </td>
+    </tr>
+  </tbody>
+</table>
+<h2><a href="#nio-basic-settings" name="nio-basic-settings" class="anchor"><span class="anchor-link"></span></a>Nio basic settings</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Config property </th>
+      <th>Env variable </th>
+      <th>Description </th>
+      <th>Default value </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>nio.baseUrl</code> </td>
+      <td><code>NIO_BASE_URL</code> </td>
+      <td>Nio base url </td>
+      <td><code>http://localhost:9000</code> </td>
+    </tr>
+    <tr>
+      <td><code>nio.logoutUrl</code> </td>
+      <td><code>LOGOUT_URL</code> </td>
+      <td>Nio logout url, depends on security mode selected </td>
+      <td><code>http://localhost:9000/api/nio/logout</code> </td>
+    </tr>
+    <tr>
+      <td><code>nio.downloadFileHost</code> </td>
+      <td><code>DOWNLOAD_FILE_HOST</code> </td>
+      <td>Nio download file url </td>
+      <td><code>http://localhost:9000/_download</code> </td>
+    </tr>
+  </tbody>
+</table>
+<h2><a href="#security" name="security" class="anchor"><span class="anchor-link"></span></a>Security</h2>
+<h3><a href="#define-security-mode" name="define-security-mode" class="anchor"><span class="anchor-link"></span></a>Define security mode</h3>
+<table>
+  <thead>
+    <tr>
+      <th>Config property </th>
+      <th>Env variable </th>
+      <th>Description </th>
+      <th>Default value </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>nio.filter.securityMode</code> </td>
+      <td><code>SECURITY_MODE</code> </td>
+      <td>Define the security mode : <code>default</code>, <code>otoroshi</code> or <code>auth0</code> </td>
+      <td><code>otoroshi</code></td>
+    </tr>
+  </tbody>
+</table>
+<h3><a href="#security-mode-otoroshi" name="security-mode-otoroshi" class="anchor"><span class="anchor-link"></span></a>Security mode : otoroshi</h3>
+<table>
+  <thead>
+    <tr>
+      <th>Config property </th>
+      <th>Env variable </th>
+      <th>Description </th>
+      <th>Default value </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>nio.filter.otoroshi.issuer</code> </td>
+      <td><code>OTOROSHI_ISSUER</code> </td>
+      <td>The issuer for jwt token </td>
+      <td><code>Otoroshi</code></td>
+    </tr>
+    <tr>
+      <td><code>nio.filter.otoroshi.sharedKey</code> </td>
+      <td><code>CLAIM_SHAREDKEY</code> </td>
+      <td>Shared key used to encrypt jwt token </td>
+      <td><code>none</code></td>
+    </tr>
+    <tr>
+      <td><code>nio.filter.otoroshi.headerClaim</code> </td>
+      <td><code>FILTER_CLAIM_HEADER_NAME</code> </td>
+      <td>The name of the claim header </td>
+      <td><code>Otoroshi-Claim</code></td>
+    </tr>
+    <tr>
+      <td><code>nio.filter.otoroshi.headerRequestId</code> </td>
+      <td><code>FILTER_REQUEST_ID_HEADER_NAME</code> </td>
+      <td>The name of the requestId header </td>
+      <td><code>Otoroshi-Request-Id</code></td>
+    </tr>
+    <tr>
+      <td><code>nio.filter.otoroshi.headerGatewayState</code> </td>
+      <td><code>FILTER_GATEWAY_STATE_HEADER_NAME</code> </td>
+      <td>The name of the state header </td>
+      <td><code>Otoroshi-State</code></td>
+    </tr>
+    <tr>
+      <td><code>nio.filter.otoroshi.headerGatewayStateResp</code> </td>
+      <td><code>FILTER_GATEWAY_STATE_RESP_HEADER_NAME</code> </td>
+      <td>The name of the state resp header </td>
+      <td><code>Otoroshi-State-Resp</code></td>
+    </tr>
+    <tr>
+      <td><code>nio.filter.otoroshi.headerGatewayHeaderClientId</code> </td>
+      <td><code>FILTER_GATEWAY_HEADER_CLIENT_ID</code> </td>
+      <td>The name of the header for clientId </td>
+      <td><code>Otoroshi-Client-Id</code></td>
+    </tr>
+    <tr>
+      <td><code>nio.filter.otoroshi.headerGatewayHeaderClientSecret</code> </td>
+      <td><code>FILTER_GATEWAY_HEADER_CLIENT_SECRET</code> </td>
+      <td>The name of the header of clientSecret </td>
+      <td><code>Otoroshi-Client-Secret</code></td>
+    </tr>
+  </tbody>
+</table>
+<h3><a href="#security-mode-auth0" name="security-mode-auth0" class="anchor"><span class="anchor-link"></span></a>Security mode : auth0</h3>
+<table>
+  <thead>
+    <tr>
+      <th>Config property </th>
+      <th>Env variable </th>
+      <th>Description </th>
+      <th>Default value </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>nio.filter.auth0.clientId</code> </td>
+      <td><code>AUTH0_CLIENT_ID</code> </td>
+      <td>Auth0 Client Id value </td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td><code>nio.filter.auth0.clientSecret</code> </td>
+      <td><code>AUTH0_CLIENT_SECRET</code> </td>
+      <td>Auth0 Client Secret value </td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td><code>nio.filter.auth0.callbackUrl</code> </td>
+      <td><code>AUTH0_CALLBACK_URL</code> </td>
+      <td>Auth0 Callback url </td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td><code>nio.filter.auth0.domain</code> </td>
+      <td><code>AUTH0_DOMAIN</code> </td>
+      <td>Auth0 Domain </td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td><code>nio.filter.auth0.audience</code> </td>
+      <td><code>AUTH0_AUDIENCE</code> </td>
+      <td>Auth0 Audience </td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td><code>nio.filter.auth0.apiKeys.headerClientId</code> </td>
+      <td><code>FILTER_CLAIM_HEADER_CLIENT_ID_NAME</code> </td>
+      <td>The name of the header for clientId </td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td><code>nio.filter.auth0.apiKeys.headerClientSecret</code> </td>
+      <td><code>FILTER_CLAIM_HEADER_CLIENT_SECRET_NAME</code> </td>
+      <td>The name of the header of clientSecret </td>
+      <td> </td>
+    </tr>
+  </tbody>
+</table>
+<h3><a href="#security-mode-default" name="security-mode-default" class="anchor"><span class="anchor-link"></span></a>Security mode : default</h3>
+<table>
+  <thead>
+    <tr>
+      <th>Config property </th>
+      <th>Env variable </th>
+      <th>Description </th>
+      <th>Default value </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>nio.filter.default.sharedKey</code> </td>
+      <td><code>FILTER_CLAIM_SHARED_KEY</code> </td>
+      <td>Shared key used to encrypt jwt token </td>
+      <td><code>Nio</code></td>
+    </tr>
+    <tr>
+      <td><code>nio.filter.default.cookieClaim</code> </td>
+      <td><code>FILTER_COOKIE_CLAIM</code> </td>
+      <td>Cookie name </td>
+      <td><code>Nio</code></td>
+    </tr>
+    <tr>
+      <td><code>nio.filter.default.issuer</code> </td>
+      <td><code>FILTER_ISSUER</code> </td>
+      <td>The issuer for jwt token </td>
+      <td><code>Nio</code></td>
+    </tr>
+    <tr>
+      <td><code>nio.filter.default.apiKeys.headerClientId</code> </td>
+      <td><code>FILTER_CLAIM_HEADER_CLIENT_ID_NAME</code> </td>
+      <td>The name of the header for clientId </td>
+      <td><code>Nio-Client-Id</code></td>
+    </tr>
+    <tr>
+      <td><code>nio.filter.default.apiKeys.headerClientSecret</code> </td>
+      <td><code>FILTER_CLAIM_HEADER_CLIENT_SECRET_NAME</code> </td>
+      <td>The name of the header for clientSecret </td>
+      <td><code>Nio-Client-Secret</code></td>
+    </tr>
+    <tr>
+      <td><code>nio.filter.default.apiKeys.defaultUser.username</code> </td>
+      <td><code>NIO_DEFAULT_USER</code> </td>
+      <td>Default nio user </td>
+      <td><code>admin@nio.fr</code></td>
+    </tr>
+    <tr>
+      <td><code>nio.filter.default.apiKeys.defaultUser.password</code> </td>
+      <td><code>NIO_DEFAULT_PASSWORD</code> </td>
+      <td>Default nio user password </td>
+      <td><code>admin</code></td>
+    </tr>
+  </tbody>
+</table>
+<h2><a href="#kafka-configuration" name="kafka-configuration" class="anchor"><span class="anchor-link"></span></a>Kafka configuration</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Config property </th>
+      <th>Env variable </th>
+      <th>Description </th>
+      <th>Default value </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>nio.kafka.servers</code> </td>
+      <td><code>KAFKA_HOST</code> </td>
+      <td>The host of the kafka server </td>
+      <td><code>127.0.0.1:29092</code> </td>
+    </tr>
+    <tr>
+      <td><code>nio.kafka.nbPartitions</code> </td>
+      <td><code>KAFKA_NB_PARTITIONS</code> </td>
+      <td>Number of partitions </td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td><code>nio.kafka.keyPass</code> </td>
+      <td><code>KAFKA_PASSWORD</code> </td>
+      <td>The password for ssl certificate </td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td><code>nio.kafka.keystore.location</code> </td>
+      <td><code>KAFKA_KEYSTORE_LOCATION</code> </td>
+      <td>The absolute location of the keystore if ssl is used </td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td><code>nio.kafka.truststore.location</code> </td>
+      <td><code>KAFKA_TRUSTORE_LOCATION</code> </td>
+      <td>The absolute location of the truststore if ssl is used </td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td><code>nio.kafka.topic</code> </td>
+      <td><code>KAFKA_TOPIC</code> </td>
+      <td>The kafka topic </td>
+      <td><code>nio-consent-events</code> </td>
+    </tr>
+    <tr>
+      <td><code>nio.kafka.groupId</code> </td>
+      <td><code>KAFKA_GROUP_ID</code> </td>
+      <td>The consumer group id </td>
+      <td><code>nio</code> </td>
+    </tr>
+    <tr>
+      <td><code>nio.kafka.eventsGroupIn</code> </td>
+      <td><code>KAFKA_EVENT_GROUP_IN</code> </td>
+      <td>The consumer group in (record management) </td>
+      <td><code>10000</code> </td>
+    </tr>
+    <tr>
+      <td><code>nio.kafka.eventsGroupDuration</code> </td>
+      <td><code>KAFKA_EVENT_GROUP_DURATION</code> </td>
+      <td>The consumer group duration (record management) </td>
+      <td><code>10 hours</code> </td>
+    </tr>
+  </tbody>
+</table>
+<h2><a href="#s3-configuration" name="s3-configuration" class="anchor"><span class="anchor-link"></span></a>S3 configuration</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Config property </th>
+      <th>Env variable </th>
+      <th>Description </th>
+      <th>Default value </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>nio.recordManagementEnabled</code> </td>
+      <td><code>ENABLE_RECORD_MANAGEMENT</code> </td>
+      <td>To enable the record management </td>
+      <td><code>true</code> </td>
+    </tr>
+    <tr>
+      <td><code>nio.s3ManagementEnabled</code> </td>
+      <td><code>ENABLE_S3_MANAGEMENT</code> </td>
+      <td>To enable the S3 management </td>
+      <td><code>true</code> </td>
+    </tr>
+    <tr>
+      <td><code>nio.s3Config.bucketName</code> </td>
+      <td><code>CELLAR_BUCKET_NAME</code> </td>
+      <td>The cellar bucket name use to the record management </td>
+      <td><code>nioevents</code> </td>
+    </tr>
+    <tr>
+      <td><code>nio.s3Config.uploadBucketName</code> </td>
+      <td><code>CELLAR_UPLOAD_BUCKET_NAME</code> </td>
+      <td>The cellar bucket name use to upload and download file (extraction data request) </td>
+      <td><code>nioupload</code> </td>
+    </tr>
+    <tr>
+      <td><code>nio.s3Config.endpoint</code> </td>
+      <td><code>CELLAR_ADDON_HOST</code> </td>
+      <td>The host of the S3 server </td>
+      <td><code>http://localhost:8000</code> </td>
+    </tr>
+    <tr>
+      <td><code>nio.s3Config.accessKey</code> </td>
+      <td><code>CELLAR_ADDON_KEY_ID</code> </td>
+      <td>The key id of the S3 server </td>
+      <td><code>newAccessKey</code> </td>
+    </tr>
+    <tr>
+      <td><code>nio.s3Config.secretKey</code> </td>
+      <td><code>CELLAR_ADDON_KEY_SECRET</code> </td>
+      <td>The key secret of the S3 server </td>
+      <td><code>newSecretKey</code> </td>
+    </tr>
+    <tr>
+      <td><code>nio.s3Config.expireAtInDay</code> </td>
+      <td><code>CELLAR_UPLOAD_EXPIRE_AT_IN_DAY</code> </td>
+      <td>Expire at in day (extraction data request file) </td>
+      <td><code>60</code> </td>
+    </tr>
+    <tr>
+      <td><code>nio.s3Config.region</code> </td>
+      <td><code>S3_REGION</code> </td>
+      <td>The S3 Region of the S3 server </td>
+      <td><code>us-west-2</code> </td>
+    </tr>
+    <tr>
+      <td><code>nio.s3Config.chunkSizeInMb</code> </td>
+      <td><code>S3_CHUNK_SIZE_IN_MB</code> </td>
+      <td>Chunk size to upload file on S3 server </td>
+      <td><code>50</code> </td>
+    </tr>
+  </tbody>
+</table>
+<h2><a href="#mail-gun-configuration" name="mail-gun-configuration" class="anchor"><span class="anchor-link"></span></a>Mail gun configuration</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Config property </th>
+      <th>Env variable </th>
+      <th>Description </th>
+      <th>Default value </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>nio.mailSendingEnable</code> </td>
+      <td><code>ENABLE_MAIL_SENDING</code> </td>
+      <td>To enable e-mail sending </td>
+      <td><code>false</code> </td>
+    </tr>
+    <tr>
+      <td><code>nio.mailGunConfig.apiKey</code> </td>
+      <td><code>MAIL_GUN_API_KEY</code> </td>
+      <td>The MailGun Api key </td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td><code>nio.mailGunConfig.endpoint</code> </td>
+      <td><code>MAIL_GUN_ENDPOINT</code> </td>
+      <td>The MailGun Endpoint </td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td><code>nio.mailGunConfig.from</code> </td>
+      <td><code>MAIL_GUN_SENDER</code> </td>
+      <td>The MailGun default sender </td>
+      <td> </td>
+    </tr>
+  </tbody>
+</table>
+<h2><a href="#tenant-configuration" name="tenant-configuration" class="anchor"><span class="anchor-link"></span></a>Tenant configuration</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Config property </th>
+      <th>Env variable </th>
+      <th>Description </th>
+      <th>Default value </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>tenant.admin.header</code> </td>
+      <td><code>TENANT_ADMIN_HEADER</code> </td>
+      <td>The tenant admin header name </td>
+      <td><code>tenant-admin-secret</code> </td>
+    </tr>
+    <tr>
+      <td><code>tenant.admin.secret</code> </td>
+      <td><code>TENANT_ADMIN_SECRET</code> </td>
+      <td>The tenant admin secret </td>
+      <td><code>changeme</code> </td>
+    </tr>
+  </tbody>
+</table>
+<h2><a href="#healthcheck-configuration" name="healthcheck-configuration" class="anchor"><span class="anchor-link"></span></a>HealthCheck configuration</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Config property </th>
+      <th>Env variable </th>
+      <th>Description </th>
+      <th>Default value </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>healthcheck.header</code> </td>
+      <td><code>HEALTH_CHECK_HEADER</code> </td>
+      <td>The health check header name </td>
+      <td><code>health-check-secret</code> </td>
+    </tr>
+    <tr>
+      <td><code>healthcheck.secret</code> </td>
+      <td><code>HEALTH_CHECK_SECRET</code> </td>
+      <td>The health check secret value </td>
+      <td><code>changeme</code> </td>
+    </tr>
+  </tbody>
+</table>
+<h2><a href="#mongodb-configuration" name="mongodb-configuration" class="anchor"><span class="anchor-link"></span></a>MongoDB configuration</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Config property </th>
+      <th>Env variable </th>
+      <th>Description </th>
+      <th>Default value </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>mongodb.uri</code> </td>
+      <td><code>MONGODB_ADDON_URI</code> </td>
+      <td>The mongodb addon uri </td>
+      <td><code>mongodb://localhost:27017/nio</code> </td>
+    </tr>
+    <tr>
+      <td><code>db.flush</code> </td>
+      <td><code>DB_FLUSH</code> </td>
+      <td>To initialize the mongo database </td>
+      <td><code>false</code> </td>
+    </tr>
+  </tbody>
+</table>
+<div class="nav-next">
+<p><strong>Next:</strong> <a href="../firstrun/runNio.html">Run Nio</a></p>
+</div>
+</div>
+<div class="large-3 show-for-large column" data-sticky-container>
+<nav class="sidebar sticky" data-sticky data-anchor="docs" data-sticky-on="large">
+<div class="page-nav">
+<div class="nav-title">On this page:</div>
+<div class="nav-toc">
+<ul>
+  <li><a href="../firstrun/configWithEnv.html#config-with-envs" class="header">Config. with ENVs</a>
+  <ul>
+    <li><a href="../firstrun/configWithEnv.html#play-settings" class="header">Play settings</a></li>
+    <li><a href="../firstrun/configWithEnv.html#nio-basic-settings" class="header">Nio basic settings</a></li>
+    <li><a href="../firstrun/configWithEnv.html#security" class="header">Security</a></li>
+    <li><a href="../firstrun/configWithEnv.html#kafka-configuration" class="header">Kafka configuration</a></li>
+    <li><a href="../firstrun/configWithEnv.html#s3-configuration" class="header">S3 configuration</a></li>
+    <li><a href="../firstrun/configWithEnv.html#mail-gun-configuration" class="header">Mail gun configuration</a></li>
+    <li><a href="../firstrun/configWithEnv.html#tenant-configuration" class="header">Tenant configuration</a></li>
+    <li><a href="../firstrun/configWithEnv.html#healthcheck-configuration" class="header">HealthCheck configuration</a></li>
+    <li><a href="../firstrun/configWithEnv.html#mongodb-configuration" class="header">MongoDB configuration</a></li>
+  </ul></li>
+</ul>
+</div>
+</div>
+</nav>
+</div>
+</div>
+
+</section>
+</div>
+
+</div>
+
+<footer class="site-footer">
+
+<section class="site-footer-nav">
+<div class="expanded row">
+<div class="small-12 large-offset-2 large-10 column">
+<div class="row site-footer-content">
+
+<div class="small-12 medium-4 large-3 text-center column">
+<div class="nav-links">
+<ul>
+<!-- <li><a href="https://www.example.com/products/">Products</a> -->
+</ul>
+</div>
+</div>
+
+</div>
+</div>
+</div>
+</section>
+
+<section class="site-footer-base">
+<div class="expanded row">
+<div class="small-12 large-offset-2 large-10 column">
+<div class="row site-footer-content">
+
+<div class="small-12 text-center large-9 column">
+
+<!--
+<div class="copyright">
+<span class="text">&copy; 2018</span>
+<a href="https://www.example.com" class="logo">logo</a>
+</div>
+-->
+</div>
+
+</div>
+</div>
+</div>
+</section>
+</footer>
+
+</div>
+</div>
+</div>
+</body>
+
+<script type="text/javascript" src="../lib/foundation/dist/foundation.min.js"></script>
+<script type="text/javascript">jQuery(document).foundation();</script>
+<script type="text/javascript" src="../js/magellan.js"></script>
+
+<style type="text/css">@import "../lib/prettify/prettify.css";</style>
+<script type="text/javascript" src="../lib/prettify/prettify.js"></script>
+<script type="text/javascript" src="../lib/prettify/lang-scala.js"></script>
+<script type="text/javascript">jQuery(function(){window.prettyPrint && prettyPrint()});</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-112498312-1"></script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+
+gtag('config', 'UA-112498312-1');
+</script>
+</html>
+
+
+
+
