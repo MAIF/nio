@@ -158,9 +158,27 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <div class="small-12 large-9 column" id="docs">
 <h1><a href="#run-nio-with-docker" name="run-nio-with-docker" class="anchor"><span class="anchor-link"></span></a>Run Nio with Docker</h1>
 <h2><a href="#with-otoroshi" name="with-otoroshi" class="anchor"><span class="anchor-link"></span></a>With Otoroshi</h2>
+<p><strong>Build Nio Provider</strong></p>
+<pre class="prettyprint"><code class="language-sh">./nio-script.sh buildProvider
+</code></pre>
+<p><strong>Run all</strong></p>
+<p>Before running, you have to setup your hosts. Add the following line to your <code>/etc/hosts</code> </p>
+<pre class="prettyprint"><code class="language-sh">/etc/hosts: 127.0.0.1    nio.foo.bar nio-provider.foo.bar nio-download.foo.bar kibana.foo.bar elastic.foo.bar keycloak.foo.bar otoroshi.foo.bar otoroshi-api.foo.bar privateapps.foo.bar
+</code></pre>
+<p>Replace the ip address at line 161 and line 168 in the docker-compose.prod.yml file.</p>
 <pre class="prettyprint"><code class="language-sh">./nio-script.sh run
 </code></pre>
-<h2><a href="#with-default-security" name="with-default-security" class="anchor"><span class="anchor-link"></span></a>With Default security</h2>
+<p><strong>Credentials</strong> </p>
+<ul>
+  <li><a href="http://keycloak.foo.bar:8889">http://keycloak.foo.bar:8889</a> : <code>keycloak</code> / <code>password</code></li>
+  <li><a href="http://otoroshi.foo.bar:8889">http://otoroshi.foo.bar:8889</a> : <code>admin@otoroshi.io</code> / <code>password</code></li>
+  <li><a href="http://nio.foo.bar:8889">http://nio.foo.bar:8889</a> : <code>admin@nio.io</code> / <code>password</code></li>
+  <li><a href="http://nio.foo.bar:8889/web">http://nio-provider.foo.bar:8889/web</a> : <code>admin@nio.io</code> / <code>password</code></li>
+</ul>
+<p><strong>Kibana</strong></p>
+<p><a href="http://kibana.foo.bar:8889">http://kibana.foo.bar:8889</a> : create kibana index on otoroshi-events-* with @timestamp for time.</p>
+<p>To import Otoroshi dashboard for kibana, go to management / saved object / import (the dashboard file is at <code>./config/kibana.json</code>)</p>
+<h2><a href="#with-default-security-mode" name="with-default-security-mode" class="anchor"><span class="anchor-link"></span></a>With Default security mode</h2>
 <pre class="prettyprint"><code class="language-sh">docker-compose -f docker-compose.dev.yml up
 </code></pre>
 <div class="nav-next">
@@ -176,7 +194,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
   <li><a href="../firstrun/dockerRunNio.html#run-nio-with-docker" class="header">Run Nio with Docker</a>
   <ul>
     <li><a href="../firstrun/dockerRunNio.html#with-otoroshi" class="header">With Otoroshi</a></li>
-    <li><a href="../firstrun/dockerRunNio.html#with-default-security" class="header">With Default security</a></li>
+    <li><a href="../firstrun/dockerRunNio.html#with-default-security-mode" class="header">With Default security mode</a></li>
   </ul></li>
 </ul>
 </div>
