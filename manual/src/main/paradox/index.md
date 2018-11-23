@@ -90,7 +90,8 @@ The work on Nio was funded by [MAIF](https://www.maif.fr/) with the help of the 
 * [Features](features.md)
 * [Get Nio](getnio/index.md)
 * [First run](firstrun/index.md)
-* [Using Nio](uiUsingnio/index.md)
-* [Using Nio](apiUsingnio/index.md)
+* [UI : Using Nio](uiUsingnio/index.md)
+* [API : Using Nio](apiUsingnio/index.md)
+* [Kafka events](kafkaEvents.md)
 
 @@@

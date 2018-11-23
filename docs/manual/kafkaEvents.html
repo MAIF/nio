@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html class="no-js" lang="en">
+
+<head>
+<title>Published Kafka Events · Nio</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="description" content='nio-manual'/>
+<link href="https://fonts.googleapis.com/css?family=Roboto:100normal,100italic,300normal,300italic,400normal,400italic,500normal,500italic,700normal,700italic,900normal,900italicc" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="lib/jquery/jquery.min.js"></script>
+<script type="text/javascript" src="js/page.js"></script>
+<script type="text/javascript" src="js/groups.js"></script>
+<link rel="stylesheet" type="text/css" href="lib/normalize.css/normalize.css"/>
+<link rel="stylesheet" type="text/css" href="lib/foundation/dist/foundation.min.css"/>
+<link rel="stylesheet" type="text/css" href="css/page.css"/>
+
+<!--
+<link rel="shortcut icon" href="images/favicon.ico" />
+-->
+</head>
+
+<body>
+<div class="off-canvas-wrapper">
+<div class="off-canvas-wrapper-inner" data-off-canvas-wrapper>
+
+<div class="off-canvas position-left" id="off-canvas-menu" data-off-canvas>
+<nav class="off-canvas-nav">
+<div class="nav-home">
+<a href="index.html" >
+<span class="home-icon">⌂</span>Nio
+</a>
+<div class="version-number">
+2.0.4
+</div>
+</div>
+<div class="nav-toc">
+<ul>
+  <li><a href="about.html" class="page">About Nio</a></li>
+  <li><a href="architecture.html" class="page">Architecture</a></li>
+  <li><a href="features.html" class="page">Features</a></li>
+  <li><a href="getnio/index.html" class="page">Get Nio</a>
+  <ul>
+    <li><a href="getnio/fromsources.html" class="page">From sources</a></li>
+    <li><a href="getnio/frombinaries.html" class="page">From binaries</a></li>
+    <li><a href="getnio/fromdocker.html" class="page">From Docker</a></li>
+  </ul></li>
+  <li><a href="firstrun/index.html" class="page">First run</a>
+  <ul>
+    <li><a href="firstrun/configWithEnv.html" class="page">Config. with ENVs</a></li>
+    <li><a href="firstrun/runNio.html" class="page">Run Nio</a></li>
+    <li><a href="firstrun/dockerRunNio.html" class="page">Run Nio with Docker</a></li>
+  </ul></li>
+  <li><a href="uiUsingnio/index.html" class="page">UI : Using Nio</a>
+  <ul>
+    <li><a href="uiUsingnio/uiManageOrganisations.html" class="page">Manage Organisations</a></li>
+    <li><a href="uiUsingnio/uiManageConsents.html" class="page">Manage Consents</a></li>
+    <li><a href="uiUsingnio/uiManageUsers.html" class="page">Manage Users</a></li>
+  </ul></li>
+  <li><a href="apiUsingnio/index.html" class="page">API : Using Nio</a>
+  <ul>
+    <li><a href="apiUsingnio/manageTenant.html" class="page">Manage Tenant</a></li>
+    <li><a href="apiUsingnio/manageOrganisation.html" class="page">Manage Organisation</a></li>
+    <li><a href="apiUsingnio/manageOffer.html" class="page">Manage Offer</a></li>
+    <li><a href="apiUsingnio/manageConsent.html" class="page">Manage Consents</a></li>
+    <li><a href="apiUsingnio/manageExtraction.html" class="page">Manage Data extraction</a></li>
+  </ul></li>
+  <li><a href="kafkaEvents.html" class="active page">Published Kafka Events</a></li>
+</ul>
+</div>
+
+</nav>
+</div>
+
+<div class="off-canvas-content" data-off-canvas-content>
+
+<header class="site-header expanded row">
+<div class="small-12 column">
+<a href="#" class="off-canvas-toggle hide-for-medium" data-toggle="off-canvas-menu"><svg class="svg-icon svg-icon-menu" version="1.1" id="Menu" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 20 20" enable-background="new 0 0 20 20" xml:space="preserve"> <path class="svg-icon-menu-path" fill="#53CDEC" d="M16.4,9H3.6C3.048,9,3,9.447,3,10c0,0.553,0.048,1,0.6,1H16.4c0.552,0,0.6-0.447,0.6-1C17,9.447,16.952,9,16.4,9z M16.4,13
+H3.6C3.048,13,3,13.447,3,14c0,0.553,0.048,1,0.6,1H16.4c0.552,0,0.6-0.447,0.6-1C17,13.447,16.952,13,16.4,13z M3.6,7H16.4
+C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.048,7,3.6,7z"/></svg>
+</a>
+<div class="title-wrapper">
+<div class="title-logo"></div>
+<div class="title"><a href="index.html">Nio</a></div>
+</div>
+<!--
+<a href="https://www.example.com" class="logo show-for-medium">logo</a>
+-->
+</div>
+</header>
+
+<div class="expanded row">
+
+<div class="medium-3 large-2 show-for-medium column">
+<nav class="site-nav">
+<div class="nav-home">
+<a href="index.html" >
+<span class="home-icon">⌂</span>Nio
+</a>
+<div class="version-number">
+2.0.4
+</div>
+</div>
+<div class="nav-toc">
+<ul>
+  <li><a href="about.html" class="page">About Nio</a></li>
+  <li><a href="architecture.html" class="page">Architecture</a></li>
+  <li><a href="features.html" class="page">Features</a></li>
+  <li><a href="getnio/index.html" class="page">Get Nio</a>
+  <ul>
+    <li><a href="getnio/fromsources.html" class="page">From sources</a></li>
+    <li><a href="getnio/frombinaries.html" class="page">From binaries</a></li>
+    <li><a href="getnio/fromdocker.html" class="page">From Docker</a></li>
+  </ul></li>
+  <li><a href="firstrun/index.html" class="page">First run</a>
+  <ul>
+    <li><a href="firstrun/configWithEnv.html" class="page">Config. with ENVs</a></li>
+    <li><a href="firstrun/runNio.html" class="page">Run Nio</a></li>
+    <li><a href="firstrun/dockerRunNio.html" class="page">Run Nio with Docker</a></li>
+  </ul></li>
+  <li><a href="uiUsingnio/index.html" class="page">UI : Using Nio</a>
+  <ul>
+    <li><a href="uiUsingnio/uiManageOrganisations.html" class="page">Manage Organisations</a></li>
+    <li><a href="uiUsingnio/uiManageConsents.html" class="page">Manage Consents</a></li>
+    <li><a href="uiUsingnio/uiManageUsers.html" class="page">Manage Users</a></li>
+  </ul></li>
+  <li><a href="apiUsingnio/index.html" class="page">API : Using Nio</a>
+  <ul>
+    <li><a href="apiUsingnio/manageTenant.html" class="page">Manage Tenant</a></li>
+    <li><a href="apiUsingnio/manageOrganisation.html" class="page">Manage Organisation</a></li>
+    <li><a href="apiUsingnio/manageOffer.html" class="page">Manage Offer</a></li>
+    <li><a href="apiUsingnio/manageConsent.html" class="page">Manage Consents</a></li>
+    <li><a href="apiUsingnio/manageExtraction.html" class="page">Manage Data extraction</a></li>
+  </ul></li>
+  <li><a href="kafkaEvents.html" class="active page">Published Kafka Events</a></li>
+</ul>
+</div>
+
+</nav>
+</div>
+
+<div class="small-12 medium-9 large-10 column">
+<section class="site-content">
+
+<div class="page-header row">
+<div class="medium-12 show-for-medium column">
+<div class="nav-breadcrumbs">
+<ul>
+  <li><a href="index.html">Nio</a></li>
+  <li>Published Kafka Events</li>
+</ul>
+</div>
+</div>
+</div>
+
+<div class="page-content row">
+<div class="small-12 large-9 column" id="docs">
+<h2><a href="#published-kafka-events" name="published-kafka-events" class="anchor"><span class="anchor-link"></span></a>Published Kafka Events</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Event Type </th>
+      <th>Description </th>
+      <th>Payload example </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>TenantCreated </td>
+      <td>Emitted when a new tenant has been created. </td>
+      <td><code>{&quot;type&quot;:&quot;TenantCreated&quot;,&quot;author&quot;:&quot;tenant-admin&quot;,&quot;date&quot;:&quot;2018-04-11T12:27:34Z&quot;,&quot;id&quot;:984045289865216000,&quot;payload&quot;:{&quot;key&quot;:&quot;newTenant&quot;,&quot;description&quot;:&quot;a new tenant&quot;}}</code> </td>
+    </tr>
+    <tr>
+      <td>TenantDeleted </td>
+      <td>Emitted when an existing tenant has been deleted. </td>
+      <td><code>{&quot;type&quot;:&quot;TenantDeleted&quot;,&quot;author&quot;:&quot;tenant-admin&quot;,&quot;date&quot;:&quot;2018-04-11T12:27:35Z&quot;,&quot;id&quot;:984045289865216004,&quot;payload&quot;:{&quot;key&quot;:&quot;newTenant&quot;,&quot;description&quot;:&quot;a new tenant&quot;}}</code> </td>
+    </tr>
+    <tr>
+      <td>OrganisationCreated </td>
+      <td>Emitted when a new Organisation has been created (as a draft). </td>
+      <td><code>{&quot;type&quot;:&quot;OrganisationCreated&quot;,&quot;tenant&quot;:&quot;prod&quot;,&quot;author&quot;:&quot;admin@test.com&quot;,&quot;date&quot;:&quot;2018-04-11T12:27:41Z&quot;,&quot;id&quot;:984045319233732614,&quot;payload&quot;:{&quot;key&quot;:&quot;org1&quot;,&quot;label&quot;:&quot;lbl1&quot;,&quot;version&quot;:{&quot;status&quot;:&quot;DRAFT&quot;,&quot;num&quot;:1,&quot;latest&quot;:false},&quot;groups&quot;:[{&quot;key&quot;:&quot;group1&quot;,&quot;label&quot;:&quot;blalba&quot;,&quot;permissions&quot;:[{&quot;key&quot;:&quot;sms&quot;,&quot;label&quot;:&quot;Please accept sms&quot;}]}]}}</code> </td>
+    </tr>
+    <tr>
+      <td>OrganisationUpdated </td>
+      <td>Emitted when an existing Organisation has been updated </td>
+      <td><code>{&quot;type&quot;:&quot;OrganisationUpdated&quot;,&quot;tenant&quot;:&quot;prod&quot;,&quot;author&quot;:&quot;admin@test.com&quot;,&quot;date&quot;:&quot;2018-01-01T20:20:20Z&quot;,&quot;id&quot;:984045319233732615,&quot;payload&quot;:{&quot;key&quot;:&quot;org1&quot;,&quot;label&quot;:&quot;lbl2&quot;,&quot;version&quot;:{&quot;status&quot;:&quot;DRAFT&quot;,&quot;num&quot;:1,&quot;latest&quot;:false},&quot;groups&quot;:[{&quot;key&quot;:&quot;group1&quot;,&quot;label&quot;:&quot;blalba&quot;,&quot;permissions&quot;:[{&quot;key&quot;:&quot;sms&quot;,&quot;label&quot;:&quot;Please accept sms&quot;}]}]}, &quot;oldValue&quot;: {&quot;key&quot;:&quot;org1&quot;,&quot;label&quot;:&quot;lbl1&quot;,&quot;version&quot;:{&quot;status&quot;:&quot;DRAFT&quot;,&quot;num&quot;:1,&quot;latest&quot;:false},&quot;groups&quot;:[{&quot;key&quot;:&quot;group1&quot;,&quot;label&quot;:&quot;blalba&quot;,&quot;permissions&quot;:[{&quot;key&quot;:&quot;sms&quot;,&quot;label&quot;:&quot;Please accept sms&quot;}]}]}}</code> </td>
+    </tr>
+    <tr>
+      <td>OrganisationReleased </td>
+      <td>Emitted when an existing Organisation draft has been released. </td>
+      <td><code>{&quot;type&quot;:&quot;OrganisationReleased&quot;,&quot;tenant&quot;:&quot;prod&quot;,&quot;author&quot;:&quot;admin@test.com&quot;,&quot;date&quot;:&quot;2018-04-11T12:27:41Z&quot;,&quot;id&quot;:984045319397310471,&quot;payload&quot;:{&quot;key&quot;:&quot;org1&quot;,&quot;label&quot;:&quot;lbl2&quot;,&quot;version&quot;:{&quot;status&quot;:&quot;RELEASED&quot;,&quot;num&quot;:1,&quot;latest&quot;:true},&quot;groups&quot;:[{&quot;key&quot;:&quot;group1&quot;,&quot;label&quot;:&quot;blalba&quot;,&quot;permissions&quot;:[{&quot;key&quot;:&quot;sms&quot;,&quot;label&quot;:&quot;Please accept sms&quot;}]}]}}</code> </td>
+    </tr>
+    <tr>
+      <td>OrganisationDeleted </td>
+      <td>Emitted when an existing Organisation has been deleted. </td>
+      <td><code>{&quot;type&quot;:&quot;OrganisationDeleted&quot;,&quot;tenant&quot;:&quot;prod&quot;,&quot;author&quot;:&quot;admin@test.com&quot;,&quot;date&quot;:&quot;2018-04-11T12:27:42Z&quot;,&quot;id&quot;:984045319233732615,&quot;payload&quot;:{&quot;key&quot;:&quot;org1&quot;,&quot;label&quot;:&quot;lbl2&quot;,&quot;version&quot;:{&quot;status&quot;:&quot;RELEASED&quot;,&quot;num&quot;:1,&quot;latest&quot;:true},&quot;groups&quot;:[{&quot;key&quot;:&quot;group1&quot;,&quot;label&quot;:&quot;blalba&quot;,&quot;permissions&quot;:[{&quot;key&quot;:&quot;sms&quot;,&quot;label&quot;:&quot;Please accept sms&quot;}]}]}}</code> </td>
+    </tr>
+    <tr>
+      <td>ConsentFactCreated </td>
+      <td>Emitted when a new ConsentFact has been created. </td>
+      <td><code>{&quot;type&quot;:&quot;ConsentFactCreated&quot;,&quot;tenant&quot;:&quot;prod&quot;,&quot;author&quot;:&quot;admin@test.com&quot;,date&quot;:&quot;2018-04-11T12:27:43Z&quot;,&quot;id&quot;:984045319397310472,&quot;payload&quot;:{&quot;userId&quot;:&quot;toto1&quot;,&quot;doneBy&quot;:{&quot;userId&quot;:&quot;bob&quot;,&quot;role&quot;:&quot;admin&quot;},&quot;version&quot;:1,&quot;groups&quot;:[{&quot;key&quot;:&quot;group1&quot;,&quot;label&quot;:&quot;blabla&quot;,&quot;consents&quot;:[{&quot;key&quot;:&quot;sms&quot;,&quot;label&quot;:&quot;Please accept sms&quot;,&quot;checked&quot;:true}]}], &quot;orgKey&quot;:&quot;org1&quot; }</code> </td>
+    </tr>
+    <tr>
+      <td>ConsentFactUpdated </td>
+      <td>Emitted when an existing ConsentFact has been updated. </td>
+      <td><code>{&quot;type&quot;:&quot;ConsentFactUreated&quot;,&quot;tenant&quot;:&quot;prod&quot;,&quot;author&quot;:&quot;admin@test.com&quot;,date&quot;:&quot;2018-04-11T12:27:44Z&quot;,&quot;id&quot;:984045319397310473,&quot;payload&quot;:{&quot;userId&quot;:&quot;toto1&quot;,&quot;doneBy&quot;:{&quot;userId&quot;:&quot;bob&quot;,&quot;role&quot;:&quot;admin&quot;},&quot;version&quot;:1,&quot;groups&quot;:[{&quot;key&quot;:&quot;group1&quot;,&quot;label&quot;:&quot;blabla&quot;,&quot;consents&quot;:[{&quot;key&quot;:&quot;sms&quot;,&quot;label&quot;:&quot;Please accept sms&quot;,&quot;checked&quot;:true}]}], &quot;orgKey&quot;:&quot;org1&quot; }, &quot;oldValue&quot;:{&quot;userId&quot;:&quot;toto1&quot;,&quot;doneBy&quot;:{&quot;userId&quot;:&quot;bob&quot;,&quot;role&quot;:&quot;admin&quot;},&quot;version&quot;:1,&quot;groups&quot;:[{&quot;key&quot;:&quot;group1&quot;,&quot;label&quot;:&quot;blabla&quot;,&quot;consents&quot;:[{&quot;key&quot;:&quot;sms&quot;,&quot;label&quot;:&quot;Please accept sms&quot;,&quot;checked&quot;:true}]}], &quot;orgKey&quot;:&quot;org1&quot; }</code> </td>
+    </tr>
+    <tr>
+      <td>UserExtractTaskAsked </td>
+      <td>Emitted when a user extraction task is asked. </td>
+      <td><code>{&quot;type&quot;:&quot;UserExtractTaskAsked&quot;,&quot;tenant&quot;:&quot;sandbox&quot;,&quot;author&quot;:&quot;pa:admin@nio.io&quot;,&quot;metadata&quot;:{},&quot;date&quot;:&quot;2018-10-02T13:03:56Z&quot;,&quot;id&quot;:1047109931998642177,&quot;payload&quot;:{&quot;_id&quot;:&quot;5bb36cbc1f000014fcc9cb6c&quot;,&quot;tenant&quot;:&quot;sandbox&quot;,&quot;orgKey&quot;:&quot;maif&quot;,&quot;userId&quot;:&quot;user1&quot;,&quot;email&quot;:&quot;loic.remongin@scub.net&quot;,&quot;startedAt&quot;:&quot;2018-10-02T13:03:56Z&quot;}}</code> </td>
+    </tr>
+    <tr>
+      <td>UserExtractTaskCompleted </td>
+      <td>Emitted when a user extraction task is completed. </td>
+      <td><code>{&quot;type&quot;:&quot;UserExtractTaskCompleted&quot;,&quot;tenant&quot;:&quot;sandbox&quot;,&quot;author&quot;:&quot;apikey:nio-apikey&quot;,&quot;metadata&quot;:{},&quot;date&quot;:&quot;2018-10-02T13:04:48Z&quot;,&quot;id&quot;:1047110149804654594,&quot;payload&quot;:{&quot;_id&quot;:&quot;5bb36cbc1f000014fcc9cb6c&quot;,&quot;tenant&quot;:&quot;sandbox&quot;,&quot;orgKey&quot;:&quot;maif&quot;,&quot;userId&quot;:&quot;user1&quot;,&quot;email&quot;:&quot;loic.remongin@scub.net&quot;,&quot;startedAt&quot;:&quot;2018-10-02T13:03:56Z&quot;,&quot;uploadStartedAt&quot;:&quot;2018-10-02T13:04:47Z&quot;,&quot;endedAt&quot;:&quot;2018-10-02T13:04:48Z&quot;}}</code> </td>
+    </tr>
+  </tbody>
+</table>
+</div>
+<div class="large-3 show-for-large column" data-sticky-container>
+</div>
+</div>
+
+</section>
+</div>
+
+</div>
+
+<footer class="site-footer">
+
+<section class="site-footer-nav">
+<div class="expanded row">
+<div class="small-12 large-offset-2 large-10 column">
+<div class="row site-footer-content">
+
+<div class="small-12 medium-4 large-3 text-center column">
+<div class="nav-links">
+<ul>
+<!-- <li><a href="https://www.example.com/products/">Products</a> -->
+</ul>
+</div>
+</div>
+
+</div>
+</div>
+</div>
+</section>
+
+<section class="site-footer-base">
+<div class="expanded row">
+<div class="small-12 large-offset-2 large-10 column">
+<div class="row site-footer-content">
+
+<div class="small-12 text-center large-9 column">
+
+<!--
+<div class="copyright">
+<span class="text">&copy; 2018</span>
+<a href="https://www.example.com" class="logo">logo</a>
+</div>
+-->
+</div>
+
+</div>
+</div>
+</div>
+</section>
+</footer>
+
+</div>
+</div>
+</div>
+</body>
+
+<script type="text/javascript" src="lib/foundation/dist/foundation.min.js"></script>
+<script type="text/javascript">jQuery(document).foundation();</script>
+<script type="text/javascript" src="js/magellan.js"></script>
+
+<style type="text/css">@import "lib/prettify/prettify.css";</style>
+<script type="text/javascript" src="lib/prettify/prettify.js"></script>
+<script type="text/javascript" src="lib/prettify/lang-scala.js"></script>
+<script type="text/javascript">jQuery(function(){window.prettyPrint && prettyPrint()});</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-112498312-1"></script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+
+gtag('config', 'UA-112498312-1');
+</script>
+</html>
+
+
+
+
