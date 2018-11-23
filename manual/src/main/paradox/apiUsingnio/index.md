@@ -19,7 +19,7 @@ Swagger for API documentation may be found [here](https://maif.github.io/nio/man
 @@@ index 
 * [Manage tenant](manageTenant.md)
 * [Manage organisations](manageOrganisation.md)
+* [Manage offers](manageOffer.md)
 * [Manage consents](manageConsent.md)
 * [Manage extractions](manageExtraction.md)
-* [Manage offers](manageOffer.md)
 @@@

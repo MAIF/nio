@@ -1,6 +1,6 @@
 # Manage Organisation
 
-An *Organization* is a logical entity, for example Maif, Altima ... Groups can be defined in an organization, for example within the Maif organization one can have a Maif group and a Maif partner group. Permissions are defined for each of these groups (eg contact by email, phone ...). Version management is done in draft or in publication. The draft version can be published, so it will become unmodifiable, but a new draft version will be created.
+An *Organisation* is a logical entity, for example Maif, Altima ... Groups can be defined in an organisation, for example within the Maif organisation one can have a Maif group and a Maif partner group. Permissions are defined for each of these groups (eg contact by email, phone ...). Version management is done in draft or in publication. The draft version can be published, so it will become unmodifiable, but a new draft version will be created.
 
 ## Data model 
 
@@ -280,7 +280,7 @@ Will respond with a 200 status code :
 
 **Get all**
 
-Retrieving the list of known organizations either by taking the latest version published for this organization or by taking the draft version.
+Retrieving the list of known organisations either by taking the latest version published for this organisation or by taking the draft version.
 
 ```sh
 curl --include -X GET http://localhost:9000/api/demo/organisations \

@@ -105,10 +105,12 @@ class ConsentController(
                     s"Using default consents template in organisation $orgKey")
 
                   val template =
-                    ConsentFact.template(orgVerNum = organisation.version.num,
-                                         groups = groups,
-                                         offers = offers,
-                                         orgKey = orgKey)
+                    ConsentFact.template(
+                      orgVerNum = organisation.version.num,
+                      groups = groups,
+                      offers = offers,
+                      orgKey = orgKey
+                    )
 
                   consentManagerService
                     .mergeTemplateWithConsentFact(tenant,
@@ -205,6 +207,7 @@ class ConsentController(
                   case Right(consentFactSaved) =>
                     renderMethod(consentFactSaved)
                   case Left(error) =>
+                    Logger.error(s"error during consent fact saving $error")
                     error.renderError()
                 }
 
@@ -230,6 +233,7 @@ class ConsentController(
                       case Right(consentFactSaved) =>
                         renderMethod(consentFactSaved)
                       case Left(error) =>
+                        Logger.error(s"error during consent fact saving $error")
                         error.renderError()
                     }
 

@@ -59,9 +59,9 @@
   <ul>
     <li><a href="../apiUsingnio/manageTenant.html" class="page">Manage Tenant</a></li>
     <li><a href="../apiUsingnio/manageOrganisation.html" class="page">Manage Organisation</a></li>
+    <li><a href="../apiUsingnio/manageOffer.html" class="page">Manage Offer</a></li>
     <li><a href="../apiUsingnio/manageConsent.html" class="active page">Manage Consents</a></li>
     <li><a href="../apiUsingnio/manageExtraction.html" class="page">Manage Data extraction</a></li>
-    <li><a href="../apiUsingnio/manageOffer.html" class="page">Manage Offer</a></li>
   </ul></li>
 </ul>
 </div>
@@ -125,9 +125,9 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
   <ul>
     <li><a href="../apiUsingnio/manageTenant.html" class="page">Manage Tenant</a></li>
     <li><a href="../apiUsingnio/manageOrganisation.html" class="page">Manage Organisation</a></li>
+    <li><a href="../apiUsingnio/manageOffer.html" class="page">Manage Offer</a></li>
     <li><a href="../apiUsingnio/manageConsent.html" class="active page">Manage Consents</a></li>
     <li><a href="../apiUsingnio/manageExtraction.html" class="page">Manage Data extraction</a></li>
-    <li><a href="../apiUsingnio/manageOffer.html" class="page">Manage Offer</a></li>
   </ul></li>
 </ul>
 </div>
@@ -153,7 +153,8 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <div class="page-content row">
 <div class="small-12 large-9 column" id="docs">
 <h1><a href="#manage-consents" name="manage-consents" class="anchor"><span class="anchor-link"></span></a>Manage Consents</h1>
-<p>Once the <code>organization</code> and <code>permissions</code> managed. The user will be able to manage these consents and modify them. The management of the consents is done by the acceptance or the refusal of the permissions requested by the organization. For a new user, you can retrieve the latest published version of the permissions of the organization.</p>
+<p>Once the <em>Organisation</em> and <em>permissions</em> managed. The user will be able to manage these consents and modify them. The management of the consents is done by the acceptance or the refusal of the permissions requested by the organisation. For a new user, you can retrieve the latest published version of the permissions of the organisation.</p>
+<h2><a href="#data-model" name="data-model" class="anchor"><span class="anchor-link"></span></a>Data model</h2>
 <pre class="prettyprint"><code class="language-json">{
   &quot;userId&quot;: &quot;string&quot;,
   &quot;orgKey&quot;: &quot;string&quot;,
@@ -204,11 +205,211 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
   ]
 }
 </code></pre>
+<h2><a href="#api" name="api" class="anchor"><span class="anchor-link"></span></a>API</h2>
+<p><strong>Get consent fact template</strong></p>
+<pre class="prettyprint"><code class="language-sh">curl --include -X GET http://localhost:9000/api/demo/organisations/newOrga/users/_template \
+    -H &#39;Content-Type: application/json&#39; \
+    -H &#39;Accept: application/json&#39; \
+    -H &#39;Nio-Client-Id: xxx&#39; \
+    -H &#39;Nio-Client-Secret: xxx&#39;
+</code></pre>
+<p>Will respond with a 200 status code : </p>
+<pre class="prettyprint"><code class="language-json">{
+  &quot;userId&quot;: &quot;fill&quot;,
+  &quot;doneBy&quot;: {
+    &quot;userId&quot;: &quot;fill&quot;,
+    &quot;role&quot;: &quot;fill&quot;
+  },
+  &quot;version&quot;: 1,
+  &quot;groups&quot;: [
+    {
+      &quot;key&quot;: &quot;grp1&quot;,
+      &quot;label&quot;: &quot;J&#39;accepte de recevoir les offres personnalisées&quot;,
+      &quot;consents&quot;: [
+        {
+          &quot;key&quot;: &quot;phone&quot;,
+          &quot;label&quot;: &quot;Par téléphone&quot;,
+          &quot;checked&quot;: false
+        },
+        {
+          &quot;key&quot;: &quot;email&quot;,
+          &quot;label&quot;: &quot;Par e-mail&quot;,
+          &quot;checked&quot;: false
+        }
+      ]
+    },
+    {
+      &quot;key&quot;: &quot;grp2&quot;,
+      &quot;label&quot;: &quot;J&#39;accepte de recevoir les offres personnalisées des partenaires&quot;,
+      &quot;consents&quot;: [
+        {
+          &quot;key&quot;: &quot;phone&quot;,
+          &quot;label&quot;: &quot;Par téléphone&quot;,
+          &quot;checked&quot;: false
+        }
+      ]
+    }
+  ],
+  &quot;lastUpdate&quot;: &quot;2018-11-23T11:12:12Z&quot;,
+  &quot;orgKey&quot;: &quot;newOrga&quot;
+}
+</code></pre>
+<p><strong>Note</strong> : You can specify a <em>userId</em> query param to build a template based on the last publish of a given organisation and consent fact validated by the given user. It can be very useful if a new version of an organisation has been publish and you want to propose to your user the new version of consent fact pre-filled with the actual consent fact of your user. </p>
+<p><strong>Create consent fact for a given user</strong></p>
+<pre class="prettyprint"><code class="language-sh">curl --include -X PUT http://localhost:9000/api/demo/organisations/newOrga/users/user1 \
+    -H &#39;Content-Type: application/json&#39; \
+    -H &#39;Accept: application/json&#39; \
+    -H &#39;Nio-Client-Id: xxx&#39; \
+    -H &#39;Nio-Client-Secret: xxx&#39; \
+-d &#39;{
+  &quot;userId&quot;: &quot;user1&quot;,
+  &quot;doneBy&quot;: {
+    &quot;userId&quot;: &quot;user1&quot;,
+    &quot;role&quot;: &quot;user&quot;
+  },
+  &quot;version&quot;: 1,
+  &quot;groups&quot;: [
+    {
+      &quot;key&quot;: &quot;grp1&quot;,
+      &quot;label&quot;: &quot;J&#39;\&#39;&#39;accepte de recevoir les offres personnalisées&quot;,
+      &quot;consents&quot;: [
+        {
+          &quot;key&quot;: &quot;phone&quot;,
+          &quot;label&quot;: &quot;Par téléphone&quot;,
+          &quot;checked&quot;: false
+        },
+        {
+          &quot;key&quot;: &quot;email&quot;,
+          &quot;label&quot;: &quot;Par e-mail&quot;,
+          &quot;checked&quot;: false
+        }
+      ]
+    },
+    {
+      &quot;key&quot;: &quot;grp2&quot;,
+      &quot;label&quot;: &quot;J&#39;\&#39;&#39;accepte de recevoir les offres personnalisées des partenaires&quot;,
+      &quot;consents&quot;: [
+        {
+          &quot;key&quot;: &quot;phone&quot;,
+          &quot;label&quot;: &quot;Par téléphone&quot;,
+          &quot;checked&quot;: false
+        }
+      ]
+    }
+  ],
+  &quot;lastUpdate&quot;: &quot;2018-11-23T10:16:05Z&quot;,
+  &quot;orgKey&quot;: &quot;newOrga&quot;
+}&#39;
+</code></pre>
+<p>Will respond with a 200 status code : </p>
+<pre class="prettyprint"><code class="language-json">{
+  &quot;userId&quot;: &quot;user1&quot;,
+  &quot;doneBy&quot;: {
+    &quot;userId&quot;: &quot;user1&quot;,
+    &quot;role&quot;: &quot;user&quot;
+  },
+  &quot;version&quot;: 1,
+  &quot;groups&quot;: [
+    {
+      &quot;key&quot;: &quot;grp1&quot;,
+      &quot;label&quot;: &quot;J&#39;accepte de recevoir les offres personnalisées&quot;,
+      &quot;consents&quot;: [
+        {
+          &quot;key&quot;: &quot;phone&quot;,
+          &quot;label&quot;: &quot;Par téléphone&quot;,
+          &quot;checked&quot;: false
+        },
+        {
+          &quot;key&quot;: &quot;email&quot;,
+          &quot;label&quot;: &quot;Par e-mail&quot;,
+          &quot;checked&quot;: false
+        }
+      ]
+    },
+    {
+      &quot;key&quot;: &quot;grp2&quot;,
+      &quot;label&quot;: &quot;J&#39;accepte de recevoir les offres personnalisées des partenaires&quot;,
+      &quot;consents&quot;: [
+        {
+          &quot;key&quot;: &quot;phone&quot;,
+          &quot;label&quot;: &quot;Par téléphone&quot;,
+          &quot;checked&quot;: false
+        }
+      ]
+    }
+  ],
+  &quot;lastUpdate&quot;: &quot;2018-11-23T10:16:05Z&quot;,
+  &quot;orgKey&quot;: &quot;newOrga&quot;
+}
+</code></pre>
+<p><strong>Get user consent fact</strong></p>
+<pre class="prettyprint"><code class="language-sh ">curl --include -X GET http://localhost:9000/api/demo/organisations/newOrga/users/user1 \
+    -H &#39;Content-Type: application/json&#39; \
+    -H &#39;Accept: application/json&#39; \
+    -H &#39;Nio-Client-Id: xxx&#39; \
+    -H &#39;Nio-Client-Secret: xxx&#39;
+</code></pre>
+<p>Will respond with a 200 status code : </p>
+<pre class="prettyprint"><code class="language-json">{
+  &quot;userId&quot;: &quot;user1&quot;,
+  &quot;doneBy&quot;: {
+    &quot;userId&quot;: &quot;user1&quot;,
+    &quot;role&quot;: &quot;user&quot;
+  },
+  &quot;version&quot;: 1,
+  &quot;groups&quot;: [
+    {
+      &quot;key&quot;: &quot;grp1&quot;,
+      &quot;label&quot;: &quot;J&#39;accepte de recevoir les offres personnalisées&quot;,
+      &quot;consents&quot;: [
+        {
+          &quot;key&quot;: &quot;phone&quot;,
+          &quot;label&quot;: &quot;Par téléphone&quot;,
+          &quot;checked&quot;: false
+        },
+        {
+          &quot;key&quot;: &quot;email&quot;,
+          &quot;label&quot;: &quot;Par e-mail&quot;,
+          &quot;checked&quot;: false
+        }
+      ]
+    },
+    {
+      &quot;key&quot;: &quot;grp2&quot;,
+      &quot;label&quot;: &quot;J&#39;accepte de recevoir les offres personnalisées des partenaires&quot;,
+      &quot;consents&quot;: [
+        {
+          &quot;key&quot;: &quot;phone&quot;,
+          &quot;label&quot;: &quot;Par téléphone&quot;,
+          &quot;checked&quot;: false
+        }
+      ]
+    }
+  ],
+  &quot;lastUpdate&quot;: &quot;2018-11-23T10:16:05Z&quot;,
+  &quot;orgKey&quot;: &quot;newOrga&quot;
+}
+</code></pre>
+<p><strong>Note</strong> : If you got a 404 status code, don&rsquo;t panic! Your user doesn&rsquo;t exist on Nio application but you can get a consent fact template based on organisation groups and permissions.</p>
 <div class="nav-next">
 <p><strong>Next:</strong> <a href="../apiUsingnio/manageExtraction.html">Manage Data extraction</a></p>
 </div>
 </div>
 <div class="large-3 show-for-large column" data-sticky-container>
+<nav class="sidebar sticky" data-sticky data-anchor="docs" data-sticky-on="large">
+<div class="page-nav">
+<div class="nav-title">On this page:</div>
+<div class="nav-toc">
+<ul>
+  <li><a href="../apiUsingnio/manageConsent.html#manage-consents" class="header">Manage Consents</a>
+  <ul>
+    <li><a href="../apiUsingnio/manageConsent.html#data-model" class="header">Data model</a></li>
+    <li><a href="../apiUsingnio/manageConsent.html#api" class="header">API</a></li>
+  </ul></li>
+</ul>
+</div>
+</div>
+</nav>
 </div>
 </div>
 

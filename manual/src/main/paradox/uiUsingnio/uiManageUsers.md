@@ -10,7 +10,7 @@ Retrieving the list of users for a given tenant.
 
 ## User with the current version
 
-Retrieving saved consents for a given user for a given organization filtered by the user context.
+Retrieving saved consents for a given user for a given organisation filtered by the user context.
 
 @@@ div { .centered-img }
 <img src="../img/user_current_version.png" width="100%"/>

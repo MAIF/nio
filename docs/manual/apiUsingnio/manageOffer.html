@@ -59,9 +59,9 @@
   <ul>
     <li><a href="../apiUsingnio/manageTenant.html" class="page">Manage Tenant</a></li>
     <li><a href="../apiUsingnio/manageOrganisation.html" class="page">Manage Organisation</a></li>
+    <li><a href="../apiUsingnio/manageOffer.html" class="active page">Manage Offer</a></li>
     <li><a href="../apiUsingnio/manageConsent.html" class="page">Manage Consents</a></li>
     <li><a href="../apiUsingnio/manageExtraction.html" class="page">Manage Data extraction</a></li>
-    <li><a href="../apiUsingnio/manageOffer.html" class="active page">Manage Offer</a></li>
   </ul></li>
 </ul>
 </div>
@@ -125,9 +125,9 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
   <ul>
     <li><a href="../apiUsingnio/manageTenant.html" class="page">Manage Tenant</a></li>
     <li><a href="../apiUsingnio/manageOrganisation.html" class="page">Manage Organisation</a></li>
+    <li><a href="../apiUsingnio/manageOffer.html" class="active page">Manage Offer</a></li>
     <li><a href="../apiUsingnio/manageConsent.html" class="page">Manage Consents</a></li>
     <li><a href="../apiUsingnio/manageExtraction.html" class="page">Manage Data extraction</a></li>
-    <li><a href="../apiUsingnio/manageOffer.html" class="active page">Manage Offer</a></li>
   </ul></li>
 </ul>
 </div>
@@ -153,8 +153,9 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <div class="page-content row">
 <div class="small-12 large-9 column" id="docs">
 <h1><a href="#manage-offer" name="manage-offer" class="anchor"><span class="anchor-link"></span></a>Manage Offer</h1>
-<p>The notion of <code>offer</code> corresponds to the addition of specific permissions to an application on a given organization.</p>
-<p>Example : </p>
+<p>An <em>Offer</em> corresponds to the addition of specific permissions to an application on a given organisation.</p>
+<p><em>Note</em> : You only can create an offer on a released organisation.</p>
+<h2><a href="#data-model" name="data-model" class="anchor"><span class="anchor-link"></span></a>Data model</h2>
 <pre class="prettyprint"><code class="language-json">{
     &quot;key&quot;: &quot;string&quot;,
     &quot;label&quot;: &quot;string&quot;,
@@ -171,10 +172,182 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
         ]
       }
     ]
-  }
+}
 </code></pre>
+<h2><a href="#crud-api" name="crud-api" class="anchor"><span class="anchor-link"></span></a>CRUD API</h2>
+<p>Offers expose a classic CRUD REST api : </p>
+<p><em>Note</em> : Access to offers is restricted by user credentials.</p>
+<p><strong>Create an offer</strong></p>
+<pre class="prettyprint"><code class="language-sh">curl --include -X POST http://localhost:9000/api/demo/organisations/newOrga/offers \
+    -H &#39;Content-Type: application/json&#39; \
+    -H &#39;Accept: application/json&#39; \
+    -H &#39;Nio-Client-Id: xxx&#39; \
+    -H &#39;Nio-Client-Secret: xxx&#39; \
+-d &#39;{
+    &quot;key&quot;: &quot;offer1&quot;,
+    &quot;label&quot;: &quot;Ma première offre&quot;,
+    &quot;version&quot;: 0,
+    &quot;groups&quot;: [
+      {
+        &quot;key&quot;: &quot;grp1&quot;,
+        &quot;label&quot;: &quot;J&#39;\&#39;&#39;accepte de recevoir des offres personnalisées&quot;,
+        &quot;permissions&quot;: [
+          {
+            &quot;key&quot;: &quot;phone&quot;,
+            &quot;label&quot;: &quot;Par téléphone&quot;
+          },
+          {
+            &quot;key&quot;: &quot;email&quot;,
+            &quot;label&quot;: &quot;Par e-mail&quot;
+          }
+        ]
+      }
+    ]
+}&#39;
+</code></pre>
+<p>Will respond with a 201 status code : </p>
+<pre class="prettyprint"><code class="language-json">{
+  &quot;key&quot;: &quot;offer1&quot;,
+  &quot;label&quot;: &quot;Ma première offre&quot;,
+  &quot;version&quot;: 1,
+  &quot;groups&quot;: [
+    {
+      &quot;key&quot;: &quot;grp1&quot;,
+      &quot;label&quot;: &quot;J&#39;accepte de recevoir des offres personnalisées&quot;,
+      &quot;permissions&quot;: [
+        {
+          &quot;key&quot;: &quot;phone&quot;,
+          &quot;label&quot;: &quot;Par téléphone&quot;
+        },
+        {
+          &quot;key&quot;: &quot;email&quot;,
+          &quot;label&quot;: &quot;Par e-mail&quot;
+        }
+      ]
+    }
+  ]
+}
+</code></pre>
+<p><strong>Update an offer</strong></p>
+<pre class="prettyprint"><code class="language-sh">curl --include -X PUT http://localhost:9000/api/demo/organisations/newOrga/offers/offer1 \
+    -H &#39;Content-Type: application/json&#39; \
+    -H &#39;Accept: application/json&#39; \
+    -H &#39;Nio-Client-Id: xxx&#39; \
+    -H &#39;Nio-Client-Secret: xxx&#39; \
+-d &#39;{
+    &quot;key&quot;: &quot;offer1&quot;,
+    &quot;label&quot;: &quot;Ma première offre&quot;,
+    &quot;version&quot;: 0,
+    &quot;groups&quot;: [
+      {
+        &quot;key&quot;: &quot;grp1&quot;,
+        &quot;label&quot;: &quot;J&#39;\&#39;&#39;accepte de recevoir des offres personnalisées&quot;,
+        &quot;permissions&quot;: [
+          {
+            &quot;key&quot;: &quot;phone&quot;,
+            &quot;label&quot;: &quot;Par téléphone&quot;
+          },
+          {
+            &quot;key&quot;: &quot;email&quot;,
+            &quot;label&quot;: &quot;Par e-mail&quot;
+          },
+          {
+            &quot;key&quot;: &quot;postmail&quot;,
+            &quot;label&quot;: &quot;Par courrier postal&quot;
+          }
+        ]
+      }
+    ]
+}&#39;
+</code></pre>
+<p>Will respond with a 200 status code : </p>
+<pre class="prettyprint"><code class="language-json">{
+  &quot;key&quot;: &quot;offer1&quot;,
+  &quot;label&quot;: &quot;Ma première offre&quot;,
+  &quot;version&quot;: 2,
+  &quot;groups&quot;: [
+    {
+      &quot;key&quot;: &quot;grp1&quot;,
+      &quot;label&quot;: &quot;J&#39;accepte de recevoir des offres personnalisées&quot;,
+      &quot;permissions&quot;: [
+        {
+          &quot;key&quot;: &quot;phone&quot;,
+          &quot;label&quot;: &quot;Par téléphone&quot;
+        },
+        {
+          &quot;key&quot;: &quot;email&quot;,
+          &quot;label&quot;: &quot;Par e-mail&quot;
+        },
+        {
+          &quot;key&quot;: &quot;postmail&quot;,
+          &quot;label&quot;: &quot;Par courrier postal&quot;
+        }
+      ]
+    }
+  ]
+}
+</code></pre>
+<p><strong>List all</strong></p>
+<pre class="prettyprint"><code class="language-sh">curl --include -X GET http://localhost:9000/api/demo/organisations/newOrga/offers \
+    -H &#39;Content-Type: application/json&#39; \
+    -H &#39;Accept: application/json&#39; \
+    -H &#39;Nio-Client-Id: xxx&#39; \
+    -H &#39;Nio-Client-Secret: xxx&#39;
+</code></pre>
+<p>Will respond with a 200 status code : </p>
+<pre class="prettyprint"><code class="language-json">[{
+  &quot;key&quot;: &quot;offer1&quot;,
+  &quot;label&quot;: &quot;Ma première offre&quot;,
+  &quot;version&quot;: 2,
+  &quot;groups&quot;: [
+    {
+      &quot;key&quot;: &quot;grp1&quot;,
+      &quot;label&quot;: &quot;J&#39;accepte de recevoir des offres personnalisées&quot;,
+      &quot;permissions&quot;: [
+        {
+          &quot;key&quot;: &quot;phone&quot;,
+          &quot;label&quot;: &quot;Par téléphone&quot;
+        },
+        {
+          &quot;key&quot;: &quot;email&quot;,
+          &quot;label&quot;: &quot;Par e-mail&quot;
+        },
+        {
+          &quot;key&quot;: &quot;postmail&quot;,
+          &quot;label&quot;: &quot;Par courrier postal&quot;
+        }
+      ]
+    }
+  ]
+}]
+</code></pre>
+<p><strong>Delete an offer</strong></p>
+<pre class="prettyprint"><code class="language-sh">curl --include -X DELETE http://localhost:9000/api/demo/organisations/newOrga/offers/offer1 \
+    -H &#39;Content-Type: application/json&#39; \
+    -H &#39;Accept: application/json&#39; \
+    -H &#39;Nio-Client-Id: xxx&#39; \
+    -H &#39;Nio-Client-Secret: xxx&#39;
+</code></pre>
+<p>Will respond with a 200 status code.</p>
+<div class="nav-next">
+<p><strong>Next:</strong> <a href="../apiUsingnio/manageConsent.html">Manage Consents</a></p>
+</div>
 </div>
 <div class="large-3 show-for-large column" data-sticky-container>
+<nav class="sidebar sticky" data-sticky data-anchor="docs" data-sticky-on="large">
+<div class="page-nav">
+<div class="nav-title">On this page:</div>
+<div class="nav-toc">
+<ul>
+  <li><a href="../apiUsingnio/manageOffer.html#manage-offer" class="header">Manage Offer</a>
+  <ul>
+    <li><a href="../apiUsingnio/manageOffer.html#data-model" class="header">Data model</a></li>
+    <li><a href="../apiUsingnio/manageOffer.html#crud-api" class="header">CRUD API</a></li>
+  </ul></li>
+</ul>
+</div>
+</div>
+</nav>
 </div>
 </div>
 

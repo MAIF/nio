@@ -1101,6 +1101,40 @@ class ConsentControllerSpec extends TestUtils {
       delete(s"/$tenant/organisations/$orgKey/users/$userId/offers/$offerKey1").status mustBe NOT_FOUND
     }
 
+    "save consent fact with an offers array empty" in {
+      val consent: ConsentFact = ConsentFact(
+        userId = userId,
+        doneBy = DoneBy(userId = userId, role = "USER"),
+        version = 1,
+        groups = Seq(
+          ConsentGroup(
+            key = "maifNotifs",
+            label =
+              "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF",
+            consents = Seq(
+              Consent(key = "phone",
+                      label = "Par contact téléphonique",
+                      checked = true),
+              Consent(key = "mail",
+                      label = "Par contact électronique",
+                      checked = false),
+              Consent(key = "sms",
+                      label = "Par SMS / MMS / VMS",
+                      checked = true)
+            )
+          )
+        ),
+        offers = Some(
+          Seq()
+        )
+      )
+      val response: WSResponse =
+        putJson(s"/$tenant/organisations/$orgKey/users/$userId", consent.asJson)
+
+      Logger.info(response.body)
+      response.status mustBe OK
+    }
+
     "restricted with pattern" in {
       val consentFact = ConsentFact(
         _id = "cf",
