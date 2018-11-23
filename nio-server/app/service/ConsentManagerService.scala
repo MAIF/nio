@@ -62,6 +62,7 @@ class ConsentManagerService(
                                  userId,
                                  consentFact.offers).flatMap {
           case Left(e) =>
+            Logger.error(s"validate offers structure $e")
             FastFuture.successful(Left(e))
           case Right(_) =>
             maybeLastConsentFact match {
@@ -143,6 +144,8 @@ class ConsentManagerService(
     : Future[Either[AppErrorWithStatus, Option[Seq[ConsentOffer]]]] =
     maybeConsentOffersToCompare match {
       case None =>
+        FastFuture.successful(Right(None))
+      case Some(offersToCompare) if offersToCompare.isEmpty =>
         FastFuture.successful(Right(None))
       case Some(offersToCompare) =>
         Future

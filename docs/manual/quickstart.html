@@ -2,7 +2,7 @@
 <html class="no-js" lang="en">
 
 <head>
-<title>Quickstart · Nio</title>
+<title></title>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <meta name="description" content='nio-manual'/>
@@ -26,23 +26,15 @@
 <div class="off-canvas position-left" id="off-canvas-menu" data-off-canvas>
 <nav class="off-canvas-nav">
 <div class="nav-home">
-<a href="index.html" >
-<span class="home-icon">⌂</span>Nio
+<a href="quickstart.html" class="active">
+<span class="home-icon">⌂</span>
 </a>
 <div class="version-number">
-0.1.0
+2.0.4
 </div>
 </div>
 <div class="nav-toc">
 <ul>
-  <li><a href="about.html" class="page">About Nio</a></li>
-  <li><a href="archi.html" class="page">Architecture</a></li>
-  <li><a href="features.html" class="page">Features</a></li>
-  <li><a href="quickstart.html" class="active page">Quickstart</a></li>
-  <li><a href="api.html" class="page">API</a></li>
-  <li><a href="events.html" class="page">Events</a></li>
-  <li><a href="backoffice.html" class="page">Back Office</a></li>
-  <li><a href="recordmanagment.html" class="page">Record Management</a></li>
 </ul>
 </div>
 
@@ -59,7 +51,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 </a>
 <div class="title-wrapper">
 <div class="title-logo"></div>
-<div class="title"><a href="index.html">Nio</a></div>
+<div class="title"><a href="quickstart.html" class="active">quickstart.html</a></div>
 </div>
 <!--
 <a href="https://www.example.com" class="logo show-for-medium">logo</a>
@@ -72,23 +64,15 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <div class="medium-3 large-2 show-for-medium column">
 <nav class="site-nav">
 <div class="nav-home">
-<a href="index.html" >
-<span class="home-icon">⌂</span>Nio
+<a href="quickstart.html" class="active">
+<span class="home-icon">⌂</span>
 </a>
 <div class="version-number">
-0.1.0
+2.0.4
 </div>
 </div>
 <div class="nav-toc">
 <ul>
-  <li><a href="about.html" class="page">About Nio</a></li>
-  <li><a href="archi.html" class="page">Architecture</a></li>
-  <li><a href="features.html" class="page">Features</a></li>
-  <li><a href="quickstart.html" class="active page">Quickstart</a></li>
-  <li><a href="api.html" class="page">API</a></li>
-  <li><a href="events.html" class="page">Events</a></li>
-  <li><a href="backoffice.html" class="page">Back Office</a></li>
-  <li><a href="recordmanagment.html" class="page">Record Management</a></li>
 </ul>
 </div>
 
@@ -100,86 +84,13 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 
 <div class="page-header row">
 <div class="medium-12 show-for-medium column">
-<div class="nav-breadcrumbs">
-<ul>
-  <li><a href="index.html">Nio</a></li>
-  <li>Quickstart</li>
-</ul>
-</div>
 </div>
 </div>
 
 <div class="page-content row">
 <div class="small-12 large-9 column" id="docs">
-<h1><a href="#quickstart" name="quickstart" class="anchor"><span class="anchor-link"></span></a>Quickstart</h1>
-<p>This is a quick start guide to start with <strong>Nio</strong>.</p>
-<h2><a href="#docker-image" name="docker-image" class="anchor"><span class="anchor-link"></span></a>Docker Image</h2>
-<p>You want to start quick ? We provide a docker image in order to be able to start whitout installing all elements of the Architecture.</p><div class="centered-img">
-<img src="./img/nio-architecture-quickstart.png"/></div>
-<h2><a href="#getting-started" name="getting-started" class="anchor"><span class="anchor-link"></span></a>Getting started</h2>
-<h3><a href="#nio" name="nio" class="anchor"><span class="anchor-link"></span></a>Nio</h3>
-<p>First install <a href="https://docs.docker.com/install/">Docker</a> and <a href="https://docs.docker.com/compose/install/">Docker Compose</a> for your favorite operating system.</p>
-<p>Start Docker, in order to provide <a href="https://www.mongodb.com/">MongoDB</a>, <a href="https://kafka.apache.org/">Kafka</a> and <a href="https://fr.wikipedia.org/wiki/Amazon_S3">S3-compliant</a> services in dev mode (for production mode, you&rsquo;ll need to install these services) :</p>
-<pre class="prettyprint"><code class="language-sh">sudo docker-compose up
-</code></pre>
-<p>You will need to install <a href="https://www.scala-sbt.org/download.html?_ga=2.189648747.1180427007.1527096641-566511216.1527096641">SBT</a> and <a href="https://yarnpkg.com/lang/en/docs/install/#mac-stable">Yarn</a> first.</p>
-<p>Start server in dev mode:</p>
-<pre class="prettyprint"><code class="language-sh">export DB_FLUSH=true
-sbt &#39;project nio-server&#39; &#39;~run&#39;
-</code></pre>
-<p>Start client in dev mode :</p>
-<pre class="prettyprint"><code class="language-sh">cd nio-server/javascript
-yarn install
-yarn start
-</code></pre>
-<p>You may now connect to Nio&rsquo;s back office on <a href="http://localhost:9000/sandbox/bo">http://localhost:9000/sandbox/bo</a>, default tenant <code>sandbox</code> is created.</p>
-<h3><a href="#nio" name="nio" class="anchor"><span class="anchor-link"></span></a>Nio - via docker</h3>
-<p>Build Nio image :</p>
-<pre class="prettyprint"><code class="language-sh">./nio-script.sh build
-</code></pre>
-<p>Build Nio Provider :</p>
-<pre class="prettyprint"><code class="language-sh">./nio-script.sh buildProvider
-</code></pre>
-<p>Run all :</p>
-<pre class="prettyprint"><code class="language-sh"># DO NOT FORGET to setup your hosts
-# # /etc/hosts: 127.0.0.1    nio.foo.bar nio-provider.foo.bar nio-download.foo.bar kibana.foo.bar elastic.foo.bar keycloak.foo.bar otoroshi.foo.bar otoroshi-api.foo.bar privateapps.foo.bar
-#
-# DO NOT FORGET to replace the ip address a line 161 and line 168 of this file by your ip address
-# credentials are the following
-#
-# http://keycloak.foo.bar:8889 : keycloak/password
-# http://otoroshi.foo.bar:8889 : admin@otoroshi.io/password
-# http://kibana.foo.bar:8889 : create kibana index on otoroshi-events-* with @timestamp for time.
-# To import Otoroshi dashboard for kibana, go to management / saved object / import (the dashboard file is at ./config/kibana.json)
-# http://nio.foo.bar:8889 : admin@nio.io/password
-./nio-script.sh run
-</code></pre>
-<p>You may now connect to Nio&rsquo;s back office on <a href="http://nio.foo.bar:8889/sandbox/bo">http://nio.foo.bar:8889/sandbox/bo</a>, default tenant <code>sandbox</code> is created.</p>
-<p>You may now connect to Nio&rsquo;s front office on <a href="http://nio-provider.foo.bar:8889/web">http://nio-provider.foo.bar:8889/web</a>.</p>
-
-  <h3><a href="#going-forward-with-otoroshi" name="going-forward-with-otoroshi" class="anchor"><span class="anchor-link"></span></a>Going forward with Otoroshi</h3>
-<p>You need to install to get closer to production environment <a href="https://maif.github.io/otoroshi/">Otoroshi</a>. Look how lucky you are since <strong>Otoroshi</strong> provides an <a href="https://maif.github.io/otoroshi/manual/getotoroshi/fromdocker.html">official Docker image</a>, but you can also get it other ways.</p>
-<p><strong>Otoroshi</strong> will provide some security and API management to Nio.</p>
-<p>Once you have installed Otoroshi, you need to <a href="https://maif.github.io/otoroshi/manual/usage/2-services.html">configure <strong>Otoroshi</strong> to expose <strong>Nio</strong> as a service</a>.</p>
-<div class="nav-next">
-<p><strong>Next:</strong> <a href="api.html">API</a></p>
-</div>
 </div>
 <div class="large-3 show-for-large column" data-sticky-container>
-<nav class="sidebar sticky" data-sticky data-anchor="docs" data-sticky-on="large">
-<div class="page-nav">
-<div class="nav-title">On this page:</div>
-<div class="nav-toc">
-<ul>
-  <li><a href="quickstart.html#quickstart" class="header">Quickstart</a>
-  <ul>
-    <li><a href="quickstart.html#docker-image" class="header">Docker Image</a></li>
-    <li><a href="quickstart.html#getting-started" class="header">Getting started</a></li>
-  </ul></li>
-</ul>
-</div>
-</div>
-</nav>
 </div>
 </div>
 
