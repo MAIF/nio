@@ -212,7 +212,9 @@ case class ConsentFact(_id: String = BSONObjectID.generate().stringify,
     </version>
     <groups>
       {groups.map(_.asXml)}
-    </groups>{offers.map(l => <offers>l.map(_.asXml())</offers>).getOrElse("")}<lastUpdate>
+    </groups>
+    {offers.map(l => <offers>{l.map(_.asXml())}</offers>).getOrElse("")}
+    <lastUpdate>
       {lastUpdate.toString(DateUtils.utcDateFormatter)}
     </lastUpdate>
     <orgKey>

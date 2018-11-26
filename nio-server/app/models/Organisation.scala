@@ -90,7 +90,8 @@ case class Organisation(_id: String = BSONObjectID.generate().stringify,
     </version>
     <groups>
       {groups.map(_.asXml)}
-    </groups>{offers.map(l => <offers>l.map(_.asXml())</offers>).getOrElse("")}
+    </groups>
+    {offers.map(l => <offers>{l.map(_.asXml())}</offers>).getOrElse("")}
   </organisation>.clean()
 
   def newWith(version: VersionInfo): Organisation =
