@@ -91,7 +91,13 @@ case class Organisation(_id: String = BSONObjectID.generate().stringify,
     <groups>
       {groups.map(_.asXml)}
     </groups>
-    {offers.map(l => <offers>{l.map(_.asXml())}</offers>).getOrElse("")}
+      {
+        offers match {
+          case Some(seqOffer) if seqOffer.isEmpty => ""
+          case Some(l) => <offers>{l.map(_.asXml())}</offers>
+          case None => ""
+      }
+    }
   </organisation>.clean()
 
   def newWith(version: VersionInfo): Organisation =
@@ -217,10 +223,14 @@ object Organisation extends ReadableEntity[Organisation] {
           "groups" -> org.groups
         )
 
-        if (org.offers.isDefined) {
-          organisation ++ Json.obj("offers" -> org.offers.get.map(_.asJson()))
-        } else
-          organisation
+        org.offers match {
+          case Some(offers) if offers.isEmpty =>
+            organisation
+          case Some(offers) =>
+            organisation ++ Json.obj("offers" -> org.offers.get.map(_.asJson()))
+          case None =>
+            organisation
+        }
       }
   }
 

@@ -569,8 +569,7 @@ class ConsentTemplateControllerSpec extends TestUtils {
 
       val value: JsValue = response.json
 
-      val offers: JsArray = (value \ "offers").as[JsArray]
-      offers.value.length mustBe 0
+      (value \ "offers").asOpt[JsArray] mustBe None
     }
 
     "generate template with user in reference" in {

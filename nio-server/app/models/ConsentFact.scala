@@ -193,7 +193,18 @@ case class ConsentFact(_id: String = BSONObjectID.generate().stringify,
                        metaData: Option[Map[String, String]] = None)
     extends ModelTransformAs {
 
-  def asJson = ConsentFact.consentFactWritesWithoutId.writes(this)
+  def asJson =
+    transform(ConsentFact.consentFactWritesWithoutId.writes(this))
+
+  private def transform(jsValue: JsValue): JsValue = {
+    offers match {
+      case Some(o) if o.isEmpty =>
+        jsValue.as[JsObject] - "offers"
+      case _ =>
+        jsValue
+
+    }
+  }
 
   def asXml: Elem = <consentFact>
     <userId>
@@ -213,7 +224,14 @@ case class ConsentFact(_id: String = BSONObjectID.generate().stringify,
     <groups>
       {groups.map(_.asXml)}
     </groups>
-    {offers.map(l => <offers>{l.map(_.asXml())}</offers>).getOrElse("")}
+
+    {
+      offers match {
+        case Some(seqOffer) if seqOffer.isEmpty => ""
+        case Some(l) => <offers>{l.map(_.asXml())}</offers>
+        case None => ""
+      }
+    }
     <lastUpdate>
       {lastUpdate.toString(DateUtils.utcDateFormatter)}
     </lastUpdate>
