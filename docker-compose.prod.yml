@@ -136,6 +136,7 @@ services:
       - DOWNLOAD_FILE_HOST=http://nio-download.foo.bar:8889
       - DB_FLUSH=true
       - SECURITY_MODE=otoroshi
+      - LOGOUT_URL=http://nio.foo.bar:8889/.well-known/otoroshi/logout?redirect=http://nio.foo.bar:8889
     depends_on:
       - mongo
       - kafka
@@ -162,7 +163,7 @@ services:
       - "nio.foo.bar: 192.168.200.59" # use your own IP address here
 
   otoroshi:
-    image: maif/otoroshi:1.3.0
+    image: maif/otoroshi:1.4.0-jdk8
 #    networks:
 #      - nio-net
     extra_hosts: 

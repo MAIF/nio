@@ -657,7 +657,7 @@
       "tokenUrl": "http://keycloak.foo.bar:8889/auth/realms/master/protocol/openid-connect/token",
       "userInfoUrl": "http://keycloak.foo.bar:8889/auth/realms/master/protocol/openid-connect/userinfo",
       "loginUrl": "http://keycloak.foo.bar:8889/auth/realms/master/protocol/openid-connect/auth",
-      "logoutUrl": "http://keycloak.foo.bar:8889/auth/realms/master/protocol/openid-connect/logout",
+      "logoutUrl": "http://keycloak.foo.bar:8889/auth/realms/master/protocol/openid-connect/logout?redirect_uri=${redirect}",
       "accessTokenField": "access_token",
       "nameField": "name",
       "emailField": "email",
