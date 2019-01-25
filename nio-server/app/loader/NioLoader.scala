@@ -177,6 +177,9 @@ class NioComponents(context: Context)
   val starter: Starter = wire[Starter]
 
   starter.initialize()
+
+  lazy val catchup = wire[CatchupNioEventService]
+  catchup.catchupNioEventScheduler()
 }
 
 class AppRouter(allRoutes: Routes,

@@ -1,9 +1,12 @@
 package db
 
+import akka.stream.Materializer
+import akka.stream.scaladsl.Source
 import play.api.libs.json.{JsObject, Json, OFormat}
+import play.modules.reactivemongo.json.ImplicitBSONHandlers._
+import reactivemongo.akkastream.{State, cursorProducer}
 import reactivemongo.api.{Cursor, QueryOpts, ReadPreference}
 import reactivemongo.play.json.collection.JSONCollection
-import play.modules.reactivemongo.json.ImplicitBSONHandlers._
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -102,6 +105,15 @@ object MongoOpsDataStore {
     def deleteOneById[T](id: String)(
         implicit oformat: OFormat[T]): Future[Boolean] = {
       delete(Json.obj("_id" -> id))
+    }
+
+    def streamByQuery[T](query: JsObject)(
+        implicit oformat: OFormat[T],
+        mat: Materializer): Source[T, Future[State]] = {
+      coll
+        .find(query)
+        .cursor[T](ReadPreference.primaryPreferred)
+        .documentSource()
     }
 
     def deleteByQuery[T](query: JsObject)(

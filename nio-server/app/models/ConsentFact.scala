@@ -190,8 +190,12 @@ case class ConsentFact(_id: String = BSONObjectID.generate().stringify,
                        lastUpdateSystem: DateTime =
                          DateTime.now(DateTimeZone.UTC),
                        orgKey: Option[String] = None,
-                       metaData: Option[Map[String, String]] = None)
+                       metaData: Option[Map[String, String]] = None,
+                       sendToKafka: Option[Boolean] = None)
     extends ModelTransformAs {
+
+  def notYetSendToKafka() = this.copy(sendToKafka = Some(false))
+  def nowSendToKafka() = this.copy(sendToKafka = Some(true))
 
   def asJson =
     transform(ConsentFact.consentFactWritesWithoutId.writes(this))
@@ -256,9 +260,31 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
                                 lastUpdate: DateTime =
                                   DateTime.now(DateTimeZone.UTC),
                                 orgKey: Option[String] = None,
-                                metaData: Option[Map[String, String]] = None) =
+                                metaData: Option[Map[String, String]] = None,
+                                sendToKafka: Option[Boolean] = None) =
     ConsentFact(
       _id = BSONObjectID.generate().stringify,
+      userId = userId,
+      doneBy = doneBy,
+      version = version,
+      groups = groups,
+      offers = offers,
+      lastUpdate = lastUpdate,
+      orgKey = orgKey,
+      metaData = metaData
+    )
+
+  def newWithoutKafkaFlag(_id: String = BSONObjectID.generate().stringify,
+                          userId: String,
+                          doneBy: DoneBy,
+                          version: Int,
+                          groups: Seq[ConsentGroup],
+                          offers: Option[Seq[ConsentOffer]] = None,
+                          lastUpdate: DateTime = DateTime.now(DateTimeZone.UTC),
+                          orgKey: Option[String] = None,
+                          metaData: Option[Map[String, String]] = None) =
+    ConsentFact(
+      _id = _id,
       userId = userId,
       doneBy = doneBy,
       version = version,
@@ -278,7 +304,8 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
       (__ \ "lastUpdate").readWithDefault[DateTime](
         DateTime.now(DateTimeZone.UTC))(DateUtils.utcDateTimeReads) and
       (__ \ "orgKey").readNullable[String] and
-      (__ \ "metaData").readNullable[Map[String, String]]
+      (__ \ "metaData").readNullable[Map[String, String]] and
+      (__ \ "sendToKafka").readNullable[Boolean]
   )(ConsentFact.newWithoutIdAndLastUpdate _)
 
   val consentFactReads: Reads[ConsentFact] = (
@@ -289,11 +316,9 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
       (__ \ "groups").read[Seq[ConsentGroup]] and
       (__ \ "offers").readNullable[Seq[ConsentOffer]] and
       (__ \ "lastUpdate").read[DateTime](DateUtils.utcDateTimeReads) and
-      (__ \ "lastUpdateSystem").readWithDefault[DateTime](
-        DateTime.now(DateTimeZone.UTC))(DateUtils.utcDateTimeReads) and
       (__ \ "orgKey").readNullable[String] and
       (__ \ "metaData").readNullable[Map[String, String]]
-  )(ConsentFact.apply _)
+  )(ConsentFact.newWithoutKafkaFlag _)
 
   val consentFactWrites: Writes[ConsentFact] = (
     (JsPath \ "_id").write[String] and
@@ -307,7 +332,8 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
       (JsPath \ "lastUpdateSystem")
         .write[DateTime](DateUtils.utcDateTimeWrites) and
       (JsPath \ "orgKey").writeNullable[String] and
-      (JsPath \ "metaData").writeNullable[Map[String, String]]
+      (JsPath \ "metaData").writeNullable[Map[String, String]] and
+      (JsPath \ "sendToKafka").writeNullable[Boolean]
   )(unlift(ConsentFact.unapply))
 
   val consentFactWritesWithoutId: Writes[ConsentFact] = (
@@ -323,7 +349,8 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
         .writeNullable[DateTime](DateUtils.utcDateTimeWrites)
         .contramap((_: DateTime) => None) and
       (JsPath \ "orgKey").writeNullable[String] and
-      (JsPath \ "metaData").writeNullable[Map[String, String]]
+      (JsPath \ "metaData").writeNullable[Map[String, String]] and
+      (JsPath \ "sendToKafka").writeNullable[Boolean]
   )(unlift(ConsentFact.unapply))
 
   val consentFactOWrites: OWrites[ConsentFact] = (
@@ -338,7 +365,8 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
       (JsPath \ "lastUpdateSystem")
         .write[DateTime](DateUtils.utcDateTimeWrites) and
       (JsPath \ "orgKey").writeNullable[String] and
-      (JsPath \ "metaData").writeNullable[Map[String, String]]
+      (JsPath \ "metaData").writeNullable[Map[String, String]] and
+      (JsPath \ "sendToKafka").writeNullable[Boolean]
   )(unlift(ConsentFact.unapply))
 
   val consentFactFormats: Format[ConsentFact] =

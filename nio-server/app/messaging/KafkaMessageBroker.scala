@@ -75,14 +75,16 @@ class KafkaMessageBroker(actorSystem: ActorSystem)(
     promise.future
   }
 
-  def publish(event: NioEvent): Unit = {
+  def publish(event: NioEvent): Future[Unit] = {
     if (env.config.recordManagementEnabled) {
-      val fut = publishEvent(event)
-      fut.onComplete {
-        case Failure(e) =>
-          Logger.error(s"Error sending message ${event.asJson.toString()}", e)
-        case _ =>
-      }
+      publishEvent(event).map(_ => ())
+//      fut.onComplete {
+//        case Failure(e) =>
+//          Logger.error(s"Error sending message ${event.asJson.toString()}", e)
+//        case _ =>
+//      }
+    } else {
+      Future.successful(())
     }
   }
 
