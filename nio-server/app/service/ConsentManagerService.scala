@@ -12,11 +12,11 @@ import db.{
 import messaging.KafkaMessageBroker
 import models._
 import play.api.Logger
+import play.api.mvc.Results._
+import reactivemongo.bson.BSONObjectID
 import utils.Result.{AppErrors, ErrorMessage}
 
 import scala.concurrent.{ExecutionContext, Future}
-import play.api.mvc.Results._
-import reactivemongo.bson.BSONObjectID
 
 class ConsentManagerService(
     lastConsentFactMongoDataStore: LastConsentFactMongoDataStore,
@@ -69,7 +69,9 @@ class ConsentManagerService(
               // Create a new user, consent fact and last consent fact
               case None =>
                 for {
-                  _ <- consentFactMongoDataStore.insert(tenant, consentFact)
+                  _ <- consentFactMongoDataStore.insert(
+                    tenant,
+                    consentFact.notYetSendToKafka())
                   _ <- lastConsentFactMongoDataStore.insert(tenant, consentFact)
                   _ <- userMongoDataStore.insert(tenant,
                                                  User(
@@ -80,17 +82,21 @@ class ConsentManagerService(
                                                    latestConsentFactId =
                                                      consentFact._id
                                                  ))
-                  _ <- FastFuture.successful(
-                    kafkaMessageBroker.publish(
-                      ConsentFactCreated(
-                        tenant = tenant,
-                        payload = consentFact,
-                        author = author,
-                        metadata = metadata
-                      )
+                  _ <- kafkaMessageBroker.publish(
+                    ConsentFactCreated(
+                      tenant = tenant,
+                      payload = consentFact,
+                      author = author,
+                      metadata = metadata
                     )
                   )
-                } yield Right(consentFact)
+                  _ <- consentFactMongoDataStore.updateOne(
+                    tenant,
+                    consentFact._id,
+                    consentFact.nowSendToKafka())
+                } yield {
+                  Right(consentFact)
+                }
               // Update user, consent fact and last consent fact
               case Some(lastConsentFactStored)
                   if consentFact.version >= lastConsentFactStored.version && !consentFact.lastUpdate
@@ -104,18 +110,22 @@ class ConsentManagerService(
                     organisationKey,
                     userId,
                     lastConsentFactToStore)
-                  _ <- consentFactMongoDataStore.insert(tenant, consentFact)
-                  _ <- FastFuture.successful(
-                    kafkaMessageBroker.publish(
-                      ConsentFactUpdated(
-                        tenant = tenant,
-                        oldValue = lastConsentFactStored,
-                        payload = lastConsentFactToStore,
-                        author = author,
-                        metadata = metadata
-                      )
+                  _ <- consentFactMongoDataStore.insert(
+                    tenant,
+                    consentFact.notYetSendToKafka())
+                  _ <- kafkaMessageBroker.publish(
+                    ConsentFactUpdated(
+                      tenant = tenant,
+                      oldValue = lastConsentFactStored,
+                      payload = lastConsentFactToStore,
+                      author = author,
+                      metadata = metadata
                     )
                   )
+                  _ <- consentFactMongoDataStore.updateOne(
+                    tenant,
+                    consentFact._id,
+                    consentFact.nowSendToKafka())
                 } yield Right(consentFact)
 
               case Some(lastConsentFactStored)

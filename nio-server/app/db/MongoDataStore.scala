@@ -1,9 +1,13 @@
 package db
 
+import akka.http.scaladsl.util.FastFuture
+import akka.stream.Materializer
+import akka.stream.scaladsl.Source
 import db.MongoOpsDataStore.MongoDataStore
 import play.api.Logger
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoApi
+import reactivemongo.akkastream.State
 import reactivemongo.api.indexes.Index
 import reactivemongo.play.json.collection.JSONCollection
 
@@ -102,6 +106,13 @@ trait MongoDataStore[T] {
   def findMany(tenant: String): Future[Seq[T]] = {
     tenant.request[Seq[T]] { col =>
       col.findMany()
+    }
+  }
+
+  def streamByQuery(tenant: String, query: JsObject)(
+      implicit mat: Materializer) = {
+    tenant.request[Source[T, Future[State]]] { col =>
+      FastFuture.successful(col.streamByQuery(query))
     }
   }
 
