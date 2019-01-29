@@ -5,6 +5,7 @@ import akka.actor.{ActorSystem, Cancellable}
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Sink, Source}
 import db.{
+  CatchupLockMongoDatastore,
   ConsentFactMongoDataStore,
   LastConsentFactMongoDataStore,
   TenantMongoDataStore
@@ -19,14 +20,15 @@ import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Failure
 
-case class Catchup(consentFact: ConsentFact,
-                   lastConsentFact: ConsentFact,
-                   isCreation: Boolean = true)
+case class Catchup(consentFact: ConsentFact, lastConsentFact: ConsentFact) {
+  val isCreation: Boolean = consentFact._id == lastConsentFact._id
+}
 
 class CatchupNioEventService(
     tenantMongoDataStore: TenantMongoDataStore,
     lastConsentFactMongoDataStore: LastConsentFactMongoDataStore,
     consentFactMongoDataStore: ConsentFactMongoDataStore,
+    catchupLockMongoDatastore: CatchupLockMongoDatastore,
     kafkaMessageBroker: KafkaMessageBroker)(
     implicit val executionContext: ExecutionContext,
     system: ActorSystem) {
@@ -53,9 +55,9 @@ class CatchupNioEventService(
   def getUnrelevantConsentFactsAsSource(
       source: Source[Catchup, Future[State]]): Source[Catchup, Future[State]] =
     source
-      .filter { catchup =>
+      .filterNot { catchup =>
         catchup.lastConsentFact.lastUpdateSystem
-          .isAfter(catchup.consentFact.lastUpdateSystem)
+          .isEqual(catchup.consentFact.lastUpdateSystem)
       }
 
   def getRelevantConsentFactsAsSource(
@@ -64,16 +66,8 @@ class CatchupNioEventService(
     source
       .filter { catchup =>
         catchup.lastConsentFact.lastUpdateSystem
-          .isBefore(catchup.consentFact.lastUpdateSystem) ||
-        catchup.lastConsentFact.lastUpdateSystem
           .isEqual(catchup.consentFact.lastUpdateSystem)
       }
-      .mapAsync(1)(
-        catchup =>
-          consentFactMongoDataStore
-            .findManyByQuery(tenant,
-                             Json.obj("userId" -> catchup.consentFact.userId))
-            .map(list => catchup.copy(isCreation = list.length == 1)))
 
   def resendNioEvents(tenant: String,
                       source: Source[Catchup, Future[State]]): Future[Done] = {
@@ -106,7 +100,7 @@ class CatchupNioEventService(
         d.onComplete {
           case Failure(exception) =>
             Logger.error("catchup - relevant - error", exception)
-          case _ => Logger.debug("Stream relevant Ended")
+          case _ => ()
         }
         nu
       }
@@ -129,7 +123,7 @@ class CatchupNioEventService(
         d.onComplete {
           case Failure(exception) =>
             Logger.error("catchup - unrelevant - error", exception)
-          case _ => Logger.debug("Stream unrelevant Ended")
+          case _ => ()
         }
         nu
       }
@@ -142,21 +136,35 @@ class CatchupNioEventService(
       tenants.map(tenant => {
         Logger.debug(s"start catchup scheduler for tenant ${tenant.key}")
         system.scheduler.schedule(
-          1.minutes,
+          10.seconds,
           1.minutes,
           new Runnable() {
             def run = {
-              val source: Source[Catchup, Future[State]] =
-                getUnsendConsentFactAsSource(tenant.key)
+              catchupLockMongoDatastore
+                .findLock(tenant.key)
+                .map {
+                  case Some(_) =>
+                    Logger.debug(s"tenant ${tenant.key} already locked")
+                  case None =>
+                    Logger.debug(s"lock tenant ${tenant.key}")
+                    catchupLockMongoDatastore
+                      .createLock(tenant.key)
+                      .map {
+                        case true =>
+                          val source: Source[Catchup, Future[State]] =
+                            getUnsendConsentFactAsSource(tenant.key)
 
-              val unRelevantSource: Source[Catchup, Future[State]] =
-                getUnrelevantConsentFactsAsSource(source)
+                          val unRelevantSource: Source[Catchup, Future[State]] =
+                            getUnrelevantConsentFactsAsSource(source)
 
-              val relevantSource: Source[Catchup, Future[State]] =
-                getRelevantConsentFactsAsSource(tenant.key, source)
+                          val relevantSource: Source[Catchup, Future[State]] =
+                            getRelevantConsentFactsAsSource(tenant.key, source)
 
-              unflagConsentFacts(tenant.key, unRelevantSource)
-              resendNioEvents(tenant.key, relevantSource)
+                          unflagConsentFacts(tenant.key, unRelevantSource)
+                          resendNioEvents(tenant.key, relevantSource)
+                        case false => ()
+                      }
+                }
             }
           }
         )

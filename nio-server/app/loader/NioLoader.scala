@@ -71,6 +71,8 @@ class NioComponents(context: Context)
     wire[UserMongoDataStore]
   implicit lazy val userExtractTaskDataStore: UserExtractTaskDataStore =
     wire[UserExtractTaskDataStore]
+  implicit lazy val catchupLockDataStore: CatchupLockMongoDatastore =
+    wire[CatchupLockMongoDatastore]
 
   implicit lazy val nioAccountMongoDataStore: NioAccountMongoDataStore =
     wire[NioAccountMongoDataStore]
