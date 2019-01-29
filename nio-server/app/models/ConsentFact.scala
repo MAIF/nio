@@ -281,6 +281,8 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
                           groups: Seq[ConsentGroup],
                           offers: Option[Seq[ConsentOffer]] = None,
                           lastUpdate: DateTime = DateTime.now(DateTimeZone.UTC),
+                          lastUpdateSystem: DateTime =
+                            DateTime.now(DateTimeZone.UTC),
                           orgKey: Option[String] = None,
                           metaData: Option[Map[String, String]] = None) =
     ConsentFact(
@@ -291,6 +293,7 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
       groups = groups,
       offers = offers,
       lastUpdate = lastUpdate,
+      lastUpdateSystem = lastUpdateSystem,
       orgKey = orgKey,
       metaData = metaData
     )
@@ -316,6 +319,7 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
       (__ \ "groups").read[Seq[ConsentGroup]] and
       (__ \ "offers").readNullable[Seq[ConsentOffer]] and
       (__ \ "lastUpdate").read[DateTime](DateUtils.utcDateTimeReads) and
+      (__ \ "lastUpdateSystem").read[DateTime](DateUtils.utcDateTimeReads) and
       (__ \ "orgKey").readNullable[String] and
       (__ \ "metaData").readNullable[Map[String, String]]
   )(ConsentFact.newWithoutKafkaFlag _)

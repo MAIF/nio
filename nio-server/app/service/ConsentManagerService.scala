@@ -82,18 +82,16 @@ class ConsentManagerService(
                                                    latestConsentFactId =
                                                      consentFact._id
                                                  ))
-                  _ <- kafkaMessageBroker.publish(
+                  _ <- publishAndUpdateConsent(
+                    tenant,
                     ConsentFactCreated(
                       tenant = tenant,
                       payload = consentFact,
                       author = author,
                       metadata = metadata
-                    )
+                    ),
+                    consentFact
                   )
-                  _ <- consentFactMongoDataStore.updateOne(
-                    tenant,
-                    consentFact._id,
-                    consentFact.nowSendToKafka())
                 } yield {
                   Right(consentFact)
                 }
@@ -113,19 +111,17 @@ class ConsentManagerService(
                   _ <- consentFactMongoDataStore.insert(
                     tenant,
                     consentFact.notYetSendToKafka())
-                  _ <- kafkaMessageBroker.publish(
-                    ConsentFactUpdated(
-                      tenant = tenant,
-                      oldValue = lastConsentFactStored,
-                      payload = lastConsentFactToStore,
-                      author = author,
-                      metadata = metadata
-                    )
-                  )
-                  _ <- consentFactMongoDataStore.updateOne(
-                    tenant,
-                    consentFact._id,
-                    consentFact.nowSendToKafka())
+                  _ <- publishAndUpdateConsent(tenant,
+                                               ConsentFactUpdated(
+                                                 tenant = tenant,
+                                                 oldValue =
+                                                   lastConsentFactStored,
+                                                 payload =
+                                                   lastConsentFactToStore,
+                                                 author = author,
+                                                 metadata = metadata
+                                               ),
+                                               consentFact)
                 } yield Right(consentFact)
 
               case Some(lastConsentFactStored)
@@ -144,6 +140,19 @@ class ConsentManagerService(
             }
         }
     }
+  }
+
+  private def publishAndUpdateConsent(tenant: String,
+                                      event: NioEvent,
+                                      consentFact: ConsentFact) = {
+    kafkaMessageBroker
+      .publish(event)
+      .flatMap(
+        _ =>
+          consentFactMongoDataStore
+            .updateOne(tenant, consentFact._id, consentFact.nowSendToKafka()))
+
+    FastFuture.successful(true)
   }
 
   private def validateOffersStructures(

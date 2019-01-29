@@ -30,6 +30,7 @@ class Starter(
     extractionTaskDataStore: ExtractionTaskMongoDataStore,
     userExtractTaskDataStore: UserExtractTaskDataStore,
     userAccountMongoDataStore: NioAccountMongoDataStore,
+    catchupLockMongoDatastore: CatchupLockMongoDatastore,
     defaultLoader: DefaultLoader,
     s3: S3,
     secureEvent: SecureEvent)(implicit val executionContext: ExecutionContext) {
@@ -74,50 +75,57 @@ class Starter(
 
     // Ensure index on different collections
     Await.result(
-      tenantDataStore.findAll().flatMap { tenants =>
-        Future.sequence(
-          tenants.map {
-            t =>
-              Future.sequence(
-                Seq(
-                  {
-                    Logger.info(s"Ensuring indices for users on ${t.key}")
-                    userDataStore.ensureIndices(t.key)
-                  }, {
-                    Logger.info(s"Ensuring indices for consents on ${t.key}")
-                    consentFactDataStore.ensureIndices(t.key)
-                  }, {
-                    Logger.info(
-                      s"Ensuring indices for last consents on ${t.key}")
-                    lastConsentFactDataStore.ensureIndices(t.key)
-                  }, {
-                    Logger.info(
-                      s"Ensuring indices for organisations on ${t.key}")
-                    organisationDataStore.ensureIndices(t.key)
-                  }, {
-                    Logger.info(s"Ensuring indices for accounts on ${t.key}")
-                    accountDataStore.ensureIndices(t.key)
-                  }, {
-                    Logger.info(
-                      s"Ensuring indices for destroy task on ${t.key}")
-                    deletionTaskDataStore.ensureIndices(t.key)
-                  }, {
-                    Logger.info(
-                      s"Ensuring indices for extraction task on ${t.key}")
-                    extractionTaskDataStore.ensureIndices(t.key)
-                  }, {
-                    Logger.info(
-                      s"Ensuring indices for user extract task on ${t.key}")
-                    userExtractTaskDataStore.ensureIndices(t.key)
-                  }, {
-                    Logger.info(s"Ensuring indices for user account ${t.key}")
-                    userAccountMongoDataStore.ensureIndices(t.key)
-                  }
-                )
-              )
-          }
-        )
-      },
+      for {
+        _ <- catchupLockMongoDatastore.init()
+        _ <- tenantDataStore.findAll().flatMap {
+          tenants =>
+            Future.sequence(
+              tenants.map {
+                t =>
+                  Future.sequence(
+                    Seq(
+                      {
+                        Logger.info(s"Ensuring indices for users on ${t.key}")
+                        userDataStore.ensureIndices(t.key)
+                      }, {
+                        Logger.info(
+                          s"Ensuring indices for consents on ${t.key}")
+                        consentFactDataStore.ensureIndices(t.key)
+                      }, {
+                        Logger.info(
+                          s"Ensuring indices for last consents on ${t.key}")
+                        lastConsentFactDataStore.ensureIndices(t.key)
+                      }, {
+                        Logger.info(
+                          s"Ensuring indices for organisations on ${t.key}")
+                        organisationDataStore.ensureIndices(t.key)
+                      }, {
+                        Logger.info(
+                          s"Ensuring indices for accounts on ${t.key}")
+                        accountDataStore.ensureIndices(t.key)
+                      }, {
+                        Logger.info(
+                          s"Ensuring indices for destroy task on ${t.key}")
+                        deletionTaskDataStore.ensureIndices(t.key)
+                      }, {
+                        Logger.info(
+                          s"Ensuring indices for extraction task on ${t.key}")
+                        extractionTaskDataStore.ensureIndices(t.key)
+                      }, {
+                        Logger.info(
+                          s"Ensuring indices for user extract task on ${t.key}")
+                        userExtractTaskDataStore.ensureIndices(t.key)
+                      }, {
+                        Logger.info(
+                          s"Ensuring indices for user account ${t.key}")
+                        userAccountMongoDataStore.ensureIndices(t.key)
+                      }
+                    )
+                  )
+              }
+            )
+        }
+      } yield (),
       Duration(5, TimeUnit.MINUTES)
     )
 

@@ -13,7 +13,7 @@ object DateUtils {
     def reads(json: JsValue) = json match {
       case JsString(s) =>
         Try(DateTime.parse(s, utcDateFormatter)) match {
-          case Success(d) => JsSuccess(d)
+          case Success(d) => JsSuccess(d.withMillisOfSecond(0))
           case Failure(f) => JsSuccess(null)
         }
       case _ => JsError("error.expected.date")
