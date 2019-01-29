@@ -4,6 +4,7 @@ import akka.Done
 import akka.actor.{ActorSystem, Cancellable}
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Sink, Source}
+import configuration.Env
 import db.{
   CatchupLockMongoDatastore,
   ConsentFactMongoDataStore,
@@ -29,9 +30,9 @@ class CatchupNioEventService(
     lastConsentFactMongoDataStore: LastConsentFactMongoDataStore,
     consentFactMongoDataStore: ConsentFactMongoDataStore,
     catchupLockMongoDatastore: CatchupLockMongoDatastore,
-    kafkaMessageBroker: KafkaMessageBroker)(
-    implicit val executionContext: ExecutionContext,
-    system: ActorSystem) {
+    kafkaMessageBroker: KafkaMessageBroker,
+    env: Env)(implicit val executionContext: ExecutionContext,
+              system: ActorSystem) {
 
   implicit val materializer = ActorMaterializer()(system)
 
@@ -65,6 +66,7 @@ class CatchupNioEventService(
       source: Source[Catchup, Future[State]]): Source[Catchup, Future[State]] =
     source
       .filter { catchup =>
+        env.config.kafka.catchUpEventsStrategy == "All" ||
         catchup.lastConsentFact.lastUpdateSystem
           .isEqual(catchup.consentFact.lastUpdateSystem)
       }
@@ -136,8 +138,8 @@ class CatchupNioEventService(
       tenants.map(tenant => {
         Logger.debug(s"start catchup scheduler for tenant ${tenant.key}")
         system.scheduler.schedule(
-          10.seconds,
-          1.minutes,
+          1.hour,
+          1.hour,
           new Runnable() {
             def run = {
               catchupLockMongoDatastore
@@ -146,7 +148,6 @@ class CatchupNioEventService(
                   case Some(_) =>
                     Logger.debug(s"tenant ${tenant.key} already locked")
                   case None =>
-                    Logger.debug(s"lock tenant ${tenant.key}")
                     catchupLockMongoDatastore
                       .createLock(tenant.key)
                       .map {
@@ -154,13 +155,16 @@ class CatchupNioEventService(
                           val source: Source[Catchup, Future[State]] =
                             getUnsendConsentFactAsSource(tenant.key)
 
-                          val unRelevantSource: Source[Catchup, Future[State]] =
-                            getUnrelevantConsentFactsAsSource(source)
+                          if (env.config.kafka.catchUpEventsStrategy == "Last") {
+                            val unRelevantSource
+                              : Source[Catchup, Future[State]] =
+                              getUnrelevantConsentFactsAsSource(source)
+                            unflagConsentFacts(tenant.key, unRelevantSource)
+                          }
 
                           val relevantSource: Source[Catchup, Future[State]] =
                             getRelevantConsentFactsAsSource(tenant.key, source)
 
-                          unflagConsentFacts(tenant.key, unRelevantSource)
                           resendNioEvents(tenant.key, relevantSource)
                         case false => ()
                       }

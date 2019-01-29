@@ -71,7 +71,8 @@ case class KafkaConfig(servers: String,
                        topic: String,
                        eventIdSeed: Long,
                        eventsGroupIn: Int,
-                       eventsGroupDuration: FiniteDuration)
+                       eventsGroupDuration: FiniteDuration,
+                       catchUpEventsStrategy: String)
 
 case class Location(location: Option[String])
 
