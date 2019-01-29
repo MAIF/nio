@@ -72,7 +72,7 @@ case class KafkaConfig(servers: String,
                        eventIdSeed: Long,
                        eventsGroupIn: Int,
                        eventsGroupDuration: FiniteDuration,
-                       catchUpEventsStrategy: String)
+                       catchUpEvents: CatchUpEventsConfig)
 
 case class Location(location: Option[String])
 
@@ -111,3 +111,7 @@ case class S3Config(bucketName: String,
                     expireAtInDay: Int)
 
 case class MailGunConfig(apiKey: String, endpoint: String, from: String)
+
+case class CatchUpEventsConfig(strategy: String,
+                               delay: FiniteDuration,
+                               interval: FiniteDuration)

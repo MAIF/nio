@@ -66,7 +66,7 @@ class CatchupNioEventService(
       source: Source[Catchup, Future[State]]): Source[Catchup, Future[State]] =
     source
       .filter { catchup =>
-        env.config.kafka.catchUpEventsStrategy == "All" ||
+        env.config.kafka.catchUpEvents.strategy == "All" ||
         catchup.lastConsentFact.lastUpdateSystem
           .isEqual(catchup.consentFact.lastUpdateSystem)
       }
@@ -138,8 +138,8 @@ class CatchupNioEventService(
       tenants.map(tenant => {
         Logger.debug(s"start catchup scheduler for tenant ${tenant.key}")
         system.scheduler.schedule(
-          1.hour,
-          1.hour,
+          env.config.kafka.catchUpEvents.delay,
+          env.config.kafka.catchUpEvents.interval,
           new Runnable() {
             def run = {
               catchupLockMongoDatastore
@@ -155,7 +155,7 @@ class CatchupNioEventService(
                           val source: Source[Catchup, Future[State]] =
                             getUnsendConsentFactAsSource(tenant.key)
 
-                          if (env.config.kafka.catchUpEventsStrategy == "Last") {
+                          if (env.config.kafka.catchUpEvents.strategy == "Last") {
                             val unRelevantSource
                               : Source[Catchup, Future[State]] =
                               getUnrelevantConsentFactsAsSource(source)
