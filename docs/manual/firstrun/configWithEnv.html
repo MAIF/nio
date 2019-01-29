@@ -470,6 +470,24 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
       <td>The consumer group duration (record management) </td>
       <td><code>10 hours</code> </td>
     </tr>
+    <tr>
+      <td><code>nio.kafka.catchUpEvents.strategy</code> </td>
+      <td><code>KAFKA_CATCHUP_EVENTS_STRATEGY</code> </td>
+      <td>The unsend kafka events catch up scheduler strategy. &ldquo;All&rdquo; to catch up all unsend events or &ldquo;Last&rdquo; to send just last event. </td>
+      <td><code>Last</code> </td>
+    </tr>
+    <tr>
+      <td><code>nio.kafka.catchUpEvents.delay</code> </td>
+      <td><code>KAFKA_CATCHUP_EVENTS_DELAY</code> </td>
+      <td>The unsend kafka events catch up scheduler delay </td>
+      <td><code>1 hours</code> </td>
+    </tr>
+    <tr>
+      <td><code>nio.kafka.catchUpEvents.interval</code> </td>
+      <td><code>KAFKA_CATCHUP_EVENTS_INTERVAL</code> </td>
+      <td>The unsend kafka events catch up scheduler interval </td>
+      <td><code>1 hours</code> </td>
+    </tr>
   </tbody>
 </table>
 <h2><a href="#s3-configuration" name="s3-configuration" class="anchor"><span class="anchor-link"></span></a>S3 configuration</h2>
@@ -720,7 +738,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 
 <!--
 <div class="copyright">
-<span class="text">&copy; 2018</span>
+<span class="text">&copy; 2019</span>
 <a href="https://www.example.com" class="logo">logo</a>
 </div>
 -->
