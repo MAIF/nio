@@ -23,7 +23,12 @@ class CatchupLockMongoDatastore(val reactiveMongoApi: ReactiveMongoApi)(
     Index(
       Seq("expireAt" -> IndexType.Ascending),
       name = Some("expire_at"),
-      options = BSONDocument("expireAfterSeconds" -> 0)
+      options = BSONDocument("expireAfterSeconds" -> 60)
+    ),
+    Index(
+      Seq("tenant" -> IndexType.Ascending),
+      name = Some("tenant"),
+      unique = true
     )
   )
 
