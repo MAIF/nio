@@ -26,6 +26,10 @@ class ConsentFactMongoDataStore(val mongoApi: ReactiveMongoApi)(
     Index(Seq("userId" -> IndexType.Ascending),
           name = Some("userId"),
           unique = false,
+          sparse = true),
+    Index(Seq("sendToKafka" -> IndexType.Ascending),
+          name = Some("sendToKafka"),
+          unique = false,
           sparse = true)
   )
 
