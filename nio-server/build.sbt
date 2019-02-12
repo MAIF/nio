@@ -20,10 +20,10 @@ resolvers ++= Seq(
 
 libraryDependencies ++= Seq(
   ws,
-  "com.typesafe.play" %% "play-json" % "2.6.9",
-  "com.typesafe.play" %% "play-json-joda" % "2.6.9",
-  "org.reactivemongo" %% "play2-reactivemongo" % "0.13.0-play26",
-  "org.reactivemongo" %% "reactivemongo-akkastream" % "0.13.0",
+  "com.typesafe.play" %% "play-json" % "2.6.10",
+  "com.typesafe.play" %% "play-json-joda" % "2.6.10",
+  "org.reactivemongo" %% "play2-reactivemongo" % "0.16.0-play26",
+  "org.reactivemongo" %% "reactivemongo-akkastream" % "0.16.0",
   "com.typesafe.akka" %% "akka-stream-kafka" % "0.22",
   "de.svenkubiak" % "jBCrypt" % "0.4.1", //  ISC/BSD
   "com.auth0" % "java-jwt" % "3.1.0", // MIT license

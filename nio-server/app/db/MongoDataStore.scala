@@ -3,7 +3,7 @@ package db
 import akka.http.scaladsl.util.FastFuture
 import akka.stream.Materializer
 import akka.stream.scaladsl.Source
-import db.MongoOpsDataStore.MongoDataStore
+import db.MongoOpsDataStore.{MongoDataStore => importedmongoDatastore}
 import play.api.Logger
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoApi
@@ -28,6 +28,7 @@ trait MongoDataStore[T] {
 
   def mongoApi: ReactiveMongoApi
   implicit def format: OFormat[T]
+  implicit val jsObjectWrites: OWrites[JsObject] = (o: JsObject) => o
   implicit def executionContext: ExecutionContext
 
   protected def collectionName(tenant: String): String

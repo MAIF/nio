@@ -280,7 +280,7 @@ class ConsentController(
       .fromFutureSource {
         lastConsentFactMongoDataStore.storedBSONCollection(tenant).map { col =>
           col
-            .find(reactivemongo.bson.BSONDocument())
+            .find(reactivemongo.bson.BSONDocument(), None)
             .options(QueryOpts(batchSizeN = 300))
             .cursor[BSONDocument]()
             .bulkSource(err = Cursor.FailOnError((_, e) =>

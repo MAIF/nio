@@ -7,20 +7,18 @@ import akka.util.ByteString
 import controllers.AppErrorWithStatus
 import models._
 import play.api.Logger
-import play.api.libs.json.{JsValue, Json, OFormat}
-import play.api.mvc.Results.NotFound
+import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoApi
-import play.modules.reactivemongo.json.ImplicitBSONHandlers._
 import reactivemongo.akkastream.cursorProducer
 import reactivemongo.api.collections.bson.BSONCollection
 import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.api.{Cursor, QueryOpts, ReadPreference}
+import reactivemongo.api.{Cursor, QueryOpts, ReadConcern, ReadPreference}
 import reactivemongo.bson.BSONDocument
 import utils.BSONUtils
 import utils.Result.{AppErrors, ErrorMessage}
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Failure
+import scala.util.{Failure, Success}
 
 class LastConsentFactMongoDataStore(val mongoApi: ReactiveMongoApi)(
     implicit val executionContext: ExecutionContext)
@@ -185,7 +183,11 @@ class LastConsentFactMongoDataStore(val mongoApi: ReactiveMongoApi)(
 
     Source
       .fromFuture(storedCollection(tenant))
-      .mapAsync(1)(coll => coll.count().map(c => (coll, c)))
+      .mapAsync(1)(
+        coll =>
+          coll
+            .count(None, None, 0, None, ReadConcern.Majority)
+            .map(c => (coll, c)))
       .flatMapConcat {
         case (collection, count) =>
           Logger.info(s"Will stream a total of $count consents")
@@ -197,18 +199,19 @@ class LastConsentFactMongoDataStore(val mongoApi: ReactiveMongoApi)(
               Logger.info(
                 s"Consuming $items consents with worker $idx: $from => $to")
               val options =
-                QueryOpts(skipN = from, batchSizeN = pageSize, flagsN = 0)
+                QueryOpts(skipN = from.toInt, batchSizeN = pageSize, flagsN = 0)
               collection
-                .find(Json.obj())
+                .find(Json.obj(), None)
                 .options(options)
                 .cursor[JsValue](ReadPreference.primary)
                 .documentSource(
-                  maxDocs = items,
+                  maxDocs = items.toInt,
                   err = Cursor.FailOnError((_, e) =>
                     Logger.error(s"Error while streaming worker $idx", e)))
             }
             .reduce(_.merge(_))
             .alsoTo(Sink.onComplete {
+              case Success(_) =>
               case Failure(e) =>
                 Logger.error("Error while streaming consents", e)
             })
@@ -223,7 +226,11 @@ class LastConsentFactMongoDataStore(val mongoApi: ReactiveMongoApi)(
 
     Source
       .fromFuture(storedBSONCollection(tenant))
-      .mapAsync(1)(coll => coll.count().map(c => (coll, c)))
+      .mapAsync(1)(
+        coll =>
+          coll
+            .count(None, None, 0, None, ReadConcern.Majority)
+            .map(c => (coll, c)))
       .flatMapConcat {
         case (collection, count) =>
           Logger.info(s"Will stream a total of $count consents")
@@ -235,13 +242,13 @@ class LastConsentFactMongoDataStore(val mongoApi: ReactiveMongoApi)(
               Logger.info(
                 s"Consuming $items consents with worker $idx: $from => $to")
               val options =
-                QueryOpts(skipN = from, batchSizeN = pageSize, flagsN = 0)
+                QueryOpts(skipN = from.toInt, batchSizeN = pageSize, flagsN = 0)
               collection
-                .find(BSONDocument())
+                .find(BSONDocument(), None)
                 .options(options)
                 .cursor[BSONDocument](ReadPreference.primary)
                 .bulkSource(
-                  maxDocs = items,
+                  maxDocs = items.toInt,
                   err = Cursor.FailOnError((_, e) =>
                     Logger.error(s"Error while streaming worker $idx", e)))
             }
@@ -249,6 +256,7 @@ class LastConsentFactMongoDataStore(val mongoApi: ReactiveMongoApi)(
             .map(docs =>
               ByteString(docs.map(BSONUtils.stringify).mkString("\n")))
             .alsoTo(Sink.onComplete {
+              case Success(_) =>
               case Failure(e) =>
                 Logger.error("Error while streaming consents", e)
             })

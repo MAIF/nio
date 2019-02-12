@@ -1,7 +1,7 @@
 version: '2'
 services:
   mongo:
-    image: mongo:3.4.3
+    image: mongo:4.0.6
     command: mongod --port 27018
     ports:
       - 27018:27018

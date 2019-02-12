@@ -16,7 +16,7 @@ version: '3'
 services:
 
   redis:
-    image: redis:4.0.8
+    image: redis:5.0.3
     expose:
       - 6379
 #    networks:
@@ -26,7 +26,7 @@ services:
       - ./docker-compose-prod-example-data/redis-data:/data
 
   mongo:
-    image: mongo:3.7.2
+    image: mongo:4.0.6
     expose:
       - 27017
 #    networks:
@@ -160,14 +160,14 @@ services:
       - otoroshi
       - nio
     extra_hosts:
-      - "nio.foo.bar: 192.168.200.59" # use your own IP address here
+      - "nio.foo.bar: 172.21.198.69" # use your own IP address here
 
   otoroshi:
-    image: maif/otoroshi:1.4.0-jdk8
+    image: maif/otoroshi:1.4.4-jdk11
 #    networks:
 #      - nio-net
     extra_hosts: 
-      - "keycloak.foo.bar: 192.168.200.59" # use your own IP address here
+      - "keycloak.foo.bar: 172.21.198.69" # use your own IP address here
     environment:
       - APP_STORAGE=redis
       - REDIS_HOST=redis

@@ -7,7 +7,6 @@ import models._
 import play.api.Logger
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoApi
-import play.modules.reactivemongo.json.ImplicitBSONHandlers._
 import reactivemongo.akkastream.cursorProducer
 import reactivemongo.api.indexes.{Index, IndexType}
 import utils.Result.{AppErrors, ErrorMessage}
@@ -154,9 +153,10 @@ class OrganisationMongoDataStore(val mongoApi: ReactiveMongoApi)(
     storedCollection(tenant).map { col =>
       col
         .find(query,
-              Json.obj(
-                "_id" -> 0
-              ))
+              Some(
+                Json.obj(
+                  "_id" -> 0
+                )))
         .cursor[JsValue]()
         .documentSource()
     }

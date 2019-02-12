@@ -6,7 +6,6 @@ import models.ExtractionTask
 import models.ExtractionTaskStatus.ExtractionTaskStatus
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoApi
-import play.modules.reactivemongo.json.ImplicitBSONHandlers._
 import reactivemongo.akkastream.{State, cursorProducer}
 import reactivemongo.api.indexes.{Index, IndexType}
 
@@ -76,7 +75,7 @@ class ExtractionTaskMongoDataStore(val mongoApi: ReactiveMongoApi)(
       implicit m: Materializer): Future[Source[JsValue, Future[State]]] = {
     storedCollection(tenant).map { col =>
       col
-        .find(Json.obj("status" -> status))
+        .find(Json.obj("status" -> status), None)
         .cursor[JsValue]()
         .documentSource()
     }
