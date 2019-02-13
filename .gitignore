@@ -5,11 +5,11 @@
 
 target/
 
-nio-server/javascript/node_modules
-nio-server/logs/
+
+logs/
+node_modules/
 /.idea/
 /project/project/
 /project/target/
 data/
-/nio-server/javascript/yarn.lock
 /docker-compose-prod-example-data

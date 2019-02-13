@@ -7,8 +7,6 @@ import ReactDOM from 'react-dom';
 
 import $ from 'jquery';
 
-import 'react-select/dist/react-select.css';
-
 import './index.css';
 import {NioLoginPage} from "./nio/pages/NioLoginPage";
 

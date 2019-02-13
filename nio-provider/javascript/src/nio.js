@@ -9,8 +9,6 @@ import $ from 'jquery';
 
 import {RoutedNioApp} from "./nio/index";
 
-import 'react-select/dist/react-select.css';
-
 import './index.css';
 
 if (!window.Symbol) {
