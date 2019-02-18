@@ -5,10 +5,10 @@ import org.joda.time.DateTime
 import play.api.Logger
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoApi
-import reactivemongo.api.ReadPreference
 import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.bson.BSONDocument
+import reactivemongo.bson.{BSONDocument}
 import reactivemongo.play.json.collection.JSONCollection
+import play.modules.reactivemongo.json.ImplicitBSONHandlers._
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
@@ -32,8 +32,7 @@ class CatchupLockMongoDatastore(val reactiveMongoApi: ReactiveMongoApi)(
     )
   )
 
-  def format: OFormat[CatchupLock] = CatchupLock.catchupLockFormats
-  implicit val jsObjectWrites: OWrites[JsObject] = (o: JsObject) => o
+  implicit def format: Format[CatchupLock] = CatchupLock.catchupLockFormats
 
   def init() = {
     Logger.debug("### init lock datastore ###")
@@ -53,11 +52,8 @@ class CatchupLockMongoDatastore(val reactiveMongoApi: ReactiveMongoApi)(
   def createLock(tenant: String) = {
     storedCollection
       .flatMap(
-        _.find(Json.obj("tenant" -> tenant), None)
-          .one[JsObject](ReadPreference.primaryPreferred)
-          .map(_.map(format.reads).collect {
-            case JsSuccess(e, _) => e
-          })
+        _.find(Json.obj("tenant" -> tenant))
+          .one[CatchupLock]
       )
       .flatMap {
         case None =>
@@ -72,7 +68,7 @@ class CatchupLockMongoDatastore(val reactiveMongoApi: ReactiveMongoApi)(
   def findLock(tenant: String) = {
     storedCollection
       .flatMap(
-        _.find(Json.obj("tenant" -> tenant), None)
+        _.find(Json.obj("tenant" -> tenant))
           .one[CatchupLock]
       )
   }
@@ -81,8 +77,8 @@ class CatchupLockMongoDatastore(val reactiveMongoApi: ReactiveMongoApi)(
 case class CatchupLock(tenant: String, expireAt: DateTime = DateTime.now)
 
 object CatchupLock {
-  implicit val catchupLockFormats: OFormat[CatchupLock] =
-    new OFormat[CatchupLock] {
+  implicit val catchupLockFormats: Format[CatchupLock] =
+    new Format[CatchupLock] {
       override def reads(json: JsValue): JsResult[CatchupLock] =
         (Try {
           JsSuccess(
@@ -94,7 +90,7 @@ object CatchupLock {
           case e => JsError(e.getMessage)
         }).get
 
-      override def writes(c: CatchupLock) = Json.obj(
+      override def writes(c: CatchupLock): JsValue = Json.obj(
         "tenant" -> c.tenant,
         "expireAt" -> jodaDateFormat.writes(c.expireAt)
       )

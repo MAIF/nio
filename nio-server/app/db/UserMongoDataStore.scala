@@ -3,8 +3,9 @@ package db
 import akka.stream.Materializer
 import akka.stream.scaladsl.Source
 import models._
-import play.api.libs.json._
+import play.api.libs.json.{JsValue, Json, OFormat}
 import play.modules.reactivemongo.ReactiveMongoApi
+import play.modules.reactivemongo.json.ImplicitBSONHandlers._
 import reactivemongo.akkastream.{AkkaStreamCursor, State, cursorProducer}
 import reactivemongo.api.indexes.{Index, IndexType}
 
@@ -81,13 +82,12 @@ class UserMongoDataStore(val mongoApi: ReactiveMongoApi)(
     storedCollection(tenant).map { col =>
       col
         .find(Json.obj(),
-              Some(
-                Json.obj(
-                  "_id" -> 0,
-                  "userId" -> 1,
-                  "orgKey" -> 1,
-                  "orgVersion" -> 1
-                )))
+              Json.obj(
+                "_id" -> 0,
+                "userId" -> 1,
+                "orgKey" -> 1,
+                "orgVersion" -> 1
+              ))
         .cursor[JsValue]()
         .documentSource()
     }
@@ -98,11 +98,10 @@ class UserMongoDataStore(val mongoApi: ReactiveMongoApi)(
     storedCollection(tenant).map { col =>
       col
         .find(Json.obj(),
-              Some(
-                Json.obj(
-                  "_id" -> 0,
-                  "latestConsentFactId" -> 1
-                )))
+              Json.obj(
+                "_id" -> 0,
+                "latestConsentFactId" -> 1
+              ))
         .cursor[JsValue]()
         .documentSource()
     }

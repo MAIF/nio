@@ -1,8 +1,9 @@
 package db
 
 import models._
-import play.api.libs.json.{Format, JsObject, Json, OWrites}
+import play.api.libs.json.{Format, JsObject, Json}
 import play.modules.reactivemongo.ReactiveMongoApi
+import play.modules.reactivemongo.json.ImplicitBSONHandlers._
 import reactivemongo.api.indexes.Index
 import reactivemongo.api.{Cursor, ReadPreference}
 import reactivemongo.play.json.collection.JSONCollection
@@ -18,7 +19,6 @@ class TenantMongoDataStore(val reactiveMongoApi: ReactiveMongoApi)(
   override def indices = Seq.empty[Index]
 
   implicit def format: Format[Tenant] = Tenant.tenantFormats
-  implicit val jsObjectWrites: OWrites[JsObject] = (o: JsObject) => o
 
   def init() = {
     storedCollection.flatMap { col =>
@@ -38,19 +38,19 @@ class TenantMongoDataStore(val reactiveMongoApi: ReactiveMongoApi)(
 
   def findAll() =
     storedCollection.flatMap(
-      _.find(Json.obj(), None)
+      _.find(Json.obj())
         .cursor[Tenant](ReadPreference.primaryPreferred)
         .collect[Seq](-1, Cursor.FailOnError[Seq[Tenant]]()))
 
   def findByKey(key: String): Future[Option[Tenant]] =
     storedCollection.flatMap(
-      _.find(Json.obj("key" -> key), None)
+      _.find(Json.obj("key" -> key))
         .one[Tenant]
     )
 
   def removeByKey(key: String) = {
     storedCollection.flatMap { col =>
-      col.delete().one(Json.obj("key" -> key))
+      col.remove(Json.obj("key" -> key))
     }
   }
 

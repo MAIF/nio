@@ -2,9 +2,10 @@ package db
 
 import akka.stream.Materializer
 import akka.stream.scaladsl.Source
-import play.api.libs.json.{JsObject, Json, OFormat, OWrites}
+import play.api.libs.json.{JsObject, Json, OFormat}
+import play.modules.reactivemongo.json.ImplicitBSONHandlers._
 import reactivemongo.akkastream.{State, cursorProducer}
-import reactivemongo.api.{Cursor, QueryOpts, ReadConcern, ReadPreference}
+import reactivemongo.api.{Cursor, QueryOpts, ReadPreference}
 import reactivemongo.play.json.collection.JSONCollection
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -13,8 +14,6 @@ object MongoOpsDataStore {
 
   implicit class MongoDataStore(coll: JSONCollection)(
       implicit executionContext: ExecutionContext) {
-
-    implicit val jsObjectWrites: OWrites[JsObject] = (o: JsObject) => o
 
     def insertOne[T](objToInsert: T)(
         implicit oformat: OFormat[T]): Future[Boolean] = {
@@ -48,7 +47,7 @@ object MongoOpsDataStore {
 
     private def findOne[T](query: JsObject)(
         implicit oformat: OFormat[T]): Future[Option[T]] = {
-      coll.find(query, Option.empty[JsObject]).one[T]
+      coll.find(query).one[T]
     }
 
     def findMany[T]()(implicit oformat: OFormat[T]): Future[Seq[T]] = {
@@ -68,15 +67,15 @@ object MongoOpsDataStore {
         pageSize: Int)(implicit oformat: OFormat[T]): Future[(Seq[T], Int)] = {
       val options = QueryOpts(skipN = page * pageSize, pageSize)
       for {
-        count <- coll.count(Some(query), None, 0, None, ReadConcern.Majority)
+        count <- coll.count(Some(query))
         queryRes <- coll
-          .find(query, Option.empty[JsObject])
+          .find(query)
           .sort(sort)
           .options(options)
           .cursor[T](ReadPreference.primaryPreferred)
           .collect[Seq](maxDocs = pageSize, Cursor.FailOnError[Seq[T]]())
       } yield {
-        (queryRes, count.toInt)
+        (queryRes, count)
       }
     }
 
@@ -88,7 +87,7 @@ object MongoOpsDataStore {
         pageSize: Int)(implicit oformat: OFormat[T]): Future[Seq[T]] = {
       val options = QueryOpts(skipN = page * pageSize, pageSize)
       coll
-        .find(query, Option.empty[JsObject])
+        .find(query)
         .sort(sort)
         .options(options)
         .cursor[T](ReadPreference.primaryPreferred)
@@ -98,7 +97,7 @@ object MongoOpsDataStore {
     private def findByQuery[T](query: JsObject)(
         implicit oformat: OFormat[T]): Future[Seq[T]] = {
       coll
-        .find(query, Option.empty[JsObject])
+        .find(query)
         .cursor[T](ReadPreference.primaryPreferred)
         .collect[Seq](maxDocs = -1, Cursor.FailOnError[Seq[T]]())
     }
@@ -112,7 +111,7 @@ object MongoOpsDataStore {
         implicit oformat: OFormat[T],
         mat: Materializer): Source[T, Future[State]] = {
       coll
-        .find(query, Option.empty[JsObject])
+        .find(query)
         .cursor[T](ReadPreference.primaryPreferred)
         .documentSource()
     }
@@ -124,7 +123,7 @@ object MongoOpsDataStore {
 
     private def delete[T](query: JsObject)(
         implicit oformat: OFormat[T]): Future[Boolean] = {
-      coll.delete().one(query).map(_.ok)
+      coll.remove(query).map(_.ok)
     }
   }
 
