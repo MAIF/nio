@@ -928,6 +928,79 @@
         }
       }
     },
+    "/api/{tenant}/organisations/{orgKey}/users/{userId}/logs": {
+      "get": {
+        "tags": [
+          "utilisateur"
+        ],
+        "summary": "Historique des consentements d'un utilisateur.",
+        "description": "Récupération de la liste paginée des consentements enregistrés pour un utilisateur donné pour une organisation donnée filtrés par le contexte utilisateur.",
+        "parameters": [
+          {
+            "name": "$CLIENT_ID",
+            "in": "header",
+            "description": "Otoroshi client id",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "$CLIENT_SECRET",
+            "in": "header",
+            "description": "Otoroshi client secret",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "tenant",
+            "in": "path",
+            "description": "Le nom du tenant",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "orgKey",
+            "in": "path",
+            "description": "La clé de l'organisation",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "userId",
+            "in": "path",
+            "description": "L'identifiant utilisateur",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Le numéro de la page",
+            "required": false,
+            "type": "integer",
+            "default": 0
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Le nombre d'élément",
+            "required": false,
+            "type": "integer",
+            "default": 10
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "L'historique des consentements de l'utilisateur.",
+            "schema": {
+              "$ref": "#/definitions/ConsentFactHistory"
+            }
+          },
+          "404": {
+            "description": "Le tenant, l'organisation ou l'utilisateur n'existe pas."
+          }
+        }
+      }
+    },
     "/api/{tenant}/organisations/{orgKey}/users": {
       "get": {
         "tags": [
@@ -2237,6 +2310,34 @@
         "orgKey": {
           "type": "string",
           "description": "valeur de la meta donnée"
+        }
+      }
+    },
+    "ConsentFactHistory": {
+      "type": "object",
+      "description": "structure représentant l'historique des consentements d'un utilisateur",
+      "properties": {
+        "page": {
+          "type": "integer",
+          "example": 0,
+          "description": "page courante de la pagination de l'historique"
+        },
+        "pageSize": {
+          "type": "integer",
+          "example": 10,
+          "description": "nombre de consentements utilisateur par page d'historique"
+        },
+        "count": {
+          "type": "integer",
+          "example": 50,
+          "description": "nombre total de consentements utilisateurs"
+        },
+        "items": {
+          "type": "array",
+          "description": "La liste des consentements",
+          "items": {
+            "$ref": "#/definitions/ConsentFact"
+          }
         }
       }
     },
