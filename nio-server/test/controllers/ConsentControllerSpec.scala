@@ -133,10 +133,10 @@ class ConsentControllerSpec extends TestUtils {
 
   private def offerToConsentOffer(offer: Offer): ConsentOffer =
     ConsentOffer(
-      offer.key,
-      offer.label,
-      offer.version,
-      offer.groups.map(
+      key = offer.key,
+      label = offer.label,
+      version = offer.version,
+      groups = offer.groups.map(
         group =>
           ConsentGroup(group.key,
                        group.label,
@@ -731,7 +731,7 @@ class ConsentControllerSpec extends TestUtils {
             key = "offer1",
             label = "offer one",
             version = 1,
-            Seq(
+            groups = Seq(
               ConsentGroup(
                 key = "maifNotifs",
                 label =
@@ -754,7 +754,7 @@ class ConsentControllerSpec extends TestUtils {
             key = "offer2",
             label = "offer two",
             version = 2,
-            Seq(
+            groups = Seq(
               ConsentGroup(
                 key = "maifPartnerNotifs",
                 label =
@@ -1011,7 +1011,7 @@ class ConsentControllerSpec extends TestUtils {
               key = "offer1",
               label = "offer one",
               version = 1,
-              Seq(
+              groups = Seq(
                 ConsentGroup(
                   key = "maifNotifs",
                   label =
@@ -1034,7 +1034,7 @@ class ConsentControllerSpec extends TestUtils {
               key = "offer2",
               label = "offer two",
               version = 1,
-              Seq(
+              groups = Seq(
                 ConsentGroup(
                   key = "maifPartnerNotifs",
                   label =
@@ -1280,6 +1280,110 @@ class ConsentControllerSpec extends TestUtils {
               consentFact
                 .copy(lastUpdate = lastUpdate.plusDays(1))
                 .asJson).status mustBe OK
+    }
+  }
+
+  "last update offer date must be >= last update offer date in db" should {
+    val today = DateTime.now(DateTimeZone.UTC)
+    val yesterday = DateTime.now(DateTimeZone.UTC).minusDays(1)
+    val tommorrow = DateTime.now(DateTimeZone.UTC).plusDays(1)
+
+    val userIdDate = "userIdWithLastUpdateDate"
+    val consentFact = ConsentFact(
+      _id = "cf",
+      userId = userIdDate,
+      doneBy = DoneBy("a1", "admin"),
+      version = 1,
+      groups = Seq(
+        ConsentGroup(
+          key = "maifNotifs",
+          label =
+            "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF",
+          consents = Seq(
+            Consent(key = "phone",
+                    label = "Par contact téléphonique",
+                    checked = true),
+            Consent(key = "mail",
+                    label = "Par contact électronique",
+                    checked = false),
+            Consent(key = "sms", label = "Par SMS / MMS / VMS", checked = true)
+          )
+        )
+      ),
+      offers = None,
+      lastUpdate = today,
+      metaData = Some(Map("mdKey1" -> "mdVal1", "tata" -> "val2"))
+    )
+
+    val consentOffer1: ConsentOffer = offerToConsentOffer(offer1)
+
+    val orgKey: String = "organisationForLastUpdateOffer"
+
+    val organisation: Organisation = Organisation(
+      key = orgKey,
+      label = "organisation",
+      groups = Seq(
+        PermissionGroup(
+          key = "maifNotifs",
+          label =
+            "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF",
+          permissions = Seq(
+            Permission(key = "phone", label = "Par contact téléphonique"),
+            Permission(key = "mail", label = "Par contact électronique"),
+            Permission(key = "sms", label = "Par SMS / MMS / VMS")
+          )
+        )
+      ),
+      offers = Some(Seq(offer1))
+    )
+
+    "initialize organisation" in {
+      postJson(s"/$tenant/organisations", organisation.asJson).status mustBe CREATED
+      postJson(s"/$tenant/organisations/$orgKey/draft/_release",
+               organisation.asJson).status mustBe OK
+
+      // offer 1 with version 1
+      postJson(s"/$tenant/organisations/$orgKey/offers", offer1.asJson()).status mustBe CREATED
+
+      // insert consent fact on db
+      putJson(s"/$tenant/organisations/$orgKey/users/$userIdDate",
+              consentFact.asJson).status mustBe OK
+    }
+
+    "case no offer in db" in {
+      val response =
+        putJson(s"/$tenant/organisations/$orgKey/users/$userIdDate",
+                consentFact.copy(offers = Some(Seq(consentOffer1))).asJson)
+      response.status mustBe OK
+    }
+
+    "case last update date in offer < last update date in db" in {
+      val response =
+        putJson(
+          s"/$tenant/organisations/$orgKey/users/$userIdDate",
+          consentFact
+            .copy(
+              offers = Some(Seq(consentOffer1.copy(lastUpdate = yesterday))))
+            .asJson)
+      response.status mustBe CONFLICT
+
+      (response.json \ "errors" \ 0 \ "message")
+        .as[String] mustBe "the.specified.offer.update.date.must.be.greater.than.the.saved.offer.update.date"
+    }
+
+    "case last update date in offer = last update date in db" in {
+      putJson(s"/$tenant/organisations/$orgKey/users/$userIdDate",
+              consentFact
+                .copy(offers = Some(Seq(consentOffer1)))
+                .asJson).status mustBe OK
+    }
+
+    "case last update date in offer > last update date in db" in {
+      putJson(
+        s"/$tenant/organisations/$orgKey/users/$userIdDate",
+        consentFact
+          .copy(offers = Some(Seq(consentOffer1.copy(lastUpdate = tommorrow))))
+          .asJson).status mustBe OK
     }
   }
 }

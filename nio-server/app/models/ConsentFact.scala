@@ -110,6 +110,7 @@ object ConsentGroup {
 case class ConsentOffer(key: String,
                         label: String,
                         version: Int,
+                        lastUpdate: DateTime = DateTime.now(DateTimeZone.UTC),
                         groups: Seq[ConsentGroup])
     extends ModelTransformAs {
   override def asXml(): Elem = <offer>
@@ -122,6 +123,9 @@ case class ConsentOffer(key: String,
     <version>
       {version}
     </version>
+    <lastUpdate>
+      {lastUpdate.toString(DateUtils.utcDateFormatter)}
+    </lastUpdate>
     <groups>
       {groups.map(_.asXml)}
     </groups>
@@ -135,6 +139,8 @@ object ConsentOffer extends ReadableEntity[ConsentOffer] {
     (__ \ "key").read[String] and
       (__ \ "label").read[String] and
       (__ \ "version").read[Int] and
+      (__ \ "lastUpdate").readWithDefault[DateTime](
+        DateTime.now(DateTimeZone.UTC))(DateUtils.utcDateTimeReads) and
       (__ \ "groups").read[Seq[ConsentGroup]]
   )(ConsentOffer.apply _)
 
@@ -142,6 +148,7 @@ object ConsentOffer extends ReadableEntity[ConsentOffer] {
     (__ \ "key").write[String] and
       (__ \ "label").write[String] and
       (__ \ "version").write[Int] and
+      (__ \ "lastUpdate").write[DateTime](DateUtils.utcDateTimeWrites) and
       (__ \ "groups").write[Seq[ConsentGroup]]
   )(unlift(ConsentOffer.unapply))
 
@@ -149,6 +156,7 @@ object ConsentOffer extends ReadableEntity[ConsentOffer] {
     (__ \ "key").write[String] and
       (__ \ "label").write[String] and
       (__ \ "version").write[Int] and
+      (__ \ "lastUpdate").write[DateTime](DateUtils.utcDateTimeWrites) and
       (__ \ "groups").write[Seq[ConsentGroup]]
   )(unlift(ConsentOffer.unapply))
 
@@ -162,11 +170,13 @@ object ConsentOffer extends ReadableEntity[ConsentOffer] {
         (node \ "key").validate[String](Some(s"${path.convert()}key")),
         (node \ "label").validate[String](Some(s"${path.convert()}label")),
         (node \ "version").validate[Int](Some(s"${path.convert()}version")),
+        (node \ "lastUpdate").validate[DateTime](
+          Some(s"${path.convert()}lastUpdate")),
         (node \ "groups").validate[Seq[ConsentGroup]](
           Some(s"${path.convert()}groups"))
       ).mapN(
-        (key, label, version, groups) =>
-          ConsentOffer(key, label, version, groups)
+        (key, label, version, lastUpdate, groups) =>
+          ConsentOffer(key, label, version, lastUpdate, groups)
     )
 
   override def fromXml(xml: Elem): Either[AppErrors, ConsentOffer] =

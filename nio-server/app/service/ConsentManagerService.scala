@@ -97,8 +97,11 @@ class ConsentManagerService(
                 }
               // Update user, consent fact and last consent fact
               case Some(lastConsentFactStored)
-                  if consentFact.version >= lastConsentFactStored.version && !consentFact.lastUpdate
-                    .isBefore(lastConsentFactStored.lastUpdate) =>
+                  if consentFact.version >= lastConsentFactStored.version
+                    && !consentFact.lastUpdate.isBefore(
+                      lastConsentFactStored.lastUpdate)
+                    && !isOffersUpdateConflict(lastConsentFactStored.offers,
+                                               consentFact.offers) =>
                 val lastConsentFactToStore =
                   consentFact.copy(lastConsentFactStored._id)
 
@@ -132,6 +135,18 @@ class ConsentManagerService(
                 toErrorWithStatus(
                   "the.specified.update.date.must.be.greater.than.the.saved.update.date",
                   Conflict)
+              case Some(lastConsentFactStored)
+                  if isOffersUpdateConflict(lastConsentFactStored.offers,
+                                            consentFact.offers) =>
+                val conflictedOffers =
+                  conflictedOffersByLastUpdate(lastConsentFactStored.offers,
+                                               consentFact.offers).get
+                Logger.error(s"offer.lastUpdate < lastOfferStored.lastUpdate (${conflictedOffers
+                  .map(o => s"${o._1.key} -> ${o._2.lastUpdate} < ${o._1.lastUpdate}")
+                  .mkString(", ")})")
+                toErrorWithStatus(
+                  "the.specified.offer.update.date.must.be.greater.than.the.saved.offer.update.date",
+                  Conflict)
               case Some(lastConsentFactStored) =>
                 Logger.error(
                   s"lastConsentFactStored.version > consentFact.version (${lastConsentFactStored.version} > ${consentFact.version}) for ${lastConsentFactStored._id}")
@@ -140,6 +155,40 @@ class ConsentManagerService(
             }
         }
     }
+  }
+
+  private def conflictedOffersByLastUpdate(
+      lastOffers: Option[Seq[ConsentOffer]],
+      offers: Option[Seq[ConsentOffer]])
+    : Option[Seq[(ConsentOffer, ConsentOffer)]] = {
+    for {
+      lastOffers <- lastOffers
+      offers <- offers
+    } yield {
+      offers.foldRight(Seq.empty[(ConsentOffer, ConsentOffer)])((offer, acc) =>
+        lastOffers.find(o => o.key == offer.key) match {
+          case Some(lastOffer)
+              if offer.lastUpdate.isBefore(lastOffer.lastUpdate) =>
+            acc ++ Seq((lastOffer, offer))
+          case Some(_) => acc
+          case None    => acc
+      })
+    }
+  }
+
+  private def isOffersUpdateConflict(lastOffers: Option[Seq[ConsentOffer]],
+                                     offers: Option[Seq[ConsentOffer]]) = {
+    (for {
+      lastOffers <- lastOffers
+      offers <- offers
+    } yield {
+      offers.foldRight(false)((offer, acc) =>
+        lastOffers.find(o => o.key == offer.key) match {
+          case Some(lastOffer) =>
+            acc || offer.lastUpdate.isBefore(lastOffer.lastUpdate)
+          case None => acc
+      })
+    }).getOrElse(false)
   }
 
   private def publishAndUpdateConsent(tenant: String,

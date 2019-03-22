@@ -410,7 +410,7 @@ class OrganisationOfferControllerSpec extends TestUtils {
               key = "offer1",
               label = "offer one",
               version = 1,
-              Seq(
+              groups = Seq(
                 ConsentGroup(
                   key = "maifNotifs",
                   label =
@@ -433,7 +433,7 @@ class OrganisationOfferControllerSpec extends TestUtils {
               key = "offer2",
               label = "offer two",
               version = 1,
-              Seq(
+              groups = Seq(
                 ConsentGroup(
                   key = "maifPartnerNotifs",
                   label =

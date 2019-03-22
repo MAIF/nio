@@ -924,6 +924,9 @@
           },
           "404": {
             "description": "Le tenant ou l'organisation n'existe pas."
+          },
+          "409": {
+            "description": "La date de mise a jour des consentements (ou des consentemnt liés à une offre) est inferieure à celle déjà précédemment renseignée"
           }
         }
       }
@@ -2691,6 +2694,10 @@
         "label": {
           "type": "string",
           "description": "libellé de l'offre"
+        },
+        "lastUpdate": {
+          "type": "string",
+          "description": "date de dernière mise à jour des consentements de l'offre, au format \"YYYY-MM-DDTHH:mm:ssZ\""
         },
         "version": {
           "type": "integer",

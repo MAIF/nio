@@ -603,7 +603,7 @@ class ConsentTemplateControllerSpec extends TestUtils {
               key = "offer1",
               label = "offer 1",
               version = 1,
-              Seq(
+              groups = Seq(
                 ConsentGroup(
                   key = "maifNotifs",
                   label =
@@ -626,7 +626,7 @@ class ConsentTemplateControllerSpec extends TestUtils {
               key = "offer2",
               label = "offer 2",
               version = 1,
-              Seq(
+              groups = Seq(
                 ConsentGroup(
                   key = "maifNotifs",
                   label =
