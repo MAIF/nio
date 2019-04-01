@@ -4,7 +4,7 @@ import akka.japi.Option
 import models._
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
-import play.api.libs.json.{JsArray, JsValue, Json}
+import play.api.libs.json.{JsArray, JsObject, JsValue, Json}
 import play.api.libs.ws.WSResponse
 import utils.{DateUtils, TestUtils}
 import play.api.test.Helpers._
@@ -1384,6 +1384,102 @@ class ConsentControllerSpec extends TestUtils {
         consentFact
           .copy(offers = Some(Seq(consentOffer1.copy(lastUpdate = tommorrow))))
           .asJson).status mustBe OK
+    }
+  }
+
+  "put just offer2 with user has 1 & 2" should {
+    val today = DateTime.now(DateTimeZone.UTC)
+    val yesterday = DateTime.now(DateTimeZone.UTC).minusDays(1)
+
+    val consentOffer1: ConsentOffer = offerToConsentOffer(offer1).copy(lastUpdate = yesterday)
+    val consentOffer2: ConsentOffer = offerToConsentOffer(offer2).copy(lastUpdate = yesterday)
+
+    val userIdDate = "userIdWithOffer"
+    val consentFact = ConsentFact(
+      _id = "cf",
+      userId = userIdDate,
+      doneBy = DoneBy("a1", "admin"),
+      version = 1,
+      groups = Seq(
+        ConsentGroup(
+          key = "maifNotifs",
+          label =
+              "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF",
+          consents = Seq(
+            Consent(key = "phone",
+              label = "Par contact téléphonique",
+              checked = true),
+            Consent(key = "mail",
+              label = "Par contact électronique",
+              checked = false),
+            Consent(key = "sms", label = "Par SMS / MMS / VMS", checked = true)
+          )
+        )
+      ),
+      offers = Some(Seq(consentOffer1, consentOffer2)),
+      lastUpdate = today,
+      metaData = Some(Map("mdKey1" -> "mdVal1", "tata" -> "val2"))
+    )
+
+    val orgKey: String = "organisationForOffers"
+
+    val organisation: Organisation = Organisation(
+      key = orgKey,
+      label = "organisation",
+      groups = Seq(
+        PermissionGroup(
+          key = "maifNotifs",
+          label =
+              "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF",
+          permissions = Seq(
+            Permission(key = "phone", label = "Par contact téléphonique"),
+            Permission(key = "mail", label = "Par contact électronique"),
+            Permission(key = "sms", label = "Par SMS / MMS / VMS")
+          )
+        )
+      ),
+      offers = Some(Seq(offer1))
+    )
+
+    "initialize organisation" in {
+      postJson(s"/$tenant/organisations", organisation.asJson).status mustBe CREATED
+      postJson(s"/$tenant/organisations/$orgKey/draft/_release",
+        organisation.asJson).status mustBe OK
+
+      // offer 1 with version 1
+      postJson(s"/$tenant/organisations/$orgKey/offers", offer1.asJson()).status mustBe CREATED
+      postJson(s"/$tenant/organisations/$orgKey/offers", offer2.asJson()).status mustBe CREATED
+
+      // insert consent fact on db
+      putJson(s"/$tenant/organisations/$orgKey/users/$userIdDate",
+        consentFact.asJson).status mustBe OK
+    }
+
+    "update just offer 2 without change offer 1" in {
+      val response =
+        putJson(
+          s"/$tenant/organisations/$orgKey/users/$userIdDate",
+          consentFact
+              .copy(
+                offers = Some(Seq(consentOffer2.copy(lastUpdate = today, groups = consentOffer2.groups.map(g => ConsentGroup(g.key, g.label, g.consents.map(c => c.copy(checked = true))))))))
+              .asJson)
+      response.status mustBe OK
+
+      val msgAsJson = readLastKafkaEvent()
+      (msgAsJson \ "type").as[String] mustBe "ConsentFactUpdated"
+      val payloadOffers: JsArray =
+        (msgAsJson \ "payload" \ "offers").as[JsArray]
+
+      (payloadOffers \ 0 \ "key")
+          .as[String] mustBe "offer2"
+      (payloadOffers \ 1 \ "key")
+          .as[String] mustBe "offer1"
+
+      (payloadOffers \ 0 \ "lastUpdate")
+          .as[String] mustBe today.toString("yyyy-MM-dd'T'HH:mm:ss'Z'")
+      (payloadOffers \ 1 \ "lastUpdate")
+          .as[String] mustBe yesterday.toString("yyyy-MM-dd'T'HH:mm:ss'Z'")
+
     }
   }
 }

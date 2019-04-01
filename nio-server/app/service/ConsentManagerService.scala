@@ -102,8 +102,20 @@ class ConsentManagerService(
                       lastConsentFactStored.lastUpdate)
                     && !isOffersUpdateConflict(lastConsentFactStored.offers,
                                                consentFact.offers) =>
+                val offers = consentFact.offers match {
+                  case Some(newOffers) =>
+                    lastConsentFactStored.offers match {
+                      case Some(lastOffers) =>
+                        Some(newOffers ++ lastOffers.filterNot(o =>
+                          newOffers.exists(no => no.key == o.key)))
+                      case None => Some(newOffers)
+                    }
+                  case None => None
+                }
+                val consentFactToStore = consentFact.copy(offers = offers)
+
                 val lastConsentFactToStore =
-                  consentFact.copy(lastConsentFactStored._id)
+                  consentFactToStore.copy(lastConsentFactStored._id)
 
                 for {
                   _ <- lastConsentFactMongoDataStore.update(
@@ -113,19 +125,19 @@ class ConsentManagerService(
                     lastConsentFactToStore)
                   _ <- consentFactMongoDataStore.insert(
                     tenant,
-                    consentFact.notYetSendToKafka())
-                  _ <- publishAndUpdateConsent(tenant,
-                                               ConsentFactUpdated(
-                                                 tenant = tenant,
-                                                 oldValue =
-                                                   lastConsentFactStored,
-                                                 payload =
-                                                   lastConsentFactToStore,
-                                                 author = author,
-                                                 metadata = metadata
-                                               ),
-                                               consentFact)
-                } yield Right(consentFact)
+                    consentFactToStore.notYetSendToKafka())
+                  _ <- publishAndUpdateConsent(
+                    tenant,
+                    ConsentFactUpdated(
+                      tenant = tenant,
+                      oldValue = lastConsentFactStored,
+                      payload = lastConsentFactToStore,
+                      author = author,
+                      metadata = metadata
+                    ),
+                    consentFactToStore
+                  )
+                } yield Right(consentFactToStore)
 
               case Some(lastConsentFactStored)
                   if consentFact.lastUpdate.isBefore(

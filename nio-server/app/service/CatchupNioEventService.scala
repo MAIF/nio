@@ -133,45 +133,48 @@ class CatchupNioEventService(
 
   }
 
-  def catchupNioEventScheduler(): Future[Seq[Cancellable]] =
-    tenantMongoDataStore.findAll().map { tenants =>
-      tenants.map(tenant => {
-        Logger.debug(s"start catchup scheduler for tenant ${tenant.key}")
-        system.scheduler.schedule(
-          env.config.kafka.catchUpEvents.delay,
-          env.config.kafka.catchUpEvents.interval,
-          new Runnable() {
-            def run = {
-              catchupLockMongoDatastore
-                .findLock(tenant.key)
-                .map {
-                  case Some(_) =>
-                    Logger.debug(s"tenant ${tenant.key} already locked")
-                  case None =>
-                    catchupLockMongoDatastore
-                      .createLock(tenant.key)
-                      .map {
-                        case true =>
-                          val source: Source[Catchup, Future[State]] =
-                            getUnsendConsentFactAsSource(tenant.key)
+  def catchupNioEventScheduler() =
+    if (env.env == "prod") {
+      tenantMongoDataStore.findAll().map { tenants =>
+        tenants.map(tenant => {
+          Logger.debug(s"start catchup scheduler for tenant ${tenant.key}")
+          system.scheduler.schedule(
+            env.config.kafka.catchUpEvents.delay,
+            env.config.kafka.catchUpEvents.interval,
+            new Runnable() {
+              def run = {
+                catchupLockMongoDatastore
+                  .findLock(tenant.key)
+                  .map {
+                    case Some(_) =>
+                      Logger.debug(s"tenant ${tenant.key} already locked")
+                    case None =>
+                      catchupLockMongoDatastore
+                        .createLock(tenant.key)
+                        .map {
+                          case true =>
+                            val source: Source[Catchup, Future[State]] =
+                              getUnsendConsentFactAsSource(tenant.key)
 
-                          if (env.config.kafka.catchUpEvents.strategy == "Last") {
-                            val unRelevantSource
-                              : Source[Catchup, Future[State]] =
-                              getUnrelevantConsentFactsAsSource(source)
-                            unflagConsentFacts(tenant.key, unRelevantSource)
-                          }
+                            if (env.config.kafka.catchUpEvents.strategy == "Last") {
+                              val unRelevantSource
+                                : Source[Catchup, Future[State]] =
+                                getUnrelevantConsentFactsAsSource(source)
+                              unflagConsentFacts(tenant.key, unRelevantSource)
+                            }
 
-                          val relevantSource: Source[Catchup, Future[State]] =
-                            getRelevantConsentFactsAsSource(tenant.key, source)
+                            val relevantSource: Source[Catchup, Future[State]] =
+                              getRelevantConsentFactsAsSource(tenant.key,
+                                                              source)
 
-                          resendNioEvents(tenant.key, relevantSource)
-                        case false => ()
-                      }
-                }
+                            resendNioEvents(tenant.key, relevantSource)
+                          case false => ()
+                        }
+                  }
+              }
             }
-          }
-        )
-      })
+          )
+        })
+      }
     }
 }
