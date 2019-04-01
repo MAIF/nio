@@ -110,7 +110,7 @@ class ConsentManagerService(
                           newOffers.exists(no => no.key == o.key)))
                       case None => Some(newOffers)
                     }
-                  case None => None
+                  case None => lastConsentFactStored.offers
                 }
                 val consentFactToStore = consentFact.copy(offers = offers)
 
