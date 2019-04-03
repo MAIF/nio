@@ -60,15 +60,24 @@ class AuthAction(val parser: BodyParsers.Default)(
   override def invokeBlock[A](
       request: Request[A],
       block: AuthContext[A] => Future[Result]): Future[Result] = {
+    val startTime = System.currentTimeMillis()
     val maybeMaybeInfo: Option[Option[AuthInfo]] =
       request.attrs.get(FilterAttributes.AuthInfo)
-    maybeMaybeInfo.map { auth =>
+    val f: Future[Result] = maybeMaybeInfo.map { auth =>
       AuthContext(request, auth)
     } match {
       case Some(ctx) => block(ctx)
       case None =>
         Logger.info("Auth info is missing => Unauthorized")
         FastFuture.successful(Unauthorized)
+    }
+
+    f andThen {
+      case _ =>
+        val endTime = System.currentTimeMillis()
+        Logger.info(
+          s"[AuthAction] :: request time  : $request ==> request time : ${endTime - startTime} ms")
+
     }
   }
 }
@@ -81,10 +90,11 @@ class SecuredAction(val env: Env, val parser: BodyParser[AnyContent])(
   override def invokeBlock[A](
       request: Request[A],
       block: SecuredAuthContext[A] => Future[Result]): Future[Result] = {
+    val startTime = System.currentTimeMillis()
     val maybeMaybeInfo: Option[Option[AuthInfo]] =
       request.attrs.get(FilterAttributes.AuthInfo)
 
-    maybeMaybeInfo match {
+    val f: Future[Result] = maybeMaybeInfo match {
       case Some(Some(info)) => block(SecuredAuthContext(request, info))
       case Some(None) =>
         Logger.debug("Auth info is empty => Forbidden")
@@ -92,6 +102,13 @@ class SecuredAction(val env: Env, val parser: BodyParser[AnyContent])(
       case _ =>
         Logger.debug("Auth info is missing => Unauthorized")
         FastFuture.successful(Unauthorized)
+    }
+
+    f andThen {
+      case _ =>
+        val endTime = System.currentTimeMillis()
+        Logger.info(
+          s"[SecuredAction] :: request time : $request ==> request time : ${endTime - startTime} ms")
     }
   }
 }

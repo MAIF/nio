@@ -163,7 +163,7 @@ services:
       - "nio.foo.bar: 192.168.200.59" # use your own IP address here
 
   otoroshi:
-    image: maif/otoroshi:1.4.0-jdk8
+    image: maif/otoroshi:1.4.7-jdk11
 #    networks:
 #      - nio-net
     extra_hosts: 
@@ -225,6 +225,7 @@ services:
       - otoroshi
       - nio
       - kibana
+      - elastic
       - keycloak
 
 #networks:
