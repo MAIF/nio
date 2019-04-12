@@ -72,7 +72,12 @@ case class KafkaConfig(servers: String,
                        eventIdSeed: Long,
                        eventsGroupIn: Int,
                        eventsGroupDuration: FiniteDuration,
-                       catchUpEvents: CatchUpEventsConfig)
+                       catchUpEvents: CatchUpEventsConfig,
+                       saslMechanism: Option[String],
+                       securityProtocol: Option[String],
+                       connectionString: Option[String],
+                       saslJaasConfig: String
+                      )
 
 case class Location(location: Option[String])
 

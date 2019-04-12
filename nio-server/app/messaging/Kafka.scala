@@ -5,6 +5,7 @@ import java.io.File
 import akka.actor.ActorSystem
 import configuration.KafkaConfig
 import org.apache.kafka.clients.CommonClientConfigs
+import org.apache.kafka.common.config.SaslConfigs
 import org.apache.kafka.common.config.internals.BrokerSecurityConfigs
 import org.apache.kafka.common.serialization.{
   StringDeserializer,
@@ -31,21 +32,30 @@ object KafkaSettings {
         .withProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false")
         .withBootstrapServers(config.servers)
 
-    val s = for {
-      ks <- config.keystore.location
-      ts <- config.truststore.location
-      kp <- config.keyPass
-    } yield {
-      settings
-        .withProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL")
-        .withProperty(BrokerSecurityConfigs.SSL_CLIENT_AUTH_CONFIG, "required")
-        .withProperty(SslConfigs.SSL_KEY_PASSWORD_CONFIG, kp)
-        //.withProperty(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, getFile(ks).getAbsolutePath)
-        .withProperty(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, ks)
-        .withProperty(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, kp)
-//        .withProperty(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, getFile(ts).getAbsolutePath)
-        .withProperty(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, ts)
-        .withProperty(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, kp)
+    val s = config.securityProtocol match {
+      case Some("SASL_SSL") => for {
+        sp <- config.securityProtocol
+        sm <- config.saslMechanism
+      } yield {
+        settings
+            .withProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, sp)
+            .withProperty(SaslConfigs.SASL_MECHANISM, sm)
+            .withProperty(SaslConfigs.SASL_JAAS_CONFIG, config.saslJaasConfig)
+      }
+      case _ => for {
+        ks <- config.keystore.location
+        ts <- config.truststore.location
+        kp <- config.keyPass
+      } yield {
+        settings
+            .withProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL")
+            .withProperty(BrokerSecurityConfigs.SSL_CLIENT_AUTH_CONFIG, "required")
+            .withProperty(SslConfigs.SSL_KEY_PASSWORD_CONFIG, kp)
+            .withProperty(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, ks)
+            .withProperty(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, kp)
+            .withProperty(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, ts)
+            .withProperty(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, kp)
+      }
     }
 
     s.getOrElse(settings)
@@ -58,19 +68,30 @@ object KafkaSettings {
       .create(system, new StringSerializer(), new StringSerializer())
       .withBootstrapServers(config.servers)
 
-    val s = for {
-      ks <- config.keystore.location
-      ts <- config.truststore.location
-      kp <- config.keyPass
-    } yield {
-      settings
-        .withProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL")
-        .withProperty(BrokerSecurityConfigs.SSL_CLIENT_AUTH_CONFIG, "required")
-        .withProperty(SslConfigs.SSL_KEY_PASSWORD_CONFIG, kp)
-        .withProperty(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, ks)
-        .withProperty(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, kp)
-        .withProperty(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, ts)
-        .withProperty(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, kp)
+    val s = config.securityProtocol match {
+      case Some("SASL_SSL") => for {
+        sp <- config.securityProtocol
+        sm <- config.saslMechanism
+      } yield {
+        settings
+            .withProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, sp)
+            .withProperty(SaslConfigs.SASL_MECHANISM, sm)
+            .withProperty(SaslConfigs.SASL_JAAS_CONFIG, config.saslJaasConfig)
+      }
+      case _ => for {
+        ks <- config.keystore.location
+        ts <- config.truststore.location
+        kp <- config.keyPass
+      } yield {
+        settings
+            .withProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL")
+            .withProperty(BrokerSecurityConfigs.SSL_CLIENT_AUTH_CONFIG, "required")
+            .withProperty(SslConfigs.SSL_KEY_PASSWORD_CONFIG, kp)
+            .withProperty(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, ks)
+            .withProperty(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, kp)
+            .withProperty(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, ts)
+            .withProperty(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, kp)
+      }
     }
 
     s.getOrElse(settings)
