@@ -7,10 +7,8 @@ import configuration.KafkaConfig
 import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.common.config.SaslConfigs
 import org.apache.kafka.common.config.internals.BrokerSecurityConfigs
-import org.apache.kafka.common.serialization.{
-  StringDeserializer,
-  StringSerializer
-}
+import org.apache.kafka.common.serialization.{StringDeserializer, StringSerializer}
+import play.api.Logger
 
 object KafkaSettings {
 
@@ -37,6 +35,7 @@ object KafkaSettings {
         sp <- config.securityProtocol
         sm <- config.saslMechanism
       } yield {
+        Logger.debug(s"sasl config ==> ${config.saslJaasConfig}")
         settings
             .withProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, sp)
             .withProperty(SaslConfigs.SASL_MECHANISM, sm)
