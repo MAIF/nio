@@ -40,7 +40,9 @@ libraryDependencies ++= Seq(
 
   // S3 client for akka-stream
   "com.lightbend.akka" %% "akka-stream-alpakka-s3" % "0.14",
-  "org.scalatestplus.play" %% "scalatestplus-play" % "3.1.0" % Test
+  "org.scalatestplus.play" %% "scalatestplus-play" % "3.1.0" % Test,
+  //insight client for azure
+  "com.microsoft.azure" % "applicationinsights-web" % "2.3.1"
 )
 
 scalacOptions ++= Seq(
