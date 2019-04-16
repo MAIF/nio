@@ -32,7 +32,7 @@
   <logger name="com.avaje.ebeaninternal.server.core.XmlConfigLoader" level="OFF" />
   <logger name="com.avaje.ebeaninternal.server.lib.BackgroundThread" level="OFF" />
   <logger name="com.gargoylesoftware.htmlunit.javascript" level="OFF" />
-  <logger name="org.apache.kafka" level="WARNING" />
+  <logger name="org.apache.kafka" level="INFO" />
 
   <root level="WARN">
     <appender-ref ref="ASYNCFILE" />
