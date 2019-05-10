@@ -1,0 +1,39 @@
+@(message: String, uuid: String)
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+        <title>Niō Error</title>
+        <link rel="stylesheet" href="@routes.Assets.versioned("stylesheets/bootstrap.min.css")">
+        <link rel="shortcut icon" type="image/png" href="@routes.Assets.versioned("images/favicon.png")">
+        <link rel="stylesheet" media="screen" href="/assets/stylesheets/error.css">
+        <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet"/>
+        <link href="https://fonts.googleapis.com/css?family=Raleway:400,500" rel="stylesheet"/>
+        <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous"/>
+            <!--link href=" @routes.Assets.versioned(s"javascripts/bundle/style.css")"-->
+        <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+        <link rel="stylesheet" href="@routes.Assets.versioned("stylesheets/main.css")">
+    </head>
+    <body>
+        <div class="container">
+            <div class="header clearfix">
+                <nav class="navbar-inverse">
+                    <ul class="nav navbar-nav navbar-right hide">
+                        <li role="presentation"><a href="@routes.HomeController.indexNoTenant()">Home</a></li>
+                    </ul>
+                </nav>
+                <a class="navbar-brand" href="/" style="display: flex;">
+                    <span>仁王 </span> Niō
+                </a>
+            </div>
+            <div class="jumbotron">
+                <h2><i class="glyphicon glyphicon-warning-sign"></i> Niō error</h2>
+                <p class="lead">@uuid</p><br/>
+                <p class="lead">@message</p>
+                <p><img class="logoOtoroshi" src="/assets/images/opun-nio.png"  alt="logo-nio"/></p>
+            </div>
+        </div>
+    </body>
+</html>

@@ -1,6 +1,9 @@
 package loader
 
+import java.security.SecureRandom
+
 import akka.actor.ActorSystem
+import akka.http.scaladsl.util.FastFuture
 import auth._
 import com.softwaremill.macwire.wire
 import configuration._
@@ -10,9 +13,19 @@ import filters._
 import messaging.KafkaMessageBroker
 import play.api.ApplicationLoader.Context
 import play.api._
+import play.api.http.{DefaultHttpErrorHandler, HttpErrorHandler, MediaRange}
+import play.api.libs.json.Json
 import play.api.libs.ws.ahc.AhcWSComponents
 import play.api.mvc.BodyParsers.Default
-import play.api.mvc.{ActionBuilder, AnyContent, EssentialFilter, Filter}
+import play.api.mvc.{
+  ActionBuilder,
+  AnyContent,
+  EssentialFilter,
+  Filter,
+  RequestHeader,
+  Result,
+  Results
+}
 import play.api.routing.{Router, SimpleRouter}
 import play.filters.HttpFiltersComponents
 import play.filters.gzip._
@@ -24,6 +37,8 @@ import router.Routes
 import s3._
 import service.{AccessibleOfferManagerService, _}
 import utils.{DefaultLoader, S3Manager, SecureEvent}
+
+import scala.concurrent.Future
 
 class NioLoader extends ApplicationLoader {
   override def load(context: Context): Application = {
@@ -169,6 +184,76 @@ class NioComponents(context: Context)
     case "auth0"    => wire[Auth0Filter]
     case "default"  => wire[NioDefaultFilter]
     case _          => wire[NioDefaultFilter]
+  }
+
+  override lazy val httpErrorHandler: HttpErrorHandler = new HttpErrorHandler {
+
+    private lazy val defaultHandler = new DefaultHttpErrorHandler(environment,
+                                                                  configuration,
+                                                                  sourceMapper,
+                                                                  Some(router))
+
+    def acceptedContent(request: RequestHeader,
+                        statusCode: Int,
+                        message: String,
+                        uuid: String): Result = {
+      request.headers.get("Accept") match {
+        case Some(accept) if accept.contains("text/html") =>
+          Results.Status(statusCode)(views.html.error(message, uuid))
+        case _ =>
+          Results.Status(statusCode)(
+            Json.obj("error" -> Json.obj("id" -> uuid, "message" -> message)))
+      }
+    }
+
+    override def onClientError(request: RequestHeader,
+                               statusCode: Int,
+                               mess: String): Future[Result] = {
+      val uuid =
+        java.util.UUID.nameUUIDFromBytes(new SecureRandom().generateSeed(16))
+
+      val message =
+        Option(mess).filterNot(_.trim.isEmpty).getOrElse("An error occured")
+      val realMessage =
+        s"Client Error: $message on ${request.uri} ($statusCode)"
+      Logger.error(s"$uuid - $realMessage")
+
+      if (env.isDev) {
+        defaultHandler.onClientError(request, statusCode, s"[$uuid] $message")
+      } else {
+        val maybeState =
+          request.headers.get(env.config.filter.otoroshi.headerGatewayState)
+        FastFuture.successful(
+          acceptedContent(request, statusCode, realMessage, uuid.toString)
+            .withHeaders(
+              "X-Error" -> s"$uuid - $realMessage",
+              env.config.filter.otoroshi.headerGatewayStateResp -> maybeState
+                .getOrElse("--")
+            ))
+      }
+    }
+
+    override def onServerError(request: RequestHeader,
+                               exception: Throwable): Future[Result] = {
+      val uuid =
+        java.util.UUID.nameUUIDFromBytes(new SecureRandom().generateSeed(16))
+      val message = s"Server Error: ${exception.getMessage}"
+
+      Logger.error(s"$uuid - $message", exception)
+      if (env.isDev) {
+        defaultHandler.onServerError(request, exception)
+      } else {
+        val maybeState =
+          request.headers.get(env.config.filter.otoroshi.headerGatewayState)
+        FastFuture.successful(
+          acceptedContent(request, 500, message, uuid.toString)
+            .withHeaders(
+              "X-Error" -> s"$uuid - $message",
+              env.config.filter.otoroshi.headerGatewayStateResp -> maybeState
+                .getOrElse("--")
+            ))
+      }
+    }
   }
 
   override def httpFilters: Seq[EssentialFilter] = {
