@@ -30,6 +30,11 @@ object MongoOpsDataStore {
       updateOne(query, objToUpdate)
     }
 
+    def updateByQuery[T](query: JsObject, update: JsObject)(
+        implicit OFormat: OFormat[T]): Future[Boolean] = {
+      coll.update(query, update).map(_.ok)
+    }
+
     def updateOne[T](query: JsObject, objToUpdate: T)(
         implicit oformat: OFormat[T]): Future[Boolean] = {
       coll.update(query, objToUpdate).map(_.ok)

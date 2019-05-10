@@ -5,7 +5,7 @@ import java.security.MessageDigest
 
 import akka.actor.ActorSystem
 import akka.kafka.ConsumerMessage.CommittableOffsetBatch
-import akka.kafka.Subscriptions
+import akka.kafka.{ProducerSettings, Subscriptions}
 import akka.kafka.scaladsl.Consumer
 import akka.stream.Materializer
 import akka.stream.scaladsl.Keep.both
@@ -27,7 +27,6 @@ import utils.{FSManager, S3ExecutionContext}
 import scala.collection.JavaConverters._
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future, Promise}
-import scala.util.Failure
 import scala.util.control.NonFatal
 
 class KafkaMessageBroker(actorSystem: ActorSystem)(
@@ -41,7 +40,7 @@ class KafkaMessageBroker(actorSystem: ActorSystem)(
 
   private lazy val kafka: KafkaConfig = env.config.kafka
 
-  private lazy val producerSettings =
+  lazy val producerSettings: ProducerSettings[String, String] =
     KafkaSettings.producerSettings(actorSystem, kafka)
 
   private lazy val producer: KafkaProducer[String, String] =

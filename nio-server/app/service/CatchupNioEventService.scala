@@ -1,9 +1,19 @@
 package service
 
-import akka.Done
-import akka.actor.{ActorSystem, Cancellable}
-import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.{Sink, Source}
+import akka.NotUsed
+import akka.actor.ActorSystem
+import akka.kafka.ProducerMessage
+import akka.kafka.scaladsl.Producer
+import akka.stream.scaladsl.{
+  Broadcast,
+  Flow,
+  GraphDSL,
+  Merge,
+  RunnableGraph,
+  Sink,
+  Source
+}
+import akka.stream.{ActorMaterializer, ClosedShape}
 import configuration.Env
 import db.{
   CatchupLockMongoDatastore,
@@ -13,13 +23,12 @@ import db.{
 }
 import messaging.KafkaMessageBroker
 import models.{ConsentFact, ConsentFactCreated, ConsentFactUpdated}
+import org.apache.kafka.clients.producer.ProducerRecord
 import play.api.Logger
 import play.api.libs.json.Json
 import reactivemongo.akkastream.State
 
-import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Failure
 
 case class Catchup(consentFact: ConsentFact, lastConsentFact: ConsentFact) {
   val isCreation: Boolean = consentFact._id == lastConsentFact._id
@@ -34,7 +43,7 @@ class CatchupNioEventService(
     env: Env)(implicit val executionContext: ExecutionContext,
               system: ActorSystem) {
 
-  implicit val materializer = ActorMaterializer()(system)
+  implicit val materializer: ActorMaterializer = ActorMaterializer()(system)
 
   def getUnsendConsentFactAsSource(
       tenant: String): Source[Catchup, Future[State]] =
@@ -53,28 +62,26 @@ class CatchupNioEventService(
       }
       .mapConcat(_.toList)
 
-  def getUnrelevantConsentFactsAsSource(
-      source: Source[Catchup, Future[State]]): Source[Catchup, Future[State]] =
-    source
+  def getUnrelevantConsentFactsFlow: Flow[Catchup, Catchup, NotUsed] =
+    Flow[Catchup]
       .filterNot { catchup =>
         catchup.lastConsentFact.lastUpdateSystem
           .isEqual(catchup.consentFact.lastUpdateSystem)
       }
 
-  def getRelevantConsentFactsAsSource(
-      tenant: String,
-      source: Source[Catchup, Future[State]]): Source[Catchup, Future[State]] =
-    source
+  def getRelevantConsentFactsAsFlow(
+      tenant: String): Flow[Catchup, Catchup, NotUsed] =
+    Flow[Catchup]
       .filter { catchup =>
         env.config.kafka.catchUpEvents.strategy == "All" ||
         catchup.lastConsentFact.lastUpdateSystem
           .isEqual(catchup.consentFact.lastUpdateSystem)
       }
 
-  def resendNioEvents(tenant: String,
-                      source: Source[Catchup, Future[State]]): Future[Done] = {
-    val resendKafkaMessageSink: Sink[Catchup, Future[Done]] =
-      Sink.foreach(catchup => {
+  def resendNioEventsFlow(tenant: String): Flow[Catchup, Catchup, NotUsed] = {
+
+    Flow[Catchup]
+      .map { catchup =>
         val event = if (catchup.isCreation) {
           ConsentFactCreated(tenant = tenant,
                              payload = catchup.lastConsentFact,
@@ -88,50 +95,32 @@ class CatchupNioEventService(
                              metadata = None)
         }
 
-        for {
-          _ <- kafkaMessageBroker.publish(event)
-          _ <- consentFactMongoDataStore.updateOne(
-            tenant,
-            catchup.consentFact._id,
-            catchup.consentFact.copy(sendToKafka = Some(true)))
-        } yield ()
-      })
-
-    source
-      .watchTermination() { (nu, d) =>
-        d.onComplete {
-          case Failure(exception) =>
-            Logger.error("catchup - relevant - error", exception)
-          case _ => ()
-        }
-        nu
+        ProducerMessage.Message[String, String, Catchup](
+          new ProducerRecord(env.config.kafka.topic,
+                             event.shardId,
+                             event.asJson.toString()),
+          catchup
+        )
       }
-      .runWith(resendKafkaMessageSink)
+      .via(Producer.flexiFlow(kafkaMessageBroker.producerSettings))
+      .map(_.passThrough)
+      .via(unflagConsentFactsFlow(tenant))
   }
 
-  def unflagConsentFacts(
-      tenant: String,
-      source: Source[Catchup, Future[State]]): Future[Done] = {
-    val unflagConsentFactSink: Sink[Catchup, Future[Done]] =
-      Sink.foreach(
-        catchup =>
-          consentFactMongoDataStore.updateOne(
+  def unflagConsentFactsFlow(tenant: String): Flow[Catchup, Catchup, NotUsed] =
+    Flow[Catchup]
+      .grouped(200)
+      .mapAsync(1) { catchups =>
+        consentFactMongoDataStore
+          .updateByQuery(
             tenant,
-            catchup.consentFact._id,
-            catchup.consentFact.copy(sendToKafka = Some(true))))
+            Json.obj(
+              "_id" -> Json.obj("$in" -> catchups.map(_.consentFact._id))),
+            Json.obj("$set" -> Json.obj("sendToKafka" -> true)))
+          .map(_ => catchups)
 
-    source
-      .watchTermination() { (nu, d) =>
-        d.onComplete {
-          case Failure(exception) =>
-            Logger.error("catchup - unrelevant - error", exception)
-          case _ => ()
-        }
-        nu
       }
-      .runWith(unflagConsentFactSink)
-
-  }
+      .mapConcat(_.toList)
 
   def catchupNioEventScheduler() =
     if (env.env == "prod") {
@@ -153,21 +142,43 @@ class CatchupNioEventService(
                         .createLock(tenant.key)
                         .map {
                           case true =>
-                            val source: Source[Catchup, Future[State]] =
-                              getUnsendConsentFactAsSource(tenant.key)
+                            val g = RunnableGraph.fromGraph(GraphDSL.create() {
+                              implicit builder: GraphDSL.Builder[NotUsed] =>
+                                import GraphDSL.Implicits._
 
-                            if (env.config.kafka.catchUpEvents.strategy == "Last") {
-                              val unRelevantSource
-                                : Source[Catchup, Future[State]] =
-                                getUnrelevantConsentFactsAsSource(source)
-                              unflagConsentFacts(tenant.key, unRelevantSource)
-                            }
+                                if (env.config.kafka.catchUpEvents.strategy == "Last") {
+                                  val in: Source[Catchup, Future[State]] =
+                                    getUnsendConsentFactAsSource(tenant.key)
+                                  val out = Sink.ignore
+                                  val bcast = builder.add(Broadcast[Catchup](2))
+                                  val merge = builder.add(Merge[Catchup](2))
 
-                            val relevantSource: Source[Catchup, Future[State]] =
-                              getRelevantConsentFactsAsSource(tenant.key,
-                                                              source)
+                                  val markAsPublishedUnreleavant
+                                    : Flow[Catchup, Catchup, NotUsed] =
+                                    getUnrelevantConsentFactsFlow
+                                      .via(unflagConsentFactsFlow(tenant.key))
+                                      .filter(_ => false)
 
-                            resendNioEvents(tenant.key, relevantSource)
+                                  val filterRelevant
+                                    : Flow[Catchup, Catchup, NotUsed] =
+                                    Flow[Catchup].via(
+                                      getRelevantConsentFactsAsFlow(tenant.key))
+
+                                  in ~> bcast ~> markAsPublishedUnreleavant ~> merge ~> resendNioEventsFlow(
+                                    tenant.key) ~> out
+                                  bcast ~> filterRelevant ~> merge
+                                } else {
+                                  val in: Source[Catchup, Future[State]] =
+                                    getUnsendConsentFactAsSource(tenant.key)
+                                  val out = Sink.ignore
+
+                                  in ~> resendNioEventsFlow(tenant.key) ~> out
+                                }
+
+                                ClosedShape
+                            })
+
+                            g.run()
                           case false => ()
                         }
                   }

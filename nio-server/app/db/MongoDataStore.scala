@@ -91,6 +91,14 @@ trait MongoDataStore[T] {
     }
   }
 
+  def updateByQuery(tenant: String,
+                    query: JsObject,
+                    update: JsObject): Future[Boolean] = {
+    tenant.request[Boolean] { col =>
+      col.updateByQuery(query, update)
+    }
+  }
+
   def findOneById(tenant: String, id: String): Future[Option[T]] = {
     tenant.request[Option[T]] { col =>
       col.findOneById(id)
