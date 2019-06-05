@@ -17,6 +17,7 @@ object NioConfiguration {
 
 case class NioConfiguration(baseUrl: String,
                             logoutUrl: String,
+                            storage: String,
                             downloadFileHost: String,
                             mailSendingEnable: Boolean,
                             filter: SecurityFilter,

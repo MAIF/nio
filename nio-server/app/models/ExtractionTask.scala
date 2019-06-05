@@ -3,7 +3,7 @@ package models
 import cats.data.Validated._
 import cats.implicits._
 import controllers.ReadableEntity
-import db.ExtractionTaskMongoDataStore
+import db.ExtractionTaskDataStore
 import libs.xml.XMLRead
 import libs.xml.XmlUtil.XmlCleaner
 import libs.xml.implicits._
@@ -211,7 +211,7 @@ case class ExtractionTask(_id: String,
                          author: String,
                          metadata: Option[Seq[(String, String)]] = None)(
       implicit ec: ExecutionContext,
-      store: ExtractionTaskMongoDataStore,
+      store: ExtractionTaskDataStore,
       broker: KafkaMessageBroker) = {
     // Store updated task then emit events
     store.updateById(tenant, this._id, this).map { _ =>
@@ -233,7 +233,7 @@ case class ExtractionTask(_id: String,
   }
 
   def expire(tenant: String)(implicit ec: ExecutionContext,
-                             store: ExtractionTaskMongoDataStore) =
+                             store: ExtractionTaskDataStore) =
     store.updateById(tenant,
                      this._id,
                      this.copy(status = ExtractionTaskStatus.Expired))

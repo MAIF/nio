@@ -1,55 +1,40 @@
-package db
+package db.postgres
 
 import akka.http.scaladsl.util.FastFuture
 import akka.stream._
 import akka.stream.scaladsl.{Sink, Source}
 import akka.util.ByteString
 import controllers.AppErrorWithStatus
+import db.LastConsentFactDataStore
 import models._
 import play.api.Logger
-import play.api.libs.json.{JsValue, Json, OFormat}
-import play.api.mvc.Results.NotFound
-import play.modules.reactivemongo.ReactiveMongoApi
-import play.modules.reactivemongo.json.ImplicitBSONHandlers._
-import reactivemongo.akkastream.cursorProducer
-import reactivemongo.api.collections.bson.BSONCollection
-import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.api.{Cursor, QueryOpts, ReadPreference}
-import reactivemongo.bson.BSONDocument
-import utils.BSONUtils
+import play.api.libs.json.{JsObject, Json, OFormat}
 import utils.Result.{AppErrors, ErrorMessage}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Failure
+import scalikejdbc._
+import async._
 
-class LastConsentFactMongoDataStore(val mongoApi: ReactiveMongoApi)(
+class LastConsentFactPostgresDataStore()(
     implicit val executionContext: ExecutionContext)
-    extends MongoDataStore[ConsentFact] {
+    extends PostgresDataStore[ConsentFact]
+    with LastConsentFactDataStore {
 
   val format: OFormat[ConsentFact] = models.ConsentFact.consentFactOFormats
 
-  override def collectionName(tenant: String) = s"$tenant-lastConsentFacts"
-
-  override def indices = Seq(
-    Index(Seq("orgKey" -> IndexType.Ascending, "userId" -> IndexType.Ascending),
-          name = Some("orgKey_userId"),
-          unique = true,
-          sparse = true),
-    Index(Seq("orgKey" -> IndexType.Ascending),
-          name = Some("orgKey"),
-          unique = false,
-          sparse = true),
-    Index(Seq("userId" -> IndexType.Ascending),
-          name = Some("userId"),
-          unique = false,
-          sparse = true)
-  )
+  override val tableName = "last_consent_facts"
 
   def insert(tenant: String, consentFact: ConsentFact): Future[Boolean] =
     insertOne(tenant, consentFact)
 
   def findById(tenant: String, id: String): Future[Option[ConsentFact]] = {
     findOneById(tenant, id)
+  }
+
+  def findOneByUserId(tenant: String,
+                      userId: String): Future[Option[ConsentFact]] = {
+    findOneByQuery(tenant, Json.obj("userId" -> userId))
   }
 
   def findByOrgKeyAndUserId(tenant: String,
@@ -62,6 +47,7 @@ class LastConsentFactMongoDataStore(val mongoApi: ReactiveMongoApi)(
                       userId: String,
                       page: Int,
                       pageSize: Int): Future[(Seq[ConsentFact], Int)] = {
+
     findManyByQueryPaginateCount(tenant = tenant,
                                  query = Json.obj("userId" -> userId),
                                  page = page,
@@ -72,9 +58,7 @@ class LastConsentFactMongoDataStore(val mongoApi: ReactiveMongoApi)(
     findMany(tenant)
 
   def deleteConsentFactByTenant(tenant: String): Future[Boolean] = {
-    storedCollection(tenant).flatMap { col =>
-      col.drop(failIfNotFound = false)
-    }
+    deleteByTenant(tenant)
   }
 
   def removeByOrgKey(tenant: String, orgKey: String): Future[Boolean] = {
@@ -138,27 +122,33 @@ class LastConsentFactMongoDataStore(val mongoApi: ReactiveMongoApi)(
     }
   }
 
+  private def setOffers(tenant: String,
+                        query: JsObject,
+                        offers: Seq[ConsentOffer]): Future[Boolean] = {
+    AsyncDB withPool { implicit session =>
+      sql"select jsonb_set(payload, '{offers}', Json.arr(offers.map(Json.toJson(_))).toString()) from ${table} where tenant = ${tenant} and  payload @> ${query.toString()}"
+        .update()
+        .future()
+        .map(_ > 0)
+    }
+  }
+
   def removeOfferById(
       tenant: String,
       orgKey: String,
       userId: String,
       offerKey: String): Future[Either[AppErrorWithStatus, ConsentOffer]] = {
-    findConsentOffer(tenant, orgKey, userId, offerKey).flatMap {
-      case Right(maybeOffer) =>
+    findByOrgKeyAndUserId(tenant, orgKey, userId).flatMap {
+      case Some(consentFact) =>
+        val maybeOffer = consentFact.offers.flatMap(offers =>
+          offers.find(p => p.key == offerKey))
+
         maybeOffer match {
           case Some(offer) =>
-            storedCollection(tenant).flatMap {
-              _.update(
-                Json.obj("orgKey" -> orgKey,
-                         "userId" -> userId,
-                         "offers.key" -> offerKey),
-                Json.obj(
-                  "$pull" -> Json.obj(
-                    "offers" -> offer.asJson()
-                  ))
-              ).map(_ => Right(offer))
-            }
-
+            setOffers(tenant,
+                      Json.obj("orgKey" -> orgKey, "userId" -> userId),
+                      consentFact.offers.get.filter(p => p.key == offerKey))
+              .map(_ => Right(offer))
           case None =>
             FastFuture.successful(
               Left(
@@ -166,8 +156,12 @@ class LastConsentFactMongoDataStore(val mongoApi: ReactiveMongoApi)(
                   AppErrors(Seq(ErrorMessage(s"offer.$offerKey.not.found"))),
                   NotFound)))
         }
-      case Left(e) =>
-        FastFuture.successful(Left(AppErrorWithStatus(e, NotFound)))
+      case None =>
+        FastFuture.successful(
+          Left(
+            AppErrorWithStatus(
+              AppErrors(Seq(ErrorMessage(s"organisation.$orgKey.not.found"))),
+              NotFound)))
     }
   }
 
@@ -180,52 +174,28 @@ class LastConsentFactMongoDataStore(val mongoApi: ReactiveMongoApi)(
                      consentFact)
   }
 
-  def streamAll(tenant: String, pageSize: Int, parallelisation: Int)(
-      implicit m: Materializer): Source[JsValue, akka.NotUsed] = {
-
-    Source
-      .fromFuture(storedCollection(tenant))
-      .mapAsync(1)(coll => coll.count().map(c => (coll, c)))
-      .flatMapConcat {
-        case (collection, count) =>
-          Logger.info(s"Will stream a total of $count consents")
-          (0 until parallelisation)
-            .map { idx =>
-              val items = count / parallelisation
-              val from = items * idx
-              val to = from + items
-              Logger.info(
-                s"Consuming $items consents with worker $idx: $from => $to")
-              val options =
-                QueryOpts(skipN = from, batchSizeN = pageSize, flagsN = 0)
-              collection
-                .find(Json.obj())
-                .options(options)
-                .cursor[JsValue](ReadPreference.primary)
-                .documentSource(
-                  maxDocs = items,
-                  err = Cursor.FailOnError((_, e) =>
-                    Logger.error(s"Error while streaming worker $idx", e)))
-            }
-            .reduce(_.merge(_))
-            .alsoTo(Sink.onComplete {
-              case Failure(e) =>
-                Logger.error("Error while streaming consents", e)
-            })
+  def streamAllByteString(tenant: String)(
+      implicit m: Materializer): Source[ByteString, akka.NotUsed] = {
+    streamAsJsValue(tenant)
+      .grouped(300)
+      .mapAsync(10) { d =>
+        Future {
+          val bld = new StringBuilder()
+          d.foreach { doc =>
+            bld.append(s"${doc.toString()}\n")
+          }
+          ByteString(bld.toString())
+        }
       }
   }
 
-  def storedBSONCollection(tenant: String): Future[BSONCollection] =
-    mongoApi.database.map(_.collection[BSONCollection](collectionName(tenant)))
-
-  def streamAllBSON(tenant: String, pageSize: Int, parallelisation: Int)(
+  def streamAllByteString(tenant: String, pageSize: Int, parallelisation: Int)(
       implicit m: Materializer): Source[ByteString, akka.NotUsed] = {
 
     Source
-      .fromFuture(storedBSONCollection(tenant))
-      .mapAsync(1)(coll => coll.count().map(c => (coll, c)))
+      .fromFuture(count(tenant, Json.obj()))
       .flatMapConcat {
-        case (collection, count) =>
+        case count =>
           Logger.info(s"Will stream a total of $count consents")
           (0 until parallelisation)
             .map { idx =>
@@ -234,20 +204,11 @@ class LastConsentFactMongoDataStore(val mongoApi: ReactiveMongoApi)(
               val to = from + items
               Logger.info(
                 s"Consuming $items consents with worker $idx: $from => $to")
-              val options =
-                QueryOpts(skipN = from, batchSizeN = pageSize, flagsN = 0)
-              collection
-                .find(BSONDocument())
-                .options(options)
-                .cursor[BSONDocument](ReadPreference.primary)
-                .bulkSource(
-                  maxDocs = items,
-                  err = Cursor.FailOnError((_, e) =>
-                    Logger.error(s"Error while streaming worker $idx", e)))
+              streamAsJsValue(tenant, pageSize, from)
+                .grouped(items)
             }
             .reduce(_.merge(_))
-            .map(docs =>
-              ByteString(docs.map(BSONUtils.stringify).mkString("\n")))
+            .map(docs => ByteString(docs.map(Json.stringify).mkString("\n")))
             .alsoTo(Sink.onComplete {
               case Failure(e) =>
                 Logger.error("Error while streaming consents", e)

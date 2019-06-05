@@ -9,7 +9,7 @@ import controllers.ErrorManager.{
   ErrorManagerResult,
   ErrorWithStatusManagerResult
 }
-import db.OrganisationMongoDataStore
+import db.OrganisationDataStore
 import libs.xmlorjson.XmlOrJson
 import messaging.KafkaMessageBroker
 import models.{Offer, OfferValidator, Offers}
@@ -24,7 +24,7 @@ class OrganisationOfferController(
     val authAction: ActionBuilder[SecuredAuthContext, AnyContent],
     val cc: ControllerComponents,
     val offerManagerService: OfferManagerService,
-    val organisationMongoDataStore: OrganisationMongoDataStore,
+    val organisationMongoDataStore: OrganisationDataStore,
     val kafkaMessageBroker: KafkaMessageBroker)(
     implicit val ec: ExecutionContext,
     actorSystem: ActorSystem)

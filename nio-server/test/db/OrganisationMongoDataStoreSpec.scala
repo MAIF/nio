@@ -14,7 +14,7 @@ class OrganisationMongoDataStoreSpec extends TestUtils {
 
   "store" should {
     "insert" in {
-      val ds: OrganisationMongoDataStore = nioComponents.organisationDataStore
+      val ds: OrganisationDataStore = nioComponents.organisationDataStore
 
       val org1Key = "org1Draft"
 

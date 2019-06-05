@@ -1,7 +1,8 @@
-package db
+package db.mongo
 
+import db.NioAccountDataStore
 import models.NioAccount
-import play.api.libs.json.{JsObject, Json, OFormat}
+import play.api.libs.json.{Json, OFormat}
 import play.modules.reactivemongo.ReactiveMongoApi
 import reactivemongo.api.indexes.{Index, IndexType}
 
@@ -9,7 +10,8 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class NioAccountMongoDataStore(val mongoApi: ReactiveMongoApi)(
     implicit val executionContext: ExecutionContext)
-    extends MongoDataStore[NioAccount] {
+    extends MongoDataStore[NioAccount]
+    with NioAccountDataStore {
 
   val format: OFormat[NioAccount] = models.NioAccount.oformats
 
@@ -46,9 +48,13 @@ class NioAccountMongoDataStore(val mongoApi: ReactiveMongoApi)(
   def deleteOne(_id: String): Future[Boolean] =
     deleteOneById("", _id)
 
-  def findManyPaginate(query: JsObject = Json.obj(),
-                       sort: JsObject = Json.obj("_id" -> -1),
-                       page: Int,
+  def findManyPaginate(page: Int,
                        pageSize: Int): Future[(Seq[NioAccount], Int)] =
-    findManyByQueryPaginateCount("", query, sort, page, pageSize)
+    findManyByQueryPaginateCount("",
+                                 Json.obj(),
+                                 Json.obj("_id" -> -1),
+                                 page,
+                                 pageSize)
+
+  def deleteAll(): Future[Boolean] = deleteByQuery("", Json.obj())
 }

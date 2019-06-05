@@ -1,10 +1,8 @@
 package service
 
-import java.util.regex.Pattern
-
 import akka.http.scaladsl.util.FastFuture
 import controllers.AppErrorWithStatus
-import db.OrganisationMongoDataStore
+import db.OrganisationDataStore
 import models.{Offer, Organisation}
 import play.api.Logger
 import play.api.libs.json.Json
@@ -14,7 +12,7 @@ import utils.Result.{AppErrors, ErrorMessage}
 import scala.concurrent.{ExecutionContext, Future}
 
 class AccessibleOfferManagerService(
-    organisationMongoDataStore: OrganisationMongoDataStore)(
+    organisationMongoDataStore: OrganisationDataStore)(
     implicit executionContext: ExecutionContext) {
 
   def accessibleOfferKey(

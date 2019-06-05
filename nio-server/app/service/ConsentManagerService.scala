@@ -4,10 +4,10 @@ import akka.http.scaladsl.util.FastFuture
 import cats.data.OptionT
 import controllers.AppErrorWithStatus
 import db.{
-  ConsentFactMongoDataStore,
-  LastConsentFactMongoDataStore,
-  OrganisationMongoDataStore,
-  UserMongoDataStore
+  ConsentFactDataStore,
+  LastConsentFactDataStore,
+  OrganisationDataStore,
+  UserDataStore
 }
 import messaging.KafkaMessageBroker
 import models._
@@ -19,10 +19,10 @@ import utils.Result.{AppErrors, ErrorMessage}
 import scala.concurrent.{ExecutionContext, Future}
 
 class ConsentManagerService(
-    lastConsentFactMongoDataStore: LastConsentFactMongoDataStore,
-    consentFactMongoDataStore: ConsentFactMongoDataStore,
-    userMongoDataStore: UserMongoDataStore,
-    organisationMongoDataStore: OrganisationMongoDataStore,
+    lastConsentFactDataStore: LastConsentFactDataStore,
+    consentFactDataStore: ConsentFactDataStore,
+    userDataStore: UserDataStore,
+    organisationDataStore: OrganisationDataStore,
     accessibleOfferService: AccessibleOfferManagerService,
     kafkaMessageBroker: KafkaMessageBroker)(
     implicit val executionContext: ExecutionContext)
@@ -69,19 +69,19 @@ class ConsentManagerService(
               // Create a new user, consent fact and last consent fact
               case None =>
                 for {
-                  _ <- consentFactMongoDataStore.insert(
+                  _ <- consentFactDataStore.insert(
                     tenant,
                     consentFact.notYetSendToKafka())
-                  _ <- lastConsentFactMongoDataStore.insert(tenant, consentFact)
-                  _ <- userMongoDataStore.insert(tenant,
-                                                 User(
-                                                   userId = userId,
-                                                   orgKey = organisationKey,
-                                                   orgVersion =
-                                                     organisation.version.num,
-                                                   latestConsentFactId =
-                                                     consentFact._id
-                                                 ))
+                  _ <- lastConsentFactDataStore.insert(tenant, consentFact)
+                  _ <- userDataStore.insert(tenant,
+                                            User(
+                                              userId = userId,
+                                              orgKey = organisationKey,
+                                              orgVersion =
+                                                organisation.version.num,
+                                              latestConsentFactId =
+                                                consentFact._id
+                                            ))
                   _ <- publishAndUpdateConsent(
                     tenant,
                     ConsentFactCreated(
@@ -118,12 +118,11 @@ class ConsentManagerService(
                   consentFactToStore.copy(lastConsentFactStored._id)
 
                 for {
-                  _ <- lastConsentFactMongoDataStore.update(
-                    tenant,
-                    organisationKey,
-                    userId,
-                    lastConsentFactToStore)
-                  _ <- consentFactMongoDataStore.insert(
+                  _ <- lastConsentFactDataStore.update(tenant,
+                                                       organisationKey,
+                                                       userId,
+                                                       lastConsentFactToStore)
+                  _ <- consentFactDataStore.insert(
                     tenant,
                     consentFactToStore.notYetSendToKafka())
                   _ <- publishAndUpdateConsent(
@@ -210,8 +209,8 @@ class ConsentManagerService(
       .publish(event)
       .flatMap(
         _ =>
-          consentFactMongoDataStore
-            .updateOne(tenant, consentFact._id, consentFact.nowSendToKafka()))
+          consentFactDataStore
+            .updateById(tenant, consentFact._id, consentFact.nowSendToKafka()))
 
     FastFuture.successful(true)
   }
@@ -251,7 +250,7 @@ class ConsentManagerService(
       userId: String,
       offerToCompare: ConsentOffer)
     : Future[Either[AppErrorWithStatus, ConsentOffer]] =
-    organisationMongoDataStore
+    organisationDataStore
       .findOffer(tenant, orgKey, offerToCompare.key)
       .flatMap {
         case Left(error) => toErrorWithStatus(error, NotFound)
@@ -285,7 +284,7 @@ class ConsentManagerService(
                                                 userId: String,
                                                 offerToCompare: ConsentOffer)
     : Future[Either[AppErrorWithStatus, ConsentOffer]] =
-    lastConsentFactMongoDataStore
+    lastConsentFactDataStore
       .findConsentOffer(tenant, orgKey, userId, offerToCompare.key)
       .flatMap {
         case Left(errors) => toErrorWithStatus(errors, BadRequest)
@@ -367,12 +366,12 @@ class ConsentManagerService(
                    userId: String,
                    consentFact: ConsentFact)
     : Future[Either[AppErrorWithStatus, ConsentFact]] = {
-    lastConsentFactMongoDataStore
+    lastConsentFactDataStore
       .findByOrgKeyAndUserId(tenant, organisationKey, userId)
       .flatMap {
         // Insert a new user, last consent fact, historic consent fact
         case None =>
-          organisationMongoDataStore
+          organisationDataStore
             .findLastReleasedByKey(tenant, organisationKey)
             .flatMap {
               case None =>
@@ -398,7 +397,7 @@ class ConsentManagerService(
         // Update consent fact with the same organisation version
         case Some(lastConsentFactStored)
             if lastConsentFactStored.version == consentFact.version =>
-          organisationMongoDataStore
+          organisationDataStore
             .findReleasedByKeyAndVersionNum(tenant,
                                             organisationKey,
                                             lastConsentFactStored.version)
@@ -419,7 +418,7 @@ class ConsentManagerService(
         // Update consent fact with the new organisation version
         case Some(lastConsentFactStored)
             if lastConsentFactStored.version <= consentFact.version =>
-          organisationMongoDataStore
+          organisationDataStore
             .findLastReleasedByKey(tenant, organisationKey)
             .flatMap {
               case None =>
@@ -465,7 +464,7 @@ class ConsentManagerService(
     val res: OptionT[Future, ConsentFact] = for {
       userId: String <- OptionT.fromOption[Future](maybeUserId)
       _ = Logger.info(s"userId is defined with $userId")
-      consentFact <- OptionT(lastConsentFactMongoDataStore.findByOrgKeyAndUserId(tenant, orgKey, userId))
+      consentFact <- OptionT(lastConsentFactDataStore.findByOrgKeyAndUserId(tenant, orgKey, userId))
       built <- OptionT.pure[Future](buildTemplate(orgKey, orgVersion, template, consentFact, userId))
     } yield built
     // format: on
@@ -550,17 +549,17 @@ class ConsentManagerService(
     : Future[Either[AppErrorWithStatus, ConsentOffer]] = {
     import cats.implicits._
     for {
-      removeResult <- lastConsentFactMongoDataStore.removeOfferById(tenant,
-                                                                    orgKey,
-                                                                    userId,
-                                                                    offerKey)
-      mayBelastConsentFactToStore <- lastConsentFactMongoDataStore
+      removeResult <- lastConsentFactDataStore.removeOfferById(tenant,
+                                                               orgKey,
+                                                               userId,
+                                                               offerKey)
+      mayBelastConsentFactToStore <- lastConsentFactDataStore
         .findByOrgKeyAndUserId(tenant, orgKey, userId)
       _ <- mayBelastConsentFactToStore match {
         case Some(lastConsentFactToStore) =>
           val lastConsentFactToStoreCopy =
             lastConsentFactToStore.copy(_id = BSONObjectID.generate().stringify)
-          consentFactMongoDataStore.insert(tenant, lastConsentFactToStoreCopy) *>
+          consentFactDataStore.insert(tenant, lastConsentFactToStoreCopy) *>
             FastFuture.successful(
               kafkaMessageBroker.publish(
                 ConsentFactUpdated(

@@ -1,5 +1,6 @@
-package db
+package db.mongo
 
+import db.TenantDataStore
 import models._
 import play.api.libs.json.{Format, JsObject, Json}
 import play.modules.reactivemongo.ReactiveMongoApi
@@ -12,7 +13,8 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class TenantMongoDataStore(val reactiveMongoApi: ReactiveMongoApi)(
     implicit val ec: ExecutionContext)
-    extends DataStoreUtils {
+    extends MongoDataStoreUtils
+    with TenantDataStore {
 
   override def collectionName(tenant: String) = "tenants"
 
@@ -50,7 +52,7 @@ class TenantMongoDataStore(val reactiveMongoApi: ReactiveMongoApi)(
 
   def removeByKey(key: String) = {
     storedCollection.flatMap { col =>
-      col.remove(Json.obj("key" -> key))
+      col.remove(Json.obj("key" -> key)).map(_.ok)
     }
   }
 

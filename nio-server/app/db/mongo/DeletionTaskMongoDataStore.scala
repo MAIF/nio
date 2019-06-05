@@ -1,5 +1,6 @@
-package db
+package db.mongo
 
+import db.DeletionTaskDataStore
 import models._
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoApi
@@ -9,7 +10,8 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class DeletionTaskMongoDataStore(val mongoApi: ReactiveMongoApi)(
     implicit val executionContext: ExecutionContext)
-    extends MongoDataStore[DeletionTask] {
+    extends MongoDataStore[DeletionTask]
+    with DeletionTaskDataStore {
   val format: OFormat[DeletionTask] = models.DeletionTask.deletionTaskFormats
   override def collectionName(tenant: String) = s"$tenant-deletionTasks"
 

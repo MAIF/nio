@@ -13,7 +13,7 @@ import com.amazonaws.services.s3.model.{
   UploadPartRequest,
   UploadPartResult
 }
-import db.ExtractionTaskMongoDataStore
+import db.ExtractionTaskDataStore
 import messaging.KafkaMessageBroker
 import models._
 import play.api.Logger
@@ -36,11 +36,10 @@ class ExtractionController(
     val cc: ControllerComponents,
     val s3Conf: S3Configuration,
     val s3: S3,
-    val s3FileDataStore: S3FileDataStore)(
-    implicit val ec: ExecutionContext,
-    val system: ActorSystem,
-    val store: ExtractionTaskMongoDataStore,
-    val broker: KafkaMessageBroker)
+    val s3FileDataStore: S3FileDataStore)(implicit val ec: ExecutionContext,
+                                          val system: ActorSystem,
+                                          val store: ExtractionTaskDataStore,
+                                          val broker: KafkaMessageBroker)
     extends ControllerUtils(cc) {
 
   implicit val mat = ActorMaterializer()(system)

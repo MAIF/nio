@@ -2,7 +2,7 @@ package auth
 
 import akka.http.scaladsl.util.FastFuture
 import configuration.Env
-import db.ExtractionTaskMongoDataStore
+import db.ExtractionTaskDataStore
 import play.api.Logger
 import play.api.mvc._
 import filters.FilterAttributes
@@ -105,7 +105,7 @@ class ExtractionAction[A](val tenant: String,
                           val taskId: String,
                           val parser: BodyParser[A])(
     implicit val executionContext: ExecutionContext,
-    store: ExtractionTaskMongoDataStore)
+    store: ExtractionTaskDataStore)
     extends ActionBuilder[ReqWithExtractionTask, A]
     with ActionFunction[Request, ReqWithExtractionTask] {
 
@@ -136,6 +136,6 @@ class ExtractionAction[A](val tenant: String,
 object ExtractionAction {
   def apply[A](tenant: String, taskId: String, parser: BodyParser[A])(
       implicit executionContext: ExecutionContext,
-      store: ExtractionTaskMongoDataStore): ExtractionAction[A] =
+      store: ExtractionTaskDataStore): ExtractionAction[A] =
     new ExtractionAction(tenant, taskId, parser)(executionContext, store)
 }

@@ -1,9 +1,9 @@
-package db
+package db.mongo
 
 import akka.http.scaladsl.util.FastFuture
 import akka.stream.Materializer
 import akka.stream.scaladsl.Source
-import db.MongoOpsDataStore.MongoDataStore
+import MongoOpsDataStore.MongoDataStore
 import play.api.Logger
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoApi
@@ -161,7 +161,5 @@ trait MongoDataStore[T] {
     tenant.request[Boolean] { col =>
       col.deleteByQuery(query)
     }
-
   }
-
 }

@@ -159,7 +159,7 @@ trait TestUtils
            |nio.mongo.url="$mongoUrl"
            |mongodb.uri="$mongoUrl"
            |tenant.admin.secret="secret"
-           |db.flush=true
+           |store.flush=true
            |nio.s3Config.v4Auth="false"
            |nio.kafka.port=$kafkaPort
            |nio.kafka.servers="127.0.0.1:$kafkaPort"
@@ -167,7 +167,7 @@ trait TestUtils
            |nio.kafka.eventsGroupIn=10000
            |nio.s3ManagementEnabled=false
            |nio.mailSendingEnable=false
-           |db.tenants=["$tenant"]
+           |store.tenants=["$tenant"]
            |nio.filter.securityMode="default"
        """.stripMargin).resolve()
     )

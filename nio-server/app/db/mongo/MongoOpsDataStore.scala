@@ -1,4 +1,4 @@
-package db
+package db.mongo
 
 import akka.stream.Materializer
 import akka.stream.scaladsl.Source

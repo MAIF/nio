@@ -1,7 +1,8 @@
-package db
+package db.mongo
 
+import db.ApiKeyDataStore
 import models.ApiKey
-import play.api.libs.json.{JsObject, Json, OFormat}
+import play.api.libs.json.{Json, OFormat}
 import play.modules.reactivemongo.ReactiveMongoApi
 import reactivemongo.api.indexes.{Index, IndexType}
 
@@ -9,7 +10,8 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class ApiKeyMongoDataStore(val mongoApi: ReactiveMongoApi)(
     implicit val executionContext: ExecutionContext)
-    extends MongoDataStore[ApiKey] {
+    extends MongoDataStore[ApiKey]
+    with ApiKeyDataStore {
 
   val format: OFormat[ApiKey] = models.ApiKey.oformats
 
@@ -44,9 +46,12 @@ class ApiKeyMongoDataStore(val mongoApi: ReactiveMongoApi)(
   def deleteOne(_id: String): Future[Boolean] =
     deleteOneById("", _id)
 
-  def findManyPaginate(query: JsObject = Json.obj(),
-                       sort: JsObject = Json.obj("_id" -> -1),
-                       page: Int,
-                       pageSize: Int): Future[(Seq[ApiKey], Int)] =
-    findManyByQueryPaginateCount("", query, sort, page, pageSize)
+  def findManyPaginate(page: Int, pageSize: Int): Future[(Seq[ApiKey], Int)] =
+    findManyByQueryPaginateCount("",
+                                 Json.obj(),
+                                 Json.obj("_id" -> -1),
+                                 page,
+                                 pageSize)
+
+  override def deleteAll(): Future[Boolean] = deleteByQuery("", Json.obj())
 }

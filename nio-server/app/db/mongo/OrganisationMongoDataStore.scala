@@ -1,8 +1,9 @@
-package db
+package db.mongo
 
 import akka.http.scaladsl.util.FastFuture
 import akka.stream.Materializer
 import controllers.AppErrorWithStatus
+import db.OrganisationDataStore
 import models._
 import play.api.Logger
 import play.api.libs.json._
@@ -16,7 +17,8 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class OrganisationMongoDataStore(val mongoApi: ReactiveMongoApi)(
     implicit val executionContext: ExecutionContext)
-    extends MongoDataStore[Organisation] {
+    extends MongoDataStore[Organisation]
+    with OrganisationDataStore {
 
   val format: OFormat[Organisation] = models.Organisation.oFormats
 

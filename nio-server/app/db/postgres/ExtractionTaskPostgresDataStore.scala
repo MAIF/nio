@@ -1,34 +1,22 @@
-package db
+package db.postgres
 
 import akka.stream.Materializer
 import akka.stream.scaladsl.Source
+import db.ExtractionTaskDataStore
 import models.ExtractionTask
 import models.ExtractionTaskStatus.ExtractionTaskStatus
 import play.api.libs.json._
-import play.modules.reactivemongo.ReactiveMongoApi
-import play.modules.reactivemongo.json.ImplicitBSONHandlers._
-import reactivemongo.akkastream.{State, cursorProducer}
-import reactivemongo.api.indexes.{Index, IndexType}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class ExtractionTaskMongoDataStore(val mongoApi: ReactiveMongoApi)(
+class ExtractionTaskPostgresDataStore()(
     implicit val executionContext: ExecutionContext)
-    extends MongoDataStore[ExtractionTask] {
+    extends PostgresDataStore[ExtractionTask]
+    with ExtractionTaskDataStore {
 
   val format: OFormat[ExtractionTask] = models.ExtractionTask.fmt
-  override def collectionName(tenant: String) = s"$tenant-extractionTasks"
 
-  override def indices = Seq(
-    Index(Seq("orgKey" -> IndexType.Ascending),
-          name = Some("orgKey"),
-          unique = false,
-          sparse = true),
-    Index(Seq("userId" -> IndexType.Ascending),
-          name = Some("userId"),
-          unique = false,
-          sparse = true)
-  )
+  override val tableName = "extraction_tasks"
 
   def insert(tenant: String, extractionTask: ExtractionTask): Future[Boolean] =
     insertOne(tenant, extractionTask)
@@ -73,18 +61,11 @@ class ExtractionTaskMongoDataStore(val mongoApi: ReactiveMongoApi)(
   }
 
   def streamAllByState(tenant: String, status: ExtractionTaskStatus)(
-      implicit m: Materializer): Future[Source[JsValue, Future[State]]] = {
-    storedCollection(tenant).map { col =>
-      col
-        .find(Json.obj("status" -> status))
-        .cursor[JsValue]()
-        .documentSource()
-    }
+      implicit m: Materializer): Future[Source[JsValue, Future[Any]]] = {
+    streamAsyncByQueryAsJsValue(tenant, Json.obj("status" -> status))
   }
 
   def deleteExtractionTaskByTenant(tenant: String): Future[Boolean] = {
-    storedCollection(tenant).flatMap { col =>
-      col.drop(failIfNotFound = false)
-    }
+    deleteByTenant(tenant)
   }
 }

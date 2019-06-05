@@ -12,10 +12,10 @@ import controllers.ErrorManager.{
   ErrorWithStatusManagerResult
 }
 import db.{
-  ConsentFactMongoDataStore,
-  LastConsentFactMongoDataStore,
-  OrganisationMongoDataStore,
-  UserMongoDataStore
+  ConsentFactDataStore,
+  LastConsentFactDataStore,
+  OrganisationDataStore,
+  UserDataStore
 }
 import libs.xmlorjson.XmlOrJson
 import messaging.KafkaMessageBroker
@@ -23,6 +23,7 @@ import models.{ConsentFact, _}
 import play.api.Logger
 import play.api.http.HttpEntity
 import play.api.mvc._
+import reactivemongo.akkastream.State
 import reactivemongo.api.{Cursor, QueryOpts}
 import reactivemongo.bson.BSONDocument
 import service.{AccessibleOfferManagerService, ConsentManagerService}
@@ -34,11 +35,11 @@ import scala.concurrent.{ExecutionContext, Future}
 class ConsentController(
     val AuthAction: ActionBuilder[SecuredAuthContext, AnyContent],
     val cc: ControllerComponents,
-    val userStore: UserMongoDataStore,
-    val consentFactStore: ConsentFactMongoDataStore,
-    val lastConsentFactMongoDataStore: LastConsentFactMongoDataStore,
-    val organisationStore: OrganisationMongoDataStore,
-    consentManagerService: ConsentManagerService,
+    val userStore: UserDataStore,
+    val consentFactStore: ConsentFactDataStore,
+    val lastConsentFactDataStore: LastConsentFactDataStore,
+    val organisationStore: OrganisationDataStore,
+    val consentManagerService: ConsentManagerService,
     val accessibleOfferService: AccessibleOfferManagerService,
     val broker: KafkaMessageBroker)(implicit val ec: ExecutionContext,
                                     system: ActorSystem)
@@ -128,7 +129,7 @@ class ConsentController(
   def find(tenant: String, orgKey: String, userId: String) = AuthAction.async {
     implicit req =>
       {
-        lastConsentFactMongoDataStore
+        lastConsentFactDataStore
           .findByOrgKeyAndUserId(tenant, orgKey, userId)
           .map {
             case None =>
@@ -255,8 +256,8 @@ class ConsentController(
     sys.env.get("DEFAULT_PAR_SIZE").map(_.toInt).getOrElse(6)
 
   def download(tenant: String) = AuthAction { implicit req =>
-    val src = lastConsentFactMongoDataStore
-      .streamAllBSON(
+    val src = lastConsentFactDataStore
+      .streamAllByteString(
         tenant,
         req.getQueryString("pageSize").map(_.toInt).getOrElse(defaultPageSize),
         req.getQueryString("par").map(_.toInt).getOrElse(defaultParSize)
@@ -274,28 +275,8 @@ class ConsentController(
   def downloadBulked(tenant: String) = AuthAction { implicit req =>
     Logger.info(
       s"Downloading consents (using bulked reads) from tenant $tenant")
-    import reactivemongo.akkastream.cursorProducer
+    val src = lastConsentFactDataStore.streamAllByteString(tenant)
 
-    val src = Source
-      .fromFutureSource {
-        lastConsentFactMongoDataStore.storedBSONCollection(tenant).map { col =>
-          col
-            .find(reactivemongo.bson.BSONDocument())
-            .options(QueryOpts(batchSizeN = 300))
-            .cursor[BSONDocument]()
-            .bulkSource(err = Cursor.FailOnError((_, e) =>
-              Logger.error(s"Error while streaming worker", e)))
-        }
-      }
-      .mapAsync(10) { d =>
-        Future {
-          val bld = new StringBuilder()
-          d.foreach { doc =>
-            bld.append(s"${BSONUtils.stringify(doc)}\n")
-          }
-          ByteString(bld.toString())
-        }
-      }
     Result(
       header = ResponseHeader(OK,
                               Map(CONTENT_DISPOSITION -> "attachment",
@@ -316,7 +297,7 @@ class ConsentController(
         Logger.error(s"offer $offerKey unauthorized")
         Future.successful(s"error.offer.$offerKey.unauthorized".unauthorized())
       case Some(_) =>
-        lastConsentFactMongoDataStore
+        lastConsentFactDataStore
           .findByOrgKeyAndUserId(tenant, orgKey, userId)
           .flatMap {
             case None =>

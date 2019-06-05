@@ -5,9 +5,7 @@ import akka.http.scaladsl.util.FastFuture
 import configuration.{Env, MailGunConfig}
 import play.api.Logger
 import play.api.libs.ws.{WSClient, _}
-import play.api.mvc.MultipartFormData.DataPart
 
-import scala.collection.immutable
 import scala.concurrent.{ExecutionContext, Future}
 
 trait MailService {

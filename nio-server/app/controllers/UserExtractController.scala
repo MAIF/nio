@@ -12,13 +12,13 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import configuration.Env
 import controllers.ErrorManager.{AppErrorManagerResult, ErrorManagerResult}
-import db.{OrganisationMongoDataStore, UserExtractTaskDataStore}
+import db.{OrganisationDataStore, UserExtractTaskDataStore}
+import db.mongo.UserExtractTaskMongoDataStore
 import messaging.KafkaMessageBroker
 import models._
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
 import play.api.http.HttpEntity
-import play.api.libs.Files
 import play.api.libs.json.Json
 import play.api.libs.streams.Accumulator
 import play.api.mvc._
@@ -34,7 +34,7 @@ class UserExtractController(
     val AuthAction: ActionBuilder[SecuredAuthContext, AnyContent],
     val cc: ControllerComponents,
     userExtractTaskDataStore: UserExtractTaskDataStore,
-    organisationMongoDataStore: OrganisationMongoDataStore,
+    organisationMongoDataStore: OrganisationDataStore,
     broker: KafkaMessageBroker,
     fSUserExtractManager: FSUserExtractManager,
     mailService: MailService)(implicit val ec: ExecutionContext)

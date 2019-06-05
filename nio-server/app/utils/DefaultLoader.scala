@@ -1,14 +1,14 @@
 package utils
 
-import db.OrganisationMongoDataStore
+import db.OrganisationDataStore
 import models._
 import play.api.Configuration
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class DefaultLoader(conf: Configuration,
-                    organisationStore: OrganisationMongoDataStore)(
-    implicit ec: ExecutionContext) {
+class DefaultLoader(
+    conf: Configuration,
+    organisationStore: OrganisationDataStore)(implicit ec: ExecutionContext) {
 
   def load(tenant: String) = {
     val organisations = conf.get[Seq[Configuration]]("organisations").map {

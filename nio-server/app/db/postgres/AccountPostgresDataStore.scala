@@ -1,35 +1,30 @@
-package db
+package db.postgres
 
-import models._
+import db.AccountDataStore
+import models.{Account, _}
 import play.api.libs.json.{Json, OFormat}
-import play.modules.reactivemongo.ReactiveMongoApi
-import reactivemongo.api.indexes.{Index, IndexType}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class AccountMongoDataStore(val mongoApi: ReactiveMongoApi)(
+class AccountPostgresDataStore()(
     implicit val executionContext: ExecutionContext)
-    extends MongoDataStore[Account] {
+    extends PostgresDataStore[Account]
+    with AccountDataStore {
 
   val format: OFormat[Account] = models.Account.oformat
 
-  override def collectionName(tenant: String) = s"$tenant-accounts"
-
-  override def indices = Seq(
-    Index(Seq("accountId" -> IndexType.Ascending),
-          name = Some("accountId"),
-          unique = false,
-          sparse = true)
-  )
+  override val tableName = "accounts"
 
   def findByAccountId(tenant: String,
                       accountId: String): Future[Option[Account]] = {
+
     findOneByQuery(tenant, Json.obj("accountId" -> accountId))
   }
 
   def findAll(tenant: String,
               page: Int,
               pageSize: Int): Future[Seq[Account]] = {
+
     findManyByQueryPaginate(tenant = tenant,
                             query = Json.obj(),
                             page = page,
@@ -51,8 +46,6 @@ class AccountMongoDataStore(val mongoApi: ReactiveMongoApi)(
   }
 
   def deleteAccountByTenant(tenant: String): Future[Boolean] = {
-    storedCollection(tenant).flatMap { col =>
-      col.drop(failIfNotFound = false)
-    }
+    deleteByTenant(tenant)
   }
 }

@@ -2,7 +2,8 @@ package controllers
 
 import java.util.concurrent.TimeUnit
 
-import db.NioAccountMongoDataStore
+import db.NioAccountDataStore
+import db.mongo.NioAccountMongoDataStore
 import play.api.libs.json.{JsArray, JsValue, Json}
 import play.api.libs.ws.WSResponse
 import play.api.test.Helpers._
@@ -28,9 +29,9 @@ class NioAccountControllerSpec extends TestUtils {
   "NioAccountController" should {
 
     "clean" in {
-      val store: NioAccountMongoDataStore =
-        nioComponents.nioAccountMongoDataStore
-      Await.result(store.deleteByQuery("", Json.obj()),
+      val store: NioAccountDataStore =
+        nioComponents.nioAccountDataStore
+      Await.result(store.deleteAll(),
                    Duration(10, TimeUnit.SECONDS))
     }
 

@@ -2,7 +2,8 @@ package controllers
 
 import java.util.concurrent.TimeUnit
 
-import db.ApiKeyMongoDataStore
+import db.ApiKeyDataStore
+import db.mongo.ApiKeyMongoDataStore
 import play.api.Logger
 import play.api.libs.json.{JsArray, JsString, JsValue, Json}
 import play.api.libs.ws.WSResponse
@@ -29,9 +30,9 @@ class ApiKeyControllerSpec extends TestUtils {
   "ApiKeyController" should {
 
     "clean" in {
-      val store: ApiKeyMongoDataStore =
-        nioComponents.apiKeyMongoDataStore
-      Await.result(store.deleteByQuery("", Json.obj()),
+      val store: ApiKeyDataStore =
+        nioComponents.apiKeyDataStore
+      Await.result(store.deleteAll(),
                    Duration(10, TimeUnit.SECONDS))
     }
 

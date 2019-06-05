@@ -12,7 +12,7 @@ import play.Logger
 import play.api.Configuration
 import scalikejdbc.async.{AsyncConnectionPool, AsyncConnectionPoolSettings}
 
-case class DbLoader(database: DataSource, config: Configuration) {
+case class DbInitializer(database: DataSource, config: Configuration) {
 
   private val connection = database.getConnection
 

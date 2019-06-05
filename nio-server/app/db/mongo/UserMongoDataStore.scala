@@ -1,7 +1,8 @@
-package db
+package db.mongo
 
 import akka.stream.Materializer
 import akka.stream.scaladsl.Source
+import db.UserDataStore
 import models._
 import play.api.libs.json.{JsValue, Json, OFormat}
 import play.modules.reactivemongo.ReactiveMongoApi
@@ -13,7 +14,8 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class UserMongoDataStore(val mongoApi: ReactiveMongoApi)(
     implicit val executionContext: ExecutionContext)
-    extends MongoDataStore[User] {
+    extends MongoDataStore[User]
+    with UserDataStore {
 
   val format: OFormat[User] = models.User.formats
 
@@ -103,23 +105,6 @@ class UserMongoDataStore(val mongoApi: ReactiveMongoApi)(
                 "latestConsentFactId" -> 1
               ))
         .cursor[JsValue]()
-        .documentSource()
-    }
-  }
-
-  def streamAllUsersConsentFacts(tenant: String)(
-      implicit m: Materializer): Future[Source[JsValue, Future[State]]] = {
-    storedCollection(tenant).map { users =>
-      import users.BatchCommands.AggregationFramework.Lookup
-
-      users
-        .aggregatorContext[JsValue](
-          Lookup(s"$tenant-consentFacts",
-                 "latestConsentFactId",
-                 "_id",
-                 "consentFact"))
-        .prepared[AkkaStreamCursor]
-        .cursor
         .documentSource()
     }
   }

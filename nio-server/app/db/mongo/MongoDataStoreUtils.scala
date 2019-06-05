@@ -1,4 +1,4 @@
-package db
+package db.mongo
 
 import play.api.Logger
 import play.modules.reactivemongo.ReactiveMongoApi
@@ -8,7 +8,7 @@ import reactivemongo.play.json.collection.JSONCollection
 
 import scala.concurrent.{ExecutionContext, Future}
 
-trait DataStoreUtils {
+trait MongoDataStoreUtils {
 
   val reactiveMongoApi: ReactiveMongoApi
   implicit val ec: ExecutionContext
