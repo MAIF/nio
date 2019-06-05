@@ -20,10 +20,16 @@ resolvers ++= Seq(
 
 libraryDependencies ++= Seq(
   ws,
+  jdbc,
   "com.typesafe.play" %% "play-json" % "2.6.9",
   "com.typesafe.play" %% "play-json-joda" % "2.6.9",
   "org.reactivemongo" %% "play2-reactivemongo" % "0.13.0-play26",
   "org.reactivemongo" %% "reactivemongo-akkastream" % "0.13.0",
+  "org.postgresql" % "postgresql" % "42.2.5",
+  "org.liquibase" % "liquibase-core" % "3.6.3",
+  "org.scalikejdbc" %% "scalikejdbc-async" % "0.11.0",
+  "org.scalikejdbc" %% "scalikejdbc-streams" % "3.3.2",
+  "com.github.mauricio" %% "postgresql-async" % "0.2.21",
   "com.typesafe.akka" %% "akka-stream-kafka" % "0.22",
   "de.svenkubiak" % "jBCrypt" % "0.4.1", //  ISC/BSD
   "com.auth0" % "java-jwt" % "3.1.0", // MIT license
