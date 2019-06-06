@@ -39,7 +39,7 @@ trait PostgresDataStoreUtils[T] extends SQLSyntaxSupport[T] {
 
   def insert(objectToInsert: T) = {
     AsyncDB withPool { implicit session =>
-      sql"insert into ${table} (${column.payload}) values ($format.writes(objectToInsert).as[JsObject].toString()})"
+      sql"insert into ${table} (${column.payload}) values (${format.writes(objectToInsert).as[JsObject].toString()})"
         .update()
         .future()
         .map(_ > 0)

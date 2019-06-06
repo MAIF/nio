@@ -106,18 +106,15 @@ class OrganisationPostgresDataStore()(
   def findAllLatestReleasesOrDrafts(
       tenant: String): Future[Seq[Organisation]] = {
 
-    val query1 = Json.obj("version.latest" -> true)
-    val query2 = Json.obj("version.status" -> "RELEASED")
-
-    val query3 = Json.obj("version.neverReleased" -> true)
-    val query4 = Json.obj("version.status" -> "DRAFT")
+    val query1 =
+      Json.obj("version" -> Json.obj("latest" -> true, "status" -> "RELEASED"))
+    val query2 = Json.obj(
+      "version" -> Json.obj("neverReleased" -> true, "status" -> "DRAFT"))
 
     AsyncDB withPool { implicit session =>
       sql"""select * from ${table} where tenant=${tenant}
-            and (payload @> ${query1.toString()} and payload @> ${query2
-        .toString()})
-            or (payload @> ${query3.toString()} and payload @> ${query4
-        .toString()})"""
+            and (payload @> ${query1.toString()}
+            or payload @> ${query2.toString()})"""
         .map(rs => fromResultSet(rs))
         .list()
         .future()

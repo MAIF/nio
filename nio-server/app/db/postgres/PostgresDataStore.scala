@@ -177,8 +177,8 @@ trait PostgresDataStore[T] extends SQLSyntaxSupport[T] {
 
   def count(tenant: String, query: JsObject): Future[Int] = {
     AsyncDB withPool { implicit session =>
-      sql"select count(*) from ${table} where tenant=${tenant} and payload @> ${query.toString()}"
-        .map(rs => rs.get[Int](0))
+      sql"select count(*) as c from ${table} where tenant=${tenant} and payload @> ${query.toString()}"
+        .map(rs => rs.get[Int]("c"))
         .single()
         .future()
         .map(_.get)
@@ -205,7 +205,7 @@ trait PostgresDataStore[T] extends SQLSyntaxSupport[T] {
                               pageSize: Int): Future[Seq[T]] = {
 
     AsyncDB withPool { implicit session =>
-      val sqlQuery = (sort \ "_id").as[Int] match {
+      val sqlQuery = (sort \ "_id").asOpt[Int].getOrElse(1) match {
         case 1 =>
           sql"select * from ${table} where tenant=${tenant} and payload @> ${query
             .toString()} order by payload->>'_id' asc limit ${pageSize} offset ${page * pageSize} "
