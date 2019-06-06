@@ -10,11 +10,11 @@
     "start": "cross-env NODE_ENV=dev webpack-dev-server -d --colors --inline --port 3333"
   },
   "dependencies": {
-    "bootstrap": "3.4.0",
+    "bootstrap": "^3.4.1",
     "diff": "4.0.1",
     "es-symbol": "1.1.2",
     "es6-shim": "0.35.3",
-    "jquery": "3.3.1",
+    "jquery": "^3.4.0",
     "lodash": "4.17.11",
     "moment": "2.24.0",
     "query-string": "6.2.0",
@@ -24,7 +24,7 @@
     "react-modal": "3.8.1",
     "react-moment": "0.8.4",
     "react-router-dom": "4.3.1",
-    "react-select": "2.3.0",
+    "react-select": "3.0.4",
     "react-table": "6.9.2",
     "whatwg-fetch": "3.0.0"
   },
