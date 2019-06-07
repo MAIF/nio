@@ -3,9 +3,8 @@ package controllers
 import akka.actor.ActorSystem
 import akka.http.scaladsl.util.FastFuture
 import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.Source
 import akka.util.ByteString
-import auth.{AuthAction, SecuredAction, SecuredAuthContext}
+import auth.SecuredAuthContext
 import controllers.ErrorManager.{
   AppErrorManagerResult,
   ErrorManagerResult,
@@ -23,11 +22,7 @@ import models.{ConsentFact, _}
 import play.api.Logger
 import play.api.http.HttpEntity
 import play.api.mvc._
-import reactivemongo.akkastream.State
-import reactivemongo.api.{Cursor, QueryOpts}
-import reactivemongo.bson.BSONDocument
 import service.{AccessibleOfferManagerService, ConsentManagerService}
-import utils.BSONUtils
 import utils.Result.{AppErrors, ErrorMessage}
 
 import scala.concurrent.{ExecutionContext, Future}

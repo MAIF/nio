@@ -39,7 +39,8 @@ class OrganisationPostgresDataStore()(
   def findAllReleasedByKey(tenant: String,
                            key: String): Future[Seq[Organisation]] = {
 
-    val query = Json.obj("key" -> key, "version" -> Json.obj("status" -> "RELEASED"))
+    val query =
+      Json.obj("key" -> key, "version" -> Json.obj("status" -> "RELEASED"))
 
     AsyncDB withPool { implicit session =>
       sql"select * from ${table} where tenant=${tenant} and payload @> ${query.toString()}::jsonb"
@@ -51,8 +52,9 @@ class OrganisationPostgresDataStore()(
 
   def findLastReleasedByKey(tenant: String,
                             key: String): Future[Option[Organisation]] = {
-    val query = Json.obj("key" -> key,
-               "version" -> Json.obj("status" -> "RELEASED", "latest" -> true))
+    val query = Json.obj(
+      "key" -> key,
+      "version" -> Json.obj("status" -> "RELEASED", "latest" -> true))
 
     AsyncDB withPool { implicit session =>
       sql"select * from ${table} where tenant=${tenant} and payload @> ${query.toString()}::jsonb"
@@ -66,7 +68,8 @@ class OrganisationPostgresDataStore()(
   def findDraftByKey(tenant: String,
                      key: String): Future[Option[Organisation]] = {
 
-    val query = Json.obj("key" -> key, "version" -> Json.obj("status" -> "DRAFT"))
+    val query =
+      Json.obj("key" -> key, "version" -> Json.obj("status" -> "DRAFT"))
 
     AsyncDB withPool { implicit session =>
       sql"select * from ${table} where tenant=${tenant} and payload @> ${query
@@ -83,7 +86,7 @@ class OrganisationPostgresDataStore()(
       key: String,
       versionNum: Int): Future[Option[Organisation]] = {
     val query = Json.obj(
-        "version" -> Json.obj("num" -> versionNum, "status" -> "RELEASED"))
+      "version" -> Json.obj("num" -> versionNum, "status" -> "RELEASED"))
 
     AsyncDB withPool { implicit session =>
       sql"select * from ${table} where tenant=${tenant} and payload @> ${query
@@ -135,7 +138,8 @@ class OrganisationPostgresDataStore()(
       from: String,
       to: String): Future[Seq[Organisation]] = {
 
-    val query1 = Json.obj("version" -> Json.obj("latest" -> true, "status" -> "RELEASED"))
+    val query1 =
+      Json.obj("version" -> Json.obj("latest" -> true, "status" -> "RELEASED"))
     val query2 = Json.obj(
       "version" -> Json.obj("neverReleased" -> true, "status" -> "DRAFT"))
 
@@ -157,7 +161,8 @@ class OrganisationPostgresDataStore()(
       from: String,
       to: String)(implicit m: Materializer) = {
 
-    val query1 = Json.obj("version" -> Json.obj("latest" -> true, "status" -> "RELEASED"))
+    val query1 =
+      Json.obj("version" -> Json.obj("latest" -> true, "status" -> "RELEASED"))
     val query2 = Json.obj(
       "version" -> Json.obj("neverReleased" -> true, "status" -> "DRAFT"))
 
@@ -234,10 +239,10 @@ class OrganisationPostgresDataStore()(
                   offerKey: String,
                   offer: Offer): Future[Offer] = {
     val query = Json.obj("key" -> orgKey,
-      "offers" -> Json.arr(Json.obj("key" -> offerKey)),
-      "version" -> Json.obj("latest" -> true))
+                         "offers" -> Json.arr(Json.obj("key" -> offerKey)),
+                         "version" -> Json.obj("latest" -> true))
 
-    findOneByQuery(tenant,query)
+    findOneByQuery(tenant, query)
       .flatMap {
         case Some(organisation) =>
           val maybeOffer = organisation.offers.flatMap(offers =>
@@ -258,7 +263,8 @@ class OrganisationPostgresDataStore()(
   }
 
   def addOffer(tenant: String, orgKey: String, offer: Offer): Future[Offer] = {
-    val query = Json.obj("key" -> orgKey, "version" -> Json.obj("latest" -> true))
+    val query =
+      Json.obj("key" -> orgKey, "version" -> Json.obj("latest" -> true))
     findOneByQuery(tenant, query)
       .flatMap {
         case Some(organisation) =>
@@ -278,10 +284,10 @@ class OrganisationPostgresDataStore()(
       offerKey: String): Future[Either[AppErrorWithStatus, Offer]] = {
 
     val query = Json.obj("key" -> orgKey,
-      "offers" -> Json.arr(Json.obj("key" -> offerKey)),
-      "version" -> Json.obj("latest" -> true))
+                         "offers" -> Json.arr(Json.obj("key" -> offerKey)),
+                         "version" -> Json.obj("latest" -> true))
 
-    findOneByQuery(tenant,query).flatMap {
+    findOneByQuery(tenant, query).flatMap {
       case Some(organisation) =>
         val maybeOffer = organisation.offers.flatMap(offers =>
           offers.find(p => p.key == offerKey))
