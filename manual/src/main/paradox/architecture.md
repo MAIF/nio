@@ -17,7 +17,9 @@ Architecture is composed of a JVM-compliant service (Play2 + Scala), a MongoDB d
 
 ## Database
 
-**Nio's** database is MongoDB, which mostly stores consents and account data.
+**Nio's** database mostly stores consents and account data.
+
+You can choose between Mongo or Postgres (at least 9.6), by default Nio uses Mongo database
 
 ### Multi-tenancy
 
