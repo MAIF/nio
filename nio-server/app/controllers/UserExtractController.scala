@@ -34,7 +34,7 @@ class UserExtractController(
     val AuthAction: ActionBuilder[SecuredAuthContext, AnyContent],
     val cc: ControllerComponents,
     userExtractTaskDataStore: UserExtractTaskDataStore,
-    organisationMongoDataStore: OrganisationDataStore,
+    organisationDataStore: OrganisationDataStore,
     broker: KafkaMessageBroker,
     fSUserExtractManager: FSUserExtractManager,
     mailService: MailService)(implicit val ec: ExecutionContext)
@@ -53,7 +53,7 @@ class UserExtractController(
           Future.successful(error.badRequest())
         case Right(userExtract) =>
           // control if an organisation with the orgkey exist
-          organisationMongoDataStore
+          organisationDataStore
             .findByKey(tenant, orgKey)
             .flatMap {
               case Some(_) =>
@@ -99,7 +99,7 @@ class UserExtractController(
   def extractedData(tenant: String, orgKey: String, page: Int, pageSize: Int) =
     AuthAction.async { implicit req =>
       // control if an organisation with the orgkey exist
-      organisationMongoDataStore
+      organisationDataStore
         .findByKey(tenant, orgKey)
         .flatMap {
           // if the organisation doesn't exist
@@ -126,7 +126,7 @@ class UserExtractController(
                         pageSize: Int) =
     AuthAction.async { implicit req =>
       // control if an organisation with the orgkey exist
-      organisationMongoDataStore
+      organisationDataStore
         .findByKey(tenant, orgKey)
         .flatMap {
           // if the organisation doesn't exist

@@ -54,8 +54,25 @@ class ConsentFactPostgresDataStore()(
   }
 
   def markAsSendToKafka(tenant: String, ids: Seq[String]): Future[Boolean] = {
+
+    for {
+      newJson <- AsyncDB withPool { implicit session =>
+        sql"""select jsonb_set(payload, '{sendToKafka}',  jsonb 'true', true) as js
+             from ${table} where tenant = ${tenant} and  payload->>'_id' IN (${ids})"""
+          .map(rs => rs.get[String]("js"))
+          .single()
+          .future()
+      }
+      res <- AsyncDB withPool { implicit session =>
+        sql"update ${table} set payload = ${newJson} where tenant = ${tenant} and  payload->>'_id' IN (${ids})"
+          .update()
+          .future()
+          .map(_ > 0)
+      }
+    } yield res
+
     AsyncDB withPool { implicit session =>
-      sql"select jsonb_set(payload, '{sendToKafka}', jsonb 'true') from ${table} where tenant = ${tenant} and  payload->>'_id' IN (${ids})"
+      sql"select jsonb_set(payload, '{sendToKafka}', jsonb 'true', true) from ${table} where tenant = ${tenant} and  payload->>'_id' IN (${ids})"
         .update()
         .future()
         .map(_ > 0)

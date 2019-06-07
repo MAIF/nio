@@ -221,31 +221,46 @@ class LastConsentFactMongoDataStore(val mongoApi: ReactiveMongoApi)(
       .flatMapConcat {
         case (collection, count) =>
           Logger.info(s"Will stream a total of $count consents")
-          (0 until parallelisation)
-            .map { idx =>
-              val items = count / parallelisation
-              val from = items * idx
-              val to = from + items
-              Logger.info(
-                s"Consuming $items consents with worker $idx: $from => $to")
-              val options =
-                QueryOpts(skipN = from, batchSizeN = pageSize, flagsN = 0)
-              collection
-                .find(BSONDocument())
-                .options(options)
-                .cursor[BSONDocument](ReadPreference.primary)
-                .bulkSource(
-                  maxDocs = items,
-                  err = Cursor.FailOnError((_, e) =>
-                    Logger.error(s"Error while streaming worker $idx", e)))
-            }
-            .reduce(_.merge(_))
-            .map(docs =>
-              ByteString(docs.map(BSONUtils.stringify).mkString("\n")))
-            .alsoTo(Sink.onComplete {
-              case Failure(e) =>
-                Logger.error("Error while streaming consents", e)
-            })
+          if (count < parallelisation)
+            collection
+              .find(BSONDocument())
+              .options(QueryOpts(skipN = 0, batchSizeN = pageSize, flagsN = 0))
+              .cursor[BSONDocument](ReadPreference.primary)
+              .bulkSource(maxDocs = count,
+                          err = Cursor.FailOnError((_, e) =>
+                            Logger.error(s"Error while streaming worker 0", e)))
+              .map(docs =>
+                ByteString(docs.map(BSONUtils.stringify).mkString("\n")))
+              .alsoTo(Sink.onComplete {
+                case Failure(e) =>
+                  Logger.error("Error while streaming consents", e)
+              })
+          else
+            (0 until parallelisation)
+              .map { idx =>
+                val items = count / parallelisation
+                val from = items * idx
+                val to = from + items
+                Logger.info(
+                  s"Consuming $items consents with worker $idx: $from => $to")
+                val options =
+                  QueryOpts(skipN = from, batchSizeN = pageSize, flagsN = 0)
+                collection
+                  .find(BSONDocument())
+                  .options(options)
+                  .cursor[BSONDocument](ReadPreference.primary)
+                  .bulkSource(
+                    maxDocs = items,
+                    err = Cursor.FailOnError((_, e) =>
+                      Logger.error(s"Error while streaming worker $idx", e)))
+              }
+              .reduce(_.merge(_))
+              .map(docs =>
+                ByteString(docs.map(BSONUtils.stringify).mkString("\n")))
+              .alsoTo(Sink.onComplete {
+                case Failure(e) =>
+                  Logger.error("Error while streaming consents", e)
+              })
       }
   }
 }

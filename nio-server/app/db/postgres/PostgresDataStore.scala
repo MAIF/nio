@@ -34,16 +34,17 @@ trait PostgresDataStore[T] extends SQLSyntaxSupport[T] {
 
   def findOneByQuery(tenant: String, jsObject: JsObject): Future[Option[T]] = {
     AsyncDB withPool { implicit session =>
-      sql"select * from ${table} where tenant=${tenant} and payload @> ${jsObject.toString()}"
+      sql"select * from ${table} where tenant=${tenant} and payload @> ${jsObject.toString()}::jsonb"
         .map(rs => fromResultSet(rs))
-        .first()
+        .list()
         .future()
+        .map(_.headOption)
     }
   }
 
   def findMany(tenant: String): Future[Seq[T]] = {
     AsyncDB withPool { implicit session =>
-      sql"select * from ${table} where tenant=${tenant} and payload @> ${Json.obj().toString()}"
+      sql"select * from ${table} where tenant=${tenant}"
         .map(rs => fromResultSet(rs))
         .list()
         .future()
@@ -68,7 +69,7 @@ trait PostgresDataStore[T] extends SQLSyntaxSupport[T] {
 
   def updateOne(tenant: String, id: String, objToUpdate: T): Future[Boolean] = {
     AsyncDB withPool { implicit session =>
-      sql"update ${table} set payload = ${Json.toJson(objToUpdate).toString()} where tenant = ${tenant} and payload @> ${Json.obj("_id" -> id).toString()}"
+      sql"update ${table} set payload = ${Json.toJson(objToUpdate).toString()} where tenant = ${tenant} and payload @> ${Json.obj("_id" -> id).toString()}::jsonb"
         .update()
         .future()
         .map(_ > 0)
@@ -87,7 +88,7 @@ trait PostgresDataStore[T] extends SQLSyntaxSupport[T] {
                     update: JsObject): Future[Boolean] = {
     AsyncDB withPool { implicit session =>
       sql"update ${table} set payload = ${update
-        .toString()} where tenant = ${tenant} and  payload @> ${query.toString()}"
+        .toString()} where tenant = ${tenant} and  payload @> ${query.toString()}::jsonb"
         .update()
         .future()
         .map(_ > 0)
@@ -99,7 +100,6 @@ trait PostgresDataStore[T] extends SQLSyntaxSupport[T] {
   }
 
   def streamAsyncAsJsValue(tenant: String)(implicit mat: Materializer) = {
-
     val publisher: DatabasePublisher[JsValue] = DB readOnlyStream {
       sql"select * from ${table} where tenant=${tenant} "
         .map(rs => Json.toJson(fromResultSet(rs)))
@@ -124,8 +124,7 @@ trait PostgresDataStore[T] extends SQLSyntaxSupport[T] {
     Source.fromPublisher(publisher)
   }
 
-  def streamAsJsValue(tenant: String, limit: Int, offset: Int)(
-      implicit mat: Materializer) = {
+  def streamAsJsValue(tenant: String, limit: Int, offset: Int) = {
 
     val publisher: DatabasePublisher[JsValue] = DB readOnlyStream {
       sql"select * from ${table} where tenant=${tenant} limit ${limit} offset ${offset}"
@@ -139,7 +138,7 @@ trait PostgresDataStore[T] extends SQLSyntaxSupport[T] {
       implicit mat: Materializer) = {
 
     val publisher: DatabasePublisher[T] = DB readOnlyStream {
-      sql"select * from ${table} where tenant=${tenant} and payload @> ${query.toString()}"
+      sql"select * from ${table} where tenant=${tenant} and payload @> ${query.toString()}::jsonb"
         .map(rs => fromResultSet(rs))
         .iterator
     }
@@ -153,7 +152,7 @@ trait PostgresDataStore[T] extends SQLSyntaxSupport[T] {
       implicit mat: Materializer) = {
 
     val publisher: DatabasePublisher[JsValue] = DB readOnlyStream {
-      sql"select * from ${table} where tenant=${tenant} and payload @> ${query.toString()}"
+      sql"select * from ${table} where tenant=${tenant} and payload @> ${query.toString()}::jsonb"
         .map(rs => Json.toJson(fromResultSet(rs)))
         .iterator
     }
@@ -168,7 +167,7 @@ trait PostgresDataStore[T] extends SQLSyntaxSupport[T] {
 
   def findManyByQuery(tenant: String, query: JsObject): Future[Seq[T]] = {
     AsyncDB withPool { implicit session =>
-      sql"select * from ${table} where tenant=${tenant} and payload @> ${query.toString()}"
+      sql"select * from ${table} where tenant=${tenant} and payload @> ${query.toString()}::jsonb"
         .map(rs => fromResultSet(rs))
         .list()
         .future()
@@ -177,8 +176,8 @@ trait PostgresDataStore[T] extends SQLSyntaxSupport[T] {
 
   def count(tenant: String, query: JsObject): Future[Int] = {
     AsyncDB withPool { implicit session =>
-      sql"select count(*) as c from ${table} where tenant=${tenant} and payload @> ${query.toString()}"
-        .map(rs => rs.get[Int]("c"))
+      sql"select count(*) as _count from ${table} where tenant=${tenant} and payload @> ${query.toString()}::jsonb"
+        .map(rs => rs.get[Int]("_count"))
         .single()
         .future()
         .map(_.get)
@@ -208,10 +207,10 @@ trait PostgresDataStore[T] extends SQLSyntaxSupport[T] {
       val sqlQuery = (sort \ "_id").asOpt[Int].getOrElse(1) match {
         case 1 =>
           sql"select * from ${table} where tenant=${tenant} and payload @> ${query
-            .toString()} order by payload->>'_id' asc limit ${pageSize} offset ${page * pageSize} "
+            .toString()}::jsonb order by payload->>'_id' asc limit ${pageSize} offset ${page * pageSize} "
         case _ =>
           sql"select * from ${table} where tenant=${tenant} and payload @> ${query
-            .toString()} order by payload->>'_id' desc limit ${pageSize} offset ${page * pageSize} "
+            .toString()}::jsonb order by payload->>'_id' desc limit ${pageSize} offset ${page * pageSize} "
       }
       sqlQuery
         .map(rs => fromResultSet(rs))
@@ -226,7 +225,7 @@ trait PostgresDataStore[T] extends SQLSyntaxSupport[T] {
 
   def deleteByQuery(tenant: String, query: JsObject): Future[Boolean] = {
     AsyncDB withPool { implicit session =>
-      sql"delete from ${table} where tenant = ${tenant} and  payload @> ${query.toString()}"
+      sql"delete from ${table} where tenant = ${tenant} and  payload @> ${query.toString()}::jsonb"
         .update()
         .future()
         .map(_ > 0)

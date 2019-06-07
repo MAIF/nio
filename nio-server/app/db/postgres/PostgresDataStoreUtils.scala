@@ -48,7 +48,7 @@ trait PostgresDataStoreUtils[T] extends SQLSyntaxSupport[T] {
 
   def findOneByQuery(query: JsObject) = {
     AsyncDB withPool { implicit session =>
-      sql"select * from ${table} where payload @> ${query.toString()}"
+      sql"select * from ${table} where payload @> ${query.toString()}::jsonb"
         .map(rs => fromResultSet(rs))
         .single()
         .future()
@@ -57,7 +57,7 @@ trait PostgresDataStoreUtils[T] extends SQLSyntaxSupport[T] {
 
   def deleteByQuery(query: JsObject) = {
     AsyncDB withPool { implicit session =>
-      sql"delete from ${table} where payload @> ${query.toString()}"
+      sql"delete from ${table} where payload @> ${query.toString()}::jsonb"
         .update()
         .future()
         .map(_ > 0)

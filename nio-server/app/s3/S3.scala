@@ -16,7 +16,6 @@ import com.amazonaws.services.s3.model.lifecycle.{
   LifecycleTagPredicate
 }
 import db.{ExtractionTaskDataStore, TenantDataStore}
-import db.mongo.TenantMongoDataStore
 import models.{ExtractionTask, ExtractionTaskStatus}
 import org.joda.time.{DateTime, DateTimeZone, Days}
 import play.api.Logger
@@ -56,7 +55,7 @@ class S3(val conf: S3Configuration,
   }
 
   def applyExpirationConfig = {
-    println("Applying expiration configuration to bucket ")
+    Logger.info("Applying expiration configuration to bucket ")
     val configuration = client.getBucketLifecycleConfiguration(conf.bucketName)
 
     // Add a new rule

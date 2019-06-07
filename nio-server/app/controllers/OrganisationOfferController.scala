@@ -24,7 +24,7 @@ class OrganisationOfferController(
     val authAction: ActionBuilder[SecuredAuthContext, AnyContent],
     val cc: ControllerComponents,
     val offerManagerService: OfferManagerService,
-    val organisationMongoDataStore: OrganisationDataStore,
+    val organisationDataStore: OrganisationDataStore,
     val kafkaMessageBroker: KafkaMessageBroker)(
     implicit val ec: ExecutionContext,
     actorSystem: ActorSystem)
@@ -65,7 +65,7 @@ class OrganisationOfferController(
       case Right(offer) =>
         OfferValidator.validateOffer(offer) match {
           case Right(_) =>
-            organisationMongoDataStore
+            organisationDataStore
               .findOffer(tenant, orgKey, offer.key)
               .flatMap {
                 case Left(e) =>

@@ -125,12 +125,24 @@ class LastConsentFactPostgresDataStore()(
   private def setOffers(tenant: String,
                         query: JsObject,
                         offers: Seq[ConsentOffer]): Future[Boolean] = {
-    AsyncDB withPool { implicit session =>
-      sql"select jsonb_set(payload, '{offers}', Json.arr(offers.map(Json.toJson(_))).toString()) from ${table} where tenant = ${tenant} and  payload @> ${query.toString()}"
-        .update()
-        .future()
-        .map(_ > 0)
-    }
+    for {
+      newJson <- AsyncDB withPool { implicit session =>
+        sql"""select jsonb_set(payload, '{offers}', ${Json
+          .toJson(offers)
+          .toString()}, true) as js
+             from ${table} where tenant = ${tenant} and  payload @> ${query
+          .toString()}::jsonb"""
+          .map(rs => rs.get[String]("js"))
+          .single()
+          .future()
+      }
+      res <- AsyncDB withPool { implicit session =>
+        sql"update ${table} set payload = ${newJson} where tenant = ${tenant} and  payload @> ${query.toString()}::jsonb"
+          .update()
+          .future()
+          .map(_ > 0)
+      }
+    } yield res
   }
 
   def removeOfferById(
@@ -194,9 +206,16 @@ class LastConsentFactPostgresDataStore()(
 
     Source
       .fromFuture(count(tenant, Json.obj()))
-      .flatMapConcat {
-        case count =>
-          Logger.info(s"Will stream a total of $count consents")
+      .flatMapConcat { count =>
+        Logger.info(s"Will stream a total of $count consents")
+        if (count < parallelisation)
+          streamAsJsValue(tenant, pageSize, 0)
+            .map(doc => ByteString(s"${doc.toString()}\n"))
+            .alsoTo(Sink.onComplete {
+              case Failure(e) =>
+                Logger.error("Error while streaming consents", e)
+            })
+        else
           (0 until parallelisation)
             .map { idx =>
               val items = count / parallelisation

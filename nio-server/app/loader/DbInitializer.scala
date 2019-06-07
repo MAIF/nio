@@ -10,6 +10,7 @@ import liquibase.database.jvm.JdbcConnection
 import liquibase.resource.ClassLoaderResourceAccessor
 import play.Logger
 import play.api.Configuration
+import scalikejdbc.{ConnectionPool, ConnectionPoolSettings}
 import scalikejdbc.async.{AsyncConnectionPool, AsyncConnectionPoolSettings}
 
 case class DbInitializer(database: DataSource, config: Configuration) {
@@ -23,6 +24,17 @@ case class DbInitializer(database: DataSource, config: Configuration) {
     config.get[String]("db.default.username"),
     config.get[String]("db.default.password"),
     AsyncConnectionPoolSettings(
+      config.get[Int]("db.default.maxPoolSize"),
+      config.get[Int]("db.default.maxPoolSize"),
+      config.get[Int]("db.default.maxIdleMillis"),
+    )
+  )
+
+  ConnectionPool.singleton(
+    config.get[String]("db.default.url"),
+    config.get[String]("db.default.username"),
+    config.get[String]("db.default.password"),
+    ConnectionPoolSettings(
       config.get[Int]("db.default.maxPoolSize"),
       config.get[Int]("db.default.maxPoolSize"),
       config.get[Int]("db.default.maxIdleMillis"),

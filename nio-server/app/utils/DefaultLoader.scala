@@ -2,7 +2,7 @@ package utils
 
 import db.OrganisationDataStore
 import models._
-import play.api.Configuration
+import play.api.{Configuration, Logger}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -42,7 +42,7 @@ class DefaultLoader(
         )
     }
 
-    println("Loading default data set ...")
+    Logger.info("Loading default data set ...")
     Future.sequence(
       organisations.map { o =>
         organisationStore.insert(tenant, o)
