@@ -5,6 +5,13 @@ services:
     ports:
       - 27017:27017
 
+  postgres:
+    image: postgres:11.2
+    volumes:
+      - ./nio-server/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - 5432:5432
+
   zookeeper:
     image: confluentinc/cp-zookeeper:3.2.1
     ports:
@@ -58,5 +65,6 @@ services:
       - SECURITY_MODE=default
     depends_on:
     - mongo
+    - postgres
     - kafka
     - s3server

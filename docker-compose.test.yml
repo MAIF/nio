@@ -1,5 +1,11 @@
 version: '2'
 services:
+  postgres:
+    image: postgres:11.2
+    volumes:
+      - ./nio-server/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - 5432:5432
   mongo:
     image: mongo:3.4.3
     command: mongod --port 27018
