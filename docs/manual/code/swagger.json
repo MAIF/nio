@@ -1635,7 +1635,7 @@
         }
       }
     },
-    "/api/{tenant}/organisations/{orgKey}/deletions": {
+    "/api/{tenant}/organisations/{orgKey}/users/deletions": {
       "get": {
         "tags": [
           "suppression"
@@ -1703,7 +1703,7 @@
         }
       }
     },
-    "/api/{tenant}/organisations/{orgKey}/deletions/{deletionTaskId}": {
+    "/api/{tenant}/organisations/{orgKey}/users/deletions/{deletionTaskId}": {
       "get": {
         "tags": [
           "suppression"
