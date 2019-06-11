@@ -3,7 +3,7 @@ package utils
 import auth.AuthInfo
 import com.softwaremill.macwire.wire
 import filters.{AuthInfoMock, OtoroshiFilter}
-import loader.NioComponents
+import loader.{NioComponents, NioComponentsMongo}
 import play.api.ApplicationLoader._
 import play.api.{Application, ApplicationLoader, Logger, LoggerConfigurator}
 import play.api.mvc.{EssentialFilter, Filter}
@@ -28,7 +28,7 @@ class NioTestLoader(maybeAuthInfo: Option[AuthInfoMock] = None)
 }
 
 class NioSpec(context: Context, maybeAuthInfo: Option[AuthInfoMock])
-    extends NioComponents(context) {
+    extends NioComponentsMongo(context) {
   override implicit lazy val authInfo: AuthInfoMock = maybeAuthInfo match {
     case Some(value) => value
     case None        => new AuthInfoTest
