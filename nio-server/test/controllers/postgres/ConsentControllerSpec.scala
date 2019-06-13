@@ -1,15 +1,14 @@
-package controllers
+package controllers.postgres
 
-import akka.japi.Option
 import models._
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
-import play.api.libs.json.{JsArray, JsObject, JsValue, Json}
+import play.api.libs.json.{JsArray, JsValue, Json}
 import play.api.libs.ws.WSResponse
-import utils.{DateUtils, TestUtils}
 import play.api.test.Helpers._
+import utils.{DateUtils, TestUtilsMongo, TestUtilsPostgres}
 
-class ConsentControllerSpec extends TestUtils {
+class ConsentControllerSpec extends TestUtilsPostgres {
 
   val userId1: String = "userId1"
   val userId2: String = "userId2"

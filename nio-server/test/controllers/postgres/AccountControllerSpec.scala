@@ -1,12 +1,12 @@
-package controllers
+package controllers.postgres
 
 import models.{Account, OrganisationUser}
 import play.api.libs.json.{JsArray, JsValue}
 import play.api.libs.ws.WSResponse
-import utils.TestUtils
 import play.api.test.Helpers._
+import utils.{TestUtilsMongo, TestUtilsPostgres}
 
-class AccountControllerSpec extends TestUtils {
+class AccountControllerSpec extends TestUtilsPostgres {
 
   val account1: String = "account1"
   val account2: String = "account2"

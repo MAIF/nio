@@ -1,11 +1,11 @@
-package controllers
+package controllers.mongo
 
 import models.{DeletionTaskStatus, EventType}
 import play.api.libs.json.{JsArray, JsNull, Json}
 import play.api.test.Helpers._
-import utils.TestUtils
+import utils.TestUtilsMongo
 
-class DeletionControllerSpec extends TestUtils {
+class DeletionControllerSpec extends TestUtilsMongo {
   val orgKey = "orgTest1"
   val userId = "toto"
 

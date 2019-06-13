@@ -1,16 +1,17 @@
-package db
+package db.mongo
 
 import java.util.concurrent.TimeUnit
 
+import db.OrganisationDataStore
 import models.{Organisation, Permission, PermissionGroup, VersionInfo}
 import org.joda.time.{DateTime, DateTimeZone}
-import utils.{DateUtils, TestUtils}
+import utils.{DateUtils, TestUtilsMongo}
 
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 
-class OrganisationMongoDataStoreSpec extends TestUtils {
+class OrganisationMongoDataStoreSpec extends TestUtilsMongo {
 
   "store" should {
     "insert" in {

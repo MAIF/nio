@@ -34,6 +34,7 @@ import play.core.DefaultWebCommands
 import play.modules.reactivemongo.ReactiveMongoApi
 import reactivemongo.play.json.collection.JSONCollection
 import service.ConsentManagerService
+import java.sql.{Connection, DriverManager}
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -49,7 +50,7 @@ class MockS3Manager extends FSManager {
   }
 }
 
-trait TestUtils
+trait TestUtilsMongo
     extends PlaySpec
     with BaseOneServerPerSuite
     with FakeApplicationFactory
@@ -81,8 +82,8 @@ trait TestUtils
 
   protected lazy val authInfo: AuthInfoMock = new AuthInfoTest
 
-  protected lazy val nioComponents: NioSpec =
-    new NioSpec(getContext, Some(authInfo))
+  protected lazy val nioComponents: NioSpecMongo =
+    new NioSpecMongo(getContext, Some(authInfo))
 
   protected def ws: WSClient = nioComponents.wsClient
 
@@ -105,7 +106,7 @@ trait TestUtils
   }
 
   override def fakeApplication(): Application = {
-    new NioTestLoader(Some(authInfo)).load(getContext)
+    new NioTestLoaderMongo(Some(authInfo)).load(getContext)
   }
 
   override protected def beforeAll(): Unit = {}
@@ -143,6 +144,32 @@ trait TestUtils
     tenantsCollection.flatMap(_.remove(Json.obj("key" -> "newTenant1")))
     tenantsCollection.flatMap(
       _.remove(Json.obj("key" -> "newTenantAlreadyExist")))
+
+    val url = "jdbc:postgresql://localhost:5432/nio"
+    val driver = "org.postgresql.Driver"
+    val username = "nio"
+    val password = "nio"
+    val connection = DriverManager.getConnection(url, username, password)
+    try {
+      Class.forName(driver)
+      connection.setAutoCommit(true)
+      connection.prepareStatement("delete from accounts;").executeUpdate()
+      connection.prepareStatement("delete from users;").executeUpdate()
+      connection.prepareStatement("delete from organisations;").executeUpdate()
+      connection
+        .prepareStatement("delete from extraction_tasks;")
+        .executeUpdate()
+      connection.prepareStatement("delete from deletion_tasks;").executeUpdate()
+      connection
+        .prepareStatement("delete from last_consent_facts;")
+        .executeUpdate()
+      connection.prepareStatement("delete from tenants;").executeUpdate()
+      connection
+        .prepareStatement("delete from user_extract_tasks;")
+        .executeUpdate()
+    } finally {
+      connection.close()
+    }
   }
 
   def getStoredCollection(reactiveMongoApi: ReactiveMongoApi,
@@ -156,19 +183,26 @@ trait TestUtils
     val mongoUrl = s"mongodb://localhost:$mongoPort/nio-test"
     Configuration(
       ConfigFactory.parseString(s"""
-           |nio.mongo.url="$mongoUrl"
-           |mongodb.uri="$mongoUrl"
-           |tenant.admin.secret="secret"
-           |store.flush=true
-           |nio.s3Config.v4Auth="false"
-           |nio.kafka.port=$kafkaPort
-           |nio.kafka.servers="127.0.0.1:$kafkaPort"
-           |nio.kafka.topic=$kafkaTopic
-           |nio.kafka.eventsGroupIn=10000
-           |nio.s3ManagementEnabled=false
-           |nio.mailSendingEnable=false
-           |store.tenants=["$tenant"]
-           |nio.filter.securityMode="default"
+                                   |nio.mongo.url="$mongoUrl"
+                                   |mongodb.uri="$mongoUrl"
+                                   |tenant.admin.secret="secret"
+                                   |store.flush=true
+                                   |nio.s3Config.v4Auth="false"
+                                   |nio.kafka.port=$kafkaPort
+                                   |nio.kafka.servers="127.0.0.1:$kafkaPort"
+                                   |nio.kafka.topic=$kafkaTopic
+                                   |nio.kafka.eventsGroupIn=10000
+                                   |nio.s3ManagementEnabled=false
+                                   |nio.mailSendingEnable=false
+                                   |store.tenants=["$tenant"]
+                                   |nio.filter.securityMode="default"
+                                   |db.default.driver=org.postgresql.Driver
+                                   |db.default.url="jdbc:postgresql://localhost:5432/nio"
+                                   |db.default.username="nio"
+                                   |db.default.password="nio"
+                                   |db.default.pool="hikaricp"
+                                   |db.default.maxPoolSize=20
+                                   |db.default.maxIdleMillis=1000
        """.stripMargin).resolve()
     )
   }

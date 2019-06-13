@@ -1,11 +1,11 @@
-package controllers
+package controllers.mongo
 
 import models._
 import play.api.libs.json.JsArray
 import play.api.test.Helpers._
-import utils.TestUtils
+import utils.TestUtilsMongo
 
-class UserControllerSpec extends TestUtils {
+class UserControllerSpec extends TestUtilsMongo {
 
   val org1key: String = "maif1"
   val org2key: String = "maif2"

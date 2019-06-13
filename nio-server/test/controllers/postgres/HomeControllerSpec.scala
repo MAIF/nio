@@ -1,8 +1,8 @@
-package controllers
+package controllers.postgres
 
-import play.api.test.Helpers._
 import play.api.libs.ws.WSResponse
-import utils.TestUtils
+import play.api.test.Helpers._
+import utils.{TestUtilsMongo, TestUtilsPostgres}
 
 /**
   * Add your spec here.
@@ -10,7 +10,7 @@ import utils.TestUtils
   *
   * For more information, see https://www.playframework.com/documentation/latest/ScalaTestingWithScalaTest
   */
-class HomeControllerSpec extends TestUtils {
+class HomeControllerSpec extends TestUtilsPostgres {
 
   "HomeController GET" should {
 

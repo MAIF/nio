@@ -43,9 +43,8 @@ class UserExtractTaskPostgresDataStore()(
 
     AsyncDB withPool { implicit session =>
       sql"""select * from ${table} where tenant=${tenant}
-           and payload @> ${query.toString()}::jsonb
-           and (select payload->>'endedAt' from ${table} where tenant=${tenant}
-           and payload @> ${query.toString()}::jsonb ) is not null"""
+           and payload @> ${query
+        .toString()}::jsonb and payload->>'endedAt' is null"""
         .map(rs => fromResultSet(rs))
         .list()
         .future()

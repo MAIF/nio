@@ -1,12 +1,12 @@
-package controllers
+package controllers.mongo
 
 import models.Tenant
 import play.api.libs.json.{JsArray, Json}
 import play.api.libs.ws.WSResponse
 import play.api.test.Helpers._
-import utils.TestUtils
+import utils.TestUtilsMongo
 
-class TenantControllerSpec extends TestUtils {
+class TenantControllerSpec extends TestUtilsMongo {
 
   val secret = "tenant-admin-secret" -> "secret"
 

@@ -1,13 +1,13 @@
-package controllers
+package controllers.mongo
 
 import models._
 import play.api.Logger
 import play.api.libs.json.{JsArray, JsValue, Json}
 import play.api.libs.ws.WSResponse
 import play.api.test.Helpers._
-import utils.TestUtils
+import utils.TestUtilsMongo
 
-class OrganisationOfferControllerSpec extends TestUtils {
+class OrganisationOfferControllerSpec extends TestUtilsMongo {
 
   private val orgKey: String = "orgOffer1"
   private val org: Organisation = Organisation(

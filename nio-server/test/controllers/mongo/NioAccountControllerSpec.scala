@@ -1,18 +1,17 @@
-package controllers
+package controllers.mongo
 
 import java.util.concurrent.TimeUnit
 
 import db.NioAccountDataStore
-import db.mongo.NioAccountMongoDataStore
 import play.api.libs.json.{JsArray, JsValue, Json}
 import play.api.libs.ws.WSResponse
 import play.api.test.Helpers._
-import utils.TestUtils
+import utils.TestUtilsMongo
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 
-class NioAccountControllerSpec extends TestUtils {
+class NioAccountControllerSpec extends TestUtilsMongo {
 
   private val nioAccount: JsValue = Json.obj(
     "email" -> "admin@test.fr",
@@ -31,8 +30,7 @@ class NioAccountControllerSpec extends TestUtils {
     "clean" in {
       val store: NioAccountDataStore =
         nioComponents.nioAccountDataStore
-      Await.result(store.deleteAll(),
-                   Duration(10, TimeUnit.SECONDS))
+      Await.result(store.deleteAll(), Duration(10, TimeUnit.SECONDS))
     }
 
     "create nio account" in {

@@ -1,14 +1,13 @@
-package controllers
+package controllers.mongo
 
 import models._
 import org.joda.time.{DateTime, DateTimeZone}
-import play.api.Logger
 import play.api.libs.json.{JsArray, JsValue, Json}
 import play.api.libs.ws.WSResponse
 import play.api.test.Helpers._
-import utils.TestUtils
+import utils.TestUtilsMongo
 
-class OrganisationControllerSpec extends TestUtils {
+class OrganisationControllerSpec extends TestUtilsMongo {
 
   "OrganisationController" should {
     val org1Key = "orgTest1"

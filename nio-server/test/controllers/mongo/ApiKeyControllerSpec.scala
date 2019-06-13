@@ -1,19 +1,18 @@
-package controllers
+package controllers.mongo
 
 import java.util.concurrent.TimeUnit
 
 import db.ApiKeyDataStore
-import db.mongo.ApiKeyMongoDataStore
 import play.api.Logger
 import play.api.libs.json.{JsArray, JsString, JsValue, Json}
 import play.api.libs.ws.WSResponse
 import play.api.test.Helpers._
-import utils.TestUtils
+import utils.TestUtilsMongo
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 
-class ApiKeyControllerSpec extends TestUtils {
+class ApiKeyControllerSpec extends TestUtilsMongo {
 
   private val apiKey: JsValue = Json.obj(
     "clientId" -> "clientId1",
@@ -32,8 +31,7 @@ class ApiKeyControllerSpec extends TestUtils {
     "clean" in {
       val store: ApiKeyDataStore =
         nioComponents.apiKeyDataStore
-      Await.result(store.deleteAll(),
-                   Duration(10, TimeUnit.SECONDS))
+      Await.result(store.deleteAll(), Duration(10, TimeUnit.SECONDS))
     }
 
     "create api key" in {

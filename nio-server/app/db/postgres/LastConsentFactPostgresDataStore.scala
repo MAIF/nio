@@ -76,7 +76,8 @@ class LastConsentFactPostgresDataStore()(
       orgKey: String,
       offerKey: String): Future[Either[AppErrorWithStatus, Boolean]] = {
     findManyByQuery(tenant,
-                    Json.obj("orgKey" -> orgKey, "offers.key" -> offerKey))
+                    Json.obj("orgKey" -> orgKey,
+                             "offers" -> Json.arr(Json.obj("key" -> offerKey))))
       .flatMap {
         case Nil =>
           FastFuture.successful(Right(true))
@@ -159,7 +160,7 @@ class LastConsentFactPostgresDataStore()(
           case Some(offer) =>
             setOffers(tenant,
                       Json.obj("orgKey" -> orgKey, "userId" -> userId),
-                      consentFact.offers.get.filter(p => p.key == offerKey))
+                      consentFact.offers.get.filter(p => p.key != offerKey))
               .map(_ => Right(offer))
           case None =>
             FastFuture.successful(

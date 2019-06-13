@@ -1,13 +1,13 @@
-package controllers
+package controllers.mongo
 
 import models._
 import play.api.Logger
 import play.api.libs.json.{JsArray, JsValue, Json}
 import play.api.libs.ws.WSResponse
-import utils.TestUtils
 import play.api.test.Helpers._
+import utils.TestUtilsMongo
 
-class ConsentTemplateControllerSpec extends TestUtils {
+class ConsentTemplateControllerSpec extends TestUtilsMongo {
   val org1Key = "orgTest1"
 
   val org1 = Organisation(

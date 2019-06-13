@@ -1,31 +1,21 @@
-package controllers
+package controllers.postgres
 
 import java.io.File
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.util.concurrent.TimeUnit
 
-import akka.NotUsed
-import akka.http.scaladsl.model.Multipart.BodyPart
 import akka.stream.scaladsl.{FileIO, Source}
 import models.{Organisation, Permission, PermissionGroup, UserExtract}
-import org.apache.http.entity.ContentType
-import org.apache.http.entity.mime.MultipartEntityBuilder
 import play.api.libs.json.{JsArray, JsValue}
-import play.api.libs.ws.SourceBody
-import play.api.{Logger, mvc}
-import play.api.mvc.MultipartFormData
-import play.api.mvc.MultipartFormData.{DataPart, FilePart}
+import play.api.mvc.MultipartFormData.FilePart
 import play.api.test.Helpers._
-import play.mvc.BodyParser.MultipartFormData
-import play.shaded.ahc.org.asynchttpclient.request.body.multipart.StringPart
-import play.shaded.ahc.org.asynchttpclient.request.body.multipart.part.StringMultipartPart
-import utils.TestUtils
+import utils.{TestUtilsMongo, TestUtilsPostgres}
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 
-class UserExtractControllerSpec extends TestUtils {
+class UserExtractControllerSpec extends TestUtilsPostgres {
 
   val orgKey: String = "org1"
   val org2Key: String = "org2"

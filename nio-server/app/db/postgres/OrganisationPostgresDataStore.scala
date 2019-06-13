@@ -43,7 +43,7 @@ class OrganisationPostgresDataStore()(
       Json.obj("key" -> key, "version" -> Json.obj("status" -> "RELEASED"))
 
     AsyncDB withPool { implicit session =>
-      sql"select * from ${table} where tenant=${tenant} and payload @> ${query.toString()}::jsonb"
+      sql"select * from ${table} where tenant=${tenant} and payload @> ${query.toString()}::jsonb order by payload->>'_id' asc"
         .map(rs => fromResultSet(rs))
         .list()
         .future()
@@ -86,6 +86,7 @@ class OrganisationPostgresDataStore()(
       key: String,
       versionNum: Int): Future[Option[Organisation]] = {
     val query = Json.obj(
+      "key" -> key,
       "version" -> Json.obj("num" -> versionNum, "status" -> "RELEASED"))
 
     AsyncDB withPool { implicit session =>
@@ -115,7 +116,8 @@ class OrganisationPostgresDataStore()(
     AsyncDB withPool { implicit session =>
       sql"""select * from ${table} where tenant=${tenant}
             and (payload @> ${query1.toString()}::jsonb
-            or payload @> ${query2.toString()}::jsonb)"""
+            or payload @> ${query2
+        .toString()}::jsonb) order by payload->>'_id' asc"""
         .map(rs => fromResultSet(rs))
         .list()
         .future()
@@ -148,7 +150,8 @@ class OrganisationPostgresDataStore()(
             and ((payload @> ${query1
         .toString()}::jsonb and payload#>>'{version,lastUpdate}' >= ${from} and payload#>>'{version,lastUpdate}' <= ${to} )
             or (payload @> ${query2
-        .toString()}::jsonb and payload#>>'{version,lastUpdate}' >= ${from} and payload#>>'{version,lastUpdate}' <= ${to} ))"""
+        .toString()}::jsonb and payload#>>'{version,lastUpdate}' >= ${from} and payload#>>'{version,lastUpdate}' <= ${to} ))
+         order by payload->>'_id' asc"""
         .map(rs => fromResultSet(rs))
         .list()
         .future()
@@ -171,7 +174,7 @@ class OrganisationPostgresDataStore()(
             and ((payload @> ${query1
         .toString()}::jsonb and payload#>>'{version,lastUpdate}' >= ${from} and payload#>>'{version,lastUpdate}' <= ${to} )
             or (payload @> ${query2
-        .toString()}::jsonb and payload#>>'{version,lastUpdate}' >= ${from} and payload#>>'{version,lastUpdate}' <= ${to} ))"""
+        .toString()}::jsonb and payload#>>'{version,lastUpdate}' >= ${from} and payload#>>'{version,lastUpdate}' <= ${to} )) """
         .map(rs => Json.toJson(fromResultSet(rs)))
         .iterator
     }
@@ -252,7 +255,9 @@ class OrganisationPostgresDataStore()(
               setOffers(
                 tenant,
                 query,
-                organisation.offers.get.filter(p => p.key == offerKey).+:(offer)
+                organisation.offers.get.map(p => {
+                  if (p.key == offerKey) offer else p
+                })
               ).map(_ => offer)
             case None =>
               Future.failed(new RuntimeException("offer not found"))
@@ -271,7 +276,7 @@ class OrganisationPostgresDataStore()(
           setOffers(
             tenant,
             query,
-            organisation.offers.getOrElse(Seq.empty).+:(offer)
+            organisation.offers.getOrElse(Seq.empty).:+(offer)
           ).map(_ => offer)
         case None =>
           Future.failed(new RuntimeException("org not found"))
@@ -296,7 +301,7 @@ class OrganisationPostgresDataStore()(
             setOffers(
               tenant,
               query,
-              organisation.offers.get.filter(p => p.key == offerKey)
+              organisation.offers.get.filter(p => p.key != offerKey)
             ).map(_ => Right(offer))
           case None =>
             FastFuture.successful(

@@ -1,18 +1,17 @@
-package controllers
+package controllers.mongo
 
 import java.util.concurrent.atomic.AtomicBoolean
 
-import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import play.api.libs.json.Json
 import play.api.libs.ws.WSResponse
 import play.api.test.Helpers._
-import utils.TestUtils
+import utils.TestUtilsMongo
 
-import scala.concurrent.duration.Duration
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration.Duration
 
-class EventControllerSpec extends TestUtils {
+class EventControllerSpec extends TestUtilsMongo {
   val tenant1: String = "newTenant1"
 
   val secret = "tenant-admin-secret" -> "secret"

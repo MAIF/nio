@@ -1,9 +1,5 @@
-package controllers
+package controllers.postgres
 
-import models._
-import play.api.libs.json.{JsArray, Json}
-import play.api.test.Helpers._
-import utils.TestUtils
 import java.io.File
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
@@ -11,13 +7,16 @@ import java.util.concurrent.TimeUnit
 
 import akka.stream.scaladsl.FileIO
 import com.amazonaws.services.s3.AmazonS3
+import models._
+import play.api.libs.json.{JsArray, Json}
 import play.api.libs.ws.SourceBody
-import s3.{S3, S3Configuration}
+import play.api.test.Helpers._
+import utils.{TestUtilsMongo, TestUtilsPostgres}
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 
-class ExtractionControllerSpec extends TestUtils {
+class ExtractionControllerSpec extends TestUtilsPostgres {
 
   val orgKey = "orgTest1"
   val appId1 = "app1"
