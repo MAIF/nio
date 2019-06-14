@@ -161,7 +161,8 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <p>Nio tries to embrace <a href="about.html#philosophy">global philosophy</a> by providing a full featured REST admin api, a gorgeous admin dashboard written in <a href="https://reactjs.org/">React</a> that uses the api. Architecture is composed of a JVM-compliant service (Play2 + Scala), a MongoDB database and a Kafka Broker. </p><div class="centered-img">
 <img src="./img/nio-architecture.png" /></div>
 <h2><a href="#database" name="database" class="anchor"><span class="anchor-link"></span></a>Database</h2>
-<p><strong>Nio&rsquo;s</strong> database is MongoDB, which mostly stores consents and account data.</p>
+<p><strong>Nio&rsquo;s</strong> database is useful to stores consents and account data.</p>
+<p>You can choose between Mongo or Postgres (at least 9.6), by default Nio uses Mongo database</p>
 <h3><a href="#multi-tenancy" name="multi-tenancy" class="anchor"><span class="anchor-link"></span></a>Multi-tenancy</h3>
 <p><strong>Nio&rsquo;s</strong> database is multi-tenant, which let&rsquo;s you instanciate multiple environnement with only one database. This can be very useful for any <em>non-prod</em> envs.</p>
 <h2><a href="#events-broker" name="events-broker" class="anchor"><span class="anchor-link"></span></a>Events Broker</h2>
@@ -173,16 +174,27 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <pre class="prettyprint"><code class="language-sh ">export ENABLE_RECORD_MANAGEMENT=true
 export ENABLE_S3_MANAGEMENT=true
 </code></pre>
-<h2><a href="#optional-email-notification-using-mail-gun-" name="optional-email-notification-using-mail-gun-" class="anchor"><span class="anchor-link"></span></a>(Optional) email notification using mail gun.</h2>
-<p><strong>Nio</strong> provides features to send e-mails using <a href="https://www.mailgun.com/">Mail Gun</a>. For the moment, we manage the sending of an e-mail during the finalization of a request of extraction of data with the link of the file to be downloaded.</p>
+<h2><a href="#optional-email-notification-" name="optional-email-notification-" class="anchor"><span class="anchor-link"></span></a>(Optional) email notification.</h2>
+<p><strong>Nio</strong> provides features to send e-mails using <a href="https://www.mailgun.com/">Mail Gun</a> or <a href="https://api.mailjet.com/">MailJet</a>, we manage the sending of an e-mail during the finalization of a request of extraction of data with the link of the file to be downloaded.</p>
 <p>Email sending is optional.</p>
-<p>To enable mail gun, you have to specify an environment variable : </p>
+<p>To enable mail sending, you have to specify an environment variable : </p>
 <pre class="prettyprint"><code class="language-sh ">export ENABLE_MAIL_SENDING=true
 </code></pre>
-<p>and specify the mail gun configuration :</p>
+<p>To choose mailgun or mailjet you have to specify an environment variable : </p>
+<pre class="prettyprint"><code class="language-sh "># possible values (mailgun, mailjet), default value mailgun
+export MAIL_SENDING_PROVIDER=mailgun
+</code></pre>
+<p>For the configuration :</p>
+<p>mail gun</p>
 <pre class="prettyprint"><code class="language-sh">export MAIL_GUN_API_KEY=&lt;my-mail-gun-api-key&gt;
 export MAIL_GUN_SENDER=&lt;mymailgun@sender.com&gt;
 export MAIL_GUN_ENDPOINT=&lt;https://api.mailgun.net/v3/my-mail-gun-domain&gt;
+</code></pre>
+<p>or mailjet</p>
+<pre class="prettyprint"><code class="language-sh">export MAIL_JET_API_KEY_PUBLIC=&lt;my-mailjet-public-key&gt;
+export MAIL_JET_API_KEY_PRIVATE=&lt;my-mailjet-private-key&gt;
+export MAIL_JET_SENDER=&lt;mymailjet@sender.com&gt;
+export MAIL_JET_ENDPOINT=&lt;https://api.mailjet.com&gt;
 </code></pre>
 <div class="nav-next">
 <p><strong>Next:</strong> <a href="features.html">Features</a></p>
@@ -199,7 +211,7 @@ export MAIL_GUN_ENDPOINT=&lt;https://api.mailgun.net/v3/my-mail-gun-domain&gt;
     <li><a href="architecture.html#database" class="header">Database</a></li>
     <li><a href="architecture.html#events-broker" class="header">Events Broker</a></li>
     <li><a href="architecture.html#optional-s3-compliant-storage-for-events-record-management" class="header">(Optional) S3-compliant storage for events record management</a></li>
-    <li><a href="architecture.html#optional-email-notification-using-mail-gun-" class="header">(Optional) email notification using mail gun.</a></li>
+    <li><a href="architecture.html#optional-email-notification-" class="header">(Optional) email notification.</a></li>
   </ul></li>
 </ul>
 </div>

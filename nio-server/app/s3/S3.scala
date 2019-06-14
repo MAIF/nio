@@ -15,7 +15,7 @@ import com.amazonaws.services.s3.model.lifecycle.{
   LifecycleFilter,
   LifecycleTagPredicate
 }
-import db.{ExtractionTaskMongoDataStore, TenantMongoDataStore}
+import db.{ExtractionTaskDataStore, TenantDataStore}
 import models.{ExtractionTask, ExtractionTaskStatus}
 import org.joda.time.{DateTime, DateTimeZone, Days}
 import play.api.Logger
@@ -26,9 +26,8 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class S3(val conf: S3Configuration,
          val system: ActorSystem,
-         val tenantStore: TenantMongoDataStore)(
-    implicit ec: ExecutionContext,
-    store: ExtractionTaskMongoDataStore) {
+         val tenantStore: TenantDataStore)(implicit ec: ExecutionContext,
+                                           store: ExtractionTaskDataStore) {
 
   lazy val client = {
     val opts = new ClientConfiguration()
@@ -56,7 +55,7 @@ class S3(val conf: S3Configuration,
   }
 
   def applyExpirationConfig = {
-    println("Applying expiration configuration to bucket ")
+    Logger.info("Applying expiration configuration to bucket ")
     val configuration = client.getBucketLifecycleConfiguration(conf.bucketName)
 
     // Add a new rule

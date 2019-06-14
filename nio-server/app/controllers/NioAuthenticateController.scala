@@ -6,7 +6,8 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import configuration.{DefaultFilterConfig, Env}
 import controllers.ErrorManager.AppErrorManagerResult
-import db.NioAccountMongoDataStore
+import db.NioAccountDataStore
+import db.mongo.NioAccountMongoDataStore
 import models.{Auth, NioAccount}
 import play.api.mvc.{ControllerComponents, Cookie}
 import utils.Sha
@@ -16,7 +17,7 @@ import scala.concurrent.ExecutionContext
 class NioAuthenticateController(
     env: Env,
     cc: ControllerComponents,
-    nioAccountMongoDataStore: NioAccountMongoDataStore,
+    nioAccountDataStore: NioAccountDataStore,
     actorSystem: ActorSystem)(implicit ec: ExecutionContext)
     extends ControllerUtils(cc) {
 
@@ -32,7 +33,7 @@ class NioAuthenticateController(
       case Left(e) =>
         FastFuture.successful(e.forbidden())
       case Right(auth) =>
-        nioAccountMongoDataStore.findByEmail(auth.email).map {
+        nioAccountDataStore.findByEmail(auth.email).map {
           case Some(authStored)
               if authStored.password == Sha.hexSha512(auth.password) =>
             Ok.withCookies(

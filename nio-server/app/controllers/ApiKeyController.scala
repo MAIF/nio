@@ -3,7 +3,7 @@ package controllers
 import akka.http.scaladsl.util.FastFuture
 import auth.SecuredAuthContext
 import controllers.ErrorManager.{AppErrorManagerResult, ErrorManagerResult}
-import db.ApiKeyMongoDataStore
+import db.ApiKeyDataStore
 import libs.xmlorjson.XmlOrJson
 import messaging.KafkaMessageBroker
 import models.{ApiKey, ApiKeyUpdate, ApiKeyValidator, ApiKeys}
@@ -14,7 +14,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class ApiKeyController(
     val AuthAction: ActionBuilder[SecuredAuthContext, AnyContent],
     val cc: ControllerComponents,
-    val apiKeyMongoDataStore: ApiKeyMongoDataStore,
+    val apiKeyMongoDataStore: ApiKeyDataStore,
     broker: KafkaMessageBroker)(implicit ec: ExecutionContext)
     extends ControllerUtils(cc) {
 

@@ -20,11 +20,11 @@ import ErrorManager.AppErrorManagerResult
 class OrganisationController(
     val AuthAction: ActionBuilder[SecuredAuthContext, AnyContent],
     val cc: ControllerComponents,
-    val ds: OrganisationMongoDataStore,
-    val consentFactDataStore: ConsentFactMongoDataStore,
-    val lastConsentFactMongoDataStore: LastConsentFactMongoDataStore,
-    val userDataStore: UserMongoDataStore,
-    val tenantDataStore: TenantMongoDataStore,
+    val ds: OrganisationDataStore,
+    val consentFactDataStore: ConsentFactDataStore,
+    val lastConsentFactMongoDataStore: LastConsentFactDataStore,
+    val userDataStore: UserDataStore,
+    val tenantDataStore: TenantDataStore,
     val broker: KafkaMessageBroker)(implicit val ec: ExecutionContext,
                                     system: ActorSystem)
     extends ControllerUtils(cc) {

@@ -1,90 +1,35 @@
 package db
 
 import models.UserExtractTask
-import play.api.libs.json.{Json, OFormat}
-import play.modules.reactivemongo.ReactiveMongoApi
-import reactivemongo.api.indexes.{Index, IndexType}
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
-class UserExtractTaskDataStore(val mongoApi: ReactiveMongoApi)(
-    implicit val executionContext: ExecutionContext)
-    extends MongoDataStore[UserExtractTask] {
-  override implicit def format: OFormat[UserExtractTask] =
-    UserExtractTask.oformat
+trait UserExtractTaskDataStore {
 
-  override protected def collectionName(tenant: String): String =
-    s"$tenant-userExtractTask"
+  def init(tenant: String): Future[Unit]
 
-  override protected def indices: Seq[Index] = Seq(
-    Index(
-      Seq("tenant" -> IndexType.Ascending,
-          "orgKey" -> IndexType.Ascending,
-          "userId" -> IndexType.Ascending),
-      name = Some("tenant_orgKey_userId"),
-      unique = false,
-      sparse = true
-    ),
-    Index(
-      Seq("orgKey" -> IndexType.Ascending, "userId" -> IndexType.Ascending),
-      name = Some("orgKey_userId"),
-      unique = false,
-      sparse = true
-    )
-  )
+  def ensureIndices(key: String): Future[Unit]
 
-  def create(userExtractTask: UserExtractTask): Future[Boolean] = {
-    insertOne(userExtractTask.tenant, userExtractTask)
-  }
+  def create(userExtractTask: UserExtractTask): Future[Boolean]
 
-  def update(_id: String, userExtractTask: UserExtractTask) = {
-    updateOne(userExtractTask.tenant, _id, userExtractTask)
-  }
+  def update(_id: String, userExtractTask: UserExtractTask): Future[Boolean]
 
-  def delete(tenant: String,
-             orgKey: String,
-             userId: String): Future[Boolean] = {
-    deleteByQuery(
-      tenant,
-      Json.obj("tenant" -> tenant, "orgKey" -> orgKey, "userId" -> userId))
-  }
+  def delete(tenant: String, orgKey: String, userId: String): Future[Boolean]
 
   def find(tenant: String,
            orgKey: String,
-           userId: String): Future[Option[UserExtractTask]] =
-    findOneByQuery(
-      tenant,
-      Json.obj("tenant" -> tenant,
-               "orgKey" -> orgKey,
-               "userId" -> userId,
-               "endedAt" -> Json.obj("$exists" -> false))
-    )
+           userId: String): Future[Option[UserExtractTask]]
 
   def findByOrgKey(tenant: String,
                    orgKey: String,
                    page: Int,
-                   pageSize: Int): Future[(Seq[UserExtractTask], Int)] =
-    findManyByQueryPaginateCount(
-      tenant = tenant,
-      query = Json.obj("tenant" -> tenant, "orgKey" -> orgKey),
-      page = page,
-      pageSize = pageSize)
+                   pageSize: Int): Future[(Seq[UserExtractTask], Int)]
 
-  def findByOrgKeyAndUserId(
-      tenant: String,
-      orgKey: String,
-      userId: String,
-      page: Int,
-      pageSize: Int): Future[(Seq[UserExtractTask], Int)] =
-    findManyByQueryPaginateCount(
-      tenant = tenant,
-      query =
-        Json.obj("tenant" -> tenant, "orgKey" -> orgKey, "userId" -> userId),
-      page = page,
-      pageSize = pageSize)
+  def findByOrgKeyAndUserId(tenant: String,
+                            orgKey: String,
+                            userId: String,
+                            page: Int,
+                            pageSize: Int): Future[(Seq[UserExtractTask], Int)]
 
-  def deleteUserExtractTaskByTenant(tenant: String): Future[Boolean] =
-    storedCollection(tenant).flatMap { col =>
-      col.drop(failIfNotFound = false)
-    }
+  def deleteUserExtractTaskByTenant(tenant: String): Future[Boolean]
 }

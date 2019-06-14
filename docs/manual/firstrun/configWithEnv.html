@@ -563,7 +563,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
     </tr>
   </tbody>
 </table>
-<h2><a href="#mail-gun-configuration" name="mail-gun-configuration" class="anchor"><span class="anchor-link"></span></a>Mail gun configuration</h2>
+<h2><a href="#mail-configuration" name="mail-configuration" class="anchor"><span class="anchor-link"></span></a>Mail configuration</h2>
 <table>
   <thead>
     <tr>
@@ -581,6 +581,25 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
       <td><code>false</code> </td>
     </tr>
     <tr>
+      <td><code>nio.mailSendingProvider</code> </td>
+      <td><code>MAIL_SENDING_PROVIDER</code> </td>
+      <td>The Mail provider : <code>mailgun</code> or <code>mailjet</code> </td>
+      <td><code>mailgun</code> </td>
+    </tr>
+  </tbody>
+</table>
+<h2><a href="#mail-gun-configuration" name="mail-gun-configuration" class="anchor"><span class="anchor-link"></span></a>Mail gun configuration</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Config property </th>
+      <th>Env variable </th>
+      <th>Description </th>
+      <th>Default value </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
       <td><code>nio.mailGunConfig.apiKey</code> </td>
       <td><code>MAIL_GUN_API_KEY</code> </td>
       <td>The MailGun Api key </td>
@@ -596,6 +615,43 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
       <td><code>nio.mailGunConfig.from</code> </td>
       <td><code>MAIL_GUN_SENDER</code> </td>
       <td>The MailGun default sender </td>
+      <td> </td>
+    </tr>
+  </tbody>
+</table>
+<h2><a href="#mailjet-configuration" name="mailjet-configuration" class="anchor"><span class="anchor-link"></span></a>MailJet configuration</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Config property </th>
+      <th>Env variable </th>
+      <th>Description </th>
+      <th>Default value </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>nio.mailJetConfig.apiKeyPublic</code> </td>
+      <td><code>MAIL_JET_API_KEY_PUBLIC</code> </td>
+      <td>The MailJet public api key </td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td><code>nio.mailJetConfig.apiKeyPrivate</code> </td>
+      <td><code>MAIL_JET_API_KEY_PRIVATE</code> </td>
+      <td>The MailJet private api key </td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td><code>nio.mailJetConfig.endpoint</code> </td>
+      <td><code>MAIL_JET_ENDPOINT</code> </td>
+      <td>The MailJet Endpoint </td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td><code>nio.mailJetConfig.from</code> </td>
+      <td><code>MAIL_JET_SENDER</code> </td>
+      <td>The MailJet default sender </td>
       <td> </td>
     </tr>
   </tbody>
@@ -650,6 +706,31 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
     </tr>
   </tbody>
 </table>
+<h2><a href="#db-configuration-both-postgres-and-mongo-" name="db-configuration-both-postgres-and-mongo-" class="anchor"><span class="anchor-link"></span></a>DB configuration (both postgres and mongo)</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Config property </th>
+      <th>Env variable </th>
+      <th>Description </th>
+      <th>Default value </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>storage</code> </td>
+      <td><code>NIO_STORAGE</code> </td>
+      <td>The database to use : <code>mongo</code> or <code>postgres</code> </td>
+      <td><code>mongo</code> </td>
+    </tr>
+    <tr>
+      <td><code>store.flush</code> </td>
+      <td><code>DB_FLUSH</code> </td>
+      <td>To initialize the mongo database </td>
+      <td><code>false</code> </td>
+    </tr>
+  </tbody>
+</table>
 <h2><a href="#mongodb-configuration" name="mongodb-configuration" class="anchor"><span class="anchor-link"></span></a>MongoDB configuration</h2>
 <table>
   <thead>
@@ -667,11 +748,48 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
       <td>The mongodb addon uri </td>
       <td><code>mongodb://localhost:27017/nio</code> </td>
     </tr>
+  </tbody>
+</table>
+<h2><a href="#postgres-configuration" name="postgres-configuration" class="anchor"><span class="anchor-link"></span></a>Postgres configuration</h2>
+<table>
+  <thead>
     <tr>
-      <td><code>db.flush</code> </td>
-      <td><code>DB_FLUSH</code> </td>
-      <td>To initialize the mongo database </td>
-      <td><code>false</code> </td>
+      <th>Config property </th>
+      <th>Env variable </th>
+      <th>Description </th>
+      <th>Default value </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>db.url</code> </td>
+      <td><code>POSTGRESQL_ADDON_DATABASE_URL</code> </td>
+      <td>The postgres database url </td>
+      <td><code>jdbc:postgresql://localhost:5432/nio</code> </td>
+    </tr>
+    <tr>
+      <td><code>db.username</code> </td>
+      <td><code>POSTGRESQL_ADDON_USER</code> </td>
+      <td>The postgres database username </td>
+      <td><code>nio</code> </td>
+    </tr>
+    <tr>
+      <td><code>db.password</code> </td>
+      <td><code>POSTGRESQL_ADDON_PASSWORD</code> </td>
+      <td>The postgres database password </td>
+      <td><code>nio</code> </td>
+    </tr>
+    <tr>
+      <td><code>db.maxPoolSize</code> </td>
+      <td><code>POSTGRESQL_ADDON_MAX_POOL_SIZE</code> </td>
+      <td>The postgres database max pool size </td>
+      <td><code>20</code> </td>
+    </tr>
+    <tr>
+      <td><code>db.maxIdleMillis</code> </td>
+      <td><code>POSTGRESQL_ADDON_MAX_IDLE_MILLIS</code> </td>
+      <td>The max inactive time before connection is given back to the pool </td>
+      <td><code>1000</code> </td>
     </tr>
   </tbody>
 </table>
@@ -692,10 +810,14 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
     <li><a href="../firstrun/configWithEnv.html#security" class="header">Security</a></li>
     <li><a href="../firstrun/configWithEnv.html#kafka-configuration" class="header">Kafka configuration</a></li>
     <li><a href="../firstrun/configWithEnv.html#s3-configuration" class="header">S3 configuration</a></li>
+    <li><a href="../firstrun/configWithEnv.html#mail-configuration" class="header">Mail configuration</a></li>
     <li><a href="../firstrun/configWithEnv.html#mail-gun-configuration" class="header">Mail gun configuration</a></li>
+    <li><a href="../firstrun/configWithEnv.html#mailjet-configuration" class="header">MailJet configuration</a></li>
     <li><a href="../firstrun/configWithEnv.html#tenant-configuration" class="header">Tenant configuration</a></li>
     <li><a href="../firstrun/configWithEnv.html#healthcheck-configuration" class="header">HealthCheck configuration</a></li>
+    <li><a href="../firstrun/configWithEnv.html#db-configuration-both-postgres-and-mongo-" class="header">DB configuration (both postgres and mongo)</a></li>
     <li><a href="../firstrun/configWithEnv.html#mongodb-configuration" class="header">MongoDB configuration</a></li>
+    <li><a href="../firstrun/configWithEnv.html#postgres-configuration" class="header">Postgres configuration</a></li>
   </ul></li>
 </ul>
 </div>

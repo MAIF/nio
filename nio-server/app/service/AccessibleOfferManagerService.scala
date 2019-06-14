@@ -1,10 +1,8 @@
 package service
 
-import java.util.regex.Pattern
-
 import akka.http.scaladsl.util.FastFuture
 import controllers.AppErrorWithStatus
-import db.OrganisationMongoDataStore
+import db.OrganisationDataStore
 import models.{Offer, Organisation}
 import play.api.Logger
 import play.api.libs.json.Json
@@ -14,7 +12,7 @@ import utils.Result.{AppErrors, ErrorMessage}
 import scala.concurrent.{ExecutionContext, Future}
 
 class AccessibleOfferManagerService(
-    organisationMongoDataStore: OrganisationMongoDataStore)(
+    organisationDataStore: OrganisationDataStore)(
     implicit executionContext: ExecutionContext) {
 
   def accessibleOfferKey(
@@ -41,7 +39,7 @@ class AccessibleOfferManagerService(
       case None =>
         FastFuture.successful(Right(None))
       case Some(_) =>
-        organisationMongoDataStore.findLastReleasedByKey(tenant, orgKey).map {
+        organisationDataStore.findLastReleasedByKey(tenant, orgKey).map {
           case Some(organisation) =>
             Logger.info(s"existing offers ${organisation.offers.map(_.map(o =>
               Json.stringify(o.asJson())))}")
@@ -63,7 +61,7 @@ class AccessibleOfferManagerService(
       orgKey: String,
       offerRestrictionPatterns: Option[Seq[String]])
     : Future[Either[AppErrorWithStatus, Option[Organisation]]] = {
-    organisationMongoDataStore.findLastReleasedByKey(tenant, orgKey).map {
+    organisationDataStore.findLastReleasedByKey(tenant, orgKey).map {
       case Some(organisation) =>
         Logger.info(s"existing offers ${organisation.offers.map(_.map(o =>
           Json.stringify(o.asJson())))}")

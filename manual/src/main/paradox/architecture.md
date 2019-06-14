@@ -17,7 +17,9 @@ Architecture is composed of a JVM-compliant service (Play2 + Scala), a MongoDB d
 
 ## Database
 
-**Nio's** database is MongoDB, which mostly stores consents and account data.
+**Nio's** database is useful to stores consents and account data.
+
+You can choose between Mongo or Postgres (at least 9.6), by default Nio uses Mongo database
 
 ### Multi-tenancy
 
@@ -40,22 +42,40 @@ export ENABLE_RECORD_MANAGEMENT=true
 export ENABLE_S3_MANAGEMENT=true
 ```
 
-## (Optional) email notification using mail gun.
+## (Optional) email notification.
 
-**Nio** provides features to send e-mails using [Mail Gun](https://www.mailgun.com/). For the moment, we manage the sending of an e-mail during the finalization of a request of extraction of data with the link of the file to be downloaded.
+**Nio** provides features to send e-mails using [Mail Gun](https://www.mailgun.com/) or [MailJet](https://api.mailjet.com/), we manage the sending of an e-mail during the finalization of a request of extraction of data with the link of the file to be downloaded.
 
 Email sending is optional.
 
-To enable mail gun, you have to specify an environment variable : 
+To enable mail sending, you have to specify an environment variable : 
 
 ```sh 
 export ENABLE_MAIL_SENDING=true
 ```
 
-and specify the mail gun configuration :
+To choose mailgun or mailjet you have to specify an environment variable : 
+
+```sh 
+# possible values (mailgun, mailjet), default value mailgun
+export MAIL_SENDING_PROVIDER=mailgun
+```
+
+For the configuration :
+
+mail gun
 
 ```sh
 export MAIL_GUN_API_KEY=<my-mail-gun-api-key>
 export MAIL_GUN_SENDER=<mymailgun@sender.com>
 export MAIL_GUN_ENDPOINT=<https://api.mailgun.net/v3/my-mail-gun-domain>
+```
+
+or mailjet
+
+```sh
+export MAIL_JET_API_KEY_PUBLIC=<my-mailjet-public-key>
+export MAIL_JET_API_KEY_PRIVATE=<my-mailjet-private-key>
+export MAIL_JET_SENDER=<mymailjet@sender.com>
+export MAIL_JET_ENDPOINT=<https://api.mailjet.com>
 ```

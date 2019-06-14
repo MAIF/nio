@@ -7,7 +7,7 @@ import akka.http.scaladsl.util.FastFuture
 import auth.AuthContextWithEmail
 import configuration.Env
 import controllers.ErrorManager.ErrorManagerResult
-import db.TenantMongoDataStore
+import db.TenantDataStore
 import play.api.mvc.{ActionBuilder, AnyContent, ControllerComponents}
 
 import scala.collection.JavaConverters._
@@ -16,7 +16,7 @@ import scala.concurrent.ExecutionContext
 class HomeController(
     val AuthAction: ActionBuilder[AuthContextWithEmail, AnyContent],
     val cc: ControllerComponents,
-    val tenantStore: TenantMongoDataStore,
+    val tenantStore: TenantDataStore,
     val env: Env,
     val actorSystem: ActorSystem,
     implicit val ec: ExecutionContext)

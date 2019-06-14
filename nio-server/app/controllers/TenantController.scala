@@ -4,24 +4,24 @@ import auth.{AuthAction, SecuredAction, SecuredAuthContext}
 import configuration.Env
 import controllers.ErrorManager._
 import db._
+import db.AccountDataStore
 import messaging.KafkaMessageBroker
 import models.{Tenant, TenantCreated, TenantDeleted, Tenants}
 import play.api.mvc.{ActionBuilder, AnyContent, ControllerComponents}
 import play.api.{Configuration, Logger}
-import utils.Result.AppErrors
 
 import scala.concurrent.{ExecutionContext, Future}
 class TenantController(
     AuthAction: ActionBuilder[SecuredAuthContext, AnyContent],
-    tenantStore: TenantMongoDataStore,
-    accountMongoDataStore: AccountMongoDataStore,
-    lastConsentFactMongoDataStore: LastConsentFactMongoDataStore,
-    consentFactStore: ConsentFactMongoDataStore,
+    tenantStore: TenantDataStore,
+    accountDataStore: AccountDataStore,
+    lastConsentFactDataStore: LastConsentFactDataStore,
+    consentFactStore: ConsentFactDataStore,
     userExtractTaskDataStore: UserExtractTaskDataStore,
-    organisationDataStore: OrganisationMongoDataStore,
-    userDataStore: UserMongoDataStore,
-    extractionTaskDataStore: ExtractionTaskMongoDataStore,
-    deletionTaskDataStore: DeletionTaskMongoDataStore,
+    organisationDataStore: OrganisationDataStore,
+    userDataStore: UserDataStore,
+    extractionTaskDataStore: ExtractionTaskDataStore,
+    deletionTaskDataStore: DeletionTaskDataStore,
     conf: Configuration,
     cc: ControllerComponents,
     env: Env,
@@ -56,22 +56,21 @@ class TenantController(
                   Future
                     .sequence(
                       Seq(
-                        accountMongoDataStore
+                        accountDataStore
                           .init(tenant.key)
                           .map(
-                            _ => accountMongoDataStore.ensureIndices(tenant.key)
+                            _ => accountDataStore.ensureIndices(tenant.key)
                           ),
                         consentFactStore
                           .init(tenant.key)
                           .map(
                             _ => consentFactStore.ensureIndices(tenant.key)
                           ),
-                        lastConsentFactMongoDataStore
+                        lastConsentFactDataStore
                           .init(tenant.key)
                           .map(
                             _ =>
-                              lastConsentFactMongoDataStore.ensureIndices(
-                                tenant.key)
+                              lastConsentFactDataStore.ensureIndices(tenant.key)
                           ),
                         organisationDataStore
                           .init(tenant.key)
@@ -118,12 +117,11 @@ class TenantController(
             import cats.implicits._
             (
               consentFactStore.deleteConsentFactByTenant(tenantKey),
-              lastConsentFactMongoDataStore.deleteConsentFactByTenant(
-                tenantKey),
+              lastConsentFactDataStore.deleteConsentFactByTenant(tenantKey),
               organisationDataStore.deleteOrganisationByTenant(tenantKey),
               userDataStore.deleteUserByTenant(tenantKey),
               tenantStore.removeByKey(tenantKey),
-              accountMongoDataStore.deleteAccountByTenant(tenantKey),
+              accountDataStore.deleteAccountByTenant(tenantKey),
               deletionTaskDataStore.deleteDeletionTaskByTenant(tenantKey),
               extractionTaskDataStore.deleteExtractionTaskByTenant(tenantKey),
               userExtractTaskDataStore.deleteUserExtractTaskByTenant(tenantKey)

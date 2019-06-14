@@ -7,7 +7,7 @@ import akka.http.scaladsl.util.FastFuture
 import akka.japi.Option.Some
 import akka.stream.ActorMaterializer
 import configuration.Env
-import db.{UserExtractTaskDataStore, _}
+import db._
 import models.{NioAccount, Tenant}
 import play.api.{Configuration, Logger}
 import s3.S3
@@ -16,33 +16,32 @@ import utils.{DefaultLoader, SecureEvent, Sha}
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration.Duration
 
-class Starter(
-    config: Configuration,
-    env: Env,
-    system: ActorSystem,
-    tenantDataStore: TenantMongoDataStore,
-    organisationDataStore: OrganisationMongoDataStore,
-    userDataStore: UserMongoDataStore,
-    consentFactDataStore: ConsentFactMongoDataStore,
-    lastConsentFactDataStore: LastConsentFactMongoDataStore,
-    accountDataStore: AccountMongoDataStore,
-    deletionTaskDataStore: DeletionTaskMongoDataStore,
-    extractionTaskDataStore: ExtractionTaskMongoDataStore,
-    userExtractTaskDataStore: UserExtractTaskDataStore,
-    userAccountMongoDataStore: NioAccountMongoDataStore,
-    catchupLockMongoDatastore: CatchupLockMongoDatastore,
-    defaultLoader: DefaultLoader,
-    s3: S3,
-    secureEvent: SecureEvent)(implicit val executionContext: ExecutionContext) {
+class Starter(config: Configuration,
+              env: Env,
+              system: ActorSystem,
+              tenantDataStore: TenantDataStore,
+              organisationDataStore: OrganisationDataStore,
+              userDataStore: UserDataStore,
+              consentFactDataStore: ConsentFactDataStore,
+              lastConsentFactDataStore: LastConsentFactDataStore,
+              accountDataStore: AccountDataStore,
+              deletionTaskDataStore: DeletionTaskDataStore,
+              extractionTaskDataStore: ExtractionTaskDataStore,
+              userExtractTaskDataStore: UserExtractTaskDataStore,
+              nioAccountDataStore: NioAccountDataStore,
+              catchupLockDataStore: CatchupLockDataStore,
+              defaultLoader: DefaultLoader,
+              s3: S3,
+              secureEvent: SecureEvent)(implicit ec: ExecutionContext) {
 
   def initialize() = {
 
     implicit val mat: ActorMaterializer = ActorMaterializer()(system)
 
     // clean up db
-    val dbFlush: Boolean = config.get[Boolean]("db.flush")
+    val dbFlush: Boolean = config.get[Boolean]("store.flush")
     if (dbFlush) {
-      val tenants = config.get[Seq[String]]("db.tenants")
+      val tenants = config.get[Seq[String]]("store.tenants")
 
       Await.result(
         for {
@@ -76,7 +75,7 @@ class Starter(
     // Ensure index on different collections
     Await.result(
       for {
-        _ <- catchupLockMongoDatastore.init()
+        _ <- catchupLockDataStore.init()
         _ <- tenantDataStore.findAll().flatMap {
           tenants =>
             Future.sequence(
@@ -118,7 +117,7 @@ class Starter(
                       }, {
                         Logger.info(
                           s"Ensuring indices for user account ${t.key}")
-                        userAccountMongoDataStore.ensureIndices(t.key)
+                        nioAccountDataStore.ensureIndices(t.key)
                       }
                     )
                   )
@@ -130,20 +129,17 @@ class Starter(
     )
 
     if (env.config.filter.securityMode == "default")
-      Await.result(
-        userAccountMongoDataStore
-          .findMany()
-          .flatMap {
-            case Nil =>
-              val config = env.config.filter.default.defaultUser
-
-              val email: String = config.username
-              val password: String = config.password
-
-              Logger.info(
-                s"create an admin user with email/password = ( $email : $password )")
-
-              userAccountMongoDataStore.insertOne(
+      nioAccountDataStore
+        .findMany()
+        .flatMap {
+          case Nil =>
+            val config = env.config.filter.default.defaultUser
+            val email: String = config.username
+            val password: String = config.password
+            Logger.info(
+              s"create an admin user with email/password = ( $email : $password )")
+            nioAccountDataStore
+              .insertOne(
                 new NioAccount(
                   email = email,
                   password = Sha.hexSha512(password),
@@ -151,11 +147,13 @@ class Starter(
                   offerRestrictionPatterns = Some(Seq("*"))
                 )
               )
-            case _ =>
-              FastFuture.successful(true)
-          },
-        Duration(5, TimeUnit.SECONDS)
-      )
+              .map(bool => {
+                Logger.info(s"has been created = ( $bool )")
+                bool
+              })
+          case _ =>
+            FastFuture.successful(true)
+        }
   }
 
   // Run secure event action to store and secure events

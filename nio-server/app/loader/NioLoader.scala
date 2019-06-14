@@ -9,11 +9,14 @@ import com.softwaremill.macwire.wire
 import configuration._
 import controllers._
 import db._
+import db.mongo._
+import db.postgres._
 import filters._
 import messaging.KafkaMessageBroker
 import play.api.ApplicationLoader.Context
 import play.api._
-import play.api.http.{DefaultHttpErrorHandler, HttpErrorHandler, MediaRange}
+import play.api.db.{DBComponents, Database, HikariCPComponents}
+import play.api.http.{DefaultHttpErrorHandler, HttpErrorHandler}
 import play.api.libs.json.Json
 import play.api.libs.ws.ahc.AhcWSComponents
 import play.api.mvc.BodyParsers.Default
@@ -46,12 +49,84 @@ class NioLoader extends ApplicationLoader {
       _.configure(context.environment, context.initialConfiguration, Map.empty)
     }
 
-    new NioComponents(context).application
+    context.initialConfiguration.get[String]("nio.storage") match {
+      case "postgres" => new NioComponentsPostgres(context).application
+      case _          => new NioComponentsMongo(context).application
+    }
   }
 }
 
-class NioComponents(context: Context)
+class NioComponentsPostgres(val context: Context)
+    extends NioComponents(context) {
+
+  override def init(): Unit = {
+    val database: Database = dbApi.database("default")
+    DbInitializer(database.dataSource, configuration)
+  }
+
+  // wire DataStore
+  implicit lazy val accountDataStore: AccountDataStore =
+    wire[AccountPostgresDataStore]
+  implicit lazy val consentFactDataStore: ConsentFactDataStore =
+    wire[ConsentFactPostgresDataStore]
+  implicit lazy val deletionTaskDataStore: DeletionTaskDataStore =
+    wire[DeletionTaskPostgresDataStore]
+  implicit lazy val extractionTaskDataStore: ExtractionTaskDataStore =
+    wire[ExtractionTaskPostgresDataStore]
+  implicit lazy val lastConsentFactDataStore: LastConsentFactDataStore =
+    wire[LastConsentFactPostgresDataStore]
+  implicit lazy val organisationDataStore: OrganisationDataStore =
+    wire[OrganisationPostgresDataStore]
+  implicit lazy val tenantDataStore: TenantDataStore =
+    wire[TenantPostgresDataStore]
+  implicit lazy val userDataStore: UserDataStore = wire[UserPostgresDataStore]
+  implicit lazy val userExtractTaskDataStore: UserExtractTaskDataStore =
+    wire[UserExtractTaskPostgresDataStore]
+  implicit lazy val catchupLockDataStore: CatchupLockDataStore =
+    wire[CatchupLockPostgresDataStore]
+  implicit lazy val nioAccountDataStore: NioAccountDataStore =
+    wire[NioAccountPostgresDataStore]
+  implicit lazy val apiKeyDataStore: ApiKeyDataStore =
+    wire[ApiKeyPostgresDataStore]
+}
+
+class NioComponentsMongo(val context: Context) extends NioComponents(context) {
+
+  // wire Reactive mongo
+  implicit lazy val reactiveMongo: ReactiveMongoApi = reactiveMongoApi
+
+  // wire DataStore
+  implicit lazy val accountDataStore: AccountDataStore =
+    wire[AccountMongoDataStore]
+  implicit lazy val consentFactDataStore: ConsentFactDataStore =
+    wire[ConsentFactMongoDataStore]
+  implicit lazy val deletionTaskDataStore: DeletionTaskDataStore =
+    wire[DeletionTaskMongoDataStore]
+  implicit lazy val extractionTaskDataStore: ExtractionTaskDataStore =
+    wire[ExtractionTaskMongoDataStore]
+  implicit lazy val lastConsentFactDataStore: LastConsentFactDataStore =
+    wire[LastConsentFactMongoDataStore]
+  implicit lazy val organisationDataStore: OrganisationDataStore =
+    wire[OrganisationMongoDataStore]
+  implicit lazy val tenantDataStore: TenantDataStore =
+    wire[TenantMongoDataStore]
+  implicit lazy val userDataStore: UserDataStore = wire[UserMongoDataStore]
+  implicit lazy val userExtractTaskDataStore: UserExtractTaskDataStore =
+    wire[UserExtractTaskMongoDataStore]
+  implicit lazy val catchupLockDataStore: CatchupLockDataStore =
+    wire[CatchupLockMongoDataStore]
+  implicit lazy val nioAccountDataStore: NioAccountDataStore =
+    wire[NioAccountMongoDataStore]
+  implicit lazy val apiKeyDataStore: ApiKeyDataStore =
+    wire[ApiKeyMongoDataStore]
+
+  override def init(): Unit = Unit
+}
+
+abstract class NioComponents(context: Context)
     extends ReactiveMongoApiFromContext(context)
+    with DBComponents
+    with HikariCPComponents
     with AhcWSComponents
     with HttpFiltersComponents
     with AssetsComponents
@@ -59,40 +134,27 @@ class NioComponents(context: Context)
 
   implicit val system: ActorSystem = actorSystem
 
-  implicit lazy val authInfo: AuthInfoMock = wire[AuthInfoDev]
+  def init(): Unit
 
-  // wire Reactive mongo
-  implicit lazy val reactiveMongo: ReactiveMongoApi = reactiveMongoApi
+  implicit def accountDataStore: AccountDataStore
+  implicit def consentFactDataStore: ConsentFactDataStore
+  implicit def deletionTaskDataStore: DeletionTaskDataStore
+  implicit def extractionTaskDataStore: ExtractionTaskDataStore
+  implicit def lastConsentFactDataStore: LastConsentFactDataStore
+  implicit def organisationDataStore: OrganisationDataStore
+  implicit def tenantDataStore: TenantDataStore
+  implicit def userDataStore: UserDataStore
+  implicit def userExtractTaskDataStore: UserExtractTaskDataStore
+  implicit def catchupLockDataStore: CatchupLockDataStore
+  implicit def nioAccountDataStore: NioAccountDataStore
+  implicit def apiKeyDataStore: ApiKeyDataStore
+
+  implicit lazy val authInfo: AuthInfoMock = wire[AuthInfoDev]
 
   // wire Env
   implicit lazy val env: Env = wire[Env]
 
-  // wire DataStore
-  implicit lazy val accountDataStore: AccountMongoDataStore =
-    wire[AccountMongoDataStore]
-  implicit lazy val consentFactDataStore: ConsentFactMongoDataStore =
-    wire[ConsentFactMongoDataStore]
-  implicit lazy val deletionTaskDataStore: DeletionTaskMongoDataStore =
-    wire[DeletionTaskMongoDataStore]
-  implicit lazy val extractionTaskDataStore: ExtractionTaskMongoDataStore =
-    wire[ExtractionTaskMongoDataStore]
-  implicit lazy val lastConsentFactDataStore: LastConsentFactMongoDataStore =
-    wire[LastConsentFactMongoDataStore]
-  implicit lazy val organisationDataStore: OrganisationMongoDataStore =
-    wire[OrganisationMongoDataStore]
-  implicit lazy val tenantDataStore: TenantMongoDataStore =
-    wire[TenantMongoDataStore]
-  implicit lazy val userDataStore: UserMongoDataStore =
-    wire[UserMongoDataStore]
-  implicit lazy val userExtractTaskDataStore: UserExtractTaskDataStore =
-    wire[UserExtractTaskDataStore]
-  implicit lazy val catchupLockDataStore: CatchupLockMongoDatastore =
-    wire[CatchupLockMongoDatastore]
-
-  implicit lazy val nioAccountMongoDataStore: NioAccountMongoDataStore =
-    wire[NioAccountMongoDataStore]
-  implicit lazy val apiKeyMongoDataStore: ApiKeyMongoDataStore =
-    wire[ApiKeyMongoDataStore]
+  init()
 
   // wire service
   implicit lazy val consentManagerService: ConsentManagerService =
@@ -154,7 +216,10 @@ class NioComponents(context: Context)
   lazy val apiKeyController: ApiKeyController = wire[ApiKeyController]
 
   lazy val mailService: MailService = if (env.config.mailSendingEnable) {
-    wire[MailGunService]
+    env.config.mailSendingProvider match {
+      case "mailjet" => wire[MailJetService]
+      case _         => wire[MailGunService]
+    }
   } else {
     wire[MailMockService]
   }

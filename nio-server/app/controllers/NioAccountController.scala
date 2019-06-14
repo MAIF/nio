@@ -3,7 +3,7 @@ package controllers
 import akka.http.scaladsl.util.FastFuture
 import auth.SecuredAuthContext
 import controllers.ErrorManager.{AppErrorManagerResult, ErrorManagerResult}
-import db.NioAccountMongoDataStore
+import db.NioAccountDataStore
 import libs.xmlorjson.XmlOrJson
 import messaging.KafkaMessageBroker
 import models._
@@ -15,7 +15,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class NioAccountController(
     val AuthAction: ActionBuilder[SecuredAuthContext, AnyContent],
     val cc: ControllerComponents,
-    val nioAccountMongoDataStore: NioAccountMongoDataStore,
+    val nioAccountDataStore: NioAccountDataStore,
     broker: KafkaMessageBroker)(implicit ec: ExecutionContext)
     extends ControllerUtils(cc) {
 
@@ -28,7 +28,7 @@ class NioAccountController(
           case Left(e) =>
             Future.successful(e.badRequest())
           case Right(nioAccount) =>
-            nioAccountMongoDataStore
+            nioAccountDataStore
               .findByEmail(nioAccount.email)
               .flatMap {
                 case Some(nioAccountStored) =>
@@ -40,7 +40,7 @@ class NioAccountController(
                     nioAccount.copy(
                       password = Sha.hexSha512(nioAccount.password))
 
-                  nioAccountMongoDataStore
+                  nioAccountDataStore
                     .insertOne(accountToStore)
                     .map(_ => renderMethod(accountToStore, Created))
               }
@@ -62,13 +62,13 @@ class NioAccountController(
             case Left(e) =>
               Future.successful(e.badRequest())
             case Right(nioAccount) =>
-              nioAccountMongoDataStore.findById(nioAccountId).flatMap {
+              nioAccountDataStore.findById(nioAccountId).flatMap {
                 case Some(nioAccountStored) =>
                   val nioAccountToStore =
                     nioAccountStored.copy(isAdmin = nioAccount.isAdmin,
                                           offerRestrictionPatterns =
                                             nioAccount.offerRestrictionPatterns)
-                  nioAccountMongoDataStore
+                  nioAccountDataStore
                     .updateOne(nioAccountStored._id, nioAccountToStore)
                     .map(_ => renderMethod(nioAccountToStore))
                 case None =>
@@ -83,7 +83,7 @@ class NioAccountController(
 
   def findAll(page: Int, pageSize: Int): Action[AnyContent] = AuthAction.async {
     implicit req =>
-      nioAccountMongoDataStore
+      nioAccountDataStore
         .findManyPaginate(page = page, pageSize = pageSize)
         .map { res =>
           renderMethod(NioAccounts(page, pageSize, res._2, res._1))
@@ -92,7 +92,7 @@ class NioAccountController(
 
   def find(nioAccountId: String): Action[AnyContent] = AuthAction.async {
     implicit req =>
-      nioAccountMongoDataStore
+      nioAccountDataStore
         .findById(nioAccountId)
         .map {
           case Some(nioAccount) =>
@@ -106,9 +106,9 @@ class NioAccountController(
     implicit req =>
       req.authInfo.isAdmin match {
         case true =>
-          nioAccountMongoDataStore.findById(nioAccountId).flatMap {
+          nioAccountDataStore.findById(nioAccountId).flatMap {
             case Some(nioAccountStored) =>
-              nioAccountMongoDataStore
+              nioAccountDataStore
                 .deleteOne(nioAccountId)
                 .map(_ => renderMethod(nioAccountStored))
             case None =>

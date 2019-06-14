@@ -51,6 +51,13 @@ services:
       - ./docker-compose-prod-example-data/pg-data:/var/lib/postgresql/data
       - ./config/keycloak.sql:/docker-entrypoint-initdb.d/init.sql:ro
 
+  postgres-data-store:
+    image: postgres:11.2
+    volumes:
+      - ./nio-server/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - 5432:5432
+
   zookeeper:
     image: confluentinc/cp-zookeeper:3.2.1
     ports:

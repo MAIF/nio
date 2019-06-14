@@ -2,7 +2,7 @@ package service
 
 import akka.http.scaladsl.util.FastFuture
 import controllers.AppErrorWithStatus
-import db.{LastConsentFactMongoDataStore, OrganisationMongoDataStore}
+import db.{LastConsentFactDataStore, OrganisationDataStore}
 import models.{Offer, Organisation}
 import play.api.mvc.Results._
 import reactivemongo.bson.BSONObjectID
@@ -10,8 +10,8 @@ import reactivemongo.bson.BSONObjectID
 import scala.concurrent.{ExecutionContext, Future}
 
 class OfferManagerService(
-    organisationMongoDataStore: OrganisationMongoDataStore,
-    lastConsentFactMongoDataStore: LastConsentFactMongoDataStore,
+    organisationDataStore: OrganisationDataStore,
+    lastConsentFactDataStore: LastConsentFactDataStore,
     accessibleOfferManagerService: AccessibleOfferManagerService)(
     implicit val executionContext: ExecutionContext)
     extends ServiceUtils {
@@ -57,7 +57,7 @@ class OfferManagerService(
       offer.key,
       offerRestrictionPatterns) match {
       case true =>
-        organisationMongoDataStore
+        organisationDataStore
           .findOffer(tenant, orgKey, offer.key)
           .flatMap {
             case Left(e) =>
@@ -67,7 +67,7 @@ class OfferManagerService(
                 case Some(_) =>
                   updateOrganisation(tenant, orgKey).flatMap {
                     case Right(_) =>
-                      organisationMongoDataStore
+                      organisationDataStore
                         .updateOffer(tenant, orgKey, offer.key, offer)
                         .map(Right(_))
 
@@ -77,7 +77,7 @@ class OfferManagerService(
                 case None =>
                   updateOrganisation(tenant, orgKey).flatMap {
                     case Right(_) =>
-                      organisationMongoDataStore
+                      organisationDataStore
                         .addOffer(tenant, orgKey, offer)
                         .map(Right(_))
 
@@ -105,11 +105,11 @@ class OfferManagerService(
           case Left(e) =>
             FastFuture.successful(Left(e))
           case Right(_) =>
-            organisationMongoDataStore
+            organisationDataStore
               .deleteOffer(tenant, orgKey, offerKey)
               .flatMap { o =>
                 // clean existing consent fact
-                lastConsentFactMongoDataStore
+                lastConsentFactDataStore
                   .removeOffer(tenant, orgKey, offerKey)
                   .map {
                     case Left(errors) =>
@@ -126,7 +126,7 @@ class OfferManagerService(
 
   private def updateOrganisation(tenant: String, orgKey: String)
     : Future[Either[AppErrorWithStatus, Option[Organisation]]] = {
-    organisationMongoDataStore.findLastReleasedByKey(tenant, orgKey).flatMap {
+    organisationDataStore.findLastReleasedByKey(tenant, orgKey).flatMap {
       case Some(lastExistingOrganisation) =>
         val oldOrganisation = lastExistingOrganisation.copy(
           version = lastExistingOrganisation.version.copy(latest = false))
@@ -135,10 +135,10 @@ class OfferManagerService(
           version = oldOrganisation.version.copy(latest = true))
 
         for {
-          _ <- organisationMongoDataStore
+          _ <- organisationDataStore
             .updateById(tenant, lastExistingOrganisation._id, oldOrganisation)
-          _ <- organisationMongoDataStore.insert(tenant, newOrganisation)
-          lastOrganisation <- organisationMongoDataStore
+          _ <- organisationDataStore.insert(tenant, newOrganisation)
+          lastOrganisation <- organisationDataStore
             .findLastReleasedByKey(tenant, lastExistingOrganisation.key)
         } yield Right(lastOrganisation)
       case None =>

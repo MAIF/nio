@@ -3,10 +3,10 @@ package controllers
 import akka.actor.ActorSystem
 import auth.{AuthAction, SecuredAction, SecuredAuthContext}
 import db.{
-  ConsentFactMongoDataStore,
-  DeletionTaskMongoDataStore,
-  OrganisationMongoDataStore,
-  UserMongoDataStore
+  ConsentFactDataStore,
+  DeletionTaskDataStore,
+  OrganisationDataStore,
+  UserDataStore
 }
 import messaging.KafkaMessageBroker
 import models._
@@ -14,16 +14,17 @@ import play.api.Logger
 import play.api.mvc.{ActionBuilder, AnyContent, ControllerComponents}
 import ErrorManager.ErrorManagerResult
 import ErrorManager.AppErrorManagerResult
+import db.mongo.UserMongoDataStore
 
 import scala.concurrent.{ExecutionContext, Future}
 
 class DeletionController(
     val AuthAction: ActionBuilder[SecuredAuthContext, AnyContent],
     val cc: ControllerComponents,
-    val userStore: UserMongoDataStore,
-    val consentFactStore: ConsentFactMongoDataStore,
-    val organisationStore: OrganisationMongoDataStore,
-    val deletionTaskStore: DeletionTaskMongoDataStore,
+    val userStore: UserDataStore,
+    val consentFactStore: ConsentFactDataStore,
+    val organisationStore: OrganisationDataStore,
+    val deletionTaskStore: DeletionTaskDataStore,
     val broker: KafkaMessageBroker)(implicit val ec: ExecutionContext,
                                     system: ActorSystem)
     extends ControllerUtils(cc) {

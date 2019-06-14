@@ -12,13 +12,13 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import configuration.Env
 import controllers.ErrorManager.{AppErrorManagerResult, ErrorManagerResult}
-import db.{OrganisationMongoDataStore, UserExtractTaskDataStore}
+import db.{OrganisationDataStore, UserExtractTaskDataStore}
+import db.mongo.UserExtractTaskMongoDataStore
 import messaging.KafkaMessageBroker
 import models._
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
 import play.api.http.HttpEntity
-import play.api.libs.Files
 import play.api.libs.json.Json
 import play.api.libs.streams.Accumulator
 import play.api.mvc._
@@ -34,7 +34,7 @@ class UserExtractController(
     val AuthAction: ActionBuilder[SecuredAuthContext, AnyContent],
     val cc: ControllerComponents,
     userExtractTaskDataStore: UserExtractTaskDataStore,
-    organisationMongoDataStore: OrganisationMongoDataStore,
+    organisationDataStore: OrganisationDataStore,
     broker: KafkaMessageBroker,
     fSUserExtractManager: FSUserExtractManager,
     mailService: MailService)(implicit val ec: ExecutionContext)
@@ -53,7 +53,7 @@ class UserExtractController(
           Future.successful(error.badRequest())
         case Right(userExtract) =>
           // control if an organisation with the orgkey exist
-          organisationMongoDataStore
+          organisationDataStore
             .findByKey(tenant, orgKey)
             .flatMap {
               case Some(_) =>
@@ -99,7 +99,7 @@ class UserExtractController(
   def extractedData(tenant: String, orgKey: String, page: Int, pageSize: Int) =
     AuthAction.async { implicit req =>
       // control if an organisation with the orgkey exist
-      organisationMongoDataStore
+      organisationDataStore
         .findByKey(tenant, orgKey)
         .flatMap {
           // if the organisation doesn't exist
@@ -126,7 +126,7 @@ class UserExtractController(
                         pageSize: Int) =
     AuthAction.async { implicit req =>
       // control if an organisation with the orgkey exist
-      organisationMongoDataStore
+      organisationDataStore
         .findByKey(tenant, orgKey)
         .flatMap {
           // if the organisation doesn't exist

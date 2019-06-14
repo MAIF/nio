@@ -4,12 +4,10 @@ import java.util.Base64
 
 import akka.stream.Materializer
 import auth.AuthInfo
-import com.auth0.jwt.JWT
-import com.auth0.jwt.algorithms.Algorithm
-import com.auth0.jwt.interfaces.DecodedJWT
 import com.google.common.base.Charsets
 import configuration.Env
-import db.ApiKeyMongoDataStore
+import db.ApiKeyDataStore
+import db.mongo.ApiKeyMongoDataStore
 import play.api.Logger
 import play.api.libs.json.Json
 import play.api.mvc.{Filter, RequestHeader, Result, Results}
@@ -19,7 +17,7 @@ import scala.util.{Success, Try}
 
 class Auth0Filter(env: Env,
                   authInfoMock: AuthInfoMock,
-                  apiKeyMongoDataStore: ApiKeyMongoDataStore)(
+                  apiKeyDataStore: ApiKeyDataStore)(
     implicit ec: ExecutionContext,
     val mat: Materializer)
     extends Filter {
@@ -128,7 +126,7 @@ class Auth0Filter(env: Env,
                                requestHeader: RequestHeader,
                                clientId: String,
                                clientSecret: String): Future[Result] = {
-    apiKeyMongoDataStore.findByClientId(clientId).flatMap {
+    apiKeyDataStore.findByClientId(clientId).flatMap {
       case Some(apiKey) if apiKey.clientSecret == clientSecret =>
         next(
           requestHeader
