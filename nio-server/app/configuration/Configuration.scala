@@ -20,12 +20,14 @@ case class NioConfiguration(baseUrl: String,
                             storage: String,
                             downloadFileHost: String,
                             mailSendingEnable: Boolean,
+                            mailSendingProvider: String,
                             filter: SecurityFilter,
                             recordManagementEnabled: Boolean,
                             s3ManagementEnabled: Boolean,
                             kafka: KafkaConfig,
                             s3Config: S3Config,
-                            mailGunConfig: MailGunConfig)
+                            mailGunConfig: MailGunConfig,
+                            mailJetConfig: MailJetConfig)
 
 case class SecurityFilter(securityMode: String,
                           otoroshi: OtoroshiFilterConfig,
@@ -112,6 +114,10 @@ case class S3Config(bucketName: String,
                     expireAtInDay: Int)
 
 case class MailGunConfig(apiKey: String, endpoint: String, from: String)
+case class MailJetConfig(apiKeyPublic: String,
+                         apiKeyPrivate: String,
+                         endpoint: String,
+                         from: String)
 
 case class CatchUpEventsConfig(strategy: String,
                                delay: FiniteDuration,

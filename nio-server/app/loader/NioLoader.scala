@@ -216,7 +216,10 @@ abstract class NioComponents(context: Context)
   lazy val apiKeyController: ApiKeyController = wire[ApiKeyController]
 
   lazy val mailService: MailService = if (env.config.mailSendingEnable) {
-    wire[MailGunService]
+    env.config.mailSendingProvider match {
+      case "mailjet" => wire[MailJetService]
+      case _         => wire[MailGunService]
+    }
   } else {
     wire[MailMockService]
   }
