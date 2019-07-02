@@ -3,7 +3,7 @@ package controllers
 import akka.actor.ActorSystem
 import akka.http.scaladsl.util.FastFuture
 import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.{Framing, Source}
+import akka.stream.scaladsl.Source
 import akka.util.ByteString
 import auth.SecuredAuthContext
 import controllers.ErrorManager.{
@@ -22,8 +22,6 @@ import messaging.KafkaMessageBroker
 import models.{ConsentFact, _}
 import play.api.Logger
 import play.api.http.HttpEntity
-import play.api.libs.json.{JsValue, Json}
-import play.api.libs.streams.Accumulator
 import play.api.mvc._
 import reactivemongo.api.{Cursor, QueryOpts}
 import reactivemongo.bson.BSONDocument
@@ -55,8 +53,8 @@ class ConsentController(
                   maybeUserId: Option[String],
                   maybeOfferKeys: Option[Seq[String]]) =
     AuthAction.async { implicit req =>
-      import cats.implicits._
       import cats.data._
+      import cats.implicits._
 
       EitherT(
         getConsentFactTemplate(tenant, orgKey, maybeUserId, maybeOfferKeys))
@@ -137,36 +135,34 @@ class ConsentController(
 
   def find(tenant: String, orgKey: String, userId: String) = AuthAction.async {
     implicit req =>
-      {
-        lastConsentFactMongoDataStore
-          .findByOrgKeyAndUserId(tenant, orgKey, userId)
-          .map {
-            case None =>
-              // if this occurs it means a user is known but it has no consents, this is a BUG
-              s"error.unknown.user.$userId.or.organisation.$orgKey".notFound()
-            case Some(consentFact) =>
-              // TODO: later handle here new version template version check
-              val restrictedConsentFact =
-                consentManagerService.consentFactWithAccessibleOffers(
-                  consentFact,
-                  req.authInfo.offerRestrictionPatterns)
+      import cats.data._
+      import cats.implicits._
 
-              renderMethod(restrictedConsentFact)
-          }
-      }
+      EitherT(
+        findConsentFacts(tenant,
+                         orgKey,
+                         userId,
+                         req.authInfo.offerRestrictionPatterns))
+        .fold(error => error.renderError(),
+              consentFact => renderMethod(consentFact))
   }
 
   def findConsentFacts(tenant: String,
                        orgKey: String,
                        userId: String,
-                       offerRestrictionPatterns: Option[Seq[String]])(
-      implicit req: Request[Any]): Future[Either[Result, ConsentFact]] = {
+                       offerRestrictionPatterns: Option[Seq[String]])
+    : Future[Either[AppErrorWithStatus, ConsentFact]] = {
     lastConsentFactMongoDataStore
       .findByOrgKeyAndUserId(tenant, orgKey, userId)
       .map {
         case None =>
-          Left(s"error.unknown.user.$userId.or.organisation.$orgKey".notFound())
+          Left(
+            AppErrorWithStatus(
+              AppErrors(Seq(ErrorMessage(
+                s"error.unknown.user.$userId.or.organisation.$orgKey"))),
+              Results.NotFound))
         case Some(consentFact) =>
+          // TODO: later handle here new version template version check
           Right(
             consentManagerService.consentFactWithAccessibleOffers(
               consentFact,
