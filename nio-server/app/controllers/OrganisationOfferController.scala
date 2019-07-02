@@ -3,26 +3,31 @@ package controllers
 import akka.actor.ActorSystem
 import akka.http.scaladsl.util.FastFuture
 import akka.stream.ActorMaterializer
-import auth.{SecuredAuthContext}
-import controllers.ErrorManager.{
-  AppErrorManagerResult,
-  ErrorManagerResult,
-  ErrorWithStatusManagerResult
-}
+import akka.stream.scaladsl.{Framing, Sink, Source}
+import akka.util.ByteString
+import auth.{AuthInfo, SecuredAuthContext}
+import controllers.ErrorManager.{AppErrorManagerResult, ErrorManagerResult, ErrorWithStatusManagerResult}
 import db.OrganisationMongoDataStore
 import libs.xmlorjson.XmlOrJson
 import messaging.KafkaMessageBroker
-import models.{Offer, OfferValidator, Offers}
+import models.{ConsentFact, ConsentOffer, DoneBy, Offer, OfferValidator, Offers}
+import org.joda.time.DateTime
 import play.api.Logger
-import play.api.libs.json.Json
-import play.api.mvc.{Action, ActionBuilder, AnyContent, ControllerComponents}
-import service.OfferManagerService
+import play.api.http.HttpEntity
+import play.api.libs.json.{JsValue, Json}
+import play.api.libs.streams.Accumulator
+import play.api.mvc.{ActionBuilder, AnyContent, ControllerComponents}
+import reactivemongo.bson.BSONObjectID
+import service.{ConsentManagerService, OfferManagerService}
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success}
 
 class OrganisationOfferController(
     val authAction: ActionBuilder[SecuredAuthContext, AnyContent],
     val cc: ControllerComponents,
+    val consentController: ConsentController,
+    val consentManagerService: ConsentManagerService,
     val offerManagerService: OfferManagerService,
     val organisationMongoDataStore: OrganisationMongoDataStore,
     val kafkaMessageBroker: KafkaMessageBroker)(
@@ -164,5 +169,91 @@ class OrganisationOfferController(
             renderMethod(offer)
         }
     }
+
+  val sourceBodyParser: BodyParser[Source[ByteString, _]] = BodyParser("Streaming BodyParser") { _ =>
+    Accumulator.source[ByteString].map(Right.apply)
+  }
+
+  def handleConsent(tenant: String, orgKey: String, authInfo: AuthInfo, offerKey: String, par: Int, setToFalse: Option[Seq[OfferConsentWithGroup]], source: Source[(String, String), _]): Source[JsValue, _]= {
+    source
+      .mapAsync(par) {
+        case (userId, date) =>
+          consentController.getConsentFactTemplate(tenant, orgKey, Some(userId), authInfo.offerRestrictionPatterns)
+            .collect {
+              case Right(cf) =>
+                val consentOffer: Seq[ConsentOffer] = cf.offers match {
+                  case None => Seq.empty
+                  case Some(offers) => offers.find(co => co.key == offerKey) match {
+                    case None => Seq.empty
+                    case Some(o) =>
+                      val offer: ConsentOffer = o
+                          .copy(groups = o
+                              .groups
+                              .map(group => group
+                                  .copy(consents = group
+                                      .consents
+                                      .map(consent => consent
+                                          .copy(checked = setToFalse.forall(groupAndConsents => groupAndConsents.exists(groupAndConsent => groupAndConsent.groupKey == group.key && groupAndConsent.consentKey == consent.key)))))))
+                      Seq(offer.copy(lastUpdate = DateTime.parse(date)))
+                  }
+                }
+
+                val realOffers = cf.offers match {
+                  case None => consentOffer
+                  case Some(existingsOffers) => existingsOffers ++ consentOffer
+                }
+                cf.copy(_id = BSONObjectID.generate().stringify, lastUpdateSystem = DateTime.now(),userId = userId, doneBy = DoneBy(authInfo.sub, "admin"), offers = Some(realOffers))
+            }
+      }
+        .mapAsync(par)(consent => consentManagerService
+            .saveConsents(tenant,
+              authInfo.sub,
+              authInfo.metadatas,
+              orgKey,
+              consent.userId,
+              consent)
+            .map(result => {
+              Json.obj(consent.userId -> result.isRight)
+            })
+        )
+  }
+
+  case class OfferConsentWithGroup(groupKey: String, consentKey: String)
+
+  def initializeOffer(tenant: String, orgKey: String, offerKey: String) = authAction(sourceBodyParser) { req =>
+    val setToFalse: Option[Seq[OfferConsentWithGroup]] = req.queryString
+        .get("setToFalse")
+        .map(strings => strings.map(string => OfferConsentWithGroup.apply _ tupled string.splitAt(string.indexOf('.'))))
+
+    val par = req.getQueryString("par").map(_.toInt).getOrElse(2)
+
+
+    val source = req.body
+        .via(Framing.delimiter(ByteString("\n"), 1000000, allowTruncation = true))
+        .drop(req.getQueryString("drop").map(_.toLong).getOrElse(0l))
+        .map(_.utf8String.trim)
+        .map(_.split(req.getQueryString("separator").getOrElse(";")).toList)
+        .mapConcat {
+          case id :: date :: Nil => List((id, date))
+          case other =>
+                Logger.error(s"Oups $other")
+                List.empty
+        }
+        .grouped(req.getQueryString("group_by").map(_.toInt).getOrElse(0))
+        .flatMapConcat(seq => handleConsent(tenant, orgKey, req.authInfo, offerKey, par, setToFalse, Source(seq)))
+        .alsoTo(Sink.foreach(Json.stringify))
+        .map(json => ByteString(Json.stringify(json)))
+        .intersperse(ByteString("["), ByteString(","), ByteString("]"))
+            .watchTermination(){(mt, d) =>
+                d.onComplete {
+                  case Success(_) =>
+                  case Failure(exception) =>
+                        Logger.error("Error processing CSV", exception)
+                }
+                mt
+            }
+
+    Ok.sendEntity(HttpEntity.Streamed(source, None, Some("application/json")))
+  }
 
 }

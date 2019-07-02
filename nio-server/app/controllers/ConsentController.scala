@@ -3,9 +3,9 @@ package controllers
 import akka.actor.ActorSystem
 import akka.http.scaladsl.util.FastFuture
 import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.Source
+import akka.stream.scaladsl.{Framing, Source}
 import akka.util.ByteString
-import auth.{AuthAction, SecuredAction, SecuredAuthContext}
+import auth.SecuredAuthContext
 import controllers.ErrorManager.{
   AppErrorManagerResult,
   ErrorManagerResult,
@@ -22,6 +22,8 @@ import messaging.KafkaMessageBroker
 import models.{ConsentFact, _}
 import play.api.Logger
 import play.api.http.HttpEntity
+import play.api.libs.json.{JsValue, Json}
+import play.api.libs.streams.Accumulator
 import play.api.mvc._
 import reactivemongo.api.{Cursor, QueryOpts}
 import reactivemongo.bson.BSONDocument
@@ -53,77 +55,85 @@ class ConsentController(
                   maybeUserId: Option[String],
                   maybeOfferKeys: Option[Seq[String]]) =
     AuthAction.async { implicit req =>
-      {
-        accessibleOfferService
-          .organisationWithAccessibleOffer(
-            tenant,
-            orgKey,
-            req.authInfo.offerRestrictionPatterns)
-          .flatMap {
-            case Left(errors) =>
-              FastFuture.successful(errors.renderError())
-            case Right(maybeOrganisation) =>
-              maybeOrganisation match {
-                case None =>
-                  Logger.error(s"Organisation $orgKey not found")
-                  Future.successful(
-                    s"error.unknown.organisation.$orgKey".notFound())
-                case Some(organisation) =>
-                  val toConsentGroup = (pg: PermissionGroup) =>
-                    ConsentGroup(
-                      key = pg.key,
-                      label = pg.label,
-                      consents = pg.permissions.map { p =>
-                        Consent(key = p.key, label = p.label, checked = false)
-                      })
+      import cats.implicits._
+      import cats.data._
 
-                  val groups = organisation.groups.map {
-                    toConsentGroup(_)
-                  }
+      EitherT(
+        getConsentFactTemplate(tenant, orgKey, maybeUserId, maybeOfferKeys))
+        .fold(error => error.renderError(),
+              consentFact => renderMethod(consentFact))
 
-                  val offers: Option[Seq[ConsentOffer]] =
-                    organisation.offers.map(
-                      _.filter(o =>
-                        maybeOfferKeys match {
-                          case Some(offerKeys) if offerKeys.nonEmpty =>
-                            offerKeys.contains(o.key)
-                          case _ =>
-                            true
-                      }).map(
-                        offer =>
-                          ConsentOffer(
-                            key = offer.key,
-                            label = offer.label,
-                            version = offer.version,
-                            groups = offer.groups.map {
-                              toConsentGroup(_)
-                            }
-                        ))
-                    )
+    }
 
-                  Logger.info(
-                    s"Using default consents template in organisation $orgKey")
+  def getConsentFactTemplate(tenant: String,
+                             orgKey: String,
+                             maybeUserId: Option[String],
+                             maybeOfferKeys: Option[Seq[String]])
+    : Future[Either[AppErrorWithStatus, ConsentFact]] = {
+    accessibleOfferService
+      .organisationWithAccessibleOffer(tenant, orgKey, maybeOfferKeys)
+      .flatMap {
+        case Left(errors) =>
+          FastFuture.successful(Left(errors))
+        case Right(maybeOrganisation) =>
+          maybeOrganisation match {
+            case None =>
+              Logger.error(s"Organisation $orgKey not found")
+              Future.successful(Left(AppErrorWithStatus(
+                AppErrors(Seq(ErrorMessage(s"organisation.$orgKey.not.found"))),
+                Results.NotFound)))
+            case Some(organisation) =>
+              val toConsentGroup = (pg: PermissionGroup) =>
+                ConsentGroup(
+                  key = pg.key,
+                  label = pg.label,
+                  consents = pg.permissions.map { p =>
+                    Consent(key = p.key, label = p.label, checked = false)
+                  })
 
-                  val template =
-                    ConsentFact.template(
-                      orgVerNum = organisation.version.num,
-                      groups = groups,
-                      offers = offers,
-                      orgKey = orgKey
-                    )
-
-                  consentManagerService
-                    .mergeTemplateWithConsentFact(tenant,
-                                                  orgKey,
-                                                  organisation.version.num,
-                                                  template,
-                                                  maybeUserId)
-                    .map(renderMethod(_))
+              val groups = organisation.groups.map {
+                toConsentGroup(_)
               }
 
+              val offers: Option[Seq[ConsentOffer]] =
+                organisation.offers.map(
+                  _.filter(o =>
+                    maybeOfferKeys match {
+                      case Some(offerKeys) if offerKeys.nonEmpty =>
+                        offerKeys.contains(o.key)
+                      case _ =>
+                        true
+                  }).map(
+                    offer =>
+                      ConsentOffer(
+                        key = offer.key,
+                        label = offer.label,
+                        version = offer.version,
+                        groups = offer.groups.map {
+                          toConsentGroup(_)
+                        }
+                    ))
+                )
+
+              val template =
+                ConsentFact.template(
+                  orgVerNum = organisation.version.num,
+                  groups = groups,
+                  offers = offers,
+                  orgKey = orgKey
+                )
+
+              consentManagerService
+                .mergeTemplateWithConsentFact(tenant,
+                                              orgKey,
+                                              organisation.version.num,
+                                              template,
+                                              maybeUserId)
+                .map(Right(_))
           }
+
       }
-    }
+  }
 
   def find(tenant: String, orgKey: String, userId: String) = AuthAction.async {
     implicit req =>
@@ -143,6 +153,24 @@ class ConsentController(
 
               renderMethod(restrictedConsentFact)
           }
+      }
+  }
+
+  def findConsentFacts(tenant: String,
+                       orgKey: String,
+                       userId: String,
+                       offerRestrictionPatterns: Option[Seq[String]])(
+      implicit req: Request[Any]): Future[Either[Result, ConsentFact]] = {
+    lastConsentFactMongoDataStore
+      .findByOrgKeyAndUserId(tenant, orgKey, userId)
+      .map {
+        case None =>
+          Left(s"error.unknown.user.$userId.or.organisation.$orgKey".notFound())
+        case Some(consentFact) =>
+          Right(
+            consentManagerService.consentFactWithAccessibleOffers(
+              consentFact,
+              offerRestrictionPatterns))
       }
   }
 
