@@ -1,28 +1,37 @@
 package controllers
 
+import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.http.scaladsl.util.FastFuture
 import akka.stream.ActorMaterializer
-import auth.{SecuredAuthContext}
-import controllers.ErrorManager.{
-  AppErrorManagerResult,
-  ErrorManagerResult,
-  ErrorWithStatusManagerResult
-}
+import akka.stream.scaladsl.{Flow, Framing, Sink, Source}
+import akka.util.ByteString
+import auth.{AuthInfo, SecuredAuthContext}
+import configuration.Env
+import controllers.ErrorManager.{AppErrorManagerResult, ErrorManagerResult, ErrorWithStatusManagerResult}
 import db.OrganisationMongoDataStore
 import libs.xmlorjson.XmlOrJson
 import messaging.KafkaMessageBroker
-import models.{Offer, OfferValidator, Offers}
+import models._
+import org.joda.time.DateTime
 import play.api.Logger
-import play.api.libs.json.Json
-import play.api.mvc.{Action, ActionBuilder, AnyContent, ControllerComponents}
-import service.OfferManagerService
+import play.api.http.HttpEntity
+import play.api.libs.json.Reads._
+import play.api.libs.json.{JsValue, Json}
+import play.api.libs.streams.Accumulator
+import play.api.mvc.{ActionBuilder, AnyContent, ControllerComponents}
+import reactivemongo.bson.BSONObjectID
+import service.{ConsentManagerService, OfferManagerService}
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success}
 
 class OrganisationOfferController(
+	val env: Env,
     val authAction: ActionBuilder[SecuredAuthContext, AnyContent],
     val cc: ControllerComponents,
+    val consentController: ConsentController,
+    val consentManagerService: ConsentManagerService,
     val offerManagerService: OfferManagerService,
     val organisationMongoDataStore: OrganisationMongoDataStore,
     val kafkaMessageBroker: KafkaMessageBroker)(
@@ -164,5 +173,104 @@ class OrganisationOfferController(
             renderMethod(offer)
         }
     }
+
+  case class OfferConsentWithGroup(groupKey: String, consentKey: String)
+  case class UserIdAndInitDate(id: String, date: String)
+
+  def handleConsent(tenant: String, orgKey: String, authInfo: AuthInfo, offerKey: String, setToFalse: Option[Seq[OfferConsentWithGroup]], source: Source[UserIdAndInitDate, _]): Source[JsValue, _]= {
+    source
+      .mapAsync(env.config.db.batchSize) {
+		  value =>
+			  consentController.getConsentFactTemplate(tenant, orgKey, Some(value.id), Some(Seq(offerKey)), authInfo.offerRestrictionPatterns)
+				  .collect {
+					  case Right(cf) =>
+						  val consentOffers: Seq[ConsentOffer] = cf.offers match {
+						  case None => Seq.empty
+						  case Some(offers) => offers.find(co => co.key == offerKey) match {
+							  case None => Seq.empty
+							  case Some(o) =>
+								  val offer: ConsentOffer = o
+									  .copy(groups = o
+										  .groups
+										  .map(group => group
+											  .copy(consents = group
+												  .consents
+												  .map(consent => consent
+													  .copy(checked = setToFalse.forall(groupAndConsents => !groupAndConsents.exists(groupAndConsent => groupAndConsent.groupKey == group.key && groupAndConsent.consentKey == consent.key)))))))
+								  val date = DateTime.parse(value.date)
+								  offers.filter(off => off.key != offerKey) ++ Seq(offer.copy(lastUpdate = date))
+						  }
+					  }
+
+						  cf.copy(_id = BSONObjectID.generate().stringify, lastUpdateSystem = DateTime.now(), userId = value.id, doneBy = DoneBy(authInfo.sub, "admin"), offers = Some(consentOffers))
+				  }
+	  }
+        .mapAsync(env.config.db.batchSize)(consent => consentManagerService
+            .saveConsents(tenant,
+              authInfo.sub,
+              authInfo.metadatas,
+              orgKey,
+              consent.userId,
+              consent)
+            .map(result => {
+              Json.obj("userId" -> consent.userId, "status" -> result.isRight)
+            })
+        )
+  }
+
+	val newLineSplit: Flow[ByteString, ByteString, NotUsed] = Framing.delimiter(ByteString("\n"), 10000, allowTruncation = true)
+	def jsonToIdAndDate: Flow[ByteString, UserIdAndInitDate, NotUsed] =
+		Flow[ByteString] via newLineSplit map (_.utf8String) filterNot (_.isEmpty) map (l => Json.parse(l)) map (value => UserIdAndInitDate((value \ "userId").as[String], (value \ "date").as[String]))
+
+	def csvToIdAndDate(drop: Long, separator: String): Flow[ByteString, UserIdAndInitDate, NotUsed] =
+		Flow[ByteString]
+			.via(newLineSplit)
+    		.drop(drop)
+			.map(_.utf8String.trim)
+			.map(_.split(separator).toList)
+			.mapConcat {
+				case id :: date :: Nil => List(UserIdAndInitDate(id, date))
+				case other =>
+					Logger.error(s"Oups $other")
+					List.empty
+			}
+
+	val sourceBodyParser: BodyParser[Source[UserIdAndInitDate, _]] =
+		BodyParser("Streaming BodyParser") { req =>
+			val drop = req.getQueryString("drop").map(_.toLong).getOrElse(0l)
+			val separator = req.getQueryString("separator").getOrElse(";")
+
+			req.contentType match {
+				case Some("application/json") => Accumulator.source[ByteString].map(s => Right(s.via(jsonToIdAndDate)))
+				case Some("application/csv") => Accumulator.source[ByteString].map(s => Right(s.via(csvToIdAndDate(drop, separator))))
+				case _ => Accumulator.source[ByteString].map(_ => Left(UnsupportedMediaType))
+			}
+		}
+
+  def initializeOffer(tenant: String, orgKey: String, offerKey: String) = authAction(sourceBodyParser) { req =>
+    val setToFalse: Option[Seq[OfferConsentWithGroup]] = req.queryString
+        .get("setToFalse")
+        .map(strings => strings.map(string => {
+			val index = string.indexOf('.')
+			OfferConsentWithGroup.apply _ tupled (string.take(index), string.drop(index + 1))
+		}))
+
+    val source = req.body
+		.grouped(req.getQueryString("group_by").map(_.toInt).getOrElse(1))
+        .flatMapConcat(seq => handleConsent(tenant, orgKey, req.authInfo, offerKey, setToFalse, Source(seq)))
+        .alsoTo(Sink.foreach(Json.stringify))
+        .map(json => ByteString(Json.stringify(json)))
+        .intersperse(ByteString("["), ByteString(","), ByteString("]"))
+            .watchTermination(){(mt, d) =>
+                d.onComplete {
+                  case Success(_) =>
+                  case Failure(exception) =>
+                        Logger.error("Error processing stream", exception)
+                }
+                mt
+            }
+
+    Ok.sendEntity(HttpEntity.Streamed(source, None, Some("application/json")))
+  }
 
 }

@@ -1,10 +1,12 @@
 package utils
 
+import java.io.File
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 import java.{lang, util}
 
 import akka.actor.ActorSystem
+import akka.http.scaladsl.model.HttpEntity
 import akka.kafka.scaladsl.Consumer
 import akka.kafka.{ConsumerSettings, Subscriptions}
 import akka.stream.ActorMaterializer
@@ -157,6 +159,7 @@ trait TestUtils
     Configuration(
       ConfigFactory.parseString(s"""
            |nio.mongo.url="$mongoUrl"
+		   |nio.db.batchSize=1
            |mongodb.uri="$mongoUrl"
            |tenant.admin.secret="secret"
            |db.flush=true
@@ -273,6 +276,19 @@ trait TestUtils
                         httpVerb = POST,
                         body = body,
                         headers = headers)
+  }
+
+  def postBinaryFile(path: String,
+                     body: File,
+                     api: Boolean = true,
+                     headers: Seq[(String, String)] = jsonHeaders) = {
+    val suffix = if (api) apiPath else serverHost
+    val futureResponse = ws
+      .url(s"$suffix$path")
+      .withHttpHeaders(headers: _*)
+      .post(body)
+
+    Await.result[WSResponse](futureResponse, Duration(10, TimeUnit.SECONDS))
   }
 
   def getJson(path: String, headers: Seq[(String, String)] = jsonHeaders) = {

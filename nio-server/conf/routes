@@ -87,6 +87,8 @@ PUT           /api/:tenant/organisations/:orgKey/offers/:offerKey               
 
 DELETE        /api/:tenant/organisations/:orgKey/offers/:offerKey                                                         controllers.OrganisationOfferController.delete(tenant: String, orgKey: String, offerKey: String)
 
+POST          /api/:tenant/organisations/:orgKey/offers/:offerKey/_init                                                   controllers.OrganisationOfferController.initializeOffer(tenant, orgKey, offerKey)
+
 GET           /api/:tenant/organisations/:orgKey/draft                                                                    controllers.OrganisationController.findDraftByKey(tenant: String, orgKey: String)
 
 GET           /api/:tenant/organisations/:orgKey/users                                                                    controllers.UserController.listByOrganisation(tenant: String, orgKey: String, page: Int ?= 0, pageSize: Int ?= 10, userId: Option[String] ?= None)

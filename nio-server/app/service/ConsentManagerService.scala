@@ -12,6 +12,7 @@ import db.{
 import messaging.KafkaMessageBroker
 import models._
 import play.api.Logger
+import play.api.libs.json.Json
 import play.api.mvc.Results._
 import reactivemongo.bson.BSONObjectID
 import utils.Result.{AppErrors, ErrorMessage}
@@ -466,6 +467,7 @@ class ConsentManagerService(
       userId: String <- OptionT.fromOption[Future](maybeUserId)
       _ = Logger.info(s"userId is defined with $userId")
       consentFact <- OptionT(lastConsentFactMongoDataStore.findByOrgKeyAndUserId(tenant, orgKey, userId))
+      _ = Logger.info(s"consentfact existing for  $userId -> ${consentFact._id}")
       built <- OptionT.pure[Future](buildTemplate(orgKey, orgVersion, template, consentFact, userId))
     } yield built
     // format: on

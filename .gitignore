@@ -13,3 +13,5 @@ node_modules/
 /project/target/
 data/
 /docker-compose-prod-example-data
+/.metals
+/nio.code-workspace

@@ -5,7 +5,7 @@ import akka.http.scaladsl.util.FastFuture
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
-import auth.{AuthAction, SecuredAction, SecuredAuthContext}
+import auth.SecuredAuthContext
 import controllers.ErrorManager.{
   AppErrorManagerResult,
   ErrorManagerResult,
@@ -53,96 +53,125 @@ class ConsentController(
                   maybeUserId: Option[String],
                   maybeOfferKeys: Option[Seq[String]]) =
     AuthAction.async { implicit req =>
-      {
-        accessibleOfferService
-          .organisationWithAccessibleOffer(
-            tenant,
-            orgKey,
-            req.authInfo.offerRestrictionPatterns)
-          .flatMap {
-            case Left(errors) =>
-              FastFuture.successful(errors.renderError())
-            case Right(maybeOrganisation) =>
-              maybeOrganisation match {
-                case None =>
-                  Logger.error(s"Organisation $orgKey not found")
-                  Future.successful(
-                    s"error.unknown.organisation.$orgKey".notFound())
-                case Some(organisation) =>
-                  val toConsentGroup = (pg: PermissionGroup) =>
-                    ConsentGroup(
-                      key = pg.key,
-                      label = pg.label,
-                      consents = pg.permissions.map { p =>
-                        Consent(key = p.key, label = p.label, checked = false)
-                      })
+      import cats.data._
+      import cats.implicits._
 
-                  val groups = organisation.groups.map {
-                    toConsentGroup(_)
-                  }
+      EitherT(
+        getConsentFactTemplate(tenant,
+                               orgKey,
+                               maybeUserId,
+                               maybeOfferKeys,
+                               req.authInfo.offerRestrictionPatterns))
+        .fold(error => error.renderError(),
+              consentFact => renderMethod(consentFact))
 
-                  val offers: Option[Seq[ConsentOffer]] =
-                    organisation.offers.map(
-                      _.filter(o =>
-                        maybeOfferKeys match {
-                          case Some(offerKeys) if offerKeys.nonEmpty =>
-                            offerKeys.contains(o.key)
-                          case _ =>
-                            true
-                      }).map(
-                        offer =>
-                          ConsentOffer(
-                            key = offer.key,
-                            label = offer.label,
-                            version = offer.version,
-                            groups = offer.groups.map {
-                              toConsentGroup(_)
-                            }
-                        ))
-                    )
+    }
 
-                  Logger.info(
-                    s"Using default consents template in organisation $orgKey")
+  def getConsentFactTemplate(tenant: String,
+                             orgKey: String,
+                             maybeUserId: Option[String],
+                             maybeOfferKeys: Option[Seq[String]],
+                             offerRestrictionPatterns: Option[Seq[String]])
+    : Future[Either[AppErrorWithStatus, ConsentFact]] = {
+    accessibleOfferService
+      .organisationWithAccessibleOffer(tenant, orgKey, offerRestrictionPatterns)
+      .flatMap {
+        case Left(errors) =>
+          FastFuture.successful(Left(errors))
+        case Right(maybeOrganisation) =>
+          maybeOrganisation match {
+            case None =>
+              Logger.error(s"Organisation $orgKey not found")
+              Future.successful(Left(AppErrorWithStatus(
+                AppErrors(Seq(ErrorMessage(s"organisation.$orgKey.not.found"))),
+                Results.NotFound)))
+            case Some(organisation) =>
+              val toConsentGroup = (pg: PermissionGroup) =>
+                ConsentGroup(
+                  key = pg.key,
+                  label = pg.label,
+                  consents = pg.permissions.map { p =>
+                    Consent(key = p.key, label = p.label, checked = false)
+                  })
 
-                  val template =
-                    ConsentFact.template(
-                      orgVerNum = organisation.version.num,
-                      groups = groups,
-                      offers = offers,
-                      orgKey = orgKey
-                    )
-
-                  consentManagerService
-                    .mergeTemplateWithConsentFact(tenant,
-                                                  orgKey,
-                                                  organisation.version.num,
-                                                  template,
-                                                  maybeUserId)
-                    .map(renderMethod(_))
+              val groups = organisation.groups.map {
+                toConsentGroup(_)
               }
 
+              val offers: Option[Seq[ConsentOffer]] =
+                organisation.offers.map(
+                  _.filter(o =>
+                    maybeOfferKeys match {
+                      case Some(offerKeys) if offerKeys.nonEmpty =>
+                        offerKeys.contains(o.key)
+                      case _ =>
+                        true
+                  }).map(
+                    offer =>
+                      ConsentOffer(
+                        key = offer.key,
+                        label = offer.label,
+                        version = offer.version,
+                        groups = offer.groups.map {
+                          toConsentGroup(_)
+                        }
+                    ))
+                )
+
+              val template =
+                ConsentFact.template(
+                  orgVerNum = organisation.version.num,
+                  groups = groups,
+                  offers = offers,
+                  orgKey = orgKey
+                )
+
+              consentManagerService
+                .mergeTemplateWithConsentFact(tenant,
+                                              orgKey,
+                                              organisation.version.num,
+                                              template,
+                                              maybeUserId)
+                .map(Right(_))
           }
+
       }
-    }
+  }
 
   def find(tenant: String, orgKey: String, userId: String) = AuthAction.async {
     implicit req =>
-      {
-        lastConsentFactMongoDataStore
-          .findByOrgKeyAndUserId(tenant, orgKey, userId)
-          .map {
-            case None =>
-              // if this occurs it means a user is known but it has no consents, this is a BUG
-              s"error.unknown.user.$userId.or.organisation.$orgKey".notFound()
-            case Some(consentFact) =>
-              // TODO: later handle here new version template version check
-              val restrictedConsentFact =
-                consentManagerService.consentFactWithAccessibleOffers(
-                  consentFact,
-                  req.authInfo.offerRestrictionPatterns)
+      import cats.data._
+      import cats.implicits._
 
-              renderMethod(restrictedConsentFact)
-          }
+      EitherT(
+        findConsentFacts(tenant,
+                         orgKey,
+                         userId,
+                         req.authInfo.offerRestrictionPatterns))
+        .fold(error => error.renderError(),
+              consentFact => renderMethod(consentFact))
+  }
+
+  def findConsentFacts(tenant: String,
+                       orgKey: String,
+                       userId: String,
+                       offerRestrictionPatterns: Option[Seq[String]])
+    : Future[Either[AppErrorWithStatus, ConsentFact]] = {
+    lastConsentFactMongoDataStore
+      .findByOrgKeyAndUserId(tenant, orgKey, userId)
+      .map {
+        case None =>
+          Left(
+            AppErrorWithStatus(
+              AppErrors(Seq(ErrorMessage(
+                s"error.unknown.user.$userId.or.organisation.$orgKey"))),
+              Results.NotFound))
+        case Some(consentFact) =>
+          // TODO: later handle here new version template version check
+          Right(
+            consentManagerService.consentFactWithAccessibleOffers(
+              consentFact,
+              offerRestrictionPatterns))
       }
   }
 
