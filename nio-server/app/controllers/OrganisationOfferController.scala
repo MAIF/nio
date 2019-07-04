@@ -7,6 +7,7 @@ import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Flow, Framing, Sink, Source}
 import akka.util.ByteString
 import auth.{AuthInfo, SecuredAuthContext}
+import configuration.Env
 import controllers.ErrorManager.{AppErrorManagerResult, ErrorManagerResult, ErrorWithStatusManagerResult}
 import db.OrganisationMongoDataStore
 import libs.xmlorjson.XmlOrJson
@@ -26,6 +27,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
 class OrganisationOfferController(
+	val env: Env,
     val authAction: ActionBuilder[SecuredAuthContext, AnyContent],
     val cc: ControllerComponents,
     val consentController: ConsentController,
@@ -175,9 +177,9 @@ class OrganisationOfferController(
   case class OfferConsentWithGroup(groupKey: String, consentKey: String)
   case class UserIdAndInitDate(id: String, date: String)
 
-  def handleConsent(tenant: String, orgKey: String, authInfo: AuthInfo, offerKey: String, par: Int, setToFalse: Option[Seq[OfferConsentWithGroup]], source: Source[UserIdAndInitDate, _]): Source[JsValue, _]= {
+  def handleConsent(tenant: String, orgKey: String, authInfo: AuthInfo, offerKey: String, setToFalse: Option[Seq[OfferConsentWithGroup]], source: Source[UserIdAndInitDate, _]): Source[JsValue, _]= {
     source
-      .mapAsync(par) {
+      .mapAsync(env.config.dbConfig.batchSize) {
 		  value =>
 			  consentController.getConsentFactTemplate(tenant, orgKey, Some(value.id), authInfo.offerRestrictionPatterns)
 				  .collect {
@@ -203,7 +205,7 @@ class OrganisationOfferController(
 						  cf.copy(_id = BSONObjectID.generate().stringify, lastUpdateSystem = DateTime.now(), userId = value.id, doneBy = DoneBy(authInfo.sub, "admin"), offers = Some(consentOffers))
 				  }
 	  }
-        .mapAsync(par)(consent => consentManagerService
+        .mapAsync(env.config.dbConfig.batchSize)(consent => consentManagerService
             .saveConsents(tenant,
               authInfo.sub,
               authInfo.metadatas,
@@ -211,7 +213,7 @@ class OrganisationOfferController(
               consent.userId,
               consent)
             .map(result => {
-              Json.obj(consent.userId -> result.isRight)
+              Json.obj("userId" -> consent.userId, "status" -> result.isRight)
             })
         )
   }
@@ -253,11 +255,8 @@ class OrganisationOfferController(
 			OfferConsentWithGroup.apply _ tupled (string.take(index), string.drop(index + 1))
 		}))
 
-    val par = req.getQueryString("par").map(_.toInt).getOrElse(2)
-
     val source = req.body
-        .grouped(req.getQueryString("group_by").map(_.toInt).getOrElse(0))
-        .flatMapConcat(seq => handleConsent(tenant, orgKey, req.authInfo, offerKey, par, setToFalse, Source(seq)))
+        .flatMapConcat(seq => handleConsent(tenant, orgKey, req.authInfo, offerKey, setToFalse, Source(seq)))
         .alsoTo(Sink.foreach(Json.stringify))
         .map(json => ByteString(Json.stringify(json)))
         .intersperse(ByteString("["), ByteString(","), ByteString("]"))
@@ -265,7 +264,7 @@ class OrganisationOfferController(
                 d.onComplete {
                   case Success(_) =>
                   case Failure(exception) =>
-                        Logger.error("Error processing CSV", exception)
+                        Logger.error("Error processing stream", exception)
                 }
                 mt
             }
