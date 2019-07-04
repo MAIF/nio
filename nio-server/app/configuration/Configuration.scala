@@ -25,7 +25,7 @@ case class NioConfiguration(baseUrl: String,
                             kafka: KafkaConfig,
                             s3Config: S3Config,
                             mailGunConfig: MailGunConfig,
-                            dbConfig: DbConfig)
+                            db: Db)
 
 case class SecurityFilter(securityMode: String,
                           otoroshi: OtoroshiFilterConfig,
@@ -117,4 +117,4 @@ case class CatchUpEventsConfig(strategy: String,
                                delay: FiniteDuration,
                                interval: FiniteDuration)
 
-case class DbConfig(batchSize: Int)
+case class Db(batchSize: Int)

@@ -118,7 +118,6 @@ class ConsentManagerService(
                 val lastConsentFactToStore =
                   consentFactToStore.copy(lastConsentFactStored._id)
 
-                Logger.debug(s"before saving ${consentFact.asJson}")
                 for {
                   _ <- lastConsentFactMongoDataStore.update(
                     tenant,
@@ -369,7 +368,6 @@ class ConsentManagerService(
                    userId: String,
                    consentFact: ConsentFact)
     : Future[Either[AppErrorWithStatus, ConsentFact]] = {
-    Logger.debug(Json.stringify(consentFact.asJson))
     lastConsentFactMongoDataStore
       .findByOrgKeyAndUserId(tenant, organisationKey, userId)
       .flatMap {

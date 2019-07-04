@@ -179,33 +179,33 @@ class OrganisationOfferController(
 
   def handleConsent(tenant: String, orgKey: String, authInfo: AuthInfo, offerKey: String, setToFalse: Option[Seq[OfferConsentWithGroup]], source: Source[UserIdAndInitDate, _]): Source[JsValue, _]= {
     source
-      .mapAsync(env.config.dbConfig.batchSize) {
+      .mapAsync(env.config.db.batchSize) {
 		  value =>
-			  consentController.getConsentFactTemplate(tenant, orgKey, Some(value.id), authInfo.offerRestrictionPatterns)
+			  consentController.getConsentFactTemplate(tenant, orgKey, Some(value.id), Some(Seq(offerKey)), authInfo.offerRestrictionPatterns)
 				  .collect {
 					  case Right(cf) =>
 						  val consentOffers: Seq[ConsentOffer] = cf.offers match {
+						  case None => Seq.empty
+						  case Some(offers) => offers.find(co => co.key == offerKey) match {
 							  case None => Seq.empty
-							  case Some(offers) => offers.find(co => co.key == offerKey) match {
-								  case None => Seq.empty
-								  case Some(o) =>
-									  val offer: ConsentOffer = o
-										  .copy(groups = o
-											  .groups
-											  .map(group => group
-												  .copy(consents = group
-													  .consents
-													  .map(consent => consent
-														  .copy(checked = setToFalse.forall(groupAndConsents => !groupAndConsents.exists(groupAndConsent => groupAndConsent.groupKey == group.key && groupAndConsent.consentKey == consent.key)))))))
-									  val date = DateTime.parse(value.date)
-									  offers.filter(off => off.key != offerKey) ++ Seq(offer.copy(lastUpdate = date))
-							  }
+							  case Some(o) =>
+								  val offer: ConsentOffer = o
+									  .copy(groups = o
+										  .groups
+										  .map(group => group
+											  .copy(consents = group
+												  .consents
+												  .map(consent => consent
+													  .copy(checked = setToFalse.forall(groupAndConsents => !groupAndConsents.exists(groupAndConsent => groupAndConsent.groupKey == group.key && groupAndConsent.consentKey == consent.key)))))))
+								  val date = DateTime.parse(value.date)
+								  offers.filter(off => off.key != offerKey) ++ Seq(offer.copy(lastUpdate = date))
 						  }
+					  }
 
 						  cf.copy(_id = BSONObjectID.generate().stringify, lastUpdateSystem = DateTime.now(), userId = value.id, doneBy = DoneBy(authInfo.sub, "admin"), offers = Some(consentOffers))
 				  }
 	  }
-        .mapAsync(env.config.dbConfig.batchSize)(consent => consentManagerService
+        .mapAsync(env.config.db.batchSize)(consent => consentManagerService
             .saveConsents(tenant,
               authInfo.sub,
               authInfo.metadatas,
@@ -220,7 +220,7 @@ class OrganisationOfferController(
 
 	val newLineSplit: Flow[ByteString, ByteString, NotUsed] = Framing.delimiter(ByteString("\n"), 10000, allowTruncation = true)
 	def jsonToIdAndDate: Flow[ByteString, UserIdAndInitDate, NotUsed] =
-		Flow[ByteString] via newLineSplit map (_.utf8String) filterNot (_.isEmpty) map (l => Json.parse(l)) map (value => UserIdAndInitDate((value \ "id").as[String], (value \ "date").as[String]))
+		Flow[ByteString] via newLineSplit map (_.utf8String) filterNot (_.isEmpty) map (l => Json.parse(l)) map (value => UserIdAndInitDate((value \ "userId").as[String], (value \ "date").as[String]))
 
 	def csvToIdAndDate(drop: Long, separator: String): Flow[ByteString, UserIdAndInitDate, NotUsed] =
 		Flow[ByteString]
@@ -256,6 +256,7 @@ class OrganisationOfferController(
 		}))
 
     val source = req.body
+		.grouped(req.getQueryString("group_by").map(_.toInt).getOrElse(1))
         .flatMapConcat(seq => handleConsent(tenant, orgKey, req.authInfo, offerKey, setToFalse, Source(seq)))
         .alsoTo(Sink.foreach(Json.stringify))
         .map(json => ByteString(Json.stringify(json)))

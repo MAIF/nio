@@ -57,7 +57,11 @@ class ConsentController(
       import cats.implicits._
 
       EitherT(
-        getConsentFactTemplate(tenant, orgKey, maybeUserId, maybeOfferKeys))
+        getConsentFactTemplate(tenant,
+                               orgKey,
+                               maybeUserId,
+                               maybeOfferKeys,
+                               req.authInfo.offerRestrictionPatterns))
         .fold(error => error.renderError(),
               consentFact => renderMethod(consentFact))
 
@@ -66,10 +70,11 @@ class ConsentController(
   def getConsentFactTemplate(tenant: String,
                              orgKey: String,
                              maybeUserId: Option[String],
-                             maybeOfferKeys: Option[Seq[String]])
+                             maybeOfferKeys: Option[Seq[String]],
+                             offerRestrictionPatterns: Option[Seq[String]])
     : Future[Either[AppErrorWithStatus, ConsentFact]] = {
     accessibleOfferService
-      .organisationWithAccessibleOffer(tenant, orgKey, maybeOfferKeys)
+      .organisationWithAccessibleOffer(tenant, orgKey, offerRestrictionPatterns)
       .flatMap {
         case Left(errors) =>
           FastFuture.successful(Left(errors))

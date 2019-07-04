@@ -1,5 +1,7 @@
 package controllers
 
+import java.io.{BufferedWriter, File, FileWriter}
+
 import models._
 import play.api.Logger
 import play.api.libs.json.{JsArray, JsValue, Json}
@@ -466,6 +468,198 @@ class OrganisationOfferControllerSpec extends TestUtils {
       val value = response.json
 
       (value \ "offers").as[JsArray].value.length mustBe 1
+    }
+
+    "initialize offer with ndJSon binary file" in {
+      val orgKey: String = "orgInit"
+
+      val orgWithOffer: Organisation = Organisation(
+        key = orgKey,
+        label = "organisation with offer",
+        groups = Seq(
+          PermissionGroup(
+            key = "maifNotifs",
+            label =
+              "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF",
+            permissions = Seq(
+              Permission(key = "phone", label = "Par contact téléphonique"),
+              Permission(key = "mail", label = "Par contact électronique"),
+              Permission(key = "sms", label = "Par SMS / MMS / VMS")
+            )
+          )
+        )
+      )
+
+      val offerKey1 = "offer1"
+      val offer1: Offer = Offer(
+        key = offerKey1,
+        label = "offer one",
+        groups = Seq(
+          PermissionGroup(
+            key = "maifNotifs",
+            label =
+              "J'accepte de recevoir par téléphone, mail et SMS des offres commerciales du groupe MAIF",
+            permissions = Seq(
+              Permission(key = "phone", label = "Par contact téléphonique"),
+              Permission(key = "mail", label = "Par contact électronique"),
+              Permission(key = "sms", label = "Par SMS / MMS / VMS")
+            )
+          )
+        )
+      )
+
+      val offerKey2 = "offer2"
+      val offer2: Offer = Offer(
+        key = offerKey2,
+        label = "offer two",
+        groups = Seq(
+          PermissionGroup(
+            key = "maifPartnerNotifs",
+            label =
+              "J'accepte de recevoir par téléphone, mail et SMS des offres commerciales des partenaires du groupe MAIF",
+            permissions = Seq(
+              Permission(key = "phone", label = "Par contact téléphonique"),
+              Permission(key = "mail", label = "Par contact électronique"),
+              Permission(key = "sms", label = "Par SMS / MMS / VMS")
+            )
+          )
+        )
+      )
+
+      postJson(s"/$tenant/organisations", orgWithOffer.asJson).status mustBe CREATED
+      postJson(s"/$tenant/organisations/$orgKey/draft/_release", Json.obj()).status mustBe OK
+
+      // offer 1 with version 1
+      postJson(s"/$tenant/organisations/$orgKey/offers", offer1.asJson()).status mustBe CREATED
+
+      // offer 2 with version 2
+      postJson(s"/$tenant/organisations/$orgKey/offers", offer2.asJson()).status mustBe CREATED
+
+      val userId = "userByFile"
+
+      //ERROR 415
+
+      postJson(
+        s"/$tenant/organisations/$orgKey/offers/$offerKey1/_init",
+        Json.obj(),
+        Seq(
+          ACCEPT -> "application/xml",
+          CONTENT_TYPE -> "application/xml"
+        )
+      ).status mustBe UNSUPPORTED_MEDIA_TYPE
+
+      //INIT BY JSON
+      val tempJson = File.createTempFile("init", "ndjson")
+
+      var bw = new BufferedWriter(new FileWriter(tempJson))
+      bw.write(
+        "{\"userId\": \"JSON_1_11_42\", \"date\": \"2012-12-21T06:06:06Z\"}\n")
+      bw.write(
+        "{\"userId\": \"JSON_2_11_42\", \"date\": \"2012-12-21T06:06:06Z\"}\n")
+      bw.write(
+        "{\"userId\": \"JSON_3_11_42\", \"date\": \"2012-12-21T06:06:06Z\"}\n")
+      bw.close()
+
+      val jsonResponse = postBinaryFile(
+        s"/$tenant/organisations/$orgKey/offers/$offerKey1/_init",
+        tempJson,
+        true,
+        Seq(
+          ACCEPT -> "application/json",
+          CONTENT_TYPE -> "application/json"
+        )
+      )
+      jsonResponse.status mustBe OK
+      tempJson.delete()
+
+      val jsonResponseValue = jsonResponse.json
+      jsonResponseValue.as[JsArray].value.length mustBe 3
+      (jsonResponseValue \ 0 \ "status").as[Boolean] mustBe true
+      (jsonResponseValue \ 1 \ "status").as[Boolean] mustBe true
+      (jsonResponseValue \ 2 \ "status").as[Boolean] mustBe true
+
+      var listResponse = getJson(s"/$tenant/organisations/$orgKey/users")
+      listResponse.status mustBe OK
+      (listResponse.json \ "items").as[JsArray].value.length mustBe 3
+
+      //INIT BY CSV
+
+      val tempCsv = File.createTempFile("init", "csv")
+
+      bw = new BufferedWriter(new FileWriter(tempCsv))
+      bw.write("CSV_1_11_42;2012-12-21T06:06:06Z\n")
+      bw.write("CSV_2_11_42;2012-12-21T06:06:06Z\n")
+      bw.write("CSV_3_11_42;2012-12-21T06:06:06Z\n")
+      bw.close()
+
+      val csvResponse = postBinaryFile(
+        s"/$tenant/organisations/$orgKey/offers/$offerKey1/_init",
+        tempCsv,
+        true,
+        Seq(
+          ACCEPT -> "application/csv",
+          CONTENT_TYPE -> "application/csv"
+        )
+      )
+      csvResponse.status mustBe OK
+      tempCsv.delete()
+
+      val csvResponseValue = jsonResponse.json
+      csvResponseValue.as[JsArray].value.length mustBe 3
+      (csvResponseValue \ 0 \ "status").as[Boolean] mustBe true
+      (csvResponseValue \ 1 \ "status").as[Boolean] mustBe true
+      (csvResponseValue \ 2 \ "status").as[Boolean] mustBe true
+
+      listResponse = getJson(s"/$tenant/organisations/$orgKey/users")
+      listResponse.status mustBe OK
+      (listResponse.json \ "items").as[JsArray].value.length mustBe 6
+
+      //ERROR WITH USER ALREADY OFFER AND SAME DATE
+      val tempError = File.createTempFile("init_error", "ndjson")
+
+      bw = new BufferedWriter(new FileWriter(tempError))
+      bw.write(
+        "{\"userId\": \"JSON_1_11_42\", \"date\": \"2012-12-20T06:06:06Z\"}\n")
+      bw.close()
+
+      val userExistResponse = postBinaryFile(
+        s"/$tenant/organisations/$orgKey/offers/$offerKey1/_init",
+        tempError,
+        true,
+        Seq(
+          ACCEPT -> "application/json",
+          CONTENT_TYPE -> "application/json"
+        )
+      )
+      userExistResponse.status mustBe OK
+      (userExistResponse.json \ 0 \ "status").as[Boolean] mustBe false
+      tempError.delete()
+
+      //USER ALREaDY EXIST WOITH OTHER OFFER
+      val tempExist = File.createTempFile("exist", "ndjson")
+      bw = new BufferedWriter(new FileWriter(tempExist))
+      bw.write(
+        "{\"userId\": \"JSON_1_11_42\", \"date\": \"2012-12-20T06:06:06Z\"}\n")
+      bw.close()
+
+      val existResponse = postBinaryFile(
+        s"/$tenant/organisations/$orgKey/offers/$offerKey2/_init",
+        tempExist,
+        true,
+        Seq(
+          ACCEPT -> "application/json",
+          CONTENT_TYPE -> "application/json"
+        )
+      )
+      existResponse.status mustBe OK
+      (existResponse.json.as[JsArray] \ 0 \ "status").as[Boolean] mustBe true
+
+      var userResponse =
+        getJson(s"/$tenant/organisations/$orgKey/users/JSON_1_11_42")
+
+      userResponse.status mustBe OK
+      (userResponse.json \ "offers").as[JsArray].value.length mustBe 2
+
     }
   }
 }
