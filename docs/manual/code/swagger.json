@@ -46,7 +46,6 @@
       "description": "La notion d'offre corresponds à l'ajout de permissions spécifiques à une  application sur une organisation donnée."
     }
   ],
-  "host": "nio.foo.bar",
   "paths": {
     "/api/{tenant}/organisations": {
       "get": {
@@ -736,6 +735,92 @@
           },
           "404": {
             "description": "Le tenant, l'organisation ou l'offre n'existe pas."
+          }
+        }
+      }
+    },
+    "/api/{tenant}/organisations/{orgKey}/offers/{offerKey}/_init": {
+      "post": {
+        "tags": [
+          "offre"
+        ],
+        "summary": "initialiser les offres des consentements à l'aide d'une liste d'utilisateurs (csv ou ndjson). Le content-type doit refleter le type de fichier application/json ou application/csv",
+        "parameters": [
+          {
+            "name": "$CLIENT_ID",
+            "in": "header",
+            "description": "Otoroshi client id",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "$CLIENT_SECRET",
+            "in": "header",
+            "description": "Otoroshi client secret",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "tenant",
+            "in": "path",
+            "description": "Le nom du tenant",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "orgKey",
+            "in": "path",
+            "description": "La clé de l'organisation",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "offerKey",
+            "in": "path",
+            "description": "La clé de l'offre",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "setToFalse",
+            "description": "les couples {cléGroup.cléConsentement} à initialiser à false",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "drop",
+            "description": "La première ligne du fichier csv doit elle être exclue",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "separator",
+            "description": "type de séparateur CSV",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "in": "body",
+            "name": "binary file",
+            "description": "fichier csv ou ndjson d'initialisation",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/fileUpload"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "la liste des userIds avec l'annotation true ou false, reflettant le bon déroulement de l'initialisation",
+            "schema": {
+              "$ref": "#/definitions/offerInitResponse"
+            }
+          },
+          "415": {
+            "description": "le content-type de la requête n'est pas pris en charge"
           }
         }
       }
@@ -2710,6 +2795,37 @@
             "$ref": "#/definitions/ConsentGroup"
           }
         }
+      }
+    },
+    "offerInitResponse": {
+      "type": "array",
+      "description": "liste des etat d'enregistrement des utilisateur a initialiser",
+      "items": {
+        "$ref": "#/definitions/offerInitRecord"
+      }
+    },
+    "offerInitRecord": {
+      "type": "object",
+      "description": "structure représentant la réponse d'initialisation d'une offre",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Id de l'utilisateur",
+          "example": "userId"
+        },
+        "status": {
+          "type": "boolean",
+          "description": "Etat de l'enregistrement"
+        }
+      }
+    },
+    "fileUpload": {
+      "type": "string",
+      "format": "binary",
+      "description": "fichier binaire (CSV ou JSON) comprenant le userId et la date d'initialisation de l'offre",
+      "example": {
+        "userId": "1-222-42",
+        "date": "2018-01-01T10:10:10Z"
       }
     }
   }

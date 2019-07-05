@@ -59,7 +59,7 @@ or using docker
 docker run -e "SECURITY_MODE=default" -e "DB_FLUSH=true" -p "9000:9000" maif/nio:latest
 ```
 
-now open your browser to [http://localhost:9000/sandbox/fo](http://localhost:9000/sandbox/fo), **log in with the credential generated in the logs** and explore by yourself, if you want better instructions, just go to the [Quick Start](quickstart.md) or directly to the [installation instructions](./gitnio/index.md).
+now open your browser to [http://localhost:9000/sandbox/fo](http://localhost:9000/sandbox/fo), **log in with the credential generated in the logs** and explore by yourself, if you want better instructions, just go to the [Quick Start](quickstart/quickstart.md) or directly to the [installation instructions](./gitnio/index.md).
 
 ## Documentation 
 
@@ -93,5 +93,6 @@ The work on Nio was funded by [MAIF](https://www.maif.fr/) with the help of the 
 * [UI : Using Nio](uiUsingnio/index.md)
 * [API : Using Nio](apiUsingnio/index.md)
 * [Kafka events](kafkaEvents.md)
+* [Quickstart](quickstart/index.md)
 
 @@@
