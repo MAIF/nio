@@ -46,7 +46,6 @@
       "description": "La notion d'offre corresponds à l'ajout de permissions spécifiques à une  application sur une organisation donnée."
     }
   ],
-  "host": "nio.foo.bar",
   "paths": {
     "/api/{tenant}/organisations": {
       "get": {

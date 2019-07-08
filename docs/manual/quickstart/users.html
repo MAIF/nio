@@ -2,7 +2,7 @@
 <html class="no-js" lang="en">
 
 <head>
-<title>Manage Data extraction · Nio</title>
+<title>manage users consents · Nio</title>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <meta name="description" content='nio-manual'/>
@@ -62,14 +62,14 @@
     <li><a href="../apiUsingnio/manageOrganisation.html" class="page">Manage Organisation</a></li>
     <li><a href="../apiUsingnio/manageOffer.html" class="page">Manage Offer</a></li>
     <li><a href="../apiUsingnio/manageConsent.html" class="page">Manage Consents</a></li>
-    <li><a href="../apiUsingnio/manageExtraction.html" class="active page">Manage Data extraction</a></li>
+    <li><a href="../apiUsingnio/manageExtraction.html" class="page">Manage Data extraction</a></li>
   </ul></li>
   <li><a href="../kafkaEvents.html" class="page">Published Kafka Events</a></li>
   <li><a href="../quickstart/index.html" class="page">QuickStart</a>
   <ul>
     <li><a href="../quickstart/tenant.html" class="page">Manage tenants</a></li>
     <li><a href="../quickstart/organisation.html" class="page">Manage organisations and consents</a></li>
-    <li><a href="../quickstart/users.html" class="page">manage <del>users</del> consents</a></li>
+    <li><a href="../quickstart/users.html" class="active page">manage <del>users</del> consents</a></li>
   </ul></li>
 </ul>
 </div>
@@ -136,14 +136,14 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
     <li><a href="../apiUsingnio/manageOrganisation.html" class="page">Manage Organisation</a></li>
     <li><a href="../apiUsingnio/manageOffer.html" class="page">Manage Offer</a></li>
     <li><a href="../apiUsingnio/manageConsent.html" class="page">Manage Consents</a></li>
-    <li><a href="../apiUsingnio/manageExtraction.html" class="active page">Manage Data extraction</a></li>
+    <li><a href="../apiUsingnio/manageExtraction.html" class="page">Manage Data extraction</a></li>
   </ul></li>
   <li><a href="../kafkaEvents.html" class="page">Published Kafka Events</a></li>
   <li><a href="../quickstart/index.html" class="page">QuickStart</a>
   <ul>
     <li><a href="../quickstart/tenant.html" class="page">Manage tenants</a></li>
     <li><a href="../quickstart/organisation.html" class="page">Manage organisations and consents</a></li>
-    <li><a href="../quickstart/users.html" class="page">manage <del>users</del> consents</a></li>
+    <li><a href="../quickstart/users.html" class="active page">manage <del>users</del> consents</a></li>
   </ul></li>
 </ul>
 </div>
@@ -159,8 +159,8 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <div class="nav-breadcrumbs">
 <ul>
   <li><a href="../index.html">Nio</a></li>
-  <li><a href="../apiUsingnio/index.html">API : Using Nio</a></li>
-  <li>Manage Data extraction</li>
+  <li><a href="../quickstart/index.html">QuickStart</a></li>
+  <li>manage <del>users</del> consents</li>
 </ul>
 </div>
 </div>
@@ -168,71 +168,121 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 
 <div class="page-content row">
 <div class="small-12 large-9 column" id="docs">
-<h1><a href="#manage-data-extraction" name="manage-data-extraction" class="anchor"><span class="anchor-link"></span></a>Manage Data extraction</h1>
-<p>The extraction of user data is the responsibility of the applications, Nio offers an API to warn that a request to retrieve data has been requested. The extraction request corresponds to the addition of a typed event in Kafka. Once the event read by an application it will then load the file corresponding to the extraction of the user in Nio. Once the file is loaded, an email with a link to the file is sent to the user.</p>
-<h2><a href="#data-model" name="data-model" class="anchor"><span class="anchor-link"></span></a>Data model</h2>
-<pre class="prettyprint"><code class="language-json">{
-  &quot;_id&quot;: &quot;string&quot;,
-  &quot;tenant&quot;: &quot;string&quot;,
-  &quot;orgKey&quot;: &quot;string&quot;,
-  &quot;userId&quot;: &quot;string&quot;,
-  &quot;email&quot;: &quot;string&quot;,
-  &quot;startedAt&quot;: &quot;string&quot;,
-  &quot;uploadStartedAt&quot;: &quot;string&quot;,
-  &quot;endedAt&quot;: &quot;string&quot;
+<h1><a href="#manage-consents" name="manage-consents" class="anchor"><span class="anchor-link"></span></a>manage <del>users</del> consents</h1>
+<p>Nio can manage user <strong>but</strong> by the prism of consent. So, informed, &ldquo;to create user&rdquo;, just post new consents. If user have already consentFacts, it will be updated otherwise created.</p>
+<p>le&rsquo;s have a nice usecase. we want to show to a user (userId in our system USER-1) his previous consentFacts to update it. For the first time, it would be nice to show to user his consentFacts:</p>
+<pre><code>curl -X GET &quot;http://localhost:9000/api/demo/organisations/organisation-demo/users/USER-1&quot; \
+-H &#39;accept: application/json&#39; \
+-H &#39;content-type: application/json&#39; \
+-H &#39;Nio-Client-Id: &lt;XXX&gt;&#39; \
+-H &#39;Nio-Client-Secret: &lt;XXX&gt;&#39;
+</code></pre>
+<p>the response status must be 404, this not an error just an information who told us that the user is not fouond (because i&rsquo;s a new user). No problem, let&rsquo;s get retrieve the consent template :</p>
+<pre><code>curl -X GET &quot;http://localhost:9000/api/demo/organisations/organisation-demo/users/_template &quot; \
+-H &#39;accept: application/json&#39; \
+-H &#39;content-type: application/json&#39; \
+-H &#39;Nio-Client-Id: &lt;XXX&gt;&#39; \
+-H &#39;Nio-Client-Secret: &lt;XXX&gt;&#39;
+</code></pre>
+<p>the response contains consents initialized at false and require the update of some informations :</p>
+<pre><code>{
+  &quot;userId&quot;: &quot;fill&quot;,
+  &quot;doneBy&quot;: {
+    &quot;userId&quot;: &quot;fill&quot;,
+    &quot;role&quot;: &quot;fill&quot;
+  },
+  &quot;version&quot;: 1,
+  &quot;groups&quot;: [
+    {
+      &quot;key&quot;: &quot;notifications&quot;,
+      &quot;label&quot;: &quot;I accept to receive personalized offers from organisation-demo&quot;,
+      &quot;consents&quot;: [
+        {
+          &quot;key&quot;: &quot;phone&quot;,
+          &quot;label&quot;: &quot;over phone&quot;,
+          &quot;checked&quot;: false
+        },
+        {
+          &quot;key&quot;: &quot;email&quot;,
+          &quot;label&quot;: &quot;over email&quot;,
+          &quot;checked&quot;: false
+        }
+      ]
+    },
+    {
+      &quot;key&quot;: &quot;partners_notifications&quot;,
+      &quot;label&quot;: &quot;I accept to receive personalized offers from organisation-demo&#39;s pertners&quot;,
+      &quot;consents&quot;: [
+        {
+          &quot;key&quot;: &quot;phone&quot;,
+          &quot;label&quot;: &quot;over phone&quot;,
+          &quot;checked&quot;: false
+        },
+        {
+          &quot;key&quot;: &quot;email&quot;,
+          &quot;label&quot;: &quot;over email&quot;,
+          &quot;checked&quot;: false
+        }
+      ]
+    }
+  ],
+  &quot;lastUpdate&quot;: &quot;2019-07-05T13:23:56Z&quot;,
+  &quot;orgKey&quot;: &quot;organisationDemo&quot;
 }
 </code></pre>
-<h2><a href="#api" name="api" class="anchor"><span class="anchor-link"></span></a>API</h2>
-<p><strong>Data extraction request</strong></p>
-<pre class="prettyprint"><code class="language-sh">curl --include -X POST http://localhost:9000/api/demo/organisations/newOrga/users/user1/_extract \
-    -H &#39;Content-Type: application/json&#39; \
-    -H &#39;Accept: application/json&#39; \
-    -H &#39;Nio-Client-Id: xxx&#39; \
-    -H &#39;Nio-Client-Secret: xxx&#39; \
+<p>Ok, we can post user consentFact now : </p>
+<pre><code>curl -X PUT &quot;http://localhost:9000/api/demo/organisations/organisation-demo/users/USER_1 &quot; \
+-H &#39;accept: application/json&#39; \
+-H &#39;content-type: application/json&#39; \
+-H &#39;Nio-Client-Id: &lt;XXX&gt;&#39; \
+-H &#39;Nio-Client-Secret: &lt;XXX&gt;&#39;
 -d &#39;{
-  &quot;email&quot;: &quot;user1@nio.fr&quot; 
-}&#39;
+      &quot;userId&quot;: &quot;USER_1&quot;,
+      &quot;doneBy&quot;: {
+        &quot;userId&quot;: &quot;admin_demo&quot;,
+        &quot;role&quot;: &quot;admin&quot;
+      },
+      &quot;version&quot;: 1,
+      &quot;groups&quot;: [
+        {
+          &quot;key&quot;: &quot;notifications&quot;,
+          &quot;label&quot;: &quot;I accept to receive personalized offers from organisation-demo&quot;,
+          &quot;consents&quot;: [
+            {
+              &quot;key&quot;: &quot;phone&quot;,
+              &quot;label&quot;: &quot;over phone&quot;,
+              &quot;checked&quot;: true
+            },
+            {
+              &quot;key&quot;: &quot;email&quot;,
+              &quot;label&quot;: &quot;over email&quot;,
+              &quot;checked&quot;: true
+            }
+          ]
+        },
+        {
+          &quot;key&quot;: &quot;partners_notifications&quot;,
+          &quot;label&quot;: &quot;I accept to receive personalized offers from organisation-demo&#39;s pertners&quot;,
+          &quot;consents&quot;: [
+            {
+              &quot;key&quot;: &quot;phone&quot;,
+              &quot;label&quot;: &quot;over phone&quot;,
+              &quot;checked&quot;: true
+            },
+            {
+              &quot;key&quot;: &quot;email&quot;,
+              &quot;label&quot;: &quot;over email&quot;,
+              &quot;checked&quot;: true
+            }
+          ]
+        }
+      ],
+      &quot;orgKey&quot;: &quot;organisationDemo&quot;
+    }&#39;
 </code></pre>
-<p>Will respond with a 200 status code : </p>
-<pre class="prettyprint"><code class="language-json">{
-  &quot;_id&quot;: &quot;5bf800df210000f4c872428a&quot;,
-  &quot;tenant&quot;: &quot;demo&quot;,
-  &quot;orgKey&quot;: &quot;newOrga&quot;,
-  &quot;userId&quot;: &quot;user1&quot;,
-  &quot;email&quot;: &quot;user1@nio.fr&quot;,
-  &quot;startedAt&quot;: &quot;2018-11-23T13:30:07Z&quot;
-}
-</code></pre>
-<h2><a href="#upload-file" name="upload-file" class="anchor"><span class="anchor-link"></span></a>Upload file</h2>
-<pre class="prettyprint"><code class="language-sh">curl --include -X POST -F upload=@readme.md http://localhost:9000/api/demo/organisations/newOrga/users/user1/_files/readme.md \
-    -H &#39;Nio-Client-Id: xxx&#39; \
-    -H &#39;Nio-Client-Secret: xxx&#39;
-</code></pre>
-<p>Will respond with a 200 status code : </p>
-<pre class="prettyprint"><code class="language-json">{
-  &quot;url&quot;: &quot;http://localhost:9000/_download/readme.md?uploadToken=ZXlKaGJHY2lPaUpJVXpVeE1pSjkuZXlKbGVIUnlZV04wVkdGemEwbGtJam9pTldKbU9EQXdaR1l5TVRBd01EQm1OR000TnpJME1qaGhJaXdpYVhOeklqb2lUM1J2Y205emFHa2lMQ0p1WVcxbElqb2ljbVZoWkcxbExtMWtJaXdpYjNKblMyVjVJam9pYm1WM1QzSm5ZU0lzSW5WelpYSkpaQ0k2SW5WelpYSXhJaXdpWTI5dWRHVnVkRlI1Y0dVaU9pSmhjSEJzYVdOaGRHbHZiaTl2WTNSbGRDMXpkSEpsWVcwaUxDSjBaVzVoYm5RaU9pSmtaVzF2SW4wLm1lU05mLVhZT3BaOWtfM0FuV2RnY2ZWM0ZmNU9wY3pvZzJWVDJUM3VXMTJOeWlJaEpNOHRuY3JlbnFFQkpxOHRJTHM3UmxSdHFCcVdlLWw1WlRWbk13&quot;
-}
-</code></pre>
-<div class="nav-next">
-<p><strong>Next:</strong> <a href="../kafkaEvents.html">Published Kafka Events</a></p>
-</div>
+<p>it&rsquo;s as easy as it looks like</p>
 </div>
 <div class="large-3 show-for-large column" data-sticky-container>
-<nav class="sidebar sticky" data-sticky data-anchor="docs" data-sticky-on="large">
-<div class="page-nav">
-<div class="nav-title">On this page:</div>
-<div class="nav-toc">
-<ul>
-  <li><a href="../apiUsingnio/manageExtraction.html#manage-data-extraction" class="header">Manage Data extraction</a>
-  <ul>
-    <li><a href="../apiUsingnio/manageExtraction.html#data-model" class="header">Data model</a></li>
-    <li><a href="../apiUsingnio/manageExtraction.html#api" class="header">API</a></li>
-    <li><a href="../apiUsingnio/manageExtraction.html#upload-file" class="header">Upload file</a></li>
-  </ul></li>
-</ul>
-</div>
-</div>
-</nav>
 </div>
 </div>
 
