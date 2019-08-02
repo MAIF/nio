@@ -248,6 +248,7 @@ class OrganisationOfferController(
 		}
 
   def initializeOffer(tenant: String, orgKey: String, offerKey: String) = authAction(sourceBodyParser) { req =>
+    Logger.info(s" Begin offer initialization for tenant $tenant organisation $orgKey and offer $offerKey")
     val setToFalse: Option[Seq[OfferConsentWithGroup]] = req.queryString
         .get("setToFalse")
         .map(strings => strings.map(string => {
@@ -257,13 +258,13 @@ class OrganisationOfferController(
 
     val source = req.body
 		.grouped(req.getQueryString("group_by").map(_.toInt).getOrElse(1))
+    	.alsoTo(Sink.foreach(seq => Logger.info(s"${seq.length} lines process")))
         .flatMapConcat(seq => handleConsent(tenant, orgKey, req.authInfo, offerKey, setToFalse, Source(seq)))
-        .alsoTo(Sink.foreach(Json.stringify))
         .map(json => ByteString(Json.stringify(json)))
         .intersperse(ByteString("["), ByteString(","), ByteString("]"))
             .watchTermination(){(mt, d) =>
                 d.onComplete {
-                  case Success(_) =>
+                  case Success(done) => Logger.debug(s"$done")
                   case Failure(exception) =>
                         Logger.error("Error processing stream", exception)
                 }
