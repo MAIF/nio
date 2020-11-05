@@ -8,7 +8,7 @@ import controllers.AppErrorWithStatus
 import db.LastConsentFactDataStore
 import models._
 import play.api.Logger
-import play.api.libs.json.{JsObject, Json, OFormat}
+import play.api.libs.json.{JsArray, JsObject, Json, OFormat}
 import utils.Result.{AppErrors, ErrorMessage}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -41,6 +41,25 @@ class LastConsentFactPostgresDataStore()(
                             orgKey: String,
                             userId: String): Future[Option[ConsentFact]] = {
     findOneByQuery(tenant, Json.obj("orgKey" -> orgKey, "userId" -> userId))
+  }
+
+  def findAllByOrgKey(
+      tenant: String,
+      orgKey: String,
+      page: Int,
+      pageSize: Int,
+      query: Option[String]): Future[(Seq[ConsentFact], Int)] = {
+
+    val _query = query match {
+      case Some(str) => Json.parse(str).as[JsArray]
+      case None      => Json.arr()
+    }
+
+    findManyByQueriesPaginateCount(tenant = tenant,
+                                   rootQuery = Json.obj("orgKey" -> orgKey),
+                                   query = _query,
+                                   page = page,
+                                   pageSize = pageSize)
   }
 
   def findAllByUserId(tenant: String,

@@ -31,6 +31,12 @@ trait LastConsentFactDataStore {
                       page: Int,
                       pageSize: Int): Future[(Seq[ConsentFact], Int)]
 
+  def findAllByOrgKey(tenant: String,
+                      orgKey: String,
+                      page: Int,
+                      pageSize: Int,
+                      query: Option[String]): Future[(Seq[ConsentFact], Int)]
+
   def findAll(tenant: String): Future[Seq[ConsentFact]]
 
   def deleteConsentFactByTenant(tenant: String): Future[Boolean]

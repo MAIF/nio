@@ -74,6 +74,19 @@ class LastConsentFactMongoDataStore(val mongoApi: ReactiveMongoApi)(
                                  pageSize = pageSize)
   }
 
+  def findAllByOrgKey(
+      tenant: String,
+      orgKey: String,
+      page: Int,
+      pageSize: Int,
+      query: Option[String]): Future[(Seq[ConsentFact], Int)] = {
+
+    findManyByQueryPaginateCount(tenant = tenant,
+                                 query = Json.obj("orgKey" -> orgKey),
+                                 page = page,
+                                 pageSize = pageSize)
+  }
+
   def findAll(tenant: String): Future[Seq[ConsentFact]] =
     findMany(tenant)
 
