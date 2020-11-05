@@ -190,7 +190,7 @@ trait PostgresDataStore[T] extends SQLSyntaxSupport[T] {
     AsyncDB withPool { implicit session =>
       sql"""with temps as (
             select id, jsonb_array_elements(${query
-        .toString()}::jsonb ) <@ any (array [jsonb_array_elements(payload -> 'groups')]) as agg
+        .toString()}::jsonb ) <@ any (array (select jsonb_array_elements(payload -> 'groups'))) as agg
             from ${table} lf where lf.tenant = ${tenant} and payload @> ${rootQuery
         .toString()}::jsonb), agg_2 as (select id, ARRAY_AGG(agg) from temps group by id),
             ids as (select * from agg_2 where true = all(array_remove(array_agg, null)) )
@@ -233,7 +233,7 @@ trait PostgresDataStore[T] extends SQLSyntaxSupport[T] {
         case 1 =>
           sql"""with temps as (
             select id, jsonb_array_elements(${query
-            .toString()}::jsonb ) <@ any (array [jsonb_array_elements(payload -> 'groups')]) as agg
+            .toString()}::jsonb ) <@ any (array (select jsonb_array_elements(payload -> 'groups'))) as agg
             from ${table} lf where lf.tenant = ${tenant} and payload @> ${rootQuery
             .toString()}::jsonb), agg_2 as (select id, ARRAY_AGG(agg) from temps group by id),
             ids as (select * from agg_2 where true = all(array_remove(array_agg, null)) limit ${pageSize} offset ${page * pageSize} )
@@ -241,7 +241,7 @@ trait PostgresDataStore[T] extends SQLSyntaxSupport[T] {
         case _ =>
           sql"""with temps as (
             select id, jsonb_array_elements(${query
-            .toString()}::jsonb ) <@ any (array [jsonb_array_elements(payload -> 'groups')]) as agg
+            .toString()}::jsonb ) <@ any (array (selectjsonb_array_elements(payload -> 'groups'))) as agg
             from ${table} lf where lf.tenant = ${tenant} and payload @> ${rootQuery
             .toString()}::jsonb), agg_2 as (select id, ARRAY_AGG(agg) from temps group by id),
             ids as (select * from agg_2 where true = all(array_remove(array_agg, null)) limit ${pageSize} offset ${page * pageSize} )
