@@ -5,11 +5,12 @@ import cats.kernel.Monoid
 import play.api.libs.json._
 import utils.Result.{AppErrors, ErrorMessage, Result}
 import libs.xml.XmlUtil.XmlCleaner
+import scala.collection.Seq
 
 object Result {
 
   case class ErrorMessage(message: String, args: String*) {
-    def asXml =
+    def asXml() =
       <errorMessage>
         <message>
           {message}
@@ -26,40 +27,39 @@ object Result {
 
   case class AppErrors(
       errors: Seq[ErrorMessage] = Seq.empty,
-      fieldErrors: Map[String, List[ErrorMessage]] = Map.empty) {
+      fieldErrors: Map[String, List[ErrorMessage]] = Map.empty
+  ) {
 
     def ++(s: AppErrors) =
-      this.copy(errors = errors ++ s.errors,
-                fieldErrors = fieldErrors ++ s.fieldErrors)
+      this.copy(errors = errors ++ s.errors, fieldErrors = fieldErrors ++ s.fieldErrors)
 
     def addFieldError(field: String, errors: List[ErrorMessage]) =
       fieldErrors.get(field) match {
         case Some(err) =>
           AppErrors(errors, fieldErrors + (field -> (err ++ errors)))
-        case None => AppErrors(errors, fieldErrors + (field -> errors))
+        case None      => AppErrors(errors, fieldErrors + (field -> errors))
       }
 
-    def asJson = Json.toJson(this)(AppErrors.format)
+    def asJson() = Json.toJson(this)(AppErrors.format)
 
-    def asXml = {
+    def asXml() =
       <appErrors>
         <errors>
-          {errors.map(_.asXml)}
+          {errors.map(_.asXml())}
         </errors>
         <fieldErrors>
-          {fieldErrors.map(fieldErrorMessage =>
-          <fieldError>
+          {
+        fieldErrors.map(fieldErrorMessage => <fieldError>
             <field>
               {fieldErrorMessage._1}
             </field>
             <errorMessage>
-              {fieldErrorMessage._2.map(_.asXml)}
+              {fieldErrorMessage._2.map(_.asXml())}
             </errorMessage>
-          </fieldError>
-        )}
+          </fieldError>)
+      }
         </fieldErrors>
       </appErrors>.clean()
-    }
 
     def isEmpty = errors.isEmpty && fieldErrors.isEmpty
   }
@@ -71,21 +71,15 @@ object Result {
 
     implicit val format = Json.format[AppErrors]
 
-    def fromJsError(
-        jsError: Seq[(JsPath, Seq[JsonValidationError])]): AppErrors = {
-      val fieldErrors = jsError.map {
-        case (k, v) =>
-          (k.toJsonString,
-           v.map(err =>
-               ErrorMessage(err.message, err.args.map(_.toString): _*))
-             .toList)
+    def fromJsError(jsError: Seq[(JsPath, Seq[JsonValidationError])]): AppErrors = {
+      val fieldErrors = jsError.map { case (k, v) =>
+        (k.toJsonString, v.map(err => ErrorMessage(err.message, err.args.map(_.toString): _*)).toList)
       }.toMap
       AppErrors(fieldErrors = fieldErrors)
     }
 
-    def fromXmlError(throwable: Throwable): AppErrors = {
+    def fromXmlError(throwable: Throwable): AppErrors =
       AppErrors(Seq(ErrorMessage(throwable.getMessage)))
-    }
 
     def error(messages: String*): AppErrors =
       AppErrors(messages.map(m => ErrorMessage(m)))
@@ -93,17 +87,16 @@ object Result {
     private def optionCombine[A: Semigroup](a: A, opt: Option[A]): A =
       opt.map(a |+| _).getOrElse(a)
 
-    private def mergeMap[K, V: Semigroup](lhs: Map[K, V],
-                                          rhs: Map[K, V]): Map[K, V] =
-      lhs.foldLeft(rhs) {
-        case (acc, (k, v)) => acc.updated(k, optionCombine(v, acc.get(k)))
+    private def mergeMap[K, V: Semigroup](lhs: Map[K, V], rhs: Map[K, V]): Map[K, V] =
+      lhs.foldLeft(rhs) { case (acc, (k, v)) =>
+        acc.updated(k, optionCombine(v, acc.get(k)))
       }
 
     implicit val monoid: Monoid[AppErrors] = new Monoid[AppErrors] {
       override def empty = AppErrors()
 
       override def combine(x: AppErrors, y: AppErrors) = {
-        val errors = x.errors ++ y.errors
+        val errors      = x.errors ++ y.errors
         val fieldErrors = mergeMap(x.fieldErrors, y.fieldErrors)
         AppErrors(errors, fieldErrors)
       }

@@ -11,6 +11,7 @@ import utils.Result.{AppErrors, ErrorMessage}
 
 import scala.util.Try
 import scala.xml.{Elem, NodeSeq}
+import scala.collection.Seq
 
 object syntax {
   import cats.implicits._
@@ -30,29 +31,20 @@ object syntax {
     def validate[T](implicit read: XMLRead[T]): XmlResult[T] =
       read.read(nodeSeq, None)
 
-    def validateNullable[T](
-        implicit read: XMLRead[Option[T]]): XmlResult[Option[T]] = {
+    def validateNullable[T](implicit read: XMLRead[Option[T]]): XmlResult[Option[T]] =
       read.read(nodeSeq, None)
-    }
 
-    def validateNullable[T](default: T)(
-        implicit read: XMLRead[Option[T]]): XmlResult[T] = {
+    def validateNullable[T](default: T)(implicit read: XMLRead[Option[T]]): XmlResult[T] =
       read.read(nodeSeq, None).map(_.getOrElse(default))
-    }
 
-    def validate[T](path: Option[String])(
-        implicit read: XMLRead[T]): XmlResult[T] =
+    def validate[T](path: Option[String])(implicit read: XMLRead[T]): XmlResult[T] =
       read.read(nodeSeq, path)
 
-    def validateNullable[T](path: Option[String])(
-        implicit read: XMLRead[Option[T]]): XmlResult[Option[T]] = {
+    def validateNullable[T](path: Option[String])(implicit read: XMLRead[Option[T]]): XmlResult[Option[T]] =
       read.read(nodeSeq, path)
-    }
 
-    def validateNullable[T](default: T, path: Option[String])(
-        implicit read: XMLRead[Option[T]]): XmlResult[T] = {
+    def validateNullable[T](default: T, path: Option[String])(implicit read: XMLRead[Option[T]]): XmlResult[T] =
       read.read(nodeSeq, path).map(_.getOrElse(default))
-    }
   }
 
 }
@@ -86,19 +78,15 @@ object implicits {
   implicit def readSeq[T](implicit read: XMLRead[T]): XMLRead[Seq[T]] =
     (xml: NodeSeq, path: Option[String]) =>
       Try(xml.head)
-        .map(n => {
+        .map { n =>
           val incr = new AtomicInteger(0)
           n.child
-            .collect {
-              case e: Elem =>
-                read.read(
-                  e,
-                  Some(
-                    s"${path.map(p => s"$p.${incr.getAndIncrement()}").getOrElse(incr.getAndIncrement())}"))
+            .collect { case e: Elem =>
+              read.read(e, Some(s"${path.map(p => s"$p.${incr.getAndIncrement()}").getOrElse(incr.getAndIncrement())}"))
             }
             .toList
             .sequence
-        })
+        }
         .getOrElse(buildError(path).invalid)
 
   implicit def readInt: XMLRead[Int] =
@@ -125,12 +113,12 @@ object implicits {
           Try(dateTimeFormatter.parseDateTime(t))
             .map(_.valid)
             .getOrElse(AppErrors.error(s"parse.error${toPath(path)}").invalid)
-      }
+        }
 
   implicit def readOption[T](implicit read: XMLRead[T]): XMLRead[Option[T]] =
     (xml: NodeSeq, path: Option[String]) => {
       val option: Option[XmlResult[T]] = xml.headOption.map(read.read(_, path))
-      val res: XmlResult[Option[T]] = option.sequence[XmlResult, T]
+      val res: XmlResult[Option[T]]    = option.sequence[XmlResult, T]
       res
     }
 
@@ -140,16 +128,13 @@ object XmlUtil {
 
   implicit class XmlCleaner(val elem: Elem) extends AnyVal {
 
-    def clean(): Elem = {
-
+    def clean(): Elem =
       scala.xml.Utility.trim(elem) match {
-        case res if res.isInstanceOf[Elem] => {
+        case res if res.isInstanceOf[Elem] =>
           val prettyPrinter = new scala.xml.PrettyPrinter(1000, 2)
-          val prettyXml = prettyPrinter.format(res.asInstanceOf[Elem])
+          val prettyXml     = prettyPrinter.format(res.asInstanceOf[Elem])
           scala.xml.XML.loadString(prettyXml)
-        }
       }
-    }
 
   }
 

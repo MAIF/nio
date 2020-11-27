@@ -2,18 +2,14 @@ package controllers
 
 import akka.actor.ActorSystem
 import auth.{AuthAction, SecuredAction, SecuredAuthContext}
-import db.{
-  ConsentFactMongoDataStore,
-  DeletionTaskMongoDataStore,
-  OrganisationMongoDataStore,
-  UserMongoDataStore
-}
+import db.{ConsentFactMongoDataStore, DeletionTaskMongoDataStore, OrganisationMongoDataStore, UserMongoDataStore}
 import messaging.KafkaMessageBroker
 import models._
-import play.api.Logger
+import utils.NioLogger
 import play.api.mvc.{ActionBuilder, AnyContent, ControllerComponents}
 import ErrorManager.ErrorManagerResult
 import ErrorManager.AppErrorManagerResult
+import scala.collection.Seq
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -24,8 +20,8 @@ class DeletionController(
     val consentFactStore: ConsentFactMongoDataStore,
     val organisationStore: OrganisationMongoDataStore,
     val deletionTaskStore: DeletionTaskMongoDataStore,
-    val broker: KafkaMessageBroker)(implicit val ec: ExecutionContext,
-                                    system: ActorSystem)
+    val broker: KafkaMessageBroker
+)(implicit val ec: ExecutionContext, system: ActorSystem)
     extends ControllerUtils(cc) {
 
   implicit val readable: ReadableEntity[AppIds] = AppIds
@@ -34,9 +30,9 @@ class DeletionController(
     AuthAction.async(bodyParser) { implicit req =>
       req.body.read[AppIds] match {
         case Left(error) =>
-          Logger.error(s"Unable to parse deletion task input due to $error")
+          NioLogger.error(s"Unable to parse deletion task input due to $error")
           Future.successful(error.badRequest())
-        case Right(o) =>
+        case Right(o)    =>
           val task = DeletionTask.newTask(orgKey, userId, o.appIds.toSet)
           deletionTaskStore.insert(tenant, task).map { _ =>
             task.appIds.foreach { appId =>
@@ -59,16 +55,12 @@ class DeletionController(
       }
     }
 
-  def allDeletionTasksByOrgKey(tenant: String,
-                               orgKey: String,
-                               page: Int = 0,
-                               pageSize: Int = 10) =
+  def allDeletionTasksByOrgKey(tenant: String, orgKey: String, page: Int = 0, pageSize: Int = 10) =
     AuthAction.async { implicit request =>
-      deletionTaskStore.findAllByOrgKey(tenant, orgKey, page, pageSize).map {
-        case (destroyTasks, count) =>
-          val pagedDeletionTasks =
-            PagedDeletionTasks(page, pageSize, count, destroyTasks)
-          renderMethod(pagedDeletionTasks)
+      deletionTaskStore.findAllByOrgKey(tenant, orgKey, page, pageSize).map { case (destroyTasks, count) =>
+        val pagedDeletionTasks =
+          PagedDeletionTasks(page, pageSize, count, destroyTasks)
+        renderMethod(pagedDeletionTasks)
       }
     }
 
@@ -80,41 +72,39 @@ class DeletionController(
       }
     }
 
-  def updateDeletionTask(tenant: String,
-                         orgKey: String,
-                         deletionId: String,
-                         appId: String) = AuthAction.async { implicit request =>
-    deletionTaskStore.findById(tenant, deletionId).flatMap {
-      case None =>
-        Future.successful("error.deletion.task.not.found".notFound())
-      case Some(deletionTask) if !deletionTask.appIds.contains(appId) =>
-        Future.successful("error.unknown.appId".notFound())
-      case Some(deletionTask) =>
-        val updatedDeletionTask = deletionTask.copyWithAppDone(appId)
-        deletionTaskStore
-          .updateById(tenant, deletionId, updatedDeletionTask)
-          .map { _ =>
-            broker.publish(
-              DeletionAppDone(
-                tenant = tenant,
-                author = request.authInfo.sub,
-                metadata = request.authInfo.metadatas,
-                payload = AppDone(orgKey, updatedDeletionTask.userId, appId)
-              )
-            )
-            if (updatedDeletionTask.status == DeletionTaskStatus.Done) {
+  def updateDeletionTask(tenant: String, orgKey: String, deletionId: String, appId: String) = AuthAction.async {
+    implicit request =>
+      deletionTaskStore.findById(tenant, deletionId).flatMap {
+        case None                                                       =>
+          Future.successful("error.deletion.task.not.found".notFound())
+        case Some(deletionTask) if !deletionTask.appIds.contains(appId) =>
+          Future.successful("error.unknown.appId".notFound())
+        case Some(deletionTask)                                         =>
+          val updatedDeletionTask = deletionTask.copyWithAppDone(appId)
+          deletionTaskStore
+            .updateById(tenant, deletionId, updatedDeletionTask)
+            .map { _ =>
               broker.publish(
-                DeletionFinished(
+                DeletionAppDone(
                   tenant = tenant,
                   author = request.authInfo.sub,
-                  payload = updatedDeletionTask,
-                  metadata = request.authInfo.metadatas
+                  metadata = request.authInfo.metadatas,
+                  payload = AppDone(orgKey, updatedDeletionTask.userId, appId)
                 )
               )
+              if (updatedDeletionTask.status == DeletionTaskStatus.Done) {
+                broker.publish(
+                  DeletionFinished(
+                    tenant = tenant,
+                    author = request.authInfo.sub,
+                    payload = updatedDeletionTask,
+                    metadata = request.authInfo.metadatas
+                  )
+                )
+              }
+              renderMethod(deletionTask)
             }
-            renderMethod(deletionTask)
-          }
-    }
+      }
   }
 
 }

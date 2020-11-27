@@ -27,37 +27,32 @@ class ConsentFactSpec extends PlaySpec with WordSpecLike with MustMatchers {
     val consentFactWithoutMetaData = consentFact.copy(metaData = None)
 
     "serialize/deserialize from XML" in {
-      val xml = consentFact.asXml
+      val xml = consentFact.asXml()
 
       val fromXml = ConsentFact.fromXml(xml)
 
       fromXml.isRight mustBe true
-      val cf = fromXml.right.get
-      cf.userId mustBe consentFact.userId
-      cf.metaData.isDefined mustBe true
+      fromXml.map(_.userId) mustBe Right(consentFact.userId)
+      fromXml.map(_.metaData.isDefined) mustBe Right(true)
 
-      val md = cf.metaData.get
-      md(mdKey1) mustBe mdVal1
+      fromXml.map(_.metaData.map(md => md(mdKey1))) mustBe Right(Some(mdVal1))
 
-      val xml2 = consentFactWithoutMetaData.asXml
+      val xml2 = consentFactWithoutMetaData.asXml()
       xml2.contains("metaData") mustBe false
     }
 
     "serialize/deserialize from JSON" in {
-      val json = consentFact.asJson
+      val json = consentFact.asJson()
 
       val fromJson = ConsentFact.fromJson(json)
 
       fromJson.isRight mustBe true
-      val cf = fromJson.right.get
-      cf.userId mustBe consentFact.userId
-      cf.metaData.isDefined mustBe true
-
-      val md = cf.metaData.get
-      md(mdKey1) mustBe mdVal1
+      fromJson.map(_.userId) mustBe Right(consentFact.userId)
+      fromJson.map(_.metaData.isDefined) mustBe Right(true)
+      fromJson.map(_.metaData.map(md => md(mdKey1))) mustBe Right(Some(mdVal1))
 
       val consentFact2 = consentFactWithoutMetaData
-      val asStr = consentFact2.asJson.toString()
+      val asStr        = consentFact2.asJson().toString()
       asStr.contains("metaData") mustBe false
     }
   }

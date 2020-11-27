@@ -3,7 +3,7 @@ package controllers
 import java.io.{BufferedWriter, File, FileWriter}
 
 import models._
-import play.api.Logger
+import utils.NioLogger
 import play.api.libs.json.{JsArray, JsValue, Json}
 import play.api.libs.ws.WSResponse
 import play.api.test.Helpers._
@@ -11,25 +11,25 @@ import utils.TestUtils
 
 class OrganisationOfferControllerSpec extends TestUtils {
 
-  private val orgKey: String = "orgOffer1"
+  private val orgKey: String    = "orgOffer1"
   private val org: Organisation = Organisation(
     key = orgKey,
     label = "lbl",
     groups = Seq(
-      PermissionGroup(key = "group1",
-                      label = "blalba",
-                      permissions = Seq(Permission("sms", "Please accept sms")))
+      PermissionGroup(key = "group1", label = "blalba", permissions = Seq(Permission("sms", "Please accept sms")))
     )
   )
 
-  private val offerKey1 = "offer1"
-  private val offer: Offer = Offer(
+  private val offerKey1           = "offer1"
+  private val offer: Offer        = Offer(
     key = offerKey1,
     label = "offer one",
     groups = Seq(
-      PermissionGroup(key = "offerGrp1",
-                      label = "offer group one",
-                      permissions = Seq(Permission("sms", "Please accept sms")))
+      PermissionGroup(
+        key = "offerGrp1",
+        label = "offer group one",
+        permissions = Seq(Permission("sms", "Please accept sms"))
+      )
     )
   )
   private val offerUpdated: Offer = Offer(
@@ -39,51 +39,57 @@ class OrganisationOfferControllerSpec extends TestUtils {
       PermissionGroup(
         key = "offerGrp1",
         label = "offer group one",
-        permissions = Seq(Permission("sms", "Please accept sms"))),
-      PermissionGroup(key = "offerGrp2",
-                      label = "offer group two",
-                      permissions =
-                        Seq(Permission("sms2", "Please accept sms 2")))
+        permissions = Seq(Permission("sms", "Please accept sms"))
+      ),
+      PermissionGroup(
+        key = "offerGrp2",
+        label = "offer group two",
+        permissions = Seq(Permission("sms2", "Please accept sms 2"))
+      )
     )
   )
 
-  private val offerKey2 = "offer2"
-  private val offer2: Offer = Offer(
+  private val offerKey2                 = "offer2"
+  private val offer2: Offer             = Offer(
     key = offerKey2,
     label = "offer two",
     groups = Seq(
-      PermissionGroup(key = "offerGrp2",
-                      label = "offer group two",
-                      permissions = Seq(Permission("sms", "Please accept sms")))
+      PermissionGroup(
+        key = "offerGrp2",
+        label = "offer group two",
+        permissions = Seq(Permission("sms", "Please accept sms"))
+      )
     )
   )
-  private val offerKeyUnauthorized2 = "offerKeyUnauthorized2"
+  private val offerKeyUnauthorized2     = "offerKeyUnauthorized2"
   private val offerUnauthorized2: Offer = Offer(
     key = offerKeyUnauthorized2,
     label = "offer two",
     groups = Seq(
-      PermissionGroup(key = "offerGrp2",
-                      label = "offer group two",
-                      permissions = Seq(Permission("sms", "Please accept sms")))
+      PermissionGroup(
+        key = "offerGrp2",
+        label = "offer group two",
+        permissions = Seq(Permission("sms", "Please accept sms"))
+      )
     )
   )
 
   "OrganisationOfferController" should {
     "create organisation" in {
-      postJson(s"/$tenant/organisations", org.asJson).status mustBe CREATED
+      postJson(s"/$tenant/organisations", org.asJson()).status mustBe CREATED
     }
 
     "create a first offer on not release organisation" in {
       val createResponse: WSResponse =
         postJson(s"/$tenant/organisations/$orgKey/offers", offer.asJson())
 
-      Logger.info(s"${createResponse.json}")
+      NioLogger.info(s"${createResponse.json}")
 
       createResponse.status mustBe NOT_FOUND
     }
 
     "release organisation" in {
-      postJson(s"/$tenant/organisations/$orgKey/draft/_release", org.asJson).status mustBe OK
+      postJson(s"/$tenant/organisations/$orgKey/draft/_release", org.asJson()).status mustBe OK
 
       val get1Response = getJson(s"/$tenant/organisations/$orgKey/offers")
       get1Response.status mustBe OK
@@ -97,7 +103,7 @@ class OrganisationOfferControllerSpec extends TestUtils {
         postJson(s"/$tenant/organisations/$orgKey/offers", offer.asJson())
       createOfferResponse.status mustBe CREATED
 
-      val get2Response = getJson(s"/$tenant/organisations/$orgKey/offers")
+      val get2Response        = getJson(s"/$tenant/organisations/$orgKey/offers")
       get2Response.status mustBe OK
       val get2Offers: JsArray = get2Response.json.as[JsArray]
       get2Offers.value.length mustBe 1
@@ -124,7 +130,7 @@ class OrganisationOfferControllerSpec extends TestUtils {
         postJson(s"/$tenant/organisations/$orgKey/offers", offer2.asJson())
       createOfferResponse.status mustBe CREATED
 
-      val get2Response = getJson(s"/$tenant/organisations/$orgKey/offers")
+      val get2Response        = getJson(s"/$tenant/organisations/$orgKey/offers")
       get2Response.status mustBe OK
       val get2Offers: JsArray = get2Response.json.as[JsArray]
       get2Offers.value.length mustBe 2
@@ -164,8 +170,7 @@ class OrganisationOfferControllerSpec extends TestUtils {
 
     "try to create an offer with an unauthorized key" in {
       val createOfferResponse =
-        postJson(s"/$tenant/organisations/$orgKey/offers",
-                 offerUnauthorized2.asJson())
+        postJson(s"/$tenant/organisations/$orgKey/offers", offerUnauthorized2.asJson())
       createOfferResponse.status mustBe UNAUTHORIZED
 
       (createOfferResponse.json \ "errors" \ 0 \ "message")
@@ -183,11 +188,10 @@ class OrganisationOfferControllerSpec extends TestUtils {
 
     "update an offer" in {
       val updateResponse =
-        putJson(s"/$tenant/organisations/$orgKey/offers/$offerKey1",
-                offerUpdated.asJson())
+        putJson(s"/$tenant/organisations/$orgKey/offers/$offerKey1", offerUpdated.asJson())
       updateResponse.status mustBe OK
 
-      val get2Response = getJson(s"/$tenant/organisations/$orgKey/offers")
+      val get2Response        = getJson(s"/$tenant/organisations/$orgKey/offers")
       get2Response.status mustBe OK
       val get2Offers: JsArray = get2Response.json.as[JsArray]
       get2Offers.value.length mustBe 2
@@ -234,8 +238,7 @@ class OrganisationOfferControllerSpec extends TestUtils {
 
     "update offer with another offer version" in {
       val updateResponse =
-        putJson(s"/$tenant/organisations/$orgKey/offers/$offerKey1",
-                offerUpdated.copy(version = 10).asJson())
+        putJson(s"/$tenant/organisations/$orgKey/offers/$offerKey1", offerUpdated.copy(version = 10).asJson())
 
       updateResponse.status mustBe OK
       (updateResponse.json \ "version").as[Int] mustBe 3
@@ -246,7 +249,7 @@ class OrganisationOfferControllerSpec extends TestUtils {
         delete(s"/$tenant/organisations/$orgKey/offers/$offerKey1")
       deleteResponse.status mustBe OK
 
-      val get2Response = getJson(s"/$tenant/organisations/$orgKey/offers")
+      val get2Response        = getJson(s"/$tenant/organisations/$orgKey/offers")
       get2Response.status mustBe OK
       val get2Offers: JsArray = get2Response.json.as[JsArray]
       get2Offers.value.length mustBe 1
@@ -296,7 +299,7 @@ class OrganisationOfferControllerSpec extends TestUtils {
       (groupsOffer1 \ 0 \ "permissions" \ 0 \ "label")
         .as[String] mustBe offer2.groups.head.permissions.head.label
 
-      val get2Response = getJson(s"/$tenant/organisations/$orgKey/offers")
+      val get2Response        = getJson(s"/$tenant/organisations/$orgKey/offers")
       get2Response.status mustBe OK
       val get2Offers: JsArray = get2Response.json.as[JsArray]
       get2Offers.value.length mustBe 1
@@ -327,8 +330,7 @@ class OrganisationOfferControllerSpec extends TestUtils {
         groups = Seq(
           PermissionGroup(
             key = "maifNotifs",
-            label =
-              "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF",
+            label = "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF",
             permissions = Seq(
               Permission(key = "phone", label = "Par contact téléphonique"),
               Permission(key = "mail", label = "Par contact électronique"),
@@ -338,15 +340,14 @@ class OrganisationOfferControllerSpec extends TestUtils {
         )
       )
 
-      val offerKey1 = "offer1"
+      val offerKey1     = "offer1"
       val offer1: Offer = Offer(
         key = offerKey1,
         label = "offer one",
         groups = Seq(
           PermissionGroup(
             key = "maifNotifs",
-            label =
-              "J'accepte de recevoir par téléphone, mail et SMS des offres commerciales du groupe MAIF",
+            label = "J'accepte de recevoir par téléphone, mail et SMS des offres commerciales du groupe MAIF",
             permissions = Seq(
               Permission(key = "phone", label = "Par contact téléphonique"),
               Permission(key = "mail", label = "Par contact électronique"),
@@ -356,7 +357,7 @@ class OrganisationOfferControllerSpec extends TestUtils {
         )
       )
 
-      val offerKey2 = "offer2"
+      val offerKey2     = "offer2"
       val offer2: Offer = Offer(
         key = offerKey2,
         label = "offer two",
@@ -374,7 +375,7 @@ class OrganisationOfferControllerSpec extends TestUtils {
         )
       )
 
-      postJson(s"/$tenant/organisations", orgWithOffer.asJson).status mustBe CREATED
+      postJson(s"/$tenant/organisations", orgWithOffer.asJson()).status mustBe CREATED
       postJson(s"/$tenant/organisations/$orgKey/draft/_release", Json.obj()).status mustBe OK
 
       // offer 1 with version 1
@@ -383,7 +384,7 @@ class OrganisationOfferControllerSpec extends TestUtils {
       // offer 2 with version 2
       postJson(s"/$tenant/organisations/$orgKey/offers", offer2.asJson()).status mustBe CREATED
 
-      val userId = "userRemoveOffer"
+      val userId               = "userRemoveOffer"
       val consent: ConsentFact = ConsentFact(
         userId = userId,
         doneBy = DoneBy(userId = userId, role = "USER"),
@@ -391,18 +392,11 @@ class OrganisationOfferControllerSpec extends TestUtils {
         groups = Seq(
           ConsentGroup(
             key = "maifNotifs",
-            label =
-              "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF",
+            label = "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF",
             consents = Seq(
-              Consent(key = "phone",
-                      label = "Par contact téléphonique",
-                      checked = true),
-              Consent(key = "mail",
-                      label = "Par contact électronique",
-                      checked = false),
-              Consent(key = "sms",
-                      label = "Par SMS / MMS / VMS",
-                      checked = true)
+              Consent(key = "phone", label = "Par contact téléphonique", checked = true),
+              Consent(key = "mail", label = "Par contact électronique", checked = false),
+              Consent(key = "sms", label = "Par SMS / MMS / VMS", checked = true)
             )
           )
         ),
@@ -415,18 +409,11 @@ class OrganisationOfferControllerSpec extends TestUtils {
               groups = Seq(
                 ConsentGroup(
                   key = "maifNotifs",
-                  label =
-                    "J'accepte de recevoir par téléphone, mail et SMS des offres commerciales du groupe MAIF",
+                  label = "J'accepte de recevoir par téléphone, mail et SMS des offres commerciales du groupe MAIF",
                   consents = Seq(
-                    Consent(key = "phone",
-                            label = "Par contact téléphonique",
-                            checked = false),
-                    Consent(key = "mail",
-                            label = "Par contact électronique",
-                            checked = true),
-                    Consent(key = "sms",
-                            label = "Par SMS / MMS / VMS",
-                            checked = false)
+                    Consent(key = "phone", label = "Par contact téléphonique", checked = false),
+                    Consent(key = "mail", label = "Par contact électronique", checked = true),
+                    Consent(key = "sms", label = "Par SMS / MMS / VMS", checked = false)
                   )
                 )
               )
@@ -441,15 +428,9 @@ class OrganisationOfferControllerSpec extends TestUtils {
                   label =
                     "J'accepte de recevoir par téléphone, mail et SMS des offres commerciales des partenaires du groupe MAIF",
                   consents = Seq(
-                    Consent(key = "phone",
-                            label = "Par contact téléphonique",
-                            checked = true),
-                    Consent(key = "mail",
-                            label = "Par contact électronique",
-                            checked = true),
-                    Consent(key = "sms",
-                            label = "Par SMS / MMS / VMS",
-                            checked = false)
+                    Consent(key = "phone", label = "Par contact téléphonique", checked = true),
+                    Consent(key = "mail", label = "Par contact électronique", checked = true),
+                    Consent(key = "sms", label = "Par SMS / MMS / VMS", checked = false)
                   )
                 )
               )
@@ -457,7 +438,7 @@ class OrganisationOfferControllerSpec extends TestUtils {
           )
         )
       )
-      putJson(s"/$tenant/organisations/$orgKey/users/$userId", consent.asJson).status mustBe OK
+      putJson(s"/$tenant/organisations/$orgKey/users/$userId", consent.asJson()).status mustBe OK
 
       delete(s"/$tenant/organisations/$orgKey/offers/$offerKey1").status mustBe OK
 
@@ -479,8 +460,7 @@ class OrganisationOfferControllerSpec extends TestUtils {
         groups = Seq(
           PermissionGroup(
             key = "maifNotifs",
-            label =
-              "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF",
+            label = "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF",
             permissions = Seq(
               Permission(key = "phone", label = "Par contact téléphonique"),
               Permission(key = "mail", label = "Par contact électronique"),
@@ -490,15 +470,14 @@ class OrganisationOfferControllerSpec extends TestUtils {
         )
       )
 
-      val offerKey1 = "offer1"
+      val offerKey1     = "offer1"
       val offer1: Offer = Offer(
         key = offerKey1,
         label = "offer one",
         groups = Seq(
           PermissionGroup(
             key = "maifNotifs",
-            label =
-              "J'accepte de recevoir par téléphone, mail et SMS des offres commerciales du groupe MAIF",
+            label = "J'accepte de recevoir par téléphone, mail et SMS des offres commerciales du groupe MAIF",
             permissions = Seq(
               Permission(key = "phone", label = "Par contact téléphonique"),
               Permission(key = "mail", label = "Par contact électronique"),
@@ -508,7 +487,7 @@ class OrganisationOfferControllerSpec extends TestUtils {
         )
       )
 
-      val offerKey2 = "offer2"
+      val offerKey2     = "offer2"
       val offer2: Offer = Offer(
         key = offerKey2,
         label = "offer two",
@@ -526,7 +505,7 @@ class OrganisationOfferControllerSpec extends TestUtils {
         )
       )
 
-      postJson(s"/$tenant/organisations", orgWithOffer.asJson).status mustBe CREATED
+      postJson(s"/$tenant/organisations", orgWithOffer.asJson()).status mustBe CREATED
       postJson(s"/$tenant/organisations/$orgKey/draft/_release", Json.obj()).status mustBe OK
 
       // offer 1 with version 1
@@ -543,7 +522,7 @@ class OrganisationOfferControllerSpec extends TestUtils {
         s"/$tenant/organisations/$orgKey/offers/$offerKey1/_init",
         Json.obj(),
         Seq(
-          ACCEPT -> "application/xml",
+          ACCEPT       -> "application/xml",
           CONTENT_TYPE -> "application/xml"
         )
       ).status mustBe UNSUPPORTED_MEDIA_TYPE
@@ -552,12 +531,9 @@ class OrganisationOfferControllerSpec extends TestUtils {
       val tempJson = File.createTempFile("init", "ndjson")
 
       var bw = new BufferedWriter(new FileWriter(tempJson))
-      bw.write(
-        "{\"userId\": \"JSON_1_11_42\", \"date\": \"2012-12-21T06:06:06Z\"}\n")
-      bw.write(
-        "{\"userId\": \"JSON_2_11_42\", \"date\": \"2012-12-21T06:06:06Z\"}\n")
-      bw.write(
-        "{\"userId\": \"JSON_3_11_42\", \"date\": \"2012-12-21T06:06:06Z\"}\n")
+      bw.write("{\"userId\": \"JSON_1_11_42\", \"date\": \"2012-12-21T06:06:06Z\"}\n")
+      bw.write("{\"userId\": \"JSON_2_11_42\", \"date\": \"2012-12-21T06:06:06Z\"}\n")
+      bw.write("{\"userId\": \"JSON_3_11_42\", \"date\": \"2012-12-21T06:06:06Z\"}\n")
       bw.close()
 
       val jsonResponse = postBinaryFile(
@@ -565,7 +541,7 @@ class OrganisationOfferControllerSpec extends TestUtils {
         tempJson,
         true,
         Seq(
-          ACCEPT -> "application/json",
+          ACCEPT       -> "application/json",
           CONTENT_TYPE -> "application/json"
         )
       )
@@ -597,7 +573,7 @@ class OrganisationOfferControllerSpec extends TestUtils {
         tempCsv,
         true,
         Seq(
-          ACCEPT -> "application/csv",
+          ACCEPT       -> "application/csv",
           CONTENT_TYPE -> "application/csv"
         )
       )
@@ -618,8 +594,7 @@ class OrganisationOfferControllerSpec extends TestUtils {
       val tempError = File.createTempFile("init_error", "ndjson")
 
       bw = new BufferedWriter(new FileWriter(tempError))
-      bw.write(
-        "{\"userId\": \"JSON_1_11_42\", \"date\": \"2012-12-20T06:06:06Z\"}\n")
+      bw.write("{\"userId\": \"JSON_1_11_42\", \"date\": \"2012-12-20T06:06:06Z\"}\n")
       bw.close()
 
       val userExistResponse = postBinaryFile(
@@ -627,7 +602,7 @@ class OrganisationOfferControllerSpec extends TestUtils {
         tempError,
         true,
         Seq(
-          ACCEPT -> "application/json",
+          ACCEPT       -> "application/json",
           CONTENT_TYPE -> "application/json"
         )
       )
@@ -638,8 +613,7 @@ class OrganisationOfferControllerSpec extends TestUtils {
       //USER ALREaDY EXIST WOITH OTHER OFFER
       val tempExist = File.createTempFile("exist", "ndjson")
       bw = new BufferedWriter(new FileWriter(tempExist))
-      bw.write(
-        "{\"userId\": \"JSON_1_11_42\", \"date\": \"2012-12-20T06:06:06Z\"}\n")
+      bw.write("{\"userId\": \"JSON_1_11_42\", \"date\": \"2012-12-20T06:06:06Z\"}\n")
       bw.close()
 
       val existResponse = postBinaryFile(
@@ -647,7 +621,7 @@ class OrganisationOfferControllerSpec extends TestUtils {
         tempExist,
         true,
         Seq(
-          ACCEPT -> "application/json",
+          ACCEPT       -> "application/json",
           CONTENT_TYPE -> "application/json"
         )
       )

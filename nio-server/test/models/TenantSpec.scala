@@ -10,12 +10,12 @@ class TenantSpec extends PlaySpec with WordSpecLike {
     "serialize/deserialize from XML" in {
       val tenant = Tenant("testTenant", "test tenant")
 
-      val xml = tenant.asXml
+      val xml = tenant.asXml()
 
       val fromXml = Tenant.fromXml(xml)
 
       fromXml.isRight mustBe true
-      fromXml.right.get.key mustBe tenant.key
+      fromXml.map(_.key) mustBe Right(tenant.key)
     }
 
   }

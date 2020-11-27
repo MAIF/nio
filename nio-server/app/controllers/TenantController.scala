@@ -8,6 +8,7 @@ import messaging.KafkaMessageBroker
 import models.{Tenant, TenantCreated, TenantDeleted, Tenants}
 import play.api.mvc.{ActionBuilder, AnyContent, ControllerComponents}
 import play.api.{Configuration, Logger}
+import utils.NioLogger
 import utils.Result.AppErrors
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -25,11 +26,12 @@ class TenantController(
     conf: Configuration,
     cc: ControllerComponents,
     env: Env,
-    broker: KafkaMessageBroker)(implicit ec: ExecutionContext)
+    broker: KafkaMessageBroker
+)(implicit ec: ExecutionContext)
     extends ControllerUtils(cc) {
 
   implicit val readable: ReadableEntity[Tenant] = Tenant
-  def tenants = AuthAction.async { implicit req =>
+  def tenants                                   = AuthAction.async { implicit req =>
     tenantStore.findAll().map { tenants =>
       renderMethod(Tenants(tenants))
     }
@@ -39,73 +41,52 @@ class TenantController(
     req.headers.get(env.tenantConfig.admin.header) match {
       case Some(secret) if secret == env.tenantConfig.admin.secret =>
         req.body.read[Tenant] match {
-          case Left(error) =>
-            Logger.error("Invalid tenant format " + error)
+          case Left(error)   =>
+            NioLogger.error("Invalid tenant format " + error)
             Future.successful("error.invalid.tenant.format".badRequest())
           case Right(tenant) =>
             tenantStore.findByKey(tenant.key).flatMap {
               case Some(_) =>
                 Future.successful("error.key.already.used".conflict())
-              case None =>
+              case None    =>
                 tenantStore.insert(tenant).flatMap { _ =>
-                  broker.publish(
-                    TenantCreated(tenant = tenant.key,
-                                  payload = tenant,
-                                  metadata = req.authInfo.metadatas))
+                  broker
+                    .publish(TenantCreated(tenant = tenant.key, payload = tenant, metadata = req.authInfo.metadatas))
 
                   Future
                     .sequence(
                       Seq(
                         accountMongoDataStore
                           .init(tenant.key)
-                          .map(
-                            _ => accountMongoDataStore.ensureIndices(tenant.key)
-                          ),
+                          .map(_ => accountMongoDataStore.ensureIndices(tenant.key)),
                         consentFactStore
                           .init(tenant.key)
-                          .map(
-                            _ => consentFactStore.ensureIndices(tenant.key)
-                          ),
+                          .map(_ => consentFactStore.ensureIndices(tenant.key)),
                         lastConsentFactMongoDataStore
                           .init(tenant.key)
-                          .map(
-                            _ =>
-                              lastConsentFactMongoDataStore.ensureIndices(
-                                tenant.key)
-                          ),
+                          .map(_ => lastConsentFactMongoDataStore.ensureIndices(tenant.key)),
                         organisationDataStore
                           .init(tenant.key)
-                          .map(
-                            _ => organisationDataStore.ensureIndices(tenant.key)
-                          ),
+                          .map(_ => organisationDataStore.ensureIndices(tenant.key)),
                         userDataStore
                           .init(tenant.key)
-                          .map(
-                            _ => userDataStore.ensureIndices(tenant.key)
-                          ),
+                          .map(_ => userDataStore.ensureIndices(tenant.key)),
                         extractionTaskDataStore
                           .init(tenant.key)
-                          .map(
-                            _ =>
-                              extractionTaskDataStore.ensureIndices(tenant.key)
-                          ),
+                          .map(_ => extractionTaskDataStore.ensureIndices(tenant.key)),
                         deletionTaskDataStore
                           .init(tenant.key)
-                          .map(
-                            _ => deletionTaskDataStore.ensureIndices(tenant.key)
-                          ),
+                          .map(_ => deletionTaskDataStore.ensureIndices(tenant.key)),
                         userExtractTaskDataStore
                           .init(tenant.key)
-                          .map(
-                            _ => deletionTaskDataStore.ensureIndices(tenant.key)
-                          )
+                          .map(_ => deletionTaskDataStore.ensureIndices(tenant.key))
                       )
                     )
                     .map(_ => renderMethod(tenant, Created))
                 }
             }
         }
-      case _ =>
+      case _                                                       =>
         Future.successful("error.missing.secret".unauthorized())
     }
   }
@@ -118,8 +99,7 @@ class TenantController(
             import cats.implicits._
             (
               consentFactStore.deleteConsentFactByTenant(tenantKey),
-              lastConsentFactMongoDataStore.deleteConsentFactByTenant(
-                tenantKey),
+              lastConsentFactMongoDataStore.deleteConsentFactByTenant(tenantKey),
               organisationDataStore.deleteOrganisationByTenant(tenantKey),
               userDataStore.deleteUserByTenant(tenantKey),
               tenantStore.removeByKey(tenantKey),
@@ -129,15 +109,14 @@ class TenantController(
               userExtractTaskDataStore.deleteUserExtractTaskByTenant(tenantKey)
             ).mapN { (_, _, _, _, _, _, _, _, _) =>
               broker.publish(
-                TenantDeleted(tenant = tenantToDelete.key,
-                              payload = tenantToDelete,
-                              metadata = req.authInfo.metadatas))
+                TenantDeleted(tenant = tenantToDelete.key, payload = tenantToDelete, metadata = req.authInfo.metadatas)
+              )
               Ok
             }
-          case None =>
+          case None                 =>
             Future.successful("error.tenant.not.found".notFound())
         }
-      case _ => Future.successful("error.missing.secret".unauthorized())
+      case _                                                       => Future.successful("error.missing.secret".unauthorized())
     }
   }
 }

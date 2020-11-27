@@ -1,16 +1,16 @@
 package models
 
 import org.joda.time.{DateTime, DateTimeZone}
-import org.scalatest.{MustMatchers, WordSpecLike}
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatestplus.play.PlaySpec
-import play.api.Logger
 import play.api.libs.json.JsValue
 import utils.DateUtils
 import utils.Result.AppErrors
 
 import scala.xml.Elem
 
-class ModelValidationSpec extends PlaySpec with WordSpecLike with MustMatchers {
+class ModelValidationSpec extends PlaySpec with AnyWordSpecLike with Matchers {
   val now: DateTime = DateTime.now(DateTimeZone.UTC)
 
   "Validation ConsentFact" should {
@@ -69,81 +69,57 @@ class ModelValidationSpec extends PlaySpec with WordSpecLike with MustMatchers {
 
     "xml serialize/deserialize" in {
 
-      val xml: Elem = consentFact.asXml
+      val xml: Elem                                         = consentFact.asXml()
       val consentFactEither: Either[AppErrors, ConsentFact] =
         ConsentFact.fromXml(xml)
 
       consentFactEither.isRight must be(true)
 
-      val consentFactFromXml: ConsentFact = consentFactEither.right.get
+      val consentFactFromXml: ConsentFact = consentFactEither.toOption.get
 
       checkConsentFact(consentFactFromXml)
     }
 
     "xml invalid" in {
-      val xml: Elem = invalidConsentFact(consentFact)
+      val xml: Elem                                         = invalidConsentFact(consentFact)
       val consentFactEither: Either[AppErrors, ConsentFact] =
         ConsentFact.fromXml(xml)
 
-      val appErrors: AppErrors = consentFactEither.left.get
+      val appErrors: AppErrors = consentFactEither.left.getOrElse(AppErrors())
 
       appErrors.errors.head.message must be("unknow.path.consentFact.userId")
-      appErrors.errors(1).message must be(
-        "unknow.path.consentFact.doneBy.userId")
+      appErrors.errors(1).message must be("unknow.path.consentFact.doneBy.userId")
       appErrors.errors(2).message must be("unknow.path.consentFact.doneBy.role")
       appErrors.errors(3).message must be("unknow.path.consentFact.version")
-      appErrors.errors(4).message must be(
-        "unknow.path.consentFact.groups.0.key")
-      appErrors.errors(5).message must be(
-        "unknow.path.consentFact.groups.0.label")
-      appErrors.errors(6).message must be(
-        "unknow.path.consentFact.groups.0.consents.0.key")
-      appErrors.errors(7).message must be(
-        "unknow.path.consentFact.groups.0.consents.0.label")
-      appErrors.errors(8).message must be(
-        "unknow.path.consentFact.groups.0.consents.0.checked")
-      appErrors.errors(9).message must be(
-        "unknow.path.consentFact.groups.0.consents.1.key")
-      appErrors.errors(10).message must be(
-        "unknow.path.consentFact.groups.0.consents.1.label")
-      appErrors.errors(11).message must be(
-        "unknow.path.consentFact.groups.0.consents.1.checked")
-      appErrors.errors(12).message must be(
-        "unknow.path.consentFact.groups.1.key")
-      appErrors.errors(13).message must be(
-        "unknow.path.consentFact.groups.1.label")
-      appErrors.errors(14).message must be(
-        "unknow.path.consentFact.groups.1.consents.0.key")
-      appErrors.errors(15).message must be(
-        "unknow.path.consentFact.groups.1.consents.0.label")
-      appErrors.errors(16).message must be(
-        "unknow.path.consentFact.groups.1.consents.0.checked")
-      appErrors.errors(17).message must be(
-        "unknow.path.consentFact.groups.1.consents.1.key")
-      appErrors.errors(18).message must be(
-        "unknow.path.consentFact.groups.1.consents.1.label")
-      appErrors.errors(19).message must be(
-        "unknow.path.consentFact.groups.1.consents.1.checked")
-      appErrors.errors(20).message must be(
-        "unknow.path.consentFact.metaData.0.@key")
-      appErrors.errors(21).message must be(
-        "unknow.path.consentFact.metaData.0.@value")
-      appErrors.errors(22).message must be(
-        "unknow.path.consentFact.metaData.1.@key")
-      appErrors.errors(23).message must be(
-        "unknow.path.consentFact.metaData.1.@value")
+      appErrors.errors(4).message must be("unknow.path.consentFact.groups.0.key")
+      appErrors.errors(5).message must be("unknow.path.consentFact.groups.0.label")
+      appErrors.errors(6).message must be("unknow.path.consentFact.groups.0.consents.0.key")
+      appErrors.errors(7).message must be("unknow.path.consentFact.groups.0.consents.0.label")
+      appErrors.errors(8).message must be("unknow.path.consentFact.groups.0.consents.0.checked")
+      appErrors.errors(9).message must be("unknow.path.consentFact.groups.0.consents.1.key")
+      appErrors.errors(10).message must be("unknow.path.consentFact.groups.0.consents.1.label")
+      appErrors.errors(11).message must be("unknow.path.consentFact.groups.0.consents.1.checked")
+      appErrors.errors(12).message must be("unknow.path.consentFact.groups.1.key")
+      appErrors.errors(13).message must be("unknow.path.consentFact.groups.1.label")
+      appErrors.errors(14).message must be("unknow.path.consentFact.groups.1.consents.0.key")
+      appErrors.errors(15).message must be("unknow.path.consentFact.groups.1.consents.0.label")
+      appErrors.errors(16).message must be("unknow.path.consentFact.groups.1.consents.0.checked")
+      appErrors.errors(17).message must be("unknow.path.consentFact.groups.1.consents.1.key")
+      appErrors.errors(18).message must be("unknow.path.consentFact.groups.1.consents.1.label")
+      appErrors.errors(19).message must be("unknow.path.consentFact.groups.1.consents.1.checked")
+      appErrors.errors(20).message must be("unknow.path.consentFact.metaData.0.@key")
+      appErrors.errors(21).message must be("unknow.path.consentFact.metaData.0.@value")
+      appErrors.errors(22).message must be("unknow.path.consentFact.metaData.1.@key")
+      appErrors.errors(23).message must be("unknow.path.consentFact.metaData.1.@value")
     }
 
     "json serialize/deserialize" in {
-      val json: JsValue = consentFact.asJson
+      val json: JsValue                                     = consentFact.asJson()
       val consentFactEither: Either[AppErrors, ConsentFact] =
         ConsentFact.fromJson(json)
 
       consentFactEither.isRight must be(true)
-
-      val consentFactFromJson: ConsentFact = consentFactEither.right.get
-
-      checkConsentFact(consentFactFromJson)
+      checkConsentFact(consentFactEither.getOrElse(null))
     }
 
     def invalidConsentFact(consentFact: ConsentFact): Elem = <consentFact>
@@ -154,27 +130,34 @@ class ModelValidationSpec extends PlaySpec with WordSpecLike with MustMatchers {
       </doneBy>
       <invalidVersion>{consentFact.version}</invalidVersion>
       <groups>
-        {consentFact.groups.map(group => <consentGroup>
+        {
+      consentFact.groups.map(group =>
+        <consentGroup>
         <invalidKey>{group.key}</invalidKey>
         <invalidLabel>{group.label}</invalidLabel>
         <consents>
-          {group.consents.map(consent => <consent>
+          {
+          group.consents.map(consent => <consent>
           <invalidKey>{consent.key}</invalidKey>
           <invalidLabel>{consent.label}</invalidLabel>
           <invalidChecked>{consent.checked}</invalidChecked>
-        </consent>)}
+        </consent>)
+        }
         </consents>
-      </consentGroup>)}
+      </consentGroup>
+      )
+    }
       </groups>
       <invalidLastUpdate>{consentFact.lastUpdate.toString(DateUtils.utcDateFormatter)}</invalidLastUpdate>
       <invalidOrgKey>{consentFact.orgKey.getOrElse("")}</invalidOrgKey>
-      {if (consentFact.metaData.isDefined) {
+      {
+      if (consentFact.metaData.isDefined)
         consentFact.metaData.map { md =>
           <metaData>
-            {md.map { e => <metaDataEntry invalidKey={e._1} invalidValue={e._2}/> }}
+            {md.map(e => <metaDataEntry invalidKey={e._1} invalidValue={e._2}/>)}
           </metaData>
-        }
-      }.get}
+        }.get
+    }
     </consentFact>
 
     def checkConsentFact(consentFact: ConsentFact): Unit = {
@@ -205,8 +188,7 @@ class ModelValidationSpec extends PlaySpec with WordSpecLike with MustMatchers {
       consentFact.groups(1).consents(1).label must be("group 2 consent 2")
       consentFact.groups(1).consents(1).checked must be(false)
 
-      consentFact.lastUpdate.toString(DateUtils.utcDateFormatter) must be(
-        now.toString(DateUtils.utcDateFormatter))
+      consentFact.lastUpdate.toString(DateUtils.utcDateFormatter) must be(now.toString(DateUtils.utcDateFormatter))
 
       consentFact.orgKey.get must be("orgKey")
 
@@ -233,56 +215,50 @@ class ModelValidationSpec extends PlaySpec with WordSpecLike with MustMatchers {
     )
 
     "xml serialize/deserialize" in {
-      val xml: Elem = account.asXml()
+      val xml: Elem                                 = account.asXml()
       val accountEither: Either[AppErrors, Account] = Account.fromXml(xml)
 
       accountEither.isRight must be(true)
 
-      val accountFromXml: Account = accountEither.right.get
-
-      checkAccount(accountFromXml)
+      checkAccount(accountEither.getOrElse(null))
     }
 
     "xml invalid" in {
-      val xml: Elem = invalidAccount(account)
+      val xml: Elem                                 = invalidAccount(account)
       val accountEither: Either[AppErrors, Account] = Account.fromXml(xml)
 
-      val appErrors: AppErrors = accountEither.left.get
+      val appErrors: AppErrors = accountEither.left.getOrElse(AppErrors())
 
       appErrors.errors.head.message must be("unknow.path.account.accountId")
-      appErrors.errors(1).message must be(
-        "unknow.path.account.organisationsUsers.0.userId")
-      appErrors.errors(2).message must be(
-        "unknow.path.account.organisationsUsers.0.orgKey")
-      appErrors.errors(3).message must be(
-        "unknow.path.account.organisationsUsers.1.userId")
-      appErrors.errors(4).message must be(
-        "unknow.path.account.organisationsUsers.1.orgKey")
+      appErrors.errors(1).message must be("unknow.path.account.organisationsUsers.0.userId")
+      appErrors.errors(2).message must be("unknow.path.account.organisationsUsers.0.orgKey")
+      appErrors.errors(3).message must be("unknow.path.account.organisationsUsers.1.userId")
+      appErrors.errors(4).message must be("unknow.path.account.organisationsUsers.1.orgKey")
     }
 
     "json serialize/deserialize" in {
-      val json: JsValue = account.asJson()
+      val json: JsValue                             = account.asJson()
       val accountEither: Either[AppErrors, Account] = Account.fromJson(json)
 
       accountEither.isRight must be(true)
 
-      val accountFromJson: Account = accountEither.right.get
-
-      checkAccount(accountFromJson)
+      checkAccount(accountEither.getOrElse(null))
     }
 
     def invalidAccount(account: Account): Elem = <account>
     <invalidAccountId>{account.accountId}</invalidAccountId>
       <invalidLastUpdate>{account.lastUpdate.toString(DateUtils.utcDateFormatter)}</invalidLastUpdate>
       <organisationsUsers>
-        {account.organisationsUsers.map(ou => <organisationUser>
+        {
+      account.organisationsUsers.map(ou => <organisationUser>
         <invalidUserId>
           {ou.userId}
         </invalidUserId>
         <invalidOrgKey>
           {ou.orgKey}
         </invalidOrgKey>
-      </organisationUser>)}
+      </organisationUser>)
+    }
       </organisationsUsers>
     </account>
 
@@ -342,67 +318,50 @@ class ModelValidationSpec extends PlaySpec with WordSpecLike with MustMatchers {
     )
 
     "xml serialize/deserialize" in {
-      val xml: Elem = organisation.asXml
+      val xml: Elem                                           = organisation.asXml()
       val organisationEither: Either[AppErrors, Organisation] =
         Organisation.fromXml(xml)
 
       organisationEither.isRight must be(true)
-      val organisationFromXml: Organisation = organisationEither.right.get
 
-      checkOrganisation(organisationFromXml)
+      checkOrganisation(organisationEither.getOrElse(null))
     }
 
     "xml invalid" in {
-      val xml: Elem = invalidOrganisation(organisation)
+      val xml: Elem                                           = invalidOrganisation(organisation)
       val organisationEither: Either[AppErrors, Organisation] =
         Organisation.fromXml(xml)
 
-      val appErrors: AppErrors = organisationEither.left.get
+      val appErrors: AppErrors = organisationEither.left.getOrElse(AppErrors())
 
       appErrors.errors.head.message must be("unknow.path.organisation.key")
       appErrors.errors(1).message must be("unknow.path.organisation.label")
-      appErrors.errors(2).message must be(
-        "unknow.path.organisation.version.status")
-      appErrors.errors(3).message must be(
-        "unknow.path.organisation.version.num")
-      appErrors.errors(4).message must be(
-        "unknow.path.organisation.version.latest")
-      appErrors.errors(5).message must be(
-        "unknow.path.organisation.groups.0.key")
-      appErrors.errors(6).message must be(
-        "unknow.path.organisation.groups.0.label")
-      appErrors.errors(7).message must be(
-        "unknow.path.organisation.groups.0.permissions.0.key")
-      appErrors.errors(8).message must be(
-        "unknow.path.organisation.groups.0.permissions.0.label")
-      appErrors.errors(9).message must be(
-        "unknow.path.organisation.groups.0.permissions.1.key")
-      appErrors.errors(10).message must be(
-        "unknow.path.organisation.groups.0.permissions.1.label")
-      appErrors.errors(11).message must be(
-        "unknow.path.organisation.groups.1.key")
-      appErrors.errors(12).message must be(
-        "unknow.path.organisation.groups.1.label")
-      appErrors.errors(13).message must be(
-        "unknow.path.organisation.groups.1.permissions.0.key")
-      appErrors.errors(14).message must be(
-        "unknow.path.organisation.groups.1.permissions.0.label")
-      appErrors.errors(15).message must be(
-        "unknow.path.organisation.groups.1.permissions.1.key")
-      appErrors.errors(16).message must be(
-        "unknow.path.organisation.groups.1.permissions.1.label")
+      appErrors.errors(2).message must be("unknow.path.organisation.version.status")
+      appErrors.errors(3).message must be("unknow.path.organisation.version.num")
+      appErrors.errors(4).message must be("unknow.path.organisation.version.latest")
+      appErrors.errors(5).message must be("unknow.path.organisation.groups.0.key")
+      appErrors.errors(6).message must be("unknow.path.organisation.groups.0.label")
+      appErrors.errors(7).message must be("unknow.path.organisation.groups.0.permissions.0.key")
+      appErrors.errors(8).message must be("unknow.path.organisation.groups.0.permissions.0.label")
+      appErrors.errors(9).message must be("unknow.path.organisation.groups.0.permissions.1.key")
+      appErrors.errors(10).message must be("unknow.path.organisation.groups.0.permissions.1.label")
+      appErrors.errors(11).message must be("unknow.path.organisation.groups.1.key")
+      appErrors.errors(12).message must be("unknow.path.organisation.groups.1.label")
+      appErrors.errors(13).message must be("unknow.path.organisation.groups.1.permissions.0.key")
+      appErrors.errors(14).message must be("unknow.path.organisation.groups.1.permissions.0.label")
+      appErrors.errors(15).message must be("unknow.path.organisation.groups.1.permissions.1.key")
+      appErrors.errors(16).message must be("unknow.path.organisation.groups.1.permissions.1.label")
 
     }
 
     "json serialize/deserialize" in {
-      val json: JsValue = organisation.asJson
+      val json: JsValue                                       = organisation.asJson()
       val organisationEither: Either[AppErrors, Organisation] =
         Organisation.fromJson(json)
 
       organisationEither.isRight must be(true)
-      val organisationFromJson: Organisation = organisationEither.right.get
 
-      checkOrganisation(organisationFromJson)
+      checkOrganisation(organisationEither.getOrElse(null))
     }
 
     def invalidOrganisation(organisation: Organisation): Elem = <organisation>
@@ -414,14 +373,20 @@ class ModelValidationSpec extends PlaySpec with WordSpecLike with MustMatchers {
         <invalidLatest>{organisation.version.latest}</invalidLatest>
         <invalidLastUpdate>{organisation.version.lastUpdate.toString(DateUtils.utcDateFormatter)}</invalidLastUpdate>
       </version>
-      <groups>{organisation.groups.map(group => <permissionGroup>
+      <groups>{
+      organisation.groups.map(group =>
+        <permissionGroup>
         <invalidKey>{group.key}</invalidKey>
         <invalidLabel>{group.label}</invalidLabel>
-        <permissions>{group.permissions.map(permission => <permission>
+        <permissions>{
+          group.permissions.map(permission => <permission>
           <invalidKey>{permission.key}</invalidKey>
           <invalidLabel>{permission.label}</invalidLabel>
-        </permission>)}</permissions>
-      </permissionGroup>)}</groups>
+        </permission>)
+        }</permissions>
+      </permissionGroup>
+      )
+    }</groups>
     </organisation>
 
     def checkOrganisation(organisation: Organisation): Unit = {
@@ -431,8 +396,7 @@ class ModelValidationSpec extends PlaySpec with WordSpecLike with MustMatchers {
       organisation.version.num must be(2)
       organisation.version.latest must be(true)
       organisation.version.lastUpdate
-        .toString(DateUtils.utcDateFormatter) must be(
-        now.toString(DateUtils.utcDateFormatter))
+        .toString(DateUtils.utcDateFormatter) must be(now.toString(DateUtils.utcDateFormatter))
 
       organisation.groups.size must be(2)
       organisation.groups.head.key must be("group1")
@@ -460,29 +424,27 @@ class ModelValidationSpec extends PlaySpec with WordSpecLike with MustMatchers {
     )
 
     "xml serialize/deserialize" in {
-      val xml: Elem = tenant.asXml
+      val xml: Elem                               = tenant.asXml()
       val tenantEither: Either[AppErrors, Tenant] = Tenant.fromXml(xml)
 
-      val tenantFromXml: Tenant = tenantEither.right.get
-      checkTenant(tenantFromXml)
+      checkTenant(tenantEither.getOrElse(null))
     }
 
     "xml invalid" in {
-      val xml: Elem = invalidTenant(tenant)
+      val xml: Elem                               = invalidTenant(tenant)
       val tenantEither: Either[AppErrors, Tenant] = Tenant.fromXml(xml)
 
-      val appErrors: AppErrors = tenantEither.left.get
+      val appErrors: AppErrors = tenantEither.left.getOrElse(AppErrors())
 
       appErrors.errors.head.message must be("unknow.path.tenant.key")
       appErrors.errors(1).message must be("unknow.path.tenant.description")
     }
 
     "json serialize/deserialize" in {
-      val json: JsValue = tenant.asJson
+      val json: JsValue                           = tenant.asJson()
       val tenantEither: Either[AppErrors, Tenant] = Tenant.fromJson(json)
 
-      val tenantFromJson: Tenant = tenantEither.right.get
-      checkTenant(tenantFromJson)
+      checkTenant(tenantEither.getOrElse(null))
     }
 
     def checkTenant(tenant: Tenant): Unit = {
@@ -517,18 +479,17 @@ class ModelValidationSpec extends PlaySpec with WordSpecLike with MustMatchers {
     )
 
     "xml serialize/deserialize" in {
-      val xml: Elem = offer.asXml
+      val xml: Elem                             = offer.asXml()
       val offerEither: Either[AppErrors, Offer] = Offer.fromXml(xml)
 
-      val offerFromXml: Offer = offerEither.right.get
-      checkOffer(offerFromXml)
+      checkOffer(offerEither.getOrElse(null))
     }
 
     "xml invalid" in {
-      val xml: Elem = invalidOffer(offer)
+      val xml: Elem                             = invalidOffer(offer)
       val offerEither: Either[AppErrors, Offer] = Offer.fromXml(xml)
 
-      val appErrors: AppErrors = offerEither.left.get
+      val appErrors: AppErrors = offerEither.left.getOrElse(AppErrors())
 
       appErrors.errors.head.message must be("unknow.path.offer.key")
       appErrors.errors(1).message must be("unknow.path.offer.label")
@@ -536,11 +497,10 @@ class ModelValidationSpec extends PlaySpec with WordSpecLike with MustMatchers {
     }
 
     "json serialize/deserialize" in {
-      val json: JsValue = offer.asJson
+      val json: JsValue                         = offer.asJson()
       val offerEither: Either[AppErrors, Offer] = Offer.fromJson(json)
 
-      val offerFromJson: Offer = offerEither.right.get
-      checkOffer(offerFromJson)
+      checkOffer(offerEither.getOrElse(null))
     }
 
     def checkOffer(offer: Offer): Unit = {

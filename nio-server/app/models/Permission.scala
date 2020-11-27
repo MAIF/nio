@@ -7,11 +7,12 @@ import libs.xml.XmlUtil.XmlCleaner
 import libs.xml.implicits._
 import libs.xml.syntax._
 import play.api.libs.json.Json
+import scala.collection.Seq
 
 import scala.xml.NodeSeq
 
 case class Permission(key: String, label: String) {
-  def asXml = <permission>
+  def asXml() = <permission>
       <key>{key}</key>
       <label>{label}</label>
     </permission>.clean()

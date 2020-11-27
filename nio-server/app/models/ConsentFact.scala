@@ -11,12 +11,13 @@ import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.functional.syntax.{unlift, _}
 import play.api.libs.json.Reads._
 import play.api.libs.json._
-import reactivemongo.bson.BSONObjectID
+import reactivemongo.api.bson.BSONObjectID
 import utils.DateUtils
 import utils.Result.AppErrors
 import utils.Result.AppErrors._
 
 import scala.xml.{Elem, NodeSeq}
+import scala.collection.Seq
 
 case class Metadata(key: String, value: String)
 
@@ -52,7 +53,7 @@ object DoneBy {
 }
 
 case class Consent(key: String, label: String, checked: Boolean) {
-  def asXml = <consent>
+  def asXml() = <consent>
     <key>
       {key}
     </key>
@@ -80,7 +81,7 @@ object Consent {
 }
 
 case class ConsentGroup(key: String, label: String, consents: Seq[Consent]) {
-  def asXml = <consentGroup>
+  def asXml() = <consentGroup>
     <key>
       {key}
     </key>
@@ -88,7 +89,7 @@ case class ConsentGroup(key: String, label: String, consents: Seq[Consent]) {
       {label}
     </label>
     <consents>
-      {consents.map(_.asXml)}
+      {consents.map(_.asXml())}
     </consents>
   </consentGroup>.clean()
 }
@@ -101,18 +102,18 @@ object ConsentGroup {
       (
         (xml \ "key").validate[String](Some(s"${path.convert()}key")),
         (xml \ "label").validate[String](Some(s"${path.convert()}label")),
-        (xml \ "consents").validate[Seq[Consent]](
-          Some(s"${path.convert()}consents"))
+        (xml \ "consents").validate[Seq[Consent]](Some(s"${path.convert()}consents"))
       ).mapN(ConsentGroup.apply)
     }
 }
 
-case class ConsentOffer(key: String,
-                        label: String,
-                        version: Int,
-                        lastUpdate: DateTime = DateTime.now(DateTimeZone.UTC),
-                        groups: Seq[ConsentGroup])
-    extends ModelTransformAs {
+case class ConsentOffer(
+    key: String,
+    label: String,
+    version: Int,
+    lastUpdate: DateTime = DateTime.now(DateTimeZone.UTC),
+    groups: Seq[ConsentGroup]
+) extends ModelTransformAs {
   override def asXml(): Elem = <offer>
     <key>
       {key}
@@ -127,7 +128,7 @@ case class ConsentOffer(key: String,
       {lastUpdate.toString(DateUtils.utcDateFormatter)}
     </lastUpdate>
     <groups>
-      {groups.map(_.asXml)}
+      {groups.map(_.asXml())}
     </groups>
   </offer>.clean()
 
@@ -139,8 +140,7 @@ object ConsentOffer extends ReadableEntity[ConsentOffer] {
     (__ \ "key").read[String] and
       (__ \ "label").read[String] and
       (__ \ "version").read[Int] and
-      (__ \ "lastUpdate").readWithDefault[DateTime](
-        DateTime.now(DateTimeZone.UTC))(DateUtils.utcDateTimeReads) and
+      (__ \ "lastUpdate").readWithDefault[DateTime](DateTime.now(DateTimeZone.UTC))(DateUtils.utcDateTimeReads) and
       (__ \ "groups").read[Seq[ConsentGroup]]
   )(ConsentOffer.apply _)
 
@@ -160,7 +160,7 @@ object ConsentOffer extends ReadableEntity[ConsentOffer] {
       (__ \ "groups").write[Seq[ConsentGroup]]
   )(unlift(ConsentOffer.unapply))
 
-  implicit val format: Format[ConsentOffer] = Format(offerReads, offerWrites)
+  implicit val format: Format[ConsentOffer]   = Format(offerReads, offerWrites)
   implicit val oformat: OFormat[ConsentOffer] =
     OFormat(offerReads, offerOWrites)
 
@@ -170,14 +170,9 @@ object ConsentOffer extends ReadableEntity[ConsentOffer] {
         (node \ "key").validate[String](Some(s"${path.convert()}key")),
         (node \ "label").validate[String](Some(s"${path.convert()}label")),
         (node \ "version").validate[Int](Some(s"${path.convert()}version")),
-        (node \ "lastUpdate").validate[DateTime](
-          Some(s"${path.convert()}lastUpdate")),
-        (node \ "groups").validate[Seq[ConsentGroup]](
-          Some(s"${path.convert()}groups"))
-      ).mapN(
-        (key, label, version, lastUpdate, groups) =>
-          ConsentOffer(key, label, version, lastUpdate, groups)
-    )
+        (node \ "lastUpdate").validate[DateTime](Some(s"${path.convert()}lastUpdate")),
+        (node \ "groups").validate[Seq[ConsentGroup]](Some(s"${path.convert()}groups"))
+      ).mapN((key, label, version, lastUpdate, groups) => ConsentOffer(key, label, version, lastUpdate, groups))
 
   override def fromXml(xml: Elem): Either[AppErrors, ConsentOffer] =
     offerReadXml.read(xml, Some("offer")).toEither
@@ -190,37 +185,36 @@ object ConsentOffer extends ReadableEntity[ConsentOffer] {
 }
 
 // A user will have multiple consent facts
-case class ConsentFact(_id: String = BSONObjectID.generate().stringify,
-                       userId: String,
-                       doneBy: DoneBy,
-                       version: Int,
-                       groups: Seq[ConsentGroup],
-                       offers: Option[Seq[ConsentOffer]] = None,
-                       lastUpdate: DateTime = DateTime.now(DateTimeZone.UTC),
-                       lastUpdateSystem: DateTime =
-                         DateTime.now(DateTimeZone.UTC),
-                       orgKey: Option[String] = None,
-                       metaData: Option[Map[String, String]] = None,
-                       sendToKafka: Option[Boolean] = None)
-    extends ModelTransformAs {
+case class ConsentFact(
+    _id: String = BSONObjectID.generate().stringify,
+    userId: String,
+    doneBy: DoneBy,
+    version: Int,
+    groups: Seq[ConsentGroup],
+    offers: Option[Seq[ConsentOffer]] = None,
+    lastUpdate: DateTime = DateTime.now(DateTimeZone.UTC),
+    lastUpdateSystem: DateTime = DateTime.now(DateTimeZone.UTC),
+    orgKey: Option[String] = None,
+    metaData: Option[Map[String, String]] = None,
+    sendToKafka: Option[Boolean] = None
+) extends ModelTransformAs {
 
   def notYetSendToKafka() = this.copy(sendToKafka = Some(false))
-  def nowSendToKafka() = this.copy(sendToKafka = Some(true))
+  def nowSendToKafka()    = this.copy(sendToKafka = Some(true))
 
-  def asJson =
+  def asJson() =
     transform(ConsentFact.consentFactWritesWithoutId.writes(this))
 
-  private def transform(jsValue: JsValue): JsValue = {
+  private def transform(jsValue: JsValue): JsValue =
     offers match {
       case Some(o) if o.isEmpty =>
         jsValue.as[JsObject] - "offers"
-      case _ =>
+      case _                    =>
         jsValue
 
     }
-  }
 
-  def asXml: Elem = <consentFact>
+  def asXml(): Elem = <consentFact>
     <userId>
       {userId}
     </userId>
@@ -236,42 +230,44 @@ case class ConsentFact(_id: String = BSONObjectID.generate().stringify,
       {version}
     </version>
     <groups>
-      {groups.map(_.asXml)}
+      {groups.map(_.asXml())}
     </groups>
 
     {
-      offers match {
-        case Some(seqOffer) if seqOffer.isEmpty => ""
-        case Some(l) => <offers>{l.map(_.asXml())}</offers>
-        case None => ""
-      }
+    offers match {
+      case Some(seqOffer) if seqOffer.isEmpty => ""
+      case Some(l)                            => <offers>{l.map(_.asXml())}</offers>
+      case None                               => ""
     }
+  }
     <lastUpdate>
       {lastUpdate.toString(DateUtils.utcDateFormatter)}
     </lastUpdate>
     <orgKey>
       {orgKey.getOrElse("")}
-    </orgKey>{if (metaData.isDefined) {
+    </orgKey>{
+    if (metaData.isDefined)
       metaData.map { md =>
         <metaData>
-          {md.map { e => <metaDataEntry key={e._1} value={e._2}/> }}
+          {md.map(e => <metaDataEntry key={e._1} value={e._2}/>)}
         </metaData>
-      }
-    }.get}
+      }.get
+  }
   </consentFact>.clean()
 }
 
 object ConsentFact extends ReadableEntity[ConsentFact] {
-  def newWithoutIdAndLastUpdate(userId: String,
-                                doneBy: DoneBy,
-                                version: Int,
-                                groups: Seq[ConsentGroup],
-                                offers: Option[Seq[ConsentOffer]] = None,
-                                lastUpdate: DateTime =
-                                  DateTime.now(DateTimeZone.UTC),
-                                orgKey: Option[String] = None,
-                                metaData: Option[Map[String, String]] = None,
-                                sendToKafka: Option[Boolean] = None) =
+  def newWithoutIdAndLastUpdate(
+      userId: String,
+      doneBy: DoneBy,
+      version: Int,
+      groups: Seq[ConsentGroup],
+      offers: Option[Seq[ConsentOffer]] = None,
+      lastUpdate: DateTime = DateTime.now(DateTimeZone.UTC),
+      orgKey: Option[String] = None,
+      metaData: Option[Map[String, String]] = None,
+      sendToKafka: Option[Boolean] = None
+  ) =
     ConsentFact(
       _id = BSONObjectID.generate().stringify,
       userId = userId,
@@ -284,17 +280,18 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
       metaData = metaData
     )
 
-  def newWithoutKafkaFlag(_id: String = BSONObjectID.generate().stringify,
-                          userId: String,
-                          doneBy: DoneBy,
-                          version: Int,
-                          groups: Seq[ConsentGroup],
-                          offers: Option[Seq[ConsentOffer]] = None,
-                          lastUpdate: DateTime = DateTime.now(DateTimeZone.UTC),
-                          lastUpdateSystem: DateTime =
-                            DateTime.now(DateTimeZone.UTC),
-                          orgKey: Option[String] = None,
-                          metaData: Option[Map[String, String]] = None) =
+  def newWithoutKafkaFlag(
+      _id: String = BSONObjectID.generate().stringify,
+      userId: String,
+      doneBy: DoneBy,
+      version: Int,
+      groups: Seq[ConsentGroup],
+      offers: Option[Seq[ConsentOffer]] = None,
+      lastUpdate: DateTime = DateTime.now(DateTimeZone.UTC),
+      lastUpdateSystem: DateTime = DateTime.now(DateTimeZone.UTC),
+      orgKey: Option[String] = None,
+      metaData: Option[Map[String, String]] = None
+  ) =
     ConsentFact(
       _id = _id,
       userId = userId,
@@ -314,8 +311,7 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
       (__ \ "version").read[Int] and
       (__ \ "groups").read[Seq[ConsentGroup]] and
       (__ \ "offers").readNullable[Seq[ConsentOffer]] and
-      (__ \ "lastUpdate").readWithDefault[DateTime](
-        DateTime.now(DateTimeZone.UTC))(DateUtils.utcDateTimeReads) and
+      (__ \ "lastUpdate").readWithDefault[DateTime](DateTime.now(DateTimeZone.UTC))(DateUtils.utcDateTimeReads) and
       (__ \ "orgKey").readNullable[String] and
       (__ \ "metaData").readNullable[Map[String, String]] and
       (__ \ "sendToKafka").readNullable[Boolean]
@@ -383,15 +379,12 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
       (JsPath \ "sendToKafka").writeNullable[Boolean]
   )(unlift(ConsentFact.unapply))
 
-  val consentFactFormats: Format[ConsentFact] =
+  val consentFactFormats: Format[ConsentFact]            =
     Format(consentFactReads, consentFactWrites)
   implicit val consentFactOFormats: OFormat[ConsentFact] =
     OFormat(consentFactReads, consentFactOWrites)
 
-  def template(orgVerNum: Int,
-               groups: Seq[ConsentGroup],
-               offers: Option[Seq[ConsentOffer]] = None,
-               orgKey: String) =
+  def template(orgVerNum: Int, groups: Seq[ConsentGroup], offers: Option[Seq[ConsentOffer]] = None, orgKey: String) =
     ConsentFact(
       _id = null,
       userId = "fill",
@@ -411,53 +404,35 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
         (node \ "userId").validate[String](Some(s"${path.convert()}userId")),
         (node \ "doneBy").validate[DoneBy](Some(s"${path.convert()}doneBy")),
         (node \ "lastUpdate")
-          .validateNullable[DateTime](DateTime.now(DateTimeZone.UTC),
-                                      Some(s"${path.convert()}lastUpdate")),
-        (node \ "orgKey").validateNullable[String](
-          Some(s"${path.convert()}orgKey")),
+          .validateNullable[DateTime](DateTime.now(DateTimeZone.UTC), Some(s"${path.convert()}lastUpdate")),
+        (node \ "orgKey").validateNullable[String](Some(s"${path.convert()}orgKey")),
         (node \ "version").validate[Int](Some(s"${path.convert()}version")),
-        (node \ "groups").validate[Seq[ConsentGroup]](
-          Some(s"${path.convert()}groups")),
-        (node \ "offers").validateNullable[Seq[ConsentOffer]](
-          Some(s"${path.convert()}offers")),
-        (node \ "metaData").validateNullable[Seq[Metadata]](
-          Some(s"${path.convert()}metaData"))
-      ).mapN {
-        (id,
-         userId,
-         doneBy,
-         lastUpdate,
-         orgKey,
-         version,
-         groups,
-         offers,
-         metadata) =>
-          ConsentFact(
-            _id = id,
-            userId = userId,
-            doneBy = doneBy,
-            version = version,
-            lastUpdate = lastUpdate,
-            orgKey = orgKey,
-            groups = groups,
-            offers = offers,
-            metaData = metadata.map(m => m.map(ev => (ev.key, ev.value)).toMap)
-          )
-    }
+        (node \ "groups").validate[Seq[ConsentGroup]](Some(s"${path.convert()}groups")),
+        (node \ "offers").validateNullable[Seq[ConsentOffer]](Some(s"${path.convert()}offers")),
+        (node \ "metaData").validateNullable[Seq[Metadata]](Some(s"${path.convert()}metaData"))
+      ).mapN { (id, userId, doneBy, lastUpdate, orgKey, version, groups, offers, metadata) =>
+        ConsentFact(
+          _id = id,
+          userId = userId,
+          doneBy = doneBy,
+          version = version,
+          lastUpdate = lastUpdate,
+          orgKey = orgKey,
+          groups = groups,
+          offers = offers,
+          metaData = metadata.map(m => m.map(ev => (ev.key, ev.value)).toMap)
+        )
+      }
 
-  def fromXml(xml: Elem): Either[AppErrors, ConsentFact] = {
+  def fromXml(xml: Elem): Either[AppErrors, ConsentFact] =
     readXml.read(xml, Some("consentFact")).toEither
-  }
 
-  def fromJson(json: JsValue): Either[AppErrors, ConsentFact] = {
-    json.validate[ConsentFact](
-      ConsentFact.consentFactReadsWithoutIdAndLastUpdate) match {
+  def fromJson(json: JsValue): Either[AppErrors, ConsentFact] =
+    json.validate[ConsentFact](ConsentFact.consentFactReadsWithoutIdAndLastUpdate) match {
       case JsSuccess(o, _) => Right(o)
       case JsError(errors) => Left(AppErrors.fromJsError(errors))
     }
-  }
 
-  def addOrgKey(consentFact: ConsentFact, orgKey: String): ConsentFact = {
+  def addOrgKey(consentFact: ConsentFact, orgKey: String): ConsentFact =
     consentFact.copy(orgKey = Some(orgKey))
-  }
 }

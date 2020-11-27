@@ -2,26 +2,32 @@ package db
 
 import akka.http.scaladsl.util.FastFuture
 import org.joda.time.DateTime
-import play.api.Logger
+import utils.NioLogger
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoApi
 import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.bson.{BSONDocument}
-import reactivemongo.play.json.collection.JSONCollection
-import play.modules.reactivemongo.json.ImplicitBSONHandlers._
+import reactivemongo.api.bson.BSONDocument
+import reactivemongo.api.bson.collection.BSONCollection
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
+import scala.collection.{immutable, Seq}
 
-class CatchupLockMongoDatastore(val reactiveMongoApi: ReactiveMongoApi)(
-    implicit val ec: ExecutionContext)
+class CatchupLockMongoDatastore(val reactiveMongoApi: ReactiveMongoApi)(implicit val ec: ExecutionContext)
     extends DataStoreUtils {
+
+  import reactivemongo.api.bson._
+  import reactivemongo.play.json.compat._
+  import models.ExtractionTaskStatus._
+  import lax._
+  import bson2json._
+  import json2bson._
 
   override def collectionName(tenant: String): String = "catchupLock"
 
-  override def indices: Seq[Index] = Seq(
+  override def indices: Seq[Index.Default] = Seq(
     Index(
-      Seq("expireAt" -> IndexType.Ascending),
+      immutable.Seq("expireAt" -> IndexType.Ascending),
       name = Some("expire_at"),
       options = BSONDocument("expireAfterSeconds" -> 0)
     )
@@ -30,7 +36,7 @@ class CatchupLockMongoDatastore(val reactiveMongoApi: ReactiveMongoApi)(
   implicit def format: Format[CatchupLock] = CatchupLock.catchupLockFormats
 
   def init() = {
-    Logger.debug("### init lock datastore ###")
+    NioLogger.debug("### init lock datastore ###")
 
     storedCollection.flatMap { col =>
       for {
@@ -41,32 +47,31 @@ class CatchupLockMongoDatastore(val reactiveMongoApi: ReactiveMongoApi)(
     }
   }
 
-  def storedCollection: Future[JSONCollection] =
+  def storedCollection: Future[BSONCollection] =
     reactiveMongoApi.database.map(_.collection("catchupLock"))
 
-  def createLock(tenant: String) = {
+  def createLock(tenant: String) =
     storedCollection
       .flatMap(
         _.find(Json.obj("tenant" -> tenant))
           .one[CatchupLock]
       )
       .flatMap {
-        case None =>
-          storedCollection.flatMap(
-            _.insert(format.writes(CatchupLock(tenant)).as[JsObject]).map(_.ok))
+        case None              =>
+          storedCollection.flatMap { coll =>
+            coll.insert.one(format.writes(CatchupLock(tenant)).as[JsObject]).map(_.writeErrors.isEmpty)
+          }
         case Some(catchupItem) =>
-          Logger.debug(s"Stored collection already locked for tenant $tenant")
+          NioLogger.debug(s"Stored collection already locked for tenant $tenant")
           FastFuture.successful(false)
       }
-  }
 
-  def findLock(tenant: String) = {
+  def findLock(tenant: String) =
     storedCollection
       .flatMap(
         _.find(Json.obj("tenant" -> tenant))
           .one[CatchupLock]
       )
-  }
 }
 
 case class CatchupLock(tenant: String, expireAt: DateTime = DateTime.now)
@@ -80,25 +85,23 @@ object CatchupLock {
             CatchupLock(
               tenant = (json \ "tenant").as[String],
               expireAt = (json \ "expireAt").as(jodaDateFormat)
-            ))
-        } recover {
-          case e => JsError(e.getMessage)
+            )
+          )
+        } recover { case e =>
+          JsError(e.getMessage)
         }).get
 
       override def writes(c: CatchupLock): JsValue = Json.obj(
-        "tenant" -> c.tenant,
+        "tenant"   -> c.tenant,
         "expireAt" -> jodaDateFormat.writes(c.expireAt)
       )
     }
 
   implicit val jodaDateFormat = new Format[org.joda.time.DateTime] {
-    override def reads(d: JsValue): JsResult[DateTime] = {
-      JsSuccess(
-        new DateTime(d.as[JsObject].\("$date").as[JsNumber].value.toLong))
-    }
+    override def reads(d: JsValue): JsResult[DateTime] =
+      JsSuccess(new DateTime(d.as[JsObject].\("$date").as[JsNumber].value.toLong))
 
-    override def writes(d: DateTime): JsValue = {
+    override def writes(d: DateTime): JsValue =
       JsObject(Seq("$date" -> JsNumber(d.getMillis)))
-    }
   }
 }

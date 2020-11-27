@@ -11,21 +11,23 @@ import play.api.libs.functional.syntax.{unlift, _}
 import play.api.libs.json.Reads._
 import play.api.libs.json.Writes._
 import play.api.libs.json._
-import reactivemongo.bson.BSONObjectID
+import reactivemongo.api.bson.BSONObjectID
 import utils.Result.AppErrors
 import utils.{DateUtils, Result}
+import scala.collection.Seq
 
 import scala.xml.{Elem, NodeSeq}
 
-case class UserExtractTask(_id: String,
-                           tenant: String,
-                           orgKey: String,
-                           userId: String,
-                           email: String,
-                           startedAt: DateTime,
-                           uploadStartedAt: Option[DateTime],
-                           endedAt: Option[DateTime])
-    extends ModelTransformAs {
+case class UserExtractTask(
+    _id: String,
+    tenant: String,
+    orgKey: String,
+    userId: String,
+    email: String,
+    startedAt: DateTime,
+    uploadStartedAt: Option[DateTime],
+    endedAt: Option[DateTime]
+) extends ModelTransformAs {
   override def asXml(): Elem = <userExtractTask>
     <tenant>
       {tenant}
@@ -42,12 +44,16 @@ case class UserExtractTask(_id: String,
     <startedAt>
       {startedAt.toString(DateUtils.utcDateFormatter)}
     </startedAt>
-    {uploadStartedAt.map(date => <uploadStartedAt>
+    {
+    uploadStartedAt.map(date => <uploadStartedAt>
       {date.toString(DateUtils.utcDateFormatter)}
-    </uploadStartedAt>)}
-    {endedAt.map(date => <endedAt>
+    </uploadStartedAt>)
+  }
+    {
+    endedAt.map(date => <endedAt>
       {date.toString(DateUtils.utcDateFormatter)}
-    </endedAt>)}
+    </endedAt>)
+  }
   </userExtractTask>.clean()
 
   override def asJson(): JsValue =
@@ -106,61 +112,45 @@ object UserExtractTask extends ReadableEntity[UserExtractTask] {
       (JsPath \ "endedAt").writeNullable[DateTime]
   )(unlift(UserExtractTask.unapply))
 
-  implicit val format = Format(userExtractTaskReads, userExtractTaskWrites)
+  implicit val format  = Format(userExtractTaskReads, userExtractTaskWrites)
   implicit val oformat = OFormat(userExtractTaskReads, userExtractTaskOWrites)
 
   implicit val userExtractTaskReadXml: XMLRead[UserExtractTask] =
     (node: NodeSeq, path: Option[String]) =>
       (
-        (node \ "_id").validateNullable[String](
-          BSONObjectID.generate().stringify,
-          Some(s"${path.convert()}_id")),
+        (node \ "_id").validateNullable[String](BSONObjectID.generate().stringify, Some(s"${path.convert()}_id")),
         (node \ "tenant").validate[String](Some(s"${path.convert()}tenant")),
         (node \ "orgKey").validate[String](Some(s"${path.convert()}orgKey")),
         (node \ "userId").validate[String](Some(s"${path.convert()}userId")),
         (node \ "email").validate[String](Some(s"${path.convert()}email")),
-        (node \ "startedAt").validateNullable[DateTime](
-          DateTime.now(DateTimeZone.UTC),
-          Some(s"${path.convert()}startedAt")),
-        (node \ "uploadStartedAt").validateNullable[DateTime](
-          Some(s"${path.convert()}uploadStartedAt")),
-        (node \ "endedAt").validateNullable[DateTime](
-          Some(s"${path.convert()}endedAt"))
-      ).mapN(
-        (_id,
-         tenant,
-         orgKey,
-         userId,
-         email,
-         startedAt,
-         uploadStartedAt,
-         endedAt) =>
-          UserExtractTask(
-            _id = _id,
-            tenant = tenant,
-            orgKey = orgKey,
-            userId = userId,
-            email = email,
-            startedAt = startedAt,
-            uploadStartedAt = uploadStartedAt,
-            endedAt = endedAt
-        ))
+        (node \ "startedAt")
+          .validateNullable[DateTime](DateTime.now(DateTimeZone.UTC), Some(s"${path.convert()}startedAt")),
+        (node \ "uploadStartedAt").validateNullable[DateTime](Some(s"${path.convert()}uploadStartedAt")),
+        (node \ "endedAt").validateNullable[DateTime](Some(s"${path.convert()}endedAt"))
+      ).mapN((_id, tenant, orgKey, userId, email, startedAt, uploadStartedAt, endedAt) =>
+        UserExtractTask(
+          _id = _id,
+          tenant = tenant,
+          orgKey = orgKey,
+          userId = userId,
+          email = email,
+          startedAt = startedAt,
+          uploadStartedAt = uploadStartedAt,
+          endedAt = endedAt
+        )
+      )
 
   override def fromXml(xml: Elem): Either[Result.AppErrors, UserExtractTask] =
     userExtractTaskReadXml.read(xml, Some("userExtractTask")).toEither
 
-  override def fromJson(
-      json: JsValue): Either[Result.AppErrors, UserExtractTask] =
+  override def fromJson(json: JsValue): Either[Result.AppErrors, UserExtractTask] =
     json.validate[UserExtractTask] match {
       case JsSuccess(o, _) => Right(o)
       case JsError(errors) => Left(AppErrors.fromJsError(errors))
     }
 }
 
-case class UserExtractTasks(page: Int,
-                            pageSize: Int,
-                            count: Int,
-                            items: Seq[UserExtractTask])
+case class UserExtractTasks(page: Int, pageSize: Int, count: Long, items: Seq[UserExtractTask])
     extends ModelTransformAs {
   override def asXml(): Elem = <userExtractTasks>
     <page>
@@ -173,13 +163,10 @@ case class UserExtractTasks(page: Int,
       {count}
     </count>
     <items>
-      {items.map(_.asXml)}
+      {items.map(_.asXml())}
     </items>
   </userExtractTasks>.clean()
 
   override def asJson(): JsValue =
-    Json.obj("page" -> page,
-             "pageSize" -> pageSize,
-             "count" -> count,
-             "items" -> items.map(_.asJson))
+    Json.obj("page" -> page, "pageSize" -> pageSize, "count" -> count, "items" -> items.map(_.asJson()))
 }

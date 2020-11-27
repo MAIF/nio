@@ -3,7 +3,7 @@ package service
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.util.FastFuture
 import configuration.{Env, MailGunConfig}
-import play.api.Logger
+import utils.NioLogger
 import play.api.libs.ws.{WSClient, _}
 import play.api.mvc.MultipartFormData.DataPart
 
@@ -15,27 +15,22 @@ trait MailService {
   def sendDownloadedFile(to: String, downloadedFileUrl: String): Future[String]
 }
 
-class MailMockService(env: Env)(implicit val executionContext: ExecutionContext)
-    extends MailService {
-  override def sendDownloadedFile(to: String,
-                                  downloadedFileUrl: String): Future[String] = {
-    Logger.info(
-      s"Mock send mail to $to with download file url $downloadedFileUrl")
+class MailMockService(env: Env)(implicit val executionContext: ExecutionContext) extends MailService {
+  override def sendDownloadedFile(to: String, downloadedFileUrl: String): Future[String] = {
+    NioLogger.info(s"Mock send mail to $to with download file url $downloadedFileUrl")
 
     FastFuture.successful(downloadedFileUrl)
   }
 }
 
-class MailGunService(env: Env, wSClient: WSClient)(
-    implicit val executionContext: ExecutionContext)
+class MailGunService(env: Env, wSClient: WSClient)(implicit val executionContext: ExecutionContext)
     extends MailService {
 
   val mailConfig: MailGunConfig = env.config.mailGunConfig
 
-  override def sendDownloadedFile(to: String,
-                                  downloadedFileUrl: String): Future[String] = {
+  override def sendDownloadedFile(to: String, downloadedFileUrl: String): Future[String] = {
 
-    Logger.info(s"send mail to $to with download file url $downloadedFileUrl")
+    NioLogger.info(s"send mail to $to with download file url $downloadedFileUrl")
 
     wSClient
       .url(s"${mailConfig.endpoint}/messages")

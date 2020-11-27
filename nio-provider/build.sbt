@@ -1,11 +1,8 @@
+import Dependencies._
 import com.typesafe.sbt.packager.docker.{Cmd, ExecCmd}
 
 name := """nio-provider"""
 organization := "fr.maif"
-
-resolvers ++= Seq(
-  "Maven central" at "http://repo1.maven.org/maven2/"
-)
 
 lazy val `nio-provider` = (project in file("."))
   .enablePlugins(PlayScala, DockerPlugin)
@@ -15,22 +12,22 @@ lazy val `nio-provider` = (project in file("."))
 scalaVersion := "2.12.4"
 
 resolvers ++= Seq(
-  Resolver.jcenterRepo
+  Resolver.jcenterRepo,
+  "Maven central" at "https://repo1.maven.org/maven2/"
 )
 
 libraryDependencies ++= Seq(
   ws,
-  "com.typesafe.play" %% "play-json" % "2.6.9",
-  "com.typesafe.play" %% "play-json-joda" % "2.6.9",
-  "com.typesafe.akka" %% "akka-stream-kafka" % "0.22",
+  "com.typesafe.play" %% "play-json-joda" % playJsonJodaVersion,
+  "com.typesafe.akka" %% "akka-stream-kafka" % akkaStreamKafka,
   "de.svenkubiak" % "jBCrypt" % "0.4.1", //  ISC/BSD
   "com.auth0" % "java-jwt" % "3.1.0", // MIT license
-  "com.github.pureconfig" %% "pureconfig" % "0.9.1", // Apache 2.0
-  "org.scalactic" %% "scalactic" % "3.0.4", // Apache 2.0
+  "com.github.pureconfig" %% "pureconfig" % pureConfig, // Apache 2.0
+  "org.scalactic" %% "scalactic" % scalaticVersion, // Apache 2.0
   "org.webjars" % "swagger-ui" % "3.12.1",
-  "org.typelevel" %% "cats-core" % "1.1.0", // MIT
-  "com.softwaremill.macwire" %% "macros" % "2.3.1" % "provided",
-  "org.scalatestplus.play" %% "scalatestplus-play" % "3.1.0" % Test
+  "org.typelevel" %% "cats-core" % catsVersion, // MIT
+  "com.softwaremill.macwire" %% "macros" % macwireVersion % "provided",
+  "org.scalatestplus.play" %% "scalatestplus-play" % scalatestPlay % Test
 )
 
 scalacOptions ++= Seq(
@@ -39,12 +36,6 @@ scalacOptions ++= Seq(
   "-language:implicitConversions",
   "-language:existentials"
 )
-
-scalafmtOnCompile in ThisBuild := true
-
-scalafmtTestOnCompile in ThisBuild := true
-
-scalafmtVersion in ThisBuild := "1.2.0"
 
 /// ASSEMBLY CONFIG
 

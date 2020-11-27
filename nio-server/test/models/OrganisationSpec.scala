@@ -2,7 +2,7 @@ package models
 
 import org.scalatest.WordSpecLike
 import org.scalatestplus.play.PlaySpec
-import play.api.Logger
+import utils.NioLogger
 
 class OrganisationSpec extends PlaySpec with WordSpecLike {
 
@@ -32,12 +32,12 @@ class OrganisationSpec extends PlaySpec with WordSpecLike {
         )
       )
 
-      val xml = org.asXml
+      val xml = org.asXml()
 
       val fromXml = Organisation.fromXml(xml)
 
       fromXml.isRight mustBe true
-      fromXml.right.get.key mustBe org.key
+      fromXml.map(_.key) mustBe Right(org.key)
     }
 
   }

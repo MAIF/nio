@@ -10,14 +10,11 @@ import play.api.libs.functional.syntax.{unlift, _}
 import play.api.libs.json.Reads._
 import play.api.libs.json._
 import utils.Result.{AppErrors, ErrorMessage, Result}
+import scala.collection.Seq
 
 import scala.xml.{Elem, NodeSeq}
 
-case class Offer(key: String,
-                 label: String,
-                 version: Int = 1,
-                 groups: Seq[PermissionGroup])
-    extends ModelTransformAs {
+case class Offer(key: String, label: String, version: Int = 1, groups: Seq[PermissionGroup]) extends ModelTransformAs {
   override def asXml(): Elem = <offer>
     <version>
       {version}
@@ -29,7 +26,7 @@ case class Offer(key: String,
       {label}
     </label>
     <groups>
-      {groups.map(_.asXml)}
+      {groups.map(_.asXml())}
     </groups>
   </offer>.clean()
 
@@ -60,7 +57,7 @@ object Offer extends ReadableEntity[Offer] {
       (__ \ "groups").write[Seq[PermissionGroup]]
   )(unlift(Offer.unapply))
 
-  implicit val format: Format[Offer] = Format(offerReads, offerWrites)
+  implicit val format: Format[Offer]   = Format(offerReads, offerWrites)
   implicit val oformat: OFormat[Offer] = OFormat(offerReads, offerOWrites)
 
   implicit val offerReadXml: XMLRead[Offer] =
@@ -70,11 +67,8 @@ object Offer extends ReadableEntity[Offer] {
         (node \ "label").validate[String](Some(s"${path.convert()}label")),
         (node \ "version")
           .validateNullable[Int](1, Some(s"${path.convert()}version")),
-        (node \ "groups").validate[Seq[PermissionGroup]](
-          Some(s"${path.convert()}groups"))
-      ).mapN(
-        (key, label, version, groups) => Offer(key, label, version, groups)
-    )
+        (node \ "groups").validate[Seq[PermissionGroup]](Some(s"${path.convert()}groups"))
+      ).mapN((key, label, version, groups) => Offer(key, label, version, groups))
 
   override def fromXml(xml: Elem): Either[AppErrors, Offer] =
     offerReadXml.read(xml, Some("offer")).toEither
@@ -96,36 +90,29 @@ case class Offers(offers: Option[Seq[Offer]]) extends ModelTransformAs {
 }
 
 sealed trait OfferValidator {
-  private def validateKey(
-      key: String): ValidatorUtils.ValidationResult[String] = {
+  private def validateKey(key: String): ValidatorUtils.ValidationResult[String] =
     key match {
       case k if k.matches(ValidatorUtils.keyPattern) => key.validNel
       case _                                         => s"offer.key".invalidNel
     }
-  }
 
-  private def validateGroups(groups: Seq[PermissionGroup])
-    : ValidatorUtils.ValidationResult[Seq[PermissionGroup]] = {
-
+  private def validateGroups(groups: Seq[PermissionGroup]): ValidatorUtils.ValidationResult[Seq[PermissionGroup]] =
     if (groups.nonEmpty)
       groups.validNel
     else
       "offer.groups.empty".invalidNel
-  }
 
   def validateOffer(offer: Offer): Result[Offer] = {
     val prefix: String = s"offer"
     (
       validateKey(offer.key),
       validateGroups(offer.groups),
-      ValidatorUtils.sequence(offer.groups.zipWithIndex.map {
-        case (group, index) =>
-          GroupValidator.validateGroup(group, index, Some(prefix))
+      ValidatorUtils.sequence(offer.groups.zipWithIndex.map { case (group, index) =>
+        GroupValidator.validateGroup(group, index, Some(prefix))
       })
     ).mapN((_, _, _) => offer)
       .toEither
-      .leftMap(s =>
-        AppErrors(s.toList.map(errorMessage => ErrorMessage(errorMessage))))
+      .leftMap(s => AppErrors(s.toList.map(errorMessage => ErrorMessage(errorMessage))))
   }
 }
 object OfferValidator extends OfferValidator

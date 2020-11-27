@@ -4,27 +4,14 @@ import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.kafka.ProducerMessage
 import akka.kafka.scaladsl.Producer
-import akka.stream.scaladsl.{
-  Broadcast,
-  Flow,
-  GraphDSL,
-  Merge,
-  RunnableGraph,
-  Sink,
-  Source
-}
-import akka.stream.{ActorMaterializer, ClosedShape}
+import akka.stream.scaladsl.{Broadcast, Flow, GraphDSL, Merge, RunnableGraph, Sink, Source}
+import akka.stream.{ClosedShape, Materializer}
 import configuration.Env
-import db.{
-  CatchupLockMongoDatastore,
-  ConsentFactMongoDataStore,
-  LastConsentFactMongoDataStore,
-  TenantMongoDataStore
-}
+import db.{CatchupLockMongoDatastore, ConsentFactMongoDataStore, LastConsentFactMongoDataStore, TenantMongoDataStore}
 import messaging.KafkaMessageBroker
 import models.{ConsentFact, ConsentFactCreated, ConsentFactUpdated}
 import org.apache.kafka.clients.producer.ProducerRecord
-import play.api.Logger
+import utils.NioLogger
 import play.api.libs.json.Json
 import reactivemongo.akkastream.State
 
@@ -40,13 +27,12 @@ class CatchupNioEventService(
     consentFactMongoDataStore: ConsentFactMongoDataStore,
     catchupLockMongoDatastore: CatchupLockMongoDatastore,
     kafkaMessageBroker: KafkaMessageBroker,
-    env: Env)(implicit val executionContext: ExecutionContext,
-              system: ActorSystem) {
+    env: Env
+)(implicit val executionContext: ExecutionContext, system: ActorSystem) {
 
-  implicit val materializer: ActorMaterializer = ActorMaterializer()(system)
+  implicit val materializer: Materializer = Materializer(system)
 
-  def getUnsendConsentFactAsSource(
-      tenant: String): Source[Catchup, Future[State]] =
+  def getUnsendConsentFactAsSource(tenant: String): Source[Catchup, Future[State]] =
     Source
       .fromFutureSource(
         consentFactMongoDataStore
@@ -69,8 +55,7 @@ class CatchupNioEventService(
           .isEqual(catchup.consentFact.lastUpdateSystem)
       }
 
-  def getRelevantConsentFactsAsFlow(
-      tenant: String): Flow[Catchup, Catchup, NotUsed] =
+  def getRelevantConsentFactsAsFlow(tenant: String): Flow[Catchup, Catchup, NotUsed] =
     Flow[Catchup]
       .filter { catchup =>
         env.config.kafka.catchUpEvents.strategy == "All" ||
@@ -78,34 +63,34 @@ class CatchupNioEventService(
           .isEqual(catchup.consentFact.lastUpdateSystem)
       }
 
-  def resendNioEventsFlow(tenant: String): Flow[Catchup, Catchup, NotUsed] = {
-
+  def resendNioEventsFlow(tenant: String): Flow[Catchup, Catchup, NotUsed] =
     Flow[Catchup]
       .map { catchup =>
         val event = if (catchup.isCreation) {
-          ConsentFactCreated(tenant = tenant,
-                             payload = catchup.lastConsentFact,
-                             author = "EVENT_CATCHUP",
-                             metadata = None)
+          ConsentFactCreated(
+            tenant = tenant,
+            payload = catchup.lastConsentFact,
+            author = "EVENT_CATCHUP",
+            metadata = None
+          )
         } else {
-          ConsentFactUpdated(tenant = tenant,
-                             oldValue = catchup.consentFact,
-                             payload = catchup.lastConsentFact,
-                             author = "EVENT_CATCHUP",
-                             metadata = None)
+          ConsentFactUpdated(
+            tenant = tenant,
+            oldValue = catchup.consentFact,
+            payload = catchup.lastConsentFact,
+            author = "EVENT_CATCHUP",
+            metadata = None
+          )
         }
 
         ProducerMessage.Message[String, String, Catchup](
-          new ProducerRecord(env.config.kafka.topic,
-                             event.shardId,
-                             event.asJson.toString()),
+          new ProducerRecord(env.config.kafka.topic, event.shardId, event.asJson().toString()),
           catchup
         )
       }
       .via(Producer.flexiFlow(kafkaMessageBroker.producerSettings))
       .map(_.passThrough)
       .via(unflagConsentFactsFlow(tenant))
-  }
 
   def unflagConsentFactsFlow(tenant: String): Flow[Catchup, Catchup, NotUsed] =
     Flow[Catchup]
@@ -114,9 +99,9 @@ class CatchupNioEventService(
         consentFactMongoDataStore
           .updateByQuery(
             tenant,
-            Json.obj(
-              "_id" -> Json.obj("$in" -> catchups.map(_.consentFact._id))),
-            Json.obj("$set" -> Json.obj("sendToKafka" -> true)))
+            Json.obj("_id"  -> Json.obj("$in" -> catchups.map(_.consentFact._id))),
+            Json.obj("$set" -> Json.obj("sendToKafka" -> true))
+          )
           .map(_ => catchups)
 
       }
@@ -125,23 +110,23 @@ class CatchupNioEventService(
   def catchupNioEventScheduler() =
     if (env.env == "prod") {
       tenantMongoDataStore.findAll().map { tenants =>
-        tenants.map(tenant => {
-          Logger.debug(s"start catchup scheduler for tenant ${tenant.key}")
+        tenants.map { tenant =>
+          NioLogger.debug(s"start catchup scheduler for tenant ${tenant.key}")
           system.scheduler.schedule(
             env.config.kafka.catchUpEvents.delay,
             env.config.kafka.catchUpEvents.interval,
             new Runnable() {
-              def run = {
+              def run =
                 catchupLockMongoDatastore
                   .findLock(tenant.key)
                   .map {
                     case Some(_) =>
-                      Logger.debug(s"tenant ${tenant.key} already locked")
-                    case None =>
+                      NioLogger.debug(s"tenant ${tenant.key} already locked")
+                    case None    =>
                       catchupLockMongoDatastore
                         .createLock(tenant.key)
                         .map {
-                          case true =>
+                          case true  =>
                             val g = RunnableGraph.fromGraph(GraphDSL.create() {
                               implicit builder: GraphDSL.Builder[NotUsed] =>
                                 import GraphDSL.Implicits._
@@ -149,28 +134,26 @@ class CatchupNioEventService(
                                 if (env.config.kafka.catchUpEvents.strategy == "Last") {
                                   val in: Source[Catchup, Future[State]] =
                                     getUnsendConsentFactAsSource(tenant.key)
-                                  val out = Sink.ignore
-                                  val bcast = builder.add(Broadcast[Catchup](2))
-                                  val merge = builder.add(Merge[Catchup](2))
+                                  val out                                = Sink.ignore
+                                  val bcast                              = builder.add(Broadcast[Catchup](2))
+                                  val merge                              = builder.add(Merge[Catchup](2))
 
-                                  val markAsPublishedUnreleavant
-                                    : Flow[Catchup, Catchup, NotUsed] =
+                                  val markAsPublishedUnreleavant: Flow[Catchup, Catchup, NotUsed] =
                                     getUnrelevantConsentFactsFlow
                                       .via(unflagConsentFactsFlow(tenant.key))
                                       .filter(_ => false)
 
-                                  val filterRelevant
-                                    : Flow[Catchup, Catchup, NotUsed] =
-                                    Flow[Catchup].via(
-                                      getRelevantConsentFactsAsFlow(tenant.key))
+                                  val filterRelevant: Flow[Catchup, Catchup, NotUsed] =
+                                    Flow[Catchup].via(getRelevantConsentFactsAsFlow(tenant.key))
 
                                   in ~> bcast ~> markAsPublishedUnreleavant ~> merge ~> resendNioEventsFlow(
-                                    tenant.key) ~> out
+                                    tenant.key
+                                  ) ~> out
                                   bcast ~> filterRelevant ~> merge
                                 } else {
                                   val in: Source[Catchup, Future[State]] =
                                     getUnsendConsentFactAsSource(tenant.key)
-                                  val out = Sink.ignore
+                                  val out                                = Sink.ignore
 
                                   in ~> resendNioEventsFlow(tenant.key) ~> out
                                 }
@@ -182,10 +165,9 @@ class CatchupNioEventService(
                           case false => ()
                         }
                   }
-              }
             }
           )
-        })
+        }
       }
     }
 }

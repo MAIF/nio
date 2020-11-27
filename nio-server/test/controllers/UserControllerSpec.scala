@@ -13,29 +13,25 @@ class UserControllerSpec extends TestUtils {
   val userId2: String = "userId2"
   val userId3: String = "userId3"
 
-  val org1 = Organisation(
+  val org1       = Organisation(
     key = org1key,
     label = "lbl",
     groups = Seq(
-      PermissionGroup(key = "group1",
-                      label = "blalba",
-                      permissions = Seq(Permission("sms", "Please accept sms")))
+      PermissionGroup(key = "group1", label = "blalba", permissions = Seq(Permission("sms", "Please accept sms")))
     )
   )
-  val org1AsJson = org1.asJson
+  val org1AsJson = org1.asJson()
 
-  val org2 = Organisation(
+  val org2       = Organisation(
     key = org2key,
     label = "lbl",
     groups = Seq(
-      PermissionGroup(key = "group1",
-                      label = "blalba",
-                      permissions = Seq(Permission("sms", "Please accept sms")))
+      PermissionGroup(key = "group1", label = "blalba", permissions = Seq(Permission("sms", "Please accept sms")))
     )
   )
-  val org2AsJson = org2.asJson
+  val org2AsJson = org2.asJson()
 
-  val u1 = ConsentFact(
+  val u1              = ConsentFact(
     userId = userId1,
     doneBy = DoneBy(userId = userId1, role = "USER"),
     version = 1,
@@ -43,12 +39,13 @@ class UserControllerSpec extends TestUtils {
       ConsentGroup(
         key = "group1",
         label = "blalba",
-        consents = Seq(
-          Consent(key = "sms", label = "Please accept sms", checked = true))))
+        consents = Seq(Consent(key = "sms", label = "Please accept sms", checked = true))
+      )
+    )
   )
-  val user1Org1AsJson = u1.asJson
+  val user1Org1AsJson = u1.asJson()
 
-  val u2 = ConsentFact(
+  val u2              = ConsentFact(
     userId = userId2,
     doneBy = DoneBy(userId = userId2, role = "USER"),
     version = 1,
@@ -56,12 +53,13 @@ class UserControllerSpec extends TestUtils {
       ConsentGroup(
         key = "group1",
         label = "blalba",
-        consents = Seq(
-          Consent(key = "sms", label = "Please accept sms", checked = true))))
+        consents = Seq(Consent(key = "sms", label = "Please accept sms", checked = true))
+      )
+    )
   )
-  val user2Org2AsJson = u2.asJson
+  val user2Org2AsJson = u2.asJson()
 
-  val u3 = ConsentFact(
+  val u3              = ConsentFact(
     userId = userId3,
     doneBy = DoneBy(userId = userId3, role = "USER"),
     version = 1,
@@ -69,10 +67,11 @@ class UserControllerSpec extends TestUtils {
       ConsentGroup(
         key = "group1",
         label = "blalba",
-        consents = Seq(
-          Consent(key = "sms", label = "Please accept sms", checked = true))))
+        consents = Seq(Consent(key = "sms", label = "Please accept sms", checked = true))
+      )
+    )
   )
-  val user3Org2AsJson = u3.asJson
+  val user3Org2AsJson = u3.asJson()
 
   "UserController" should {
 
@@ -92,14 +91,12 @@ class UserControllerSpec extends TestUtils {
       releaseOrg2.status mustBe OK
 
       val createUser1 =
-        putJson(s"/$tenant/organisations/$org1key/users/$userId1",
-                user1Org1AsJson)
+        putJson(s"/$tenant/organisations/$org1key/users/$userId1", user1Org1AsJson)
 
       createUser1.status mustBe OK
 
       val createUser2 =
-        putJson(s"/$tenant/organisations/$org2key/users/$userId2",
-                user2Org2AsJson)
+        putJson(s"/$tenant/organisations/$org2key/users/$userId2", user2Org2AsJson)
 
       createUser2.status mustBe OK
 
@@ -170,8 +167,7 @@ class UserControllerSpec extends TestUtils {
     "get users by organisation with pagination" in {
 
       val createUser3 =
-        putJson(s"/$tenant/organisations/$org2key/users/$userId3",
-                user3Org2AsJson)
+        putJson(s"/$tenant/organisations/$org2key/users/$userId3", user3Org2AsJson)
 
       createUser3.status mustBe OK
 

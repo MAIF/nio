@@ -12,12 +12,14 @@ import play.api.mvc.{ActionBuilder, AnyContent, ControllerComponents}
 
 import scala.collection.JavaConverters._
 import scala.concurrent.{ExecutionContext, Future}
+
 class MetricsController(
     val AuthAction: ActionBuilder[SecuredAuthContext, AnyContent],
     tenantStore: TenantMongoDataStore,
     env: Env,
     actorSystem: ActorSystem,
-    val cc: ControllerComponents)(implicit ec: ExecutionContext)
+    val cc: ControllerComponents
+)(implicit ec: ExecutionContext)
     extends ControllerUtils(cc) {
 
   val mapper = new ObjectMapper()
@@ -47,7 +49,7 @@ class MetricsController(
 
             Ok
           }
-      case None =>
+      case None                                                   =>
         Future.successful("error.missing.secret".unauthorized())
     }
   }

@@ -11,10 +11,10 @@ class TenantControllerSpec extends TestUtils {
   val secret = "tenant-admin-secret" -> "secret"
 
   val jsonHeaders = Seq(ACCEPT -> JSON, CONTENT_TYPE -> JSON, secret)
-  val xmlHeaders = Seq(ACCEPT -> XML, CONTENT_TYPE -> XML, secret)
+  val xmlHeaders  = Seq(ACCEPT -> XML, CONTENT_TYPE -> XML, secret)
 
   val tenant1AsJson = Json.obj(
-    "key" -> "newTenant",
+    "key"         -> "newTenant",
     "description" -> "a new tenant"
   )
 
@@ -66,7 +66,7 @@ class TenantControllerSpec extends TestUtils {
     }
 
     "create a new tenant as XML" in {
-      val tenantXml = Tenant("testTenant", "test tenant").asXml
+      val tenantXml = Tenant("testTenant", "test tenant").asXml()
 
       val resp = postXml(path, tenantXml, headers = xmlHeaders)
 
@@ -94,7 +94,7 @@ class TenantControllerSpec extends TestUtils {
     }
 
     "create with content-type xml" in {
-      val tenantXml = Tenant("testTenantXml", "test tenant").asXml
+      val tenantXml = Tenant("testTenantXml", "test tenant").asXml()
 
       val resp =
         postXml(path, tenantXml, headers = Seq(CONTENT_TYPE -> XML, secret))
@@ -104,7 +104,7 @@ class TenantControllerSpec extends TestUtils {
     }
 
     "create with content-type json" in {
-      val tenantJson = Tenant("testTenantJson", "test tenant").asJson
+      val tenantJson = Tenant("testTenantJson", "test tenant").asJson()
 
       val resp =
         postJson(path, tenantJson, headers = Seq(CONTENT_TYPE -> JSON, secret))
@@ -115,7 +115,7 @@ class TenantControllerSpec extends TestUtils {
 
     "create tenant with an already exist key" in {
       val tenantAsJson = Json.obj(
-        "key" -> "newTenantAlreadyExist",
+        "key"         -> "newTenantAlreadyExist",
         "description" -> "a new tenant"
       )
 
@@ -131,8 +131,8 @@ class TenantControllerSpec extends TestUtils {
     "delete tenant" in {
 
       val tenantToDelete: String = "tenanttodelete"
-      val tenantAsJson = Json.obj(
-        "key" -> tenantToDelete,
+      val tenantAsJson           = Json.obj(
+        "key"         -> tenantToDelete,
         "description" -> "a new tenant"
       )
 
@@ -149,15 +149,15 @@ class TenantControllerSpec extends TestUtils {
       val orgKey = "organisationToDelete"
 
       val orgAsJson = Json.obj(
-        "key" -> orgKey,
-        "label" -> "lbl",
+        "key"    -> orgKey,
+        "label"  -> "lbl",
         "groups" -> Json.arr(
           Json.obj(
-            "key" -> "group1",
-            "label" -> "blalba",
+            "key"         -> "group1",
+            "label"       -> "blalba",
             "permissions" -> Json.arr(
               Json.obj(
-                "key" -> "sms",
+                "key"   -> "sms",
                 "label" -> "Please accept sms"
               )
             )
@@ -169,26 +169,25 @@ class TenantControllerSpec extends TestUtils {
         postJson(s"/$tenantToDelete/organisations", orgAsJson)
       respOrgaCreated.status mustBe CREATED
 
-      postJson(s"/$tenantToDelete/organisations/$orgKey/draft/_release",
-               respOrgaCreated.json).status mustBe OK
+      postJson(s"/$tenantToDelete/organisations/$orgKey/draft/_release", respOrgaCreated.json).status mustBe OK
 
       val userId: String = "userToDelete"
 
       val consentFactAsJson = Json.obj(
-        "userId" -> userId,
-        "doneBy" -> Json.obj(
+        "userId"  -> userId,
+        "doneBy"  -> Json.obj(
           "userId" -> userId,
-          "role" -> "USER"
+          "role"   -> "USER"
         ),
         "version" -> 1,
-        "groups" -> Json.arr(
+        "groups"  -> Json.arr(
           Json.obj(
-            "key" -> "group1",
-            "label" -> "blalba",
+            "key"      -> "group1",
+            "label"    -> "blalba",
             "consents" -> Json.arr(
               Json.obj(
-                "key" -> "sms",
-                "label" -> "Please accept sms",
+                "key"     -> "sms",
+                "label"   -> "Please accept sms",
                 "checked" -> true
               )
             )
@@ -196,8 +195,7 @@ class TenantControllerSpec extends TestUtils {
         )
       )
 
-      putJson(s"/$tenantToDelete/organisations/$orgKey/users/$userId",
-              consentFactAsJson).status mustBe OK
+      putJson(s"/$tenantToDelete/organisations/$orgKey/users/$userId", consentFactAsJson).status mustBe OK
 
       delete(s"/tenants/$tenantToDelete", headers = jsonHeaders).status mustBe OK
 
@@ -212,8 +210,7 @@ class TenantControllerSpec extends TestUtils {
       respGet.json.as[JsArray].value.size mustBe 6
 
       getJson(s"/$tenantToDelete/organisations/$orgKey", headers = jsonHeaders).status mustBe NOT_FOUND
-      getJson(s"/$tenantToDelete/organisations/$orgKey/users/$userId",
-              headers = jsonHeaders).status mustBe NOT_FOUND
+      getJson(s"/$tenantToDelete/organisations/$orgKey/users/$userId", headers = jsonHeaders).status mustBe NOT_FOUND
     }
   }
 }

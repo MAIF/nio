@@ -11,10 +11,11 @@ import libs.xml.syntax._
 import play.api.libs.functional.syntax.{unlift, _}
 import play.api.libs.json.Reads._
 import play.api.libs.json.{JsValue, _}
-import reactivemongo.bson.BSONObjectID
+import reactivemongo.api.bson.BSONObjectID
 import utils.Result.AppErrors
 
 import scala.xml.{Elem, NodeSeq}
+import scala.collection.Seq
 
 case class ApiKeyUpdate(offerRestrictionPatterns: Option[Seq[String]] = None)
 
@@ -26,55 +27,53 @@ object ApiKeyUpdate extends ReadableEntity[ApiKeyUpdate] {
   implicit val readXml: XMLRead[ApiKeyUpdate] =
     (node: NodeSeq, path: Option[String]) =>
       (node \ "offerRestrictionPatterns")
-        .validateNullable[Seq[String]](
-          Some(s"${path.convert()}offerRestrictionPatterns"))
-        .map(
-          offerRestrictionPatterns =>
-            ApiKeyUpdate(
-              offerRestrictionPatterns = offerRestrictionPatterns
+        .validateNullable[Seq[String]](Some(s"${path.convert()}offerRestrictionPatterns"))
+        .map(offerRestrictionPatterns =>
+          ApiKeyUpdate(
+            offerRestrictionPatterns = offerRestrictionPatterns
           )
-      )
+        )
 
-  def fromXml(xml: Elem): Either[AppErrors, ApiKeyUpdate] = {
+  def fromXml(xml: Elem): Either[AppErrors, ApiKeyUpdate] =
     readXml.read(xml, Some("ApiKey")).toEither
-  }
 
-  def fromJson(json: JsValue) = {
+  def fromJson(json: JsValue) =
     json.validate[ApiKeyUpdate] match {
       case JsSuccess(o, _) => Right(o)
       case JsError(errors) => Left(AppErrors.fromJsError(errors))
     }
-  }
 }
 
-case class ApiKey(_id: String = BSONObjectID.generate().stringify,
-                  clientId: String,
-                  clientSecret: String,
-                  offerRestrictionPatterns: Option[Seq[String]] = None)
-    extends ModelTransformAs {
+case class ApiKey(
+    _id: String = BSONObjectID.generate().stringify,
+    clientId: String,
+    clientSecret: String,
+    offerRestrictionPatterns: Option[Seq[String]] = None
+) extends ModelTransformAs {
   override def asXml(): Elem = <ApiKey>
     <clientId>
       {clientId}
     </clientId>
     <clientSecret>
       {clientSecret}
-    </clientSecret>{offerRestrictionPatterns
+    </clientSecret>{
+    offerRestrictionPatterns
       .map(o =>
         <offerRestrictionPatterns>
-          {o.map(
-          l => <offerRestrictionPattern>
+          {
+          o.map(l => <offerRestrictionPattern>
             {l}
-          </offerRestrictionPattern>
-        )}
+          </offerRestrictionPattern>)
+        }
         </offerRestrictionPatterns>
-      )}
+      )
+  }
   </ApiKey>.clean()
 
   override def asJson(): JsValue = ApiKey.writeClean.writes(this)
 
-  def toAuthInfo(): AuthInfo = {
+  def toAuthInfo(): AuthInfo =
     AuthInfo(clientId, false, None, offerRestrictionPatterns)
-  }
 }
 
 object ApiKey extends ReadableEntity[ApiKey] {
@@ -90,9 +89,9 @@ object ApiKey extends ReadableEntity[ApiKey] {
 
   implicit val writeClean: Writes[ApiKey] = Writes { userAccount =>
     Json.obj(
-      "_id" -> userAccount._id,
-      "clientId" -> userAccount.clientId,
-      "clientSecret" -> userAccount.clientSecret,
+      "_id"                      -> userAccount._id,
+      "clientId"                 -> userAccount.clientId,
+      "clientSecret"             -> userAccount.clientSecret,
       "offerRestrictionPatterns" -> userAccount.offerRestrictionPatterns
     )
   }
@@ -111,53 +110,43 @@ object ApiKey extends ReadableEntity[ApiKey] {
       (JsPath \ "offerRestrictionPatterns").writeNullable[Seq[String]]
   )(unlift(ApiKey.unapply))
 
-  implicit val formats: Format[ApiKey] = Format(read, write)
+  implicit val formats: Format[ApiKey]   = Format(read, write)
   implicit val oformats: OFormat[ApiKey] = OFormat(read, owrite)
 
   implicit val readXml: XMLRead[ApiKey] =
     (node: NodeSeq, path: Option[String]) =>
       (
-        (node \ "_id").validateNullable[String](
-          BSONObjectID.generate().stringify,
-          Some(s"${path.convert()}_id")),
-        (node \ "clientId").validate[String](
-          Some(s"${path.convert()}clientId")),
-        (node \ "clientSecret").validate[String](
-          Some(s"${path.convert()}clientSecret")),
+        (node \ "_id").validateNullable[String](BSONObjectID.generate().stringify, Some(s"${path.convert()}_id")),
+        (node \ "clientId").validate[String](Some(s"${path.convert()}clientId")),
+        (node \ "clientSecret").validate[String](Some(s"${path.convert()}clientSecret")),
         (node \ "offerRestrictionPatterns").validateNullable[Seq[String]](
-          Some(s"${path.convert()}offerRestrictionPatterns"))
-      ).mapN(
-        (_id, clientId, clientSecret, offerRestrictionPatterns) =>
-          ApiKey(
-            _id = _id,
-            clientId = clientId,
-            clientSecret = clientSecret,
-            offerRestrictionPatterns = offerRestrictionPatterns
+          Some(s"${path.convert()}offerRestrictionPatterns")
         )
-    )
+      ).mapN((_id, clientId, clientSecret, offerRestrictionPatterns) =>
+        ApiKey(
+          _id = _id,
+          clientId = clientId,
+          clientSecret = clientSecret,
+          offerRestrictionPatterns = offerRestrictionPatterns
+        )
+      )
 
-  def fromXml(xml: Elem): Either[AppErrors, ApiKey] = {
+  def fromXml(xml: Elem): Either[AppErrors, ApiKey] =
     readXml.read(xml, Some("ApiKey")).toEither
-  }
 
-  def fromJson(json: JsValue) = {
+  def fromJson(json: JsValue) =
     json.validate[ApiKey] match {
       case JsSuccess(o, _) => Right(o)
       case JsError(errors) => Left(AppErrors.fromJsError(errors))
     }
-  }
 
 }
 
-case class ApiKeys(page: Int, pageSize: Int, count: Int, items: Seq[ApiKey])
-    extends ModelTransformAs {
-  def asJson =
-    Json.obj("page" -> page,
-             "pageSize" -> pageSize,
-             "count" -> count,
-             "items" -> JsArray(items.map(_.asJson)))
+case class ApiKeys(page: Int, pageSize: Int, count: Long, items: Seq[ApiKey]) extends ModelTransformAs {
+  def asJson() =
+    Json.obj("page" -> page, "pageSize" -> pageSize, "count" -> count, "items" -> JsArray(items.map(_.asJson())))
 
-  def asXml = <apiKeys>
+  def asXml()  = <apiKeys>
     <page>
       {page}
     </page>
@@ -168,7 +157,7 @@ case class ApiKeys(page: Int, pageSize: Int, count: Int, items: Seq[ApiKey])
       {count}
     </count>
     <items>
-      {items.map(_.asXml)}
+      {items.map(_.asXml())}
     </items>
   </apiKeys>
 }
@@ -177,24 +166,19 @@ import cats.implicits._
 import utils.Result.{AppErrors, ErrorMessage, Result}
 
 sealed trait ApiKeyValidator {
-  private def validateClientKey(
-      clientKey: String,
-      errorKey: String): ValidatorUtils.ValidationResult[String] = {
+  private def validateClientKey(clientKey: String, errorKey: String): ValidatorUtils.ValidationResult[String] =
     clientKey match {
       case k if k.matches(ValidatorUtils.keyPattern) => clientKey.validNel
       case _                                         => errorKey.invalidNel
     }
-  }
 
-  def validateApiKey(apiKey: ApiKey): Result[ApiKey] = {
+  def validateApiKey(apiKey: ApiKey): Result[ApiKey] =
     (
       validateClientKey(apiKey.clientId, "account.clientId"),
       validateClientKey(apiKey.clientSecret, "account.clientSecret")
     ).mapN((_, _) => apiKey)
       .toEither
-      .leftMap(s =>
-        AppErrors(s.toList.map(errorMessage => ErrorMessage(errorMessage))))
-  }
+      .leftMap(s => AppErrors(s.toList.map(errorMessage => ErrorMessage(errorMessage))))
 }
 
 object ApiKeyValidator extends ApiKeyValidator

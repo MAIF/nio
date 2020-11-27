@@ -5,13 +5,13 @@ import java.util.concurrent.TimeUnit
 import akka.actor.ActorSystem
 import akka.http.scaladsl.util.FastFuture
 import akka.japi.Option.Some
-import akka.stream.ActorMaterializer
+import akka.stream.Materializer
 import configuration.Env
 import db.{UserExtractTaskDataStore, _}
 import models.{NioAccount, Tenant}
 import play.api.{Configuration, Logger}
 import s3.S3
-import utils.{DefaultLoader, SecureEvent, Sha}
+import utils.{DefaultLoader, SecureEvent, Sha, NioLogger}
 
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration.Duration
@@ -37,7 +37,7 @@ class Starter(
 
   def initialize() = {
 
-    implicit val mat: ActorMaterializer = ActorMaterializer()(system)
+    implicit val mat: Materializer = Materializer(system)
 
     // clean up db
     val dbFlush: Boolean = config.get[Boolean]("db.flush")
@@ -80,43 +80,42 @@ class Starter(
         _ <- tenantDataStore.findAll().flatMap {
           tenants =>
             Future.sequence(
-              tenants.map {
-                t =>
+              tenants.map { t =>
                   Future.sequence(
                     Seq(
                       {
-                        Logger.info(s"Ensuring indices for users on ${t.key}")
+                        NioLogger.info(s"Ensuring indices for users on ${t.key}")
                         userDataStore.ensureIndices(t.key)
                       }, {
-                        Logger.info(
+                        NioLogger.info(
                           s"Ensuring indices for consents on ${t.key}")
                         consentFactDataStore.ensureIndices(t.key)
                       }, {
-                        Logger.info(
+                        NioLogger.info(
                           s"Ensuring indices for last consents on ${t.key}")
                         lastConsentFactDataStore.ensureIndices(t.key)
                       }, {
-                        Logger.info(
+                        NioLogger.info(
                           s"Ensuring indices for organisations on ${t.key}")
                         organisationDataStore.ensureIndices(t.key)
                       }, {
-                        Logger.info(
+                        NioLogger.info(
                           s"Ensuring indices for accounts on ${t.key}")
                         accountDataStore.ensureIndices(t.key)
                       }, {
-                        Logger.info(
+                        NioLogger.info(
                           s"Ensuring indices for destroy task on ${t.key}")
                         deletionTaskDataStore.ensureIndices(t.key)
                       }, {
-                        Logger.info(
+                        NioLogger.info(
                           s"Ensuring indices for extraction task on ${t.key}")
                         extractionTaskDataStore.ensureIndices(t.key)
                       }, {
-                        Logger.info(
+                        NioLogger.info(
                           s"Ensuring indices for user extract task on ${t.key}")
                         userExtractTaskDataStore.ensureIndices(t.key)
                       }, {
-                        Logger.info(
+                        NioLogger.info(
                           s"Ensuring indices for user account ${t.key}")
                         userAccountMongoDataStore.ensureIndices(t.key)
                       }
@@ -140,7 +139,7 @@ class Starter(
               val email: String = config.username
               val password: String = config.password
 
-              Logger.info(
+              NioLogger.info(
                 s"create an admin user with email/password = ( $email : $password )")
 
               userAccountMongoDataStore.insertOne(

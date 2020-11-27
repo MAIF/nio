@@ -3,7 +3,7 @@ package controllers
 import java.util.concurrent.TimeUnit
 
 import db.ApiKeyMongoDataStore
-import play.api.Logger
+import utils.NioLogger
 import play.api.libs.json.{JsArray, JsString, JsValue, Json}
 import play.api.libs.ws.WSResponse
 import play.api.test.Helpers._
@@ -15,14 +15,14 @@ import scala.concurrent.duration.Duration
 class ApiKeyControllerSpec extends TestUtils {
 
   private val apiKey: JsValue = Json.obj(
-    "clientId" -> "clientId1",
-    "clientSecret" -> "admin",
+    "clientId"                 -> "clientId1",
+    "clientSecret"             -> "admin",
     "offerRestrictionPatterns" -> Json.arr(JsString("*"))
   )
 
   private val apiKey2: JsValue = Json.obj(
-    "clientId" -> "clientId2",
-    "clientSecret" -> "admin",
+    "clientId"                 -> "clientId2",
+    "clientSecret"             -> "admin",
     "offerRestrictionPatterns" -> Json.arr(JsString("*"))
   )
 
@@ -31,15 +31,14 @@ class ApiKeyControllerSpec extends TestUtils {
     "clean" in {
       val store: ApiKeyMongoDataStore =
         nioComponents.apiKeyMongoDataStore
-      Await.result(store.deleteByQuery("", Json.obj()),
-                   Duration(10, TimeUnit.SECONDS))
+      Await.result(store.deleteByQuery("", Json.obj()), Duration(10, TimeUnit.SECONDS))
     }
 
     "create api key" in {
       val response: WSResponse =
         postJson("/apikeys", apiKey)
 
-      Logger.info(response.body)
+      NioLogger.info(response.body)
       response.status mustBe CREATED
 
       val value: JsValue = response.json
@@ -100,8 +99,8 @@ class ApiKeyControllerSpec extends TestUtils {
     "update api key" in {
 
       val apiKey: JsValue = Json.obj(
-        "clientId" -> "clientId3",
-        "clientSecret" -> "admin",
+        "clientId"                 -> "clientId3",
+        "clientSecret"             -> "admin",
         "offerRestrictionPatterns" -> Json.arr(JsString("*"))
       )
 
@@ -111,9 +110,9 @@ class ApiKeyControllerSpec extends TestUtils {
       val id: String = (createResponse.json \ "_id").as[String]
 
       val apiKeyUpdated: JsValue = Json.obj(
-        "_id" -> id,
-        "clientId" -> "clientId3",
-        "clientSecret" -> "admin123",
+        "_id"                      -> id,
+        "clientId"                 -> "clientId3",
+        "clientSecret"             -> "admin123",
         "offerRestrictionPatterns" -> Json.arr(JsString("test"))
       )
 
