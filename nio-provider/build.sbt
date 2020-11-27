@@ -9,7 +9,7 @@ lazy val `nio-provider` = (project in file("."))
   .enablePlugins(NoPublish)
   .disablePlugins(BintrayPlugin)
 
-scalaVersion := "2.12.4"
+scalaVersion := "2.13.4"
 
 resolvers ++= Seq(
   Resolver.jcenterRepo,
@@ -18,16 +18,16 @@ resolvers ++= Seq(
 
 libraryDependencies ++= Seq(
   ws,
-  "com.typesafe.play" %% "play-json-joda" % playJsonJodaVersion,
-  "com.typesafe.akka" %% "akka-stream-kafka" % akkaStreamKafka,
-  "de.svenkubiak" % "jBCrypt" % "0.4.1", //  ISC/BSD
-  "com.auth0" % "java-jwt" % "3.1.0", // MIT license
-  "com.github.pureconfig" %% "pureconfig" % pureConfig, // Apache 2.0
-  "org.scalactic" %% "scalactic" % scalaticVersion, // Apache 2.0
-  "org.webjars" % "swagger-ui" % "3.12.1",
-  "org.typelevel" %% "cats-core" % catsVersion, // MIT
-  "com.softwaremill.macwire" %% "macros" % macwireVersion % "provided",
-  "org.scalatestplus.play" %% "scalatestplus-play" % scalatestPlay % Test
+  "com.typesafe.play"        %% "play-json-joda"     % playJsonJodaVersion,
+  "com.typesafe.akka"        %% "akka-stream-kafka"  % akkaStreamKafka,
+  "de.svenkubiak"             % "jBCrypt"            % "0.4.1", //  ISC/BSD
+  "com.auth0"                 % "java-jwt"           % "3.1.0", // MIT license
+  "com.github.pureconfig"    %% "pureconfig"         % pureConfig, // Apache 2.0
+  "org.scalactic"            %% "scalactic"          % scalaticVersion, // Apache 2.0
+  "org.webjars"               % "swagger-ui"         % "3.12.1",
+  "org.typelevel"            %% "cats-core"          % catsVersion, // MIT
+  "com.softwaremill.macwire" %% "macros"             % macwireVersion % "provided",
+  "org.scalatestplus.play"   %% "scalatestplus-play" % scalatestPlay  % Test
 )
 
 scalacOptions ++= Seq(
@@ -45,18 +45,18 @@ assemblyJarName in assembly := "nio-provider.jar"
 fullClasspath in assembly += Attributed.blank(PlayKeys.playPackageAssets.value)
 assemblyMergeStrategy in assembly := {
   //case PathList("META-INF", xs @ _*) => MergeStrategy.discard
-  case PathList("javax", xs @ _*) =>
+  case PathList("javax", xs @ _*)                                     =>
     MergeStrategy.first
-  case PathList("org", "apache", "commons", "logging", xs @ _*) =>
+  case PathList("org", "apache", "commons", "logging", xs @ _*)       =>
     MergeStrategy.discard
   case PathList(ps @ _*) if ps.last == "io.netty.versions.properties" =>
     MergeStrategy.first
-  case PathList(ps @ _*) if ps.contains("reference-overrides.conf") =>
+  case PathList(ps @ _*) if ps.contains("reference-overrides.conf")   =>
     MergeStrategy.concat
-  case PathList(ps @ _*) if ps.last endsWith ".conf" => MergeStrategy.concat
-  case PathList(ps @ _*) if ps.contains("buildinfo") =>
+  case PathList(ps @ _*) if ps.last endsWith ".conf"                  => MergeStrategy.concat
+  case PathList(ps @ _*) if ps.contains("buildinfo")                  =>
     MergeStrategy.discard
-  case o =>
+  case o                                                              =>
     val oldStrategy = (assemblyMergeStrategy in assembly).value
     oldStrategy(o)
 }
@@ -96,7 +96,7 @@ dockerCommands :=
   dockerCommands.value.flatMap {
     case ExecCmd("ENTRYPOINT", args @ _*) =>
       Seq(Cmd("ENTRYPOINT", args.mkString(" ")))
-    case v => Seq(v)
+    case v                                => Seq(v)
   }
 
 dockerEntrypoint ++= Seq(

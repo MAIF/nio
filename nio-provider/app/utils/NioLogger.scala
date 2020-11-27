@@ -1,4 +1,5 @@
 package utils
+
 import play.api.{MarkerContext, Logger => PlayLogger}
 
 object NioLogger {
