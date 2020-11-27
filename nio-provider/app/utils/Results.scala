@@ -29,7 +29,7 @@ object Result {
         case None      => AppErrors(errors, fieldErrors + (field -> errors))
       }
 
-    def asJson: JsValue = Json.toJson(this)(AppErrors.format)
+    def asJson(): JsValue = Json.toJson(this)(AppErrors.format)
 
     def isEmpty: Boolean = errors.isEmpty && fieldErrors.isEmpty
   }

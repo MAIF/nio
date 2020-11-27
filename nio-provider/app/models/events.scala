@@ -75,7 +75,7 @@ case class UserExtractTaskAsked(
 ) extends NioEvent {
   override def tYpe: EventType.Value = EventType.UserExtractTaskAsked
 
-  override def asJson: JsValue =
+  override def asJson(): JsValue =
     Json
       .obj(
         "type"     -> tYpe,
@@ -84,7 +84,7 @@ case class UserExtractTaskAsked(
         "metadata" -> buildMetadata(metadata),
         "date"     -> date.toString(DateUtils.utcDateFormatter),
         "id"       -> id,
-        "payload"  -> payload.asJson
+        "payload"  -> payload.asJson()
       )
 
   override def shardId: String = payload.userId
@@ -99,7 +99,7 @@ case class UserExtractTaskCompleted(
 ) extends NioEvent {
   override def tYpe: EventType.Value = EventType.UserExtractTaskCompleted
 
-  override def asJson: JsValue =
+  override def asJson(): JsValue =
     Json
       .obj(
         "type"     -> tYpe,
@@ -108,7 +108,7 @@ case class UserExtractTaskCompleted(
         "metadata" -> buildMetadata(metadata),
         "date"     -> date.toString(DateUtils.utcDateFormatter),
         "id"       -> id,
-        "payload"  -> payload.asJson
+        "payload"  -> payload.asJson()
       )
 
   override def shardId: String = payload.userId
