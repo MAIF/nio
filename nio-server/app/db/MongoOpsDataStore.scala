@@ -80,7 +80,7 @@ object MongoOpsDataStore {
       val search: Future[Seq[T]] = coll
         .find(query)
         .sort(sort)
-        .skip((page - 1) * pageSize)
+        .skip(page * pageSize)
         .cursor[JsValue](ReadPreference.primaryPreferred)
         .collect[Seq](maxDocs = pageSize, err = Cursor.FailOnError[Seq[JsValue]]())
         .map(_.flatMap(_.validate[T].asOpt))
@@ -103,7 +103,7 @@ object MongoOpsDataStore {
       coll
         .find(query)
         .sort(sort)
-        .skip((page - 1) * pageSize)
+        .skip(page * pageSize)
         .cursor[JsValue](ReadPreference.primaryPreferred)
         .collect[Seq](maxDocs = pageSize, Cursor.FailOnError[Seq[JsValue]]())
         .map(_.flatMap(_.validate[T].asOpt))

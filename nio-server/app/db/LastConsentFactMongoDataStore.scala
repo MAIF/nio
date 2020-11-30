@@ -100,7 +100,7 @@ class LastConsentFactMongoDataStore(val mongoApi: ReactiveMongoApi)(implicit val
               )
             }
             .map { e =>
-              e.right.map(_ => true)
+              e.map(_ => true)
             }
       }
 
@@ -187,8 +187,9 @@ class LastConsentFactMongoDataStore(val mongoApi: ReactiveMongoApi)(implicit val
               )
           }
           .reduce(_.merge(_))
-          .alsoTo(Sink.onComplete { case Failure(e) =>
-            NioLogger.error("Error while streaming consents", e)
+          .alsoTo(Sink.onComplete {
+            case Failure(e) => NioLogger.error("Error while streaming consents", e)
+            case _          =>
           })
       }
 
@@ -222,8 +223,9 @@ class LastConsentFactMongoDataStore(val mongoApi: ReactiveMongoApi)(implicit val
           .reduce(_.merge(_))
           .map(docs => docs.map(d => BSONUtils.stringify(d)).mkString("\n"))
           .map(docs => ByteString(docs))
-          .alsoTo(Sink.onComplete { case Failure(e) =>
-            NioLogger.error("Error while streaming consents", e)
+          .alsoTo(Sink.onComplete {
+            case Failure(e) => NioLogger.error("Error while streaming consents", e)
+            case _          =>
           })
       }
 }

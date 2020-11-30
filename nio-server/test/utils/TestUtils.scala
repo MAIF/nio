@@ -9,16 +9,18 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.model.HttpEntity
 import akka.kafka.scaladsl.Consumer
 import akka.kafka.{ConsumerSettings, Subscriptions}
-import akka.stream.ActorMaterializer
+import akka.stream.{ActorMaterializer, Materializer}
 import akka.stream.scaladsl.Sink
 import com.amazonaws.services.s3.model.PutObjectResult
-import com.typesafe.config.ConfigFactory
+import com.typesafe.config.{Config, ConfigFactory}
 import filters.AuthInfoMock
 import loader.NioLoader
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.{ByteArrayDeserializer, StringDeserializer}
 import org.scalatest._
+import org.scalatest.matchers.must
+import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatestplus.play.{BaseOneServerPerSuite, FakeApplicationFactory, PlaySpec}
 import play.api.inject.DefaultApplicationLifecycle
 import play.api.libs.json.{JsValue, Json}
@@ -47,13 +49,19 @@ trait TestUtils
     extends PlaySpec
     with BaseOneServerPerSuite
     with FakeApplicationFactory
-    with WordSpecLike
-    with MustMatchers
+    with AnyWordSpecLike
+    with must.Matchers
     with OptionValues
     with BeforeAndAfterAll {
 
-  protected val serverHost: String = s"http://localhost:${this.port}"
-  protected val apiPath: String    = s"$serverHost/api"
+  protected implicit val actorSystem  = ActorSystem("test")
+  protected implicit val materializer = Materializer(actorSystem)
+
+  def kafkaPort: Int                    = 9092
+  def mongoPort: Int                    = 27018
+  def tenant: String                    = "test"
+  protected lazy val serverHost: String = s"http://localhost:${this.port}"
+  protected lazy val apiPath: String    = s"$serverHost/api"
 
   private val jsonHeaders: Seq[(String, String)] = Seq(
     ACCEPT       -> JSON,
@@ -65,13 +73,27 @@ trait TestUtils
     CONTENT_TYPE -> XML
   )
 
-  val kafkaPort = 9092
-  val mongoPort = 27018
-  val tenant    = "test"
-
-  private lazy val actorSystem                 = ActorSystem("test")
-  implicit val materializer: ActorMaterializer =
-    ActorMaterializer()(actorSystem)
+  def extraConfig(): Config = {
+    val mongoUrl = s"mongodb://localhost:$mongoPort/nio-test"
+    ConfigFactory
+      .parseString(s"""
+                      |nio.mongo.url="$mongoUrl"
+		       |nio.db.batchSize=1
+                      |mongodb.uri="$mongoUrl"
+                      |tenant.admin.secret="secret"
+                      |db.flush=true
+                      |nio.s3Config.v4Auth="false"
+                      |nio.kafka.port=$kafkaPort
+                      |nio.kafka.servers="127.0.0.1:$kafkaPort"
+                      |nio.kafka.topic="$kafkaTopic"
+                      |nio.kafka.eventsGroupIn=10000
+                      |nio.s3ManagementEnabled=false
+                      |nio.mailSendingEnable=false
+                      |db.tenants=["$tenant"]
+                      |nio.filter.securityMode="default"
+       """.stripMargin)
+      .resolve()
+  }
 
   protected lazy val authInfo: AuthInfoMock = new AuthInfoTest
 
@@ -83,19 +105,16 @@ trait TestUtils
   protected lazy val consentManagerService: ConsentManagerService =
     nioComponents.consentManagerService
 
-  private lazy val getContext: ApplicationLoader.Context = {
+  private def getContext: ApplicationLoader.Context = {
     val env           = Environment.simple()
     val configuration = Configuration.load(env)
 
-    val context = ApplicationLoader.Context(
+    ApplicationLoader.Context(
       environment = env,
-      sourceMapper = None,
-      webCommands = new DefaultWebCommands(),
-      initialConfiguration = configuration ++ extraConfig,
+      devContext = None,
+      initialConfiguration = Configuration(extraConfig().withFallback(configuration.underlying).resolve()),
       lifecycle = new DefaultApplicationLifecycle()
     )
-
-    context
   }
 
   override def fakeApplication(): Application =
@@ -155,30 +174,6 @@ trait TestUtils
 
   val kafkaTopic = "test-nio-consent-events"
 
-  val extraConfig: Configuration = {
-    val mongoUrl = s"mongodb://localhost:$mongoPort/nio-test"
-    Configuration(
-      ConfigFactory
-        .parseString(s"""
-           |nio.mongo.url="$mongoUrl"
-		   |nio.db.batchSize=1
-           |mongodb.uri="$mongoUrl"
-           |tenant.admin.secret="secret"
-           |db.flush=true
-           |nio.s3Config.v4Auth="false"
-           |nio.kafka.port=$kafkaPort
-           |nio.kafka.servers="127.0.0.1:$kafkaPort"
-           |nio.kafka.topic=$kafkaTopic
-           |nio.kafka.eventsGroupIn=10000
-           |nio.s3ManagementEnabled=false
-           |nio.mailSendingEnable=false
-           |db.tenants=["$tenant"]
-           |nio.filter.securityMode="default"
-       """.stripMargin)
-        .resolve()
-    )
-  }
-
   private def consumerSettings: ConsumerSettings[Array[Byte], String] =
     ConsumerSettings(actorSystem, new ByteArrayDeserializer, new StringDeserializer)
       .withBootstrapServers(s"127.0.0.1:$kafkaPort")
@@ -188,12 +183,12 @@ trait TestUtils
   def readLastKafkaEvent(): JsValue = {
     Thread.sleep(500)
 
-    import scala.collection.JavaConverters._
+    import scala.jdk.CollectionConverters._
 
     val partition                                            = new TopicPartition(kafkaTopic, 0)
     val partitionToLong: util.Map[TopicPartition, lang.Long] = consumerSettings
       .createKafkaConsumer()
-      .endOffsets(List(partition).asJavaCollection)
+      .endOffsets(List(partition).asJava)
 
     val lastOffset: Long = partitionToLong.get(partition)
 
@@ -214,11 +209,11 @@ trait TestUtils
 
     val partition = new TopicPartition(kafkaTopic, 0)
 
-    import scala.collection.JavaConverters._
+    import scala.jdk.CollectionConverters._
 
     val partitionToLong: util.Map[TopicPartition, lang.Long] = consumerSettings
       .createKafkaConsumer()
-      .endOffsets(List(partition).asJavaCollection)
+      .endOffsets(List(partition).asJava)
 
     val lastOffset: Long = partitionToLong.get(partition)
 

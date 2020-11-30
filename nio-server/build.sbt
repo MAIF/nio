@@ -9,7 +9,7 @@ lazy val `nio-server` = (project in file("."))
   .enablePlugins(NoPublish)
   .disablePlugins(BintrayPlugin)
 
-scalaVersion := "2.13.4"
+scalaVersion := "2.13.3"
 
 resolvers ++= Seq(
   Resolver.jcenterRepo,
@@ -18,6 +18,8 @@ resolvers ++= Seq(
 
 libraryDependencies ++= Seq(
   ws,
+  "com.typesafe.akka"        %% "akka-http"                % "10.1.12",
+  "com.typesafe.akka"        %% "akka-http-xml"            % "10.1.12",
   "com.typesafe.play"        %% "play-json-joda"           % playJsonJodaVersion,
   "org.reactivemongo"        %% "play2-reactivemongo"      % s"$reactiveMongoVersion-play28",
   "org.reactivemongo"        %% "reactivemongo-akkastream" % reactiveMongoVersion,
@@ -30,7 +32,6 @@ libraryDependencies ++= Seq(
   "org.webjars"               % "swagger-ui"               % "3.12.1",
   "org.typelevel"            %% "cats-core"                % catsVersion, // MIT
   "com.softwaremill.macwire" %% "macros"                   % macwireVersion % "provided",
-  // https://mvnrepository.com/artifact/com.amazonaws/aws-java-sdk-s3
   "com.amazonaws"             % "aws-java-sdk-s3"          % "1.11.224", // Apache 2.0
   "io.dropwizard.metrics"     % "metrics-core"             % metricsVersion, // Apache 2.0
   "io.dropwizard.metrics"     % "metrics-json"             % metricsVersion, // Apache 2.0

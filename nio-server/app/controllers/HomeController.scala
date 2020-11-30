@@ -10,7 +10,7 @@ import controllers.ErrorManager.ErrorManagerResult
 import db.TenantMongoDataStore
 import play.api.mvc.{ActionBuilder, AnyContent, ControllerComponents}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.concurrent.ExecutionContext
 
 class HomeController(
@@ -19,8 +19,8 @@ class HomeController(
     val tenantStore: TenantMongoDataStore,
     val env: Env,
     val actorSystem: ActorSystem,
-    implicit val ec: ExecutionContext)
-    extends ControllerUtils(cc) {
+    implicit val ec: ExecutionContext
+) extends ControllerUtils(cc) {
 
   val accountManagement: Boolean = env.config.filter.securityMode match {
     case "default"  => true
@@ -38,11 +38,11 @@ class HomeController(
 
   private lazy val redirectSecurity: String = {
     env.config.filter.securityMode match {
-      case "auth0" =>
+      case "auth0"   =>
         s"${env.config.baseUrl}/auth0/login"
       case "default" =>
         s"${env.config.baseUrl}/login"
-      case _ =>
+      case _         =>
         s"${env.config.baseUrl}/login"
     }
   }
@@ -51,10 +51,8 @@ class HomeController(
     .readAllLines(env.environment.getFile("conf/swagger/swagger.json").toPath)
     .asScala
     .mkString("\n")
-    .replace("$CLIENT_ID",
-             env.config.filter.otoroshi.headerGatewayHeaderClientId)
-    .replace("$CLIENT_SECRET",
-             env.config.filter.otoroshi.headerGatewayHeaderClientSecret)
+    .replace("$CLIENT_ID", env.config.filter.otoroshi.headerGatewayHeaderClientId)
+    .replace("$CLIENT_SECRET", env.config.filter.otoroshi.headerGatewayHeaderClientSecret)
 
   def index(tenant: String) = AuthAction.async { implicit req =>
     req.authInfo match {
@@ -63,16 +61,13 @@ class HomeController(
           case Some(_) =>
             Ok(
               views.html
-                .index(env,
-                       tenant,
-                       req.email,
-                       accountManagement,
-                       apiKeyManagement))
-          case None => "error.tenant.not.found".notFound()
+                .index(env, tenant, req.email, accountManagement, apiKeyManagement)
+            )
+          case None    => "error.tenant.not.found".notFound()
         }
-      case Some(_) =>
+      case Some(_)                            =>
         FastFuture.successful("error.forbidden.backoffice.access".forbidden())
-      case None =>
+      case None                               =>
         FastFuture.successful(Redirect(redirectSecurity))
     }
   }
@@ -82,10 +77,11 @@ class HomeController(
       case Some(authInfo) if authInfo.isAdmin =>
         Ok(
           views.html
-            .indexNoTenant(env, req.email, accountManagement, apiKeyManagement))
-      case Some(_) =>
+            .indexNoTenant(env, req.email, accountManagement, apiKeyManagement)
+        )
+      case Some(_)                            =>
         "error.forbidden.backoffice.access".forbidden()
-      case None =>
+      case None                               =>
         Redirect(redirectSecurity)
     }
   }
@@ -96,26 +92,22 @@ class HomeController(
 
   def indexOther(tenant: String) = index(tenant)
 
-  def otherRoutes(tenant: String, route: String) = AuthAction.async {
-    implicit req =>
-      req.authInfo match {
-        case Some(authInfo) if authInfo.isAdmin =>
-          tenantStore.findByKey(tenant).map {
-            case Some(_) =>
-              Ok(
-                views.html
-                  .index(env,
-                         tenant,
-                         req.email,
-                         accountManagement,
-                         apiKeyManagement))
-            case None => "error.tenant.not.found".notFound()
-          }
-        case Some(_) =>
-          FastFuture.successful("error.forbidden.backoffice.access".forbidden())
-        case None =>
-          FastFuture.successful(Redirect(redirectSecurity))
-      }
+  def otherRoutes(tenant: String, route: String) = AuthAction.async { implicit req =>
+    req.authInfo match {
+      case Some(authInfo) if authInfo.isAdmin =>
+        tenantStore.findByKey(tenant).map {
+          case Some(_) =>
+            Ok(
+              views.html
+                .index(env, tenant, req.email, accountManagement, apiKeyManagement)
+            )
+          case None    => "error.tenant.not.found".notFound()
+        }
+      case Some(_)                            =>
+        FastFuture.successful("error.forbidden.backoffice.access".forbidden())
+      case None                               =>
+        FastFuture.successful(Redirect(redirectSecurity))
+    }
   }
 
   def swagger() = AuthAction { req =>

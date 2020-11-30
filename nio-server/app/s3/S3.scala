@@ -16,7 +16,7 @@ import models.{ExtractionTask, ExtractionTaskStatus}
 import org.joda.time.{DateTime, DateTimeZone, Days}
 import utils.NioLogger
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -51,7 +51,7 @@ class S3(val conf: S3Configuration, val system: ActorSystem, val tenantStore: Te
   }
 
   def applyExpirationConfig = {
-    println("Applying expiration configuration to bucket ")
+    NioLogger.info("Applying expiration configuration to bucket ")
     val configuration = client.getBucketLifecycleConfiguration(conf.bucketName)
 
     // Add a new rule
@@ -107,12 +107,7 @@ class S3(val conf: S3Configuration, val system: ActorSystem, val tenantStore: Te
                               )
                             }
                           }.toSeq
-                          val deleteReq =
-                            new DeleteObjectsRequest(conf.bucketName)
-                              .withKeys(
-                                scala.collection.JavaConverters
-                                  .seqAsJavaList(keys)
-                              )
+                          val deleteReq = new DeleteObjectsRequest(conf.bucketName).withKeys(keys.asJava)
                           client.deleteObjects(deleteReq)
                           task.expire(tenant.key)
                         }

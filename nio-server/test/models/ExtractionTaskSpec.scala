@@ -1,11 +1,10 @@
 package models
 
-import org.scalatest.WordSpecLike
-import org.scalatestplus.play.PlaySpec
-import utils.NioLogger
+import org.scalatest.wordspec.AnyWordSpecLike
 import utils.UploadTracker
+import org.scalatest.matchers.must.Matchers
 
-class ExtractionTaskSpec extends PlaySpec with WordSpecLike {
+class ExtractionTaskSpec extends AnyWordSpecLike with Matchers {
 
   val orgKey = "zeorg"
 
@@ -15,7 +14,7 @@ class ExtractionTaskSpec extends PlaySpec with WordSpecLike {
       val xml     = input.asXml()
       val fromXml = FilesMetadata.fromXml(xml)
 
-      NioLogger.info(s"=======> fromXml $fromXml")
+      println(s"=======> fromXml $fromXml")
       fromXml mustBe Right(input)
     }
   }

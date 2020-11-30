@@ -223,7 +223,7 @@ class UserExtractController(
     val decoded =
       verifier.verify(new String(Base64.getDecoder.decode(token.getBytes())))
 
-    import scala.collection.JavaConverters._
+    import scala.jdk.CollectionConverters._
     val claims = decoded.getClaims.asScala
 
     val maybeTuple: Option[(String, String, String, String, String, String)] =

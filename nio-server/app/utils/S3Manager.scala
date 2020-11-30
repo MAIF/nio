@@ -24,6 +24,7 @@ import com.amazonaws.services.s3.model.lifecycle.{
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 import configuration.{Env, S3Config}
 
+import scala.jdk.CollectionConverters._
 import scala.concurrent.{ExecutionContext, Future}
 
 trait FSManager {
@@ -168,8 +169,7 @@ class S3Manager(env: Env, actorSystem: ActorSystem) extends FSManager with FSUse
             results :+ uploadResult
           }
           .map { results =>
-            val tags            = scala.collection.JavaConverters
-              .seqAsJavaList(results.map(_.getPartETag))
+            val tags            = results.map(_.getPartETag).asJava
             val completeRequest =
               new CompleteMultipartUploadRequest(bucketName, key, uploadId, tags)
             val result          = amazonS3.completeMultipartUpload(completeRequest)

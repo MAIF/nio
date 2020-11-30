@@ -309,7 +309,7 @@ sealed trait ValidatorUtils {
 
   def sequence[A, B](s: Seq[Either[A, B]]): Either[A, Seq[B]] =
     s.foldRight(Right(Nil): Either[A, List[B]]) { (e, acc) =>
-      for (xs <- acc.right; x <- e.right) yield x :: xs
+      for (xs <- acc; x <- e) yield x :: xs
     }
 
   def sequence[A](s: Seq[ValidationResult[A]]): ValidationResult[List[A]] =

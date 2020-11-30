@@ -10,7 +10,7 @@ import messaging.KafkaSettings
 import org.apache.kafka.clients.consumer.Consumer
 import play.api.mvc.{ActionBuilder, AnyContent, ControllerComponents}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.concurrent.{ExecutionContext, Future}
 
 class MetricsController(

@@ -1,9 +1,9 @@
 package models
 
-import org.scalatest.WordSpecLike
-import org.scalatestplus.play.PlaySpec
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 
-class TenantSpec extends PlaySpec with WordSpecLike {
+class TenantSpec extends AnyWordSpecLike with Matchers {
 
   "Tenant" should {
 

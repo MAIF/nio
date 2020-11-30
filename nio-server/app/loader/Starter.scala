@@ -9,7 +9,7 @@ import akka.stream.Materializer
 import configuration.Env
 import db.{UserExtractTaskDataStore, _}
 import models.{NioAccount, Tenant}
-import play.api.{Configuration, Logger}
+import play.api.{Configuration}
 import s3.S3
 import utils.{DefaultLoader, SecureEvent, Sha, NioLogger}
 

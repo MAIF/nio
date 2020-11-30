@@ -1,6 +1,7 @@
 package controllers
 
 import java.io.ByteArrayInputStream
+import java.util
 
 import akka.actor.ActorSystem
 import akka.stream.Materializer
@@ -10,6 +11,7 @@ import auth._
 import com.amazonaws.services.s3.model.{
   CompleteMultipartUploadRequest,
   InitiateMultipartUploadRequest,
+  PartETag,
   UploadPartRequest,
   UploadPartResult
 }
@@ -25,6 +27,8 @@ import utils.UploadTracker
 import scala.concurrent.{ExecutionContext, Future}
 import ErrorManager.ErrorManagerResult
 import ErrorManager.AppErrorManagerResult
+
+import scala.jdk.CollectionConverters._
 
 class ExtractionController(
     val AuthAction: ActionBuilder[SecuredAuthContext, AnyContent],
@@ -225,11 +229,10 @@ class ExtractionController(
         results :+ uploadResult
       }
       .map { results =>
-        val tags            = scala.collection.JavaConverters
-          .seqAsJavaList(results.map(_.getPartETag))
-        val completeRequest =
+        val tags: util.List[PartETag] = results.map(_.getPartETag).asJava
+        val completeRequest           =
           new CompleteMultipartUploadRequest(s3Conf.bucketName, uploadKey, uploadId, tags)
-        val result          = s3.client.completeMultipartUpload(completeRequest)
+        val result                    = s3.client.completeMultipartUpload(completeRequest)
         result.getLocation
       }
   }

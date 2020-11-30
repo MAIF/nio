@@ -1,10 +1,11 @@
 package models
 
 import org.joda.time.{DateTime, DateTimeZone}
-import org.scalatest.{MustMatchers, WordSpecLike}
+import org.scalatest.wordspec.AnyWordSpecLike
+import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.play.PlaySpec
 
-class ConsentFactSpec extends PlaySpec with WordSpecLike with MustMatchers {
+class ConsentFactSpec extends PlaySpec with AnyWordSpecLike with Matchers {
 
   "ConsentFact" should {
 

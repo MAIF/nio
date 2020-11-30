@@ -19,7 +19,7 @@ import utils.NioLogger
 import play.api.libs.json.Json
 import utils.{FSManager, S3ExecutionContext}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.control.NonFatal

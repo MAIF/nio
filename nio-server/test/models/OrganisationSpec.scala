@@ -1,10 +1,9 @@
 package models
 
-import org.scalatest.WordSpecLike
+import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatestplus.play.PlaySpec
-import utils.NioLogger
 
-class OrganisationSpec extends PlaySpec with WordSpecLike {
+class OrganisationSpec extends PlaySpec with AnyWordSpecLike {
 
   "Organisation" should {
 

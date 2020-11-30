@@ -12,7 +12,7 @@ object NioLogger {
     logger.debug(message, error)(mc)
 
   def info(message: => String)(implicit mc: MarkerContext): Unit =
-    NioLogger.info(message)(mc)
+    logger.info(message)(mc)
 
   def warn(message: => String)(implicit mc: MarkerContext): Unit =
     logger.warn(message)(mc)

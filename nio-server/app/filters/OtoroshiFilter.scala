@@ -75,7 +75,7 @@ class OtoroshiFilter(env: Env, authInfoMock: AuthInfoMock)(implicit ec: Executio
             .build()
           val decoded   = verifier.verify(maybeClaim.get)
 
-          import scala.collection.JavaConverters._
+          import scala.jdk.CollectionConverters._
           val claims = decoded.getClaims.asScala
 
           val maybeSub = claims.get("sub").map(_.asString())
@@ -178,7 +178,7 @@ class OtoroshiFilter(env: Env, authInfoMock: AuthInfoMock)(implicit ec: Executio
                                         .map(_.asString)
                                         .flatMap(str => Try(str.toBoolean).toOption)
                                         .getOrElse(false)
-      metadatas                     = claims
+      metadatas                     = claims.view
                                         .filterKeys(header => header.startsWith("metadata"))
                                         .map(header => (header._1.replaceFirst("metadata.", ""), header._2.asString()))
                                         .toSeq

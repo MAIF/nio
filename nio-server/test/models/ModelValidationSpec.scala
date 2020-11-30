@@ -3,14 +3,14 @@ package models
 import org.joda.time.{DateTime, DateTimeZone}
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
-import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.JsValue
 import utils.DateUtils
 import utils.Result.AppErrors
 
 import scala.xml.Elem
 
-class ModelValidationSpec extends PlaySpec with AnyWordSpecLike with Matchers {
+class ModelValidationSpec extends AnyWordSpecLike with Matchers {
+
   val now: DateTime = DateTime.now(DateTimeZone.UTC)
 
   "Validation ConsentFact" should {
