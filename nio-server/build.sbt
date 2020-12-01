@@ -51,6 +51,7 @@ scalacOptions ++= Seq(
 
 /// ASSEMBLY CONFIG
 
+parallelExecution in Test := false
 mainClass in assembly := Some("play.core.server.ProdServerStart")
 test in assembly := {}
 assemblyJarName in assembly := "nio.jar"

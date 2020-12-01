@@ -76,29 +76,6 @@ class UserControllerSpec extends TestUtils {
   "UserController" should {
 
     "list all users" in {
-      val createOrg1 = postJson(s"/$tenant/organisations", org1AsJson)
-      createOrg1.status mustBe CREATED
-
-      val releaseOrg1 =
-        postJson(s"/$tenant/organisations/$org1key/draft/_release", org1AsJson)
-      releaseOrg1.status mustBe OK
-
-      val createOrg2 = postJson(s"/$tenant/organisations", org2AsJson)
-      createOrg2.status mustBe CREATED
-
-      val releaseOrg2 =
-        postJson(s"/$tenant/organisations/$org2key/draft/_release", org2AsJson)
-      releaseOrg2.status mustBe OK
-
-      val createUser1 =
-        putJson(s"/$tenant/organisations/$org1key/users/$userId1", user1Org1AsJson)
-
-      createUser1.status mustBe OK
-
-      val createUser2 =
-        putJson(s"/$tenant/organisations/$org2key/users/$userId2", user2Org2AsJson)
-
-      createUser2.status mustBe OK
 
       val response = getJson(s"/$tenant/users")
 
@@ -216,4 +193,37 @@ class UserControllerSpec extends TestUtils {
 
   }
 
+  private def initUsers() = {
+    val createOrg1 = postJson(s"/$tenant/organisations", org1AsJson)
+    createOrg1.status mustBe CREATED
+
+    val releaseOrg1 =
+      postJson(s"/$tenant/organisations/$org1key/draft/_release", org1AsJson)
+    releaseOrg1.status mustBe OK
+
+    val createOrg2 = postJson(s"/$tenant/organisations", org2AsJson)
+    createOrg2.status mustBe CREATED
+
+    val releaseOrg2 =
+      postJson(s"/$tenant/organisations/$org2key/draft/_release", org2AsJson)
+    releaseOrg2.status mustBe OK
+
+    val createUser1 =
+      putJson(s"/$tenant/organisations/$org1key/users/$userId1", user1Org1AsJson)
+
+    createUser1.status mustBe OK
+
+    val createUser2 =
+      putJson(s"/$tenant/organisations/$org2key/users/$userId2", user2Org2AsJson)
+
+    createUser2.status mustBe OK
+  }
+
+  override protected def beforeEach(): Unit = {
+    cleanAll()
+    initUsers()
+  }
+
+  override protected def afterEach(): Unit =
+    cleanAll()
 }
