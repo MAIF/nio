@@ -20,6 +20,7 @@ import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.{ByteArrayDeserializer, StringDeserializer}
 import org.scalatest._
 import org.scalatest.matchers.must
+import org.scalatest.time.SpanSugar.convertIntToGrainOfTime
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatestplus.play.{BaseOneServerPerSuite, FakeApplicationFactory, PlaySpec}
 import play.api.inject.DefaultApplicationLifecycle
@@ -32,7 +33,7 @@ import play.modules.reactivemongo.ReactiveMongoApi
 import reactivemongo.api.bson.collection.BSONCollection
 import service.ConsentManagerService
 
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.xml.Elem
 
@@ -52,6 +53,7 @@ trait TestUtils
     with AnyWordSpecLike
     with must.Matchers
     with OptionValues
+    with BeforeAndAfterEach
     with BeforeAndAfterAll {
 
   protected implicit val actorSystem  = ActorSystem("test")
@@ -121,8 +123,9 @@ trait TestUtils
     new NioTestLoader(Some(authInfo)).load(getContext)
 
   override protected def beforeAll(): Unit = {}
+  override protected def afterAll(): Unit     = cleanAll()
 
-  override protected def afterAll(): Unit = {
+  protected def cleanAll(): Unit = {
     implicit val executionContext: ExecutionContext =
       nioComponents.executionContext
     val reactiveMongoApi: ReactiveMongoApi          = nioComponents.reactiveMongoApi
@@ -141,30 +144,25 @@ trait TestUtils
     }
 
     // clean mongo data
-    getStoredCollection(reactiveMongoApi, s"$tenant-userExtractTask")
-      .flatMap(delete(Json.obj()))
-    getStoredCollection(reactiveMongoApi, s"$tenant-accounts")
-      .flatMap(delete(Json.obj()))
-    getStoredCollection(reactiveMongoApi, s"$tenant-consentFacts")
-      .flatMap(delete(Json.obj()))
-    getStoredCollection(reactiveMongoApi, s"$tenant-lastConsentFacts")
-      .flatMap(delete(Json.obj()))
-    getStoredCollection(reactiveMongoApi, s"$tenant-deletionTasks")
-      .flatMap(delete(Json.obj()))
-    getStoredCollection(reactiveMongoApi, s"$tenant-extractionTasks")
-      .flatMap(delete(Json.obj()))
-    getStoredCollection(reactiveMongoApi, s"$tenant-organisations")
-      .flatMap(delete(Json.obj()))
-    getStoredCollection(reactiveMongoApi, s"$tenant-users")
-      .flatMap(delete(Json.obj()))
+    val cleanUp = for {
+      _                 <- getStoredCollection(reactiveMongoApi, s"$tenant-userExtractTask").flatMap(delete(Json.obj()))
+      _                 <- getStoredCollection(reactiveMongoApi, s"$tenant-accounts").flatMap(delete(Json.obj()))
+      _                 <- getStoredCollection(reactiveMongoApi, s"$tenant-consentFacts").flatMap(delete(Json.obj()))
+      _                 <- getStoredCollection(reactiveMongoApi, s"$tenant-lastConsentFacts").flatMap(delete(Json.obj()))
+      _                 <- getStoredCollection(reactiveMongoApi, s"$tenant-deletionTasks").flatMap(delete(Json.obj()))
+      _                 <- getStoredCollection(reactiveMongoApi, s"$tenant-extractionTasks").flatMap(delete(Json.obj()))
+      _                 <- getStoredCollection(reactiveMongoApi, s"$tenant-organisations").flatMap(delete(Json.obj()))
+      _                 <- getStoredCollection(reactiveMongoApi, s"$tenant-users").flatMap(delete(Json.obj()))
+      tenantsCollection <- getStoredCollection(reactiveMongoApi, "tenants")
+      _                 <- delete(Json.obj("key" -> tenant))(tenantsCollection)
+      _                 <- delete(Json.obj("key" -> "newTenant"))(tenantsCollection)
+      _                 <- delete(Json.obj("key" -> "testTenantXml"))(tenantsCollection)
+      _                 <- delete(Json.obj("key" -> "testTenantJson"))(tenantsCollection)
+      _                 <- delete(Json.obj("key" -> "newTenant1"))(tenantsCollection)
+      _                 <- delete(Json.obj("key" -> "newTenantAlreadyExist"))(tenantsCollection)
+    } yield ()
 
-    val tenantsCollection = getStoredCollection(reactiveMongoApi, "tenants")
-    tenantsCollection.flatMap(delete(Json.obj("key" -> tenant)))
-    tenantsCollection.flatMap(delete(Json.obj("key" -> "newTenant")))
-    tenantsCollection.flatMap(delete(Json.obj("key" -> "testTenantXml")))
-    tenantsCollection.flatMap(delete(Json.obj("key" -> "testTenantJson")))
-    tenantsCollection.flatMap(delete(Json.obj("key" -> "newTenant1")))
-    tenantsCollection.flatMap(delete(Json.obj("key" -> "newTenantAlreadyExist")))
+    Await.result(cleanUp, 5 seconds span)
   }
 
   def getStoredCollection(reactiveMongoApi: ReactiveMongoApi, collectionName: String)(implicit
