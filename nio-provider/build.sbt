@@ -44,19 +44,18 @@ test in assembly := {}
 assemblyJarName in assembly := "nio-provider.jar"
 fullClasspath in assembly += Attributed.blank(PlayKeys.playPackageAssets.value)
 assemblyMergeStrategy in assembly := {
-  //case PathList("META-INF", xs @ _*) => MergeStrategy.discard
-  case PathList("javax", xs @ _*)                                     =>
-    MergeStrategy.first
-  case PathList("org", "apache", "commons", "logging", xs @ _*)       =>
-    MergeStrategy.discard
-  case PathList(ps @ _*) if ps.last == "io.netty.versions.properties" =>
-    MergeStrategy.first
-  case PathList(ps @ _*) if ps.contains("reference-overrides.conf")   =>
-    MergeStrategy.concat
-  case PathList(ps @ _*) if ps.last endsWith ".conf"                  => MergeStrategy.concat
-  case PathList(ps @ _*) if ps.contains("buildinfo")                  =>
-    MergeStrategy.discard
-  case o                                                              =>
+  case PathList("javax", xs @ _*)                                             => MergeStrategy.first
+  case PathList("META-INF", "native", xs @ _*)                                => MergeStrategy.first
+  case PathList("org", "apache", "commons", "logging", xs @ _*)               => MergeStrategy.discard
+  case PathList(xs @ _*) if xs.lastOption.contains("module-info.class")       => MergeStrategy.first
+  case PathList(xs @ _*) if xs.lastOption.contains("mime.types")              => MergeStrategy.first
+  case PathList(ps @ _*) if ps.last == "io.netty.versions.properties"         => MergeStrategy.first
+  case PathList(ps @ _*) if ps.contains("reference-overrides.conf")           => MergeStrategy.concat
+  case PathList(ps @ _*) if ps.contains("native-image.properties")            => MergeStrategy.first
+  case PathList(ps @ _*) if ps.last endsWith ".conf"                          => MergeStrategy.concat
+  case PathList(ps @ _*) if ps.contains("buildinfo")                          => MergeStrategy.discard
+  case PathList(ps @ _*) if ps.last endsWith "reflection-config.json"         => MergeStrategy.first
+  case o =>
     val oldStrategy = (assemblyMergeStrategy in assembly).value
     oldStrategy(o)
 }
