@@ -2,11 +2,10 @@ package messaging
 
 import java.io.Closeable
 import java.security.MessageDigest
-
 import akka.actor.ActorSystem
 import akka.kafka.ConsumerMessage.CommittableOffsetBatch
-import akka.kafka.{ProducerSettings, Subscriptions}
-import akka.kafka.scaladsl.Consumer
+import akka.kafka.{CommitterSettings, ConsumerMessage, ProducerSettings, Subscriptions}
+import akka.kafka.scaladsl.{Committer, Consumer}
 import akka.stream.Materializer
 import akka.stream.scaladsl.Keep.both
 import akka.stream.scaladsl.{Flow, Source}
@@ -23,7 +22,7 @@ import scala.jdk.CollectionConverters._
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.control.NonFatal
-import scala.collection.Seq
+import scala.collection.{Seq, immutable}
 
 class KafkaMessageBroker(actorSystem: ActorSystem)(implicit context: ExecutionContext, env: Env, s3Manager: FSManager)
     extends Closeable {
@@ -118,36 +117,31 @@ class KafkaMessageBroker(actorSystem: ActorSystem)(implicit context: ExecutionCo
       m: Materializer
   ): Source[Done, (Consumer.Control, Future[Done])] = {
 
+    val committerFlow = Committer.batchFlow(CommitterSettings(actorSystem))
     val source: Source[Done, (Consumer.Control, Future[Done])] = Consumer
-      .committableSource(consumerSettings, Subscriptions.topics(env.config.kafka.topic))
-      .groupBy(partitions.size, _.record.partition())
-      .groupedWithin(groupIn, groupDuration)
-      .filter(_.nonEmpty)
-      .mapAsync(1) { messages =>
-        val message: String     = messages
-          .map(_.record)
-          .map(_.value())
-          .mkString("\n")
-        NioLogger.info(s"message readed $message")
-        val digestValue: String = digest(message)
-        s3Manager
-          .addFile(digestValue, message + "\n" + digestValue)
-          .flatMap { _ =>
-            publishEvent(SecuredEvent(payload = Digest(digestValue))) // TODO : choose partition
+      .committablePartitionedSource(consumerSettings, Subscriptions.topics(env.config.kafka.topic))
+      .flatMapMerge(partitions.size, { case (_, messagesStream) =>
+        messagesStream
+          .groupedWithin(groupIn, groupDuration)
+          .filter(_.nonEmpty)
+          .mapAsync(1) { messages =>
+            val message: String = messages
+              .map(_.record)
+              .map(_.value())
+              .mkString("\n")
+            NioLogger.info(s"message readed $message")
+            val digestValue: String = digest(message)
+            s3Manager
+              .addFile(digestValue, message + "\n" + digestValue)
+              .flatMap { _ =>
+                publishEvent(SecuredEvent(payload = Digest(digestValue))) // TODO : choose partition
+              }
+              .map(_ => messages.map(_.committableOffset))
           }
-          .flatMap { _ =>
-            val batchFold =
-              messages
-                .map(_.committableOffset)
-                .foldLeft(CommittableOffsetBatch.empty) { (batch, elem) =>
-                  batch.updated(elem)
-                }
-
-            batchFold.commitScaladsl()
-
-          }
-      }
-      .mergeSubstreams
+          .mapConcat(_.toList)
+          .via(committerFlow)
+          .map(_ => Done)
+      })
       .watchTermination()(both)
 
     source

@@ -9,4 +9,5 @@ object Dependencies {
   val metricsVersion       = "4.0.2"
   val alpakkaS3Version     = "2.0.2"
   val scalatestPlay        = "5.1.0"
+  val javaJwt              = "3.11.0"
 }

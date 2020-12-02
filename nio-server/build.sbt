@@ -32,7 +32,7 @@ libraryDependencies ++= Seq(
   "org.webjars"               % "swagger-ui"               % "3.12.1",
   "org.typelevel"            %% "cats-core"                % catsVersion, // MIT
   "com.softwaremill.macwire" %% "macros"                   % macwireVersion % "provided",
-  "com.amazonaws"             % "aws-java-sdk-s3"          % "1.11.224", // Apache 2.0
+  "com.amazonaws"             % "aws-java-sdk-s3"          % "1.11.909", // Apache 2.0
   "io.dropwizard.metrics"     % "metrics-core"             % metricsVersion, // Apache 2.0
   "io.dropwizard.metrics"     % "metrics-json"             % metricsVersion, // Apache 2.0
   "io.dropwizard.metrics"     % "metrics-jvm"              % metricsVersion, // Apache 2.0
