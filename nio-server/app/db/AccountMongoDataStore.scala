@@ -28,7 +28,7 @@ class AccountMongoDataStore(val mongoApi: ReactiveMongoApi)(implicit val executi
     findOneByQuery(tenant, Json.obj("accountId" -> accountId))
 
   def findAll(tenant: String, page: Int, pageSize: Int): Future[Seq[Account]]     =
-    findManyByQueryPaginate(tenant = tenant, query = Json.obj(), page = page, pageSize = pageSize)
+    findManyByQueryPaginate(tenant = tenant, query = Json.obj(), sort = Json.obj("accountId" -> 1), page = page, pageSize = pageSize)
 
   def update(tenant: String, accountId: String, account: Account): Future[Boolean] =
     updateOneByQuery(tenant, Json.obj("accountId" -> accountId), account)

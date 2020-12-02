@@ -58,6 +58,7 @@ class LastConsentFactMongoDataStore(val mongoApi: ReactiveMongoApi)(implicit val
     findManyByQueryPaginateCount(
       tenant = tenant,
       query = Json.obj("userId" -> userId),
+      sort = Json.obj("orgKey" -> 1, "userId" -> 1),
       page = page,
       pageSize = pageSize
     )

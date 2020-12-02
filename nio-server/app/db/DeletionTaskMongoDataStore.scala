@@ -34,6 +34,7 @@ class DeletionTaskMongoDataStore(val mongoApi: ReactiveMongoApi)(implicit val ex
     findManyByQueryPaginateCount(
       tenant = tenant,
       query = Json.obj("orgKey" -> orgKey),
+      sort = Json.obj("userId" -> 1),
       page = page,
       pageSize = pageSize
     )

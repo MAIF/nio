@@ -40,13 +40,13 @@ class ExtractionTaskMongoDataStore(val mongoApi: ReactiveMongoApi)(implicit val 
     findOneById(tenant, id)
 
   def findAll(tenant: String, page: Int, pageSize: Int): Future[(Seq[ExtractionTask], Long)] =
-    findManyByQueryPaginateCount(tenant, query = Json.obj(), page = page, pageSize = pageSize)
+    findManyByQueryPaginateCount(tenant, query = Json.obj(), sort = Json.obj("orgKey" -> 1, "userId" -> 1), page = page, pageSize = pageSize)
 
   def findAllByOrgKey(tenant: String, orgKey: String, page: Int, pageSize: Int): Future[(Seq[ExtractionTask], Long)] =
-    findManyByQueryPaginateCount(tenant, query = Json.obj("orgKey" -> orgKey), page = page, pageSize = pageSize)
+    findManyByQueryPaginateCount(tenant, query = Json.obj("orgKey" -> orgKey), sort = Json.obj("userId" -> 1),page = page, pageSize = pageSize)
 
   def findAllByUserId(tenant: String, userId: String, page: Int, pageSize: Int): Future[(Seq[ExtractionTask], Long)] =
-    findManyByQueryPaginateCount(tenant, query = Json.obj("userId" -> userId), page = page, pageSize = pageSize)
+    findManyByQueryPaginateCount(tenant, query = Json.obj("userId" -> userId), sort = Json.obj("userId" -> 1), page = page, pageSize = pageSize)
 
   def streamAllByState(tenant: String, status: ExtractionTaskStatus)(implicit
       m: Materializer

@@ -40,9 +40,8 @@ class ApiKeyMongoDataStore(val mongoApi: ReactiveMongoApi)(implicit val executio
 
   def findManyPaginate(
       query: JsObject = Json.obj(),
-      sort: JsObject = Json.obj("_id" -> -1),
       page: Int,
       pageSize: Int
   ): Future[(Seq[ApiKey], Long)] =
-    findManyByQueryPaginateCount("", query, sort, page, pageSize)
+    findManyByQueryPaginateCount("", query, Json.obj("clientId" -> -1), page, pageSize)
 }

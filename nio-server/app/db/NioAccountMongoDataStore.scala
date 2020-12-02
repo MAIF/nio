@@ -39,7 +39,7 @@ class NioAccountMongoDataStore(val mongoApi: ReactiveMongoApi)(implicit val exec
 
   def findManyPaginate(
       query: JsObject = Json.obj(),
-      sort: JsObject = Json.obj("_id" -> -1),
+      sort: JsObject = Json.obj("email" -> 1),
       page: Int,
       pageSize: Int
   ): Future[(Seq[NioAccount], Long)] =

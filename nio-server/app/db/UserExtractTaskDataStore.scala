@@ -50,7 +50,7 @@ class UserExtractTaskDataStore(val mongoApi: ReactiveMongoApi)(implicit val exec
     findManyByQueryPaginateCount(
       tenant = tenant,
       query = Json.obj("tenant" -> tenant, "orgKey" -> orgKey),
-      sort = Json.obj("orgKey" -> 1, "userId" -> 1),
+      sort = Json.obj("tenant" -> 1, "orgKey" -> 1, "userId" -> 1),
       page = page,
       pageSize = pageSize
     )
@@ -65,7 +65,7 @@ class UserExtractTaskDataStore(val mongoApi: ReactiveMongoApi)(implicit val exec
     findManyByQueryPaginateCount(
       tenant = tenant,
       query = Json.obj("tenant" -> tenant, "orgKey" -> orgKey, "userId" -> userId),
-      sort = Json.obj("orgKey" -> 1, "userId" -> 1),
+      sort = Json.obj("tenant" -> 1, "orgKey" -> 1, "userId" -> 1),
       page = page,
       pageSize = pageSize
     )
