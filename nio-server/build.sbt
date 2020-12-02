@@ -26,7 +26,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka"        %% "akka-stream-kafka"        % akkaStreamKafka,
   "org.apache.commons"        % "commons-lang3"            % "3.11",
   "de.svenkubiak"             % "jBCrypt"                  % "0.4.1", //  ISC/BSD
-  "com.auth0"                 % "java-jwt"                 % "3.1.0", // MIT license
+  "com.auth0"                 % "java-jwt"                 % javaJwt, // MIT license
   "com.github.pureconfig"    %% "pureconfig"               % pureConfig, // Apache 2.0
   "org.scalactic"            %% "scalactic"                % scalaticVersion, // Apache 2.0
   "org.webjars"               % "swagger-ui"               % "3.12.1",
