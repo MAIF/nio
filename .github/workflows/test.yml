@@ -5,8 +5,6 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - name: Start docker
-        run: docker-compose -f docker-compose.test.yml up -d
       - uses: actions/checkout@v2.2.0
       # setup java to use sbt
       - name: Set up JDK 11
@@ -14,6 +12,8 @@ jobs:
         with:
           java-version: 11
       # test DK
+      - name: Start docker
+        run: docker-compose -f docker-compose.test.yml up -d
       - name: test
         id: test
         run: sbt test
