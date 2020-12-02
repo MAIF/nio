@@ -77,9 +77,9 @@ class NioDefaultFilter(
             JWT.require(algorithm).withIssuer(config.issuer).build()
           val decoded: DecodedJWT = verifier.verify(claim)
           next(
-            requestHeader.addAttr(FilterAttributes.Email, decodeJWTTokenEmail(decoded))
-            addAttr (FilterAttributes.AuthInfo,
-            decodeJWTToken(decoded))
+            requestHeader
+              .addAttr(FilterAttributes.Email, decodeJWTTokenEmail(decoded))
+              .addAttr (FilterAttributes.AuthInfo, decodeJWTToken(decoded))
           ).map { result =>
             logger.debug(
               s"Request claim with exclusion => ${requestHeader.method} ${requestHeader.uri} with request headers ${requestHeader.headers.headers
@@ -107,9 +107,9 @@ class NioDefaultFilter(
             JWT.require(algorithm).withIssuer(config.issuer).build()
           val decoded: DecodedJWT = verifier.verify(claim)
           next(
-            requestHeader.addAttr(FilterAttributes.Email, decodeJWTTokenEmail(decoded))
-            addAttr (FilterAttributes.AuthInfo,
-            decodeJWTToken(decoded))
+            requestHeader
+              .addAttr(FilterAttributes.Email, decodeJWTTokenEmail(decoded))
+              .addAttr (FilterAttributes.AuthInfo, decodeJWTToken(decoded))
           ).map { result =>
             logger.debug(
               s"Request claim with exclusion => ${requestHeader.method} ${requestHeader.uri} with request headers ${requestHeader.headers.headers
