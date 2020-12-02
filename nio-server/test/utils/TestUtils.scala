@@ -4,7 +4,6 @@ import java.io.File
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 import java.{lang, util}
-
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.HttpEntity
 import akka.kafka.scaladsl.Consumer
@@ -15,6 +14,7 @@ import com.amazonaws.services.s3.model.PutObjectResult
 import com.typesafe.config.{Config, ConfigFactory}
 import filters.AuthInfoMock
 import loader.NioLoader
+import models.Tenant
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.{ByteArrayDeserializer, StringDeserializer}
@@ -226,6 +226,13 @@ trait TestUtils
       .runWith(Sink.seq)
 
     Await.result[Seq[JsValue]](lastEvents, Duration(10, TimeUnit.SECONDS))
+  }
+
+  protected def reinitTenant(): Unit = {
+    val currentTenant = getJson(s"/tenants/$tenant")
+    if (currentTenant.status == NOT_FOUND) {
+      postJson(s"/tenants", Json.toJson(Tenant(tenant, "Test")), Seq("tenant-admin-secret" -> "secret"))
+    }
   }
 
   private def callByType[T: BodyWritable](

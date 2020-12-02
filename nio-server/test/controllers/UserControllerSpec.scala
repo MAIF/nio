@@ -1,7 +1,7 @@
 package controllers
 
 import models._
-import play.api.libs.json.JsArray
+import play.api.libs.json.{JsArray, Json}
 import play.api.test.Helpers._
 import utils.TestUtils
 
@@ -86,6 +86,8 @@ class UserControllerSpec extends TestUtils {
       (response.json \ "pageSize").as[Int] mustBe 10
 
       val value: JsArray = (response.json \ "items").as[JsArray]
+
+      println(value)
 
       value.value.size mustBe 2
       (value \ 0 \ "userId").as[String] mustBe userId1
@@ -194,6 +196,9 @@ class UserControllerSpec extends TestUtils {
   }
 
   private def initUsers() = {
+
+    reinitTenant()
+
     val createOrg1 = postJson(s"/$tenant/organisations", org1AsJson)
     createOrg1.status mustBe CREATED
 

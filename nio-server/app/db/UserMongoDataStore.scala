@@ -57,7 +57,7 @@ class UserMongoDataStore(val mongoApi: ReactiveMongoApi)(implicit val executionC
       case Some(userId) => Json.obj("userId" -> userId, "orgKey" -> orgKey)
       case None         => Json.obj("orgKey" -> orgKey)
     }
-    findManyByQueryPaginateCount(tenant, query = query, page = page, pageSize = pageSize)
+    findManyByQueryPaginateCount(tenant, query = query, page = page, pageSize = pageSize, sort = Json.obj("orgKey" -> 1, "userId" -> 1))
   }
 
   def findAll(tenant: String, page: Int, pageSize: Int, maybeUserId: Option[String]): Future[(Seq[User], Long)] = {
@@ -65,7 +65,7 @@ class UserMongoDataStore(val mongoApi: ReactiveMongoApi)(implicit val executionC
       case Some(userId) => Json.obj("userId" -> userId)
       case None         => Json.obj()
     }
-    findManyByQueryPaginateCount(tenant, query = query, page = page, pageSize = pageSize)
+    findManyByQueryPaginateCount(tenant, query = query, page = page, pageSize = pageSize, sort = Json.obj("orgKey" -> 1, "userId" -> 1))
   }
 
   def streamAll(tenant: String)(implicit m: Materializer): Future[Source[JsValue, Future[State]]] =
