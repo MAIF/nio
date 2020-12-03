@@ -59,7 +59,7 @@ trait TestUtils
   protected implicit val actorSystem  = ActorSystem("test")
   protected implicit val materializer = Materializer(actorSystem)
 
-  def kafkaPort: Int                    = 9092
+  def kafkaPort: Int                    = 29093
   def mongoPort: Int                    = 27018
   def tenant: String                    = "test"
   protected lazy val serverHost: String = s"http://localhost:${this.port}"
