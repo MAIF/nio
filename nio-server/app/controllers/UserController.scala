@@ -1,7 +1,7 @@
 package controllers
 
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
+import akka.stream.Materializer
 import akka.util.ByteString
 import auth.{AuthAction, SecuredAction, SecuredAuthContext}
 import db.UserMongoDataStore
@@ -15,36 +15,32 @@ import scala.concurrent.ExecutionContext
 class UserController(
     val AuthAction: ActionBuilder[SecuredAuthContext, AnyContent],
     val cc: ControllerComponents,
-    val ds: UserMongoDataStore)(implicit val ec: ExecutionContext,
-                                system: ActorSystem)
+    val ds: UserMongoDataStore
+)(implicit val ec: ExecutionContext, system: ActorSystem)
     extends ControllerUtils(cc) {
 
-  implicit val materializer = ActorMaterializer()(system)
+  implicit val materializer = Materializer(system)
 
-  def listByOrganisation(tenant: String,
-                         orgKey: String,
-                         page: Int = 0,
-                         pageSize: Int = 10,
-                         maybeUserId: Option[String]) = AuthAction.async {
-    implicit req =>
-      ds.findAllByOrgKey(tenant, orgKey, page, pageSize, maybeUserId).map {
-        case (users, count) =>
-          val pagedUsers = PagedUsers(page, pageSize, count, users)
+  def listByOrganisation(
+      tenant: String,
+      orgKey: String,
+      page: Int = 0,
+      pageSize: Int = 10,
+      maybeUserId: Option[String]
+  ) = AuthAction.async { implicit req =>
+    ds.findAllByOrgKey(tenant, orgKey, page, pageSize, maybeUserId).map { case (users, count) =>
+      val pagedUsers = PagedUsers(page, pageSize, count, users)
 
-          renderMethod(pagedUsers)
-      }
+      renderMethod(pagedUsers)
+    }
   }
 
-  def listAll(tenant: String,
-              page: Int = 0,
-              pageSize: Int = 10,
-              maybeUserId: Option[String]) =
+  def listAll(tenant: String, page: Int = 0, pageSize: Int = 10, maybeUserId: Option[String]) =
     AuthAction.async { implicit req =>
-      ds.findAll(tenant, page, pageSize, maybeUserId).map {
-        case (users, count) =>
-          val pagedUsers = PagedUsers(page, pageSize, count, users)
+      ds.findAll(tenant, page, pageSize, maybeUserId).map { case (users, count) =>
+        val pagedUsers = PagedUsers(page, pageSize, count, users)
 
-          renderMethod(pagedUsers)
+        renderMethod(pagedUsers)
       }
     }
 
@@ -55,9 +51,7 @@ class UserController(
         .intersperse("", "\n", "\n")
         .map(ByteString.apply)
       Result(
-        header = ResponseHeader(OK,
-                                Map(CONTENT_DISPOSITION -> "attachment",
-                                    "filename" -> "users.ndjson")),
+        header = ResponseHeader(OK, Map(CONTENT_DISPOSITION -> "attachment", "filename" -> "users.ndjson")),
         body = HttpEntity.Streamed(src, None, Some("application/json"))
       )
     }

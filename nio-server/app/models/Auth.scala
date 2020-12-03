@@ -11,12 +11,13 @@ import utils.Result
 import utils.Result.AppErrors
 
 import scala.xml.{Elem, NodeSeq}
+import scala.collection.Seq
 
 case class Auth(email: String, password: String)
 
 object Auth extends ReadableEntity[Auth] {
-  implicit val format: OFormat[Auth] = Json.format[Auth]
-  implicit val readXml: XMLRead[Auth] = (node: NodeSeq, path: Option[String]) =>
+  implicit val format: OFormat[Auth]                              = Json.format[Auth]
+  implicit val readXml: XMLRead[Auth]                             = (node: NodeSeq, path: Option[String]) =>
     (
       (node \ "email").validate[String](Some(s"${path.convert()}email")),
       (node \ "password").validate[String](Some(s"${path.convert()}password"))

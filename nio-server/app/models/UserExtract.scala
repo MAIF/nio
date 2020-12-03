@@ -7,6 +7,7 @@ import libs.xml.XmlUtil.XmlCleaner
 import play.api.libs.json.Reads._
 import play.api.libs.json._
 import utils.Result.AppErrors
+import scala.collection.Seq
 
 import scala.xml.{Elem, NodeSeq}
 
@@ -31,8 +32,7 @@ object UserExtract extends ReadableEntity[UserExtract] {
     Format(userExtractRead, userExtractWrite)
 
   implicit val userExtractReadXml: XMLRead[UserExtract] =
-    (node: NodeSeq, path: Option[String]) =>
-      (node \ "email").validate[String].map(email => UserExtract(email))
+    (node: NodeSeq, path: Option[String]) => (node \ "email").validate[String].map(email => UserExtract(email))
 
   override def fromXml(xml: Elem): Either[AppErrors, UserExtract] =
     userExtractReadXml.read(xml, Some("userExtract")).toEither

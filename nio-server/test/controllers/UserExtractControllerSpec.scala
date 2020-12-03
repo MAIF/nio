@@ -13,7 +13,7 @@ import org.apache.http.entity.ContentType
 import org.apache.http.entity.mime.MultipartEntityBuilder
 import play.api.libs.json.{JsArray, JsValue}
 import play.api.libs.ws.SourceBody
-import play.api.{Logger, mvc}
+import utils.NioLogger
 import play.api.mvc.MultipartFormData
 import play.api.mvc.MultipartFormData.{DataPart, FilePart}
 import play.api.test.Helpers._
@@ -27,18 +27,16 @@ import scala.concurrent.duration.Duration
 
 class UserExtractControllerSpec extends TestUtils {
 
-  val orgKey: String = "org1"
-  val org2Key: String = "org2"
-  val userId: String = "user1"
+  val orgKey: String    = "org1"
+  val org2Key: String   = "org2"
+  val userId: String    = "user1"
   val userIdXml: String = "user1Xml"
 
   val org1 = Organisation(
     key = orgKey,
     label = "lbl",
     groups = Seq(
-      PermissionGroup(key = "group1",
-                      label = "blalba",
-                      permissions = Seq(Permission("sms", "Please accept sms")))
+      PermissionGroup(key = "group1", label = "blalba", permissions = Seq(Permission("sms", "Please accept sms")))
     )
   )
 
@@ -46,9 +44,7 @@ class UserExtractControllerSpec extends TestUtils {
     key = org2Key,
     label = "lbl",
     groups = Seq(
-      PermissionGroup(key = "group1",
-                      label = "blalba",
-                      permissions = Seq(Permission("sms", "Please accept sms")))
+      PermissionGroup(key = "group1", label = "blalba", permissions = Seq(Permission("sms", "Please accept sms")))
     )
   )
 
@@ -57,13 +53,12 @@ class UserExtractControllerSpec extends TestUtils {
   "UserExtractController JSON" should {
 
     "ask an extraction" in {
-      val path: String = s"/$tenant/organisations"
-      val createResponse = postJson(path, org1.asJson)
+      val path: String   = s"/$tenant/organisations"
+      val createResponse = postJson(path, org1.asJson())
       createResponse.status mustBe CREATED
 
       val userExtractStatus =
-        postJson(s"/$tenant/organisations/$orgKey/users/$userId/_extract",
-                 userExtract.asJson())
+        postJson(s"/$tenant/organisations/$orgKey/users/$userId/_extract", userExtract.asJson())
       userExtractStatus.status mustBe OK
 
       val msgAsJson = readLastKafkaEvent()
@@ -75,35 +70,30 @@ class UserExtractControllerSpec extends TestUtils {
 
     "ask an extraction with an existing orgKey/userId" in {
       val userExtractStatusConflict =
-        postJson(s"/$tenant/organisations/$orgKey/users/$userId/_extract",
-                 userExtract.asJson())
+        postJson(s"/$tenant/organisations/$orgKey/users/$userId/_extract", userExtract.asJson())
       userExtractStatusConflict.status mustBe CONFLICT
     }
 
     "ask an extraction for an unknow organisation" in {
       val userExtractStatus =
-        postJson(s"/$tenant/organisations/org2/users/$userId/_extract",
-                 userExtract.asJson())
+        postJson(s"/$tenant/organisations/org2/users/$userId/_extract", userExtract.asJson())
       userExtractStatus.status mustBe NOT_FOUND
     }
 
     "list all extracted data for an organisation" in {
 
-      val path: String = s"/$tenant/organisations"
-      val createResponse = postJson(path, org2.asJson)
+      val path: String   = s"/$tenant/organisations"
+      val createResponse = postJson(path, org2.asJson())
       createResponse.status mustBe CREATED
 
-      postJson(s"/$tenant/organisations/$org2Key/users/$userId/_extract",
-               userExtract.asJson()).status mustBe OK
+      postJson(s"/$tenant/organisations/$org2Key/users/$userId/_extract", userExtract.asJson()).status mustBe OK
 
       val userExtractStatus =
-        postJson(s"/$tenant/organisations/$orgKey/users/userId2/_extract",
-                 userExtract.asJson())
+        postJson(s"/$tenant/organisations/$orgKey/users/userId2/_extract", userExtract.asJson())
       userExtractStatus.status mustBe OK
 
       val userExtractStatus1 =
-        postJson(s"/$tenant/organisations/$orgKey/users/userId3/_extract",
-                 userExtract.asJson())
+        postJson(s"/$tenant/organisations/$orgKey/users/userId3/_extract", userExtract.asJson())
       userExtractStatus1.status mustBe OK
 
       val userExtracted = getJson(s"/$tenant/organisations/$orgKey/_extracted")
@@ -148,18 +138,13 @@ class UserExtractControllerSpec extends TestUtils {
     "upload file" in {
 
       val file = File.createTempFile("file", ".json")
-      Files.write(file.toPath,
-                  """{ "key": "value" }""".getBytes(StandardCharsets.UTF_8))
+      Files.write(file.toPath, """{ "key": "value" }""".getBytes(StandardCharsets.UTF_8))
 
       val resp = Await.result(
-        ws.url(
-            s"$serverHost/api/$tenant/organisations/$orgKey/users/$userId/_files/${file.getName}")
+        ws.url(s"$serverHost/api/$tenant/organisations/$orgKey/users/$userId/_files/${file.getName}")
           .withBody(
-            Source.single(
-              FilePart("file",
-                       file.getName,
-                       Some("application/json"),
-                       FileIO.fromPath(file.toPath))))
+            Source.single(FilePart("file", file.getName, Some("application/json"), FileIO.fromPath(file.toPath)))
+          )
           .execute("POST"),
         Duration(60, TimeUnit.SECONDS)
       )
@@ -168,14 +153,10 @@ class UserExtractControllerSpec extends TestUtils {
 
       Await
         .result(
-          ws.url(
-              s"$serverHost/api/$tenant/organisations/$orgKey/users/$userId/_files/${file.getName}")
+          ws.url(s"$serverHost/api/$tenant/organisations/$orgKey/users/$userId/_files/${file.getName}")
             .withBody(
-              Source.single(
-                FilePart("file",
-                         file.getName,
-                         Some("application/json"),
-                         FileIO.fromPath(file.toPath))))
+              Source.single(FilePart("file", file.getName, Some("application/json"), FileIO.fromPath(file.toPath)))
+            )
             .execute("POST"),
           Duration(60, TimeUnit.SECONDS)
         )
@@ -189,27 +170,20 @@ class UserExtractControllerSpec extends TestUtils {
 
       // ask extract after file upload must be OK
       val userExtractStatus =
-        postJson(s"/$tenant/organisations/$orgKey/users/$userId/_extract",
-                 userExtract.asJson())
+        postJson(s"/$tenant/organisations/$orgKey/users/$userId/_extract", userExtract.asJson())
       userExtractStatus.status mustBe OK
 
       val file2 = File.createTempFile("file2", ".csv")
-      Files.write(file2.toPath,
-                  """val1; val2; val3 \n val4; val5; val6 \n""".getBytes(
-                    StandardCharsets.UTF_8))
+      Files.write(file2.toPath, """val1; val2; val3 \n val4; val5; val6 \n""".getBytes(StandardCharsets.UTF_8))
 
       val chunks2 = FileIO.fromPath(file2.toPath)
 
       Await
         .result(
-          ws.url(
-              s"$serverHost/api/$tenant/organisations/$orgKey/users/$userId/_files/${file2.getName}")
+          ws.url(s"$serverHost/api/$tenant/organisations/$orgKey/users/$userId/_files/${file2.getName}")
             .withBody(
-              Source.single(
-                FilePart("file",
-                         file2.getName,
-                         Some("application/json"),
-                         FileIO.fromPath(file2.toPath))))
+              Source.single(FilePart("file", file2.getName, Some("application/json"), FileIO.fromPath(file2.toPath)))
+            )
             .execute("POST"),
           Duration(60, TimeUnit.SECONDS)
         )
@@ -239,8 +213,7 @@ class UserExtractControllerSpec extends TestUtils {
 
     "ask an extraction" in {
       val userExtractStatus =
-        postXml(s"/$tenant/organisations/$orgKey/users/$userIdXml/_extract",
-                userExtract.asXml())
+        postXml(s"/$tenant/organisations/$orgKey/users/$userIdXml/_extract", userExtract.asXml())
       userExtractStatus.status mustBe OK
 
       val msgAsJson = readLastKafkaEvent()
@@ -252,15 +225,13 @@ class UserExtractControllerSpec extends TestUtils {
 
     "ask an extraction with an existing orgKey/userId" in {
       val userExtractStatusConflict =
-        postXml(s"/$tenant/organisations/$orgKey/users/$userIdXml/_extract",
-                userExtract.asXml())
+        postXml(s"/$tenant/organisations/$orgKey/users/$userIdXml/_extract", userExtract.asXml())
       userExtractStatusConflict.status mustBe CONFLICT
     }
 
     "ask an extraction for an unknow organisation" in {
       val userExtractStatus =
-        postXml(s"/$tenant/organisations/orgUnknow/users/$userIdXml/_extract",
-                userExtract.asXml())
+        postXml(s"/$tenant/organisations/orgUnknow/users/$userIdXml/_extract", userExtract.asXml())
       userExtractStatus.status mustBe NOT_FOUND
     }
   }

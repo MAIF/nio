@@ -2,7 +2,7 @@ package controllers
 
 import models._
 import org.joda.time.{DateTime, DateTimeZone}
-import play.api.Logger
+import utils.NioLogger
 import play.api.libs.json.{JsArray, JsValue, Json}
 import play.api.libs.ws.WSResponse
 import play.api.test.Helpers._
@@ -13,55 +13,49 @@ class OrganisationControllerSpec extends TestUtils {
   "OrganisationController" should {
     val org1Key = "orgTest1"
 
-    val org1 = Organisation(
+    val org1       = Organisation(
       key = org1Key,
       label = "lbl",
       groups = Seq(
-        PermissionGroup(key = "group1",
-                        label = "blalba",
-                        permissions =
-                          Seq(Permission("sms", "Please accept sms")))
+        PermissionGroup(key = "group1", label = "blalba", permissions = Seq(Permission("sms", "Please accept sms")))
       )
     )
-    val org1AsJson = org1.asJson
+    val org1AsJson = org1.asJson()
 
-    val org2Key = "orgTest2"
-    val org2 = Organisation(
+    val org2Key    = "orgTest2"
+    val org2       = Organisation(
       key = org2Key,
       label = "lbl",
       groups = Seq(
-        PermissionGroup(key = "group1",
-                        label = "blalba",
-                        permissions =
-                          Seq(Permission("sms", "Please accept sms")))
+        PermissionGroup(key = "group1", label = "blalba", permissions = Seq(Permission("sms", "Please accept sms")))
       )
     )
-    val org2AsJson = org2.asJson
+    val org2AsJson = org2.asJson()
 
-    val org2Modified = org2.copy(label = "modified")
-    val org2AsJsonModified = org2Modified.asJson
+    val org2Modified       = org2.copy(label = "modified")
+    val org2AsJsonModified = org2Modified.asJson()
 
-    val org3Key = "orgTest3"
-    val org3 = Organisation(
+    val org3Key    = "orgTest3"
+    val org3       = Organisation(
       key = org3Key,
       label = "lbl",
       groups = Seq(
-        PermissionGroup(key = "group1",
-                        label = "blalba",
-                        permissions =
-                          Seq(Permission("sms", "Please accept sms")))
+        PermissionGroup(key = "group1", label = "blalba", permissions = Seq(Permission("sms", "Please accept sms")))
       ),
       offers = Some(
         Seq(
-          Offer("offer1",
-                "offer 1",
-                1,
-                Seq(
-                  PermissionGroup(
-                    key = "group2",
-                    label = "groupe 2",
-                    permissions =
-                      Seq(Permission("email", "Please accept email")))))
+          Offer(
+            "offer1",
+            "offer 1",
+            1,
+            Seq(
+              PermissionGroup(
+                key = "group2",
+                label = "groupe 2",
+                permissions = Seq(Permission("email", "Please accept email"))
+              )
+            )
+          )
         )
       )
     )
@@ -69,21 +63,16 @@ class OrganisationControllerSpec extends TestUtils {
       key = org3Key,
       label = "lbl",
       groups = Seq(
-        PermissionGroup(key = "group1",
-                        label = "blalba",
-                        permissions =
-                          Seq(Permission("sms", "Please accept sms")))
+        PermissionGroup(key = "group1", label = "blalba", permissions = Seq(Permission("sms", "Please accept sms")))
       ),
       offers = Some(
         Seq(
-          Offer("offer1",
-                "offer 1",
-                1,
-                Seq(
-                  PermissionGroup(key = "group1",
-                                  label = "groupe 1",
-                                  permissions =
-                                    Seq(Permission("other", "other")))))
+          Offer(
+            "offer1",
+            "offer 1",
+            1,
+            Seq(PermissionGroup(key = "group1", label = "groupe 1", permissions = Seq(Permission("other", "other"))))
+          )
         )
       )
     )
@@ -91,7 +80,7 @@ class OrganisationControllerSpec extends TestUtils {
     "create new organisation" in {
       val beforeNewOrgCreation = DateTime.now(DateTimeZone.UTC).minusSeconds(1)
 
-      val path: String = s"/$tenant/organisations"
+      val path: String   = s"/$tenant/organisations"
       val createResponse = postJson(path, org1AsJson)
 
       createResponse.status mustBe CREATED
@@ -115,8 +104,7 @@ class OrganisationControllerSpec extends TestUtils {
       (value \ "version" \ "neverReleased").asOpt[Boolean] mustBe None
       (value \ "version" \ "lastUpdate").asOpt[String].map { s =>
         val lastUpdate = DateTime.parse(s)
-        lastUpdate.isAfter(beforeNewOrgCreation) && lastUpdate.isBefore(
-          DateTime.now(DateTimeZone.UTC).plusSeconds(1))
+        lastUpdate.isAfter(beforeNewOrgCreation) && lastUpdate.isBefore(DateTime.now(DateTimeZone.UTC).plusSeconds(1))
       } mustBe Some(true)
 
       val groups = (value \ "groups").as[JsArray]
@@ -147,8 +135,7 @@ class OrganisationControllerSpec extends TestUtils {
       (organisations \ 1 \ "version" \ "num").as[Int] mustBe 1
       (organisations \ 1 \ "version" \ "lastUpdate").asOpt[String].map { s =>
         val lastUpdate = DateTime.parse(s)
-        lastUpdate.isAfter(beforeNewOrgCreation) && lastUpdate.isBefore(
-          DateTime.now(DateTimeZone.UTC).plusSeconds(1))
+        lastUpdate.isAfter(beforeNewOrgCreation) && lastUpdate.isBefore(DateTime.now(DateTimeZone.UTC).plusSeconds(1))
       } mustBe Some(true)
     }
 
@@ -157,7 +144,7 @@ class OrganisationControllerSpec extends TestUtils {
     }
 
     "find draft by key" in {
-      val path: String = s"/$tenant/organisations/$org1Key/draft"
+      val path: String         = s"/$tenant/organisations/$org1Key/draft"
       val response: WSResponse = getJson(path)
 
       response.status mustBe OK
@@ -169,7 +156,7 @@ class OrganisationControllerSpec extends TestUtils {
     }
 
     "release draft by key" in {
-      val path: String = s"/$tenant/organisations/$org1Key/draft/_release"
+      val path: String         = s"/$tenant/organisations/$org1Key/draft/_release"
       val response: WSResponse = postJson(path, org1AsJson)
 
       response.status mustBe OK
@@ -189,7 +176,7 @@ class OrganisationControllerSpec extends TestUtils {
     }
 
     "find last release by key" in {
-      val path: String = s"/$tenant/organisations/$org1Key/last"
+      val path: String         = s"/$tenant/organisations/$org1Key/last"
       val response: WSResponse = getJson(path)
 
       response.status mustBe OK
@@ -217,7 +204,7 @@ class OrganisationControllerSpec extends TestUtils {
     }
 
     "find specific release by key and version num" in {
-      val path: String = s"/$tenant/organisations/$org1Key/1"
+      val path: String         = s"/$tenant/organisations/$org1Key/1"
       val response: WSResponse = getJson(path)
 
       response.status mustBe OK
@@ -229,7 +216,7 @@ class OrganisationControllerSpec extends TestUtils {
     }
 
     "release draft by key again" in {
-      val path: String = s"/$tenant/organisations/$org1Key/draft/_release"
+      val path: String         = s"/$tenant/organisations/$org1Key/draft/_release"
       val response: WSResponse = postJson(path, org1AsJson)
 
       response.status mustBe OK
@@ -283,7 +270,7 @@ class OrganisationControllerSpec extends TestUtils {
     }
 
     "create another orga" in {
-      val path: String = s"/$tenant/organisations"
+      val path: String         = s"/$tenant/organisations"
       val response: WSResponse = postJson(path, org2AsJson)
 
       response.status mustBe CREATED
@@ -295,7 +282,7 @@ class OrganisationControllerSpec extends TestUtils {
     }
 
     "modify something in the created draft" in {
-      val path: String = s"/$tenant/organisations/$org2Key/draft"
+      val path: String         = s"/$tenant/organisations/$org2Key/draft"
       val response: WSResponse = putJson(path, org2AsJsonModified)
 
       response.status mustBe OK
@@ -337,25 +324,25 @@ class OrganisationControllerSpec extends TestUtils {
 
     "create invalid organisation key name" in {
       val org3AsJsonInvalidKeyName = Json.obj(
-        "key" -> "org key 3",
-        "label" -> "modified",
+        "key"    -> "org key 3",
+        "label"  -> "modified",
         "groups" -> Json.arr(
           Json.obj(
-            "key" -> "group1",
-            "label" -> "blalba",
+            "key"         -> "group1",
+            "label"       -> "blalba",
             "permissions" -> Json.arr(
               Json.obj(
-                "key" -> "sms",
+                "key"   -> "sms",
                 "label" -> "blabla"
               )
             )
           ),
           Json.obj(
-            "key" -> "group2",
-            "label" -> "blalba",
+            "key"         -> "group2",
+            "label"       -> "blalba",
             "permissions" -> Json.arr(
               Json.obj(
-                "key" -> "sms",
+                "key"   -> "sms",
                 "label" -> "blabla"
               )
             )
@@ -363,7 +350,7 @@ class OrganisationControllerSpec extends TestUtils {
         )
       )
 
-      val path: String = s"/$tenant/organisations"
+      val path: String         = s"/$tenant/organisations"
       val response: WSResponse = postJson(path, org3AsJsonInvalidKeyName)
 
       response.status mustBe BAD_REQUEST
@@ -371,13 +358,13 @@ class OrganisationControllerSpec extends TestUtils {
 
     "create invalid organisation groups empty" in {
       val org3AsJsonInvalidGroupsEmpty = Json.obj(
-        "key" -> "orgkey3",
-        "label" -> "modified",
+        "key"    -> "orgkey3",
+        "label"  -> "modified",
         "groups" -> Json.arr(
-          )
+        )
       )
 
-      val path: String = s"/$tenant/organisations"
+      val path: String         = s"/$tenant/organisations"
       val response: WSResponse =
         postJson(path, org3AsJsonInvalidGroupsEmpty)
 
@@ -386,18 +373,18 @@ class OrganisationControllerSpec extends TestUtils {
 
     "create invalid organisation groups invalid key" in {
       val org3AsJsonInvalidGroupsEmpty = Json.obj(
-        "key" -> "orgkey3",
-        "label" -> "modified",
+        "key"    -> "orgkey3",
+        "label"  -> "modified",
         "groups" -> Json.arr(
           Json.obj(
-            "key" -> "a a  a a",
-            "label" -> "what do you want",
+            "key"         -> "a a  a a",
+            "label"       -> "what do you want",
             "permissions" -> Json.arr()
           )
         )
       )
 
-      val path: String = s"/$tenant/organisations"
+      val path: String         = s"/$tenant/organisations"
       val response: WSResponse =
         postJson(path, org3AsJsonInvalidGroupsEmpty)
 
@@ -406,25 +393,25 @@ class OrganisationControllerSpec extends TestUtils {
 
     "create invalid organisation permissions invalid key" in {
       val org3AsJsonInvalidGroupsEmpty = Json.obj(
-        "key" -> "orgkey3",
-        "label" -> "modified",
+        "key"    -> "orgkey3",
+        "label"  -> "modified",
         "groups" -> Json.arr(
           Json.obj(
-            "key" -> "group1",
-            "label" -> "my first group",
+            "key"         -> "group1",
+            "label"       -> "my first group",
             "permissions" -> Json.arr(
               Json.obj(
-                "key" -> "in va lid",
+                "key"   -> "in va lid",
                 "label" -> "what do you want"
               )
             )
           ),
           Json.obj(
-            "key" -> "group2",
-            "label" -> "my first group",
+            "key"         -> "group2",
+            "label"       -> "my first group",
             "permissions" -> Json.arr(
               Json.obj(
-                "key" -> "in va lid",
+                "key"   -> "in va lid",
                 "label" -> "what do you want"
               )
             )
@@ -432,7 +419,7 @@ class OrganisationControllerSpec extends TestUtils {
         )
       )
 
-      val path: String = s"/$tenant/organisations"
+      val path: String         = s"/$tenant/organisations"
       val response: WSResponse =
         postJson(path, org3AsJsonInvalidGroupsEmpty)
 
@@ -444,15 +431,15 @@ class OrganisationControllerSpec extends TestUtils {
       val orgKey = "organisationToDelete"
 
       val orgAsJson = Json.obj(
-        "key" -> orgKey,
-        "label" -> "lbl",
+        "key"    -> orgKey,
+        "label"  -> "lbl",
         "groups" -> Json.arr(
           Json.obj(
-            "key" -> "group1",
-            "label" -> "blalba",
+            "key"         -> "group1",
+            "label"       -> "blalba",
             "permissions" -> Json.arr(
               Json.obj(
-                "key" -> "sms",
+                "key"   -> "sms",
                 "label" -> "Please accept sms"
               )
             )
@@ -465,27 +452,26 @@ class OrganisationControllerSpec extends TestUtils {
       respOrgaCreated.status mustBe CREATED
 
       val respRelease =
-        postJson(s"/$tenant/organisations/$orgKey/draft/_release",
-                 respOrgaCreated.json)
+        postJson(s"/$tenant/organisations/$orgKey/draft/_release", respOrgaCreated.json)
       respRelease.status mustBe OK
 
       val userId: String = "userToDelete"
 
       val consentFactAsJson = Json.obj(
-        "userId" -> userId,
-        "doneBy" -> Json.obj(
+        "userId"  -> userId,
+        "doneBy"  -> Json.obj(
           "userId" -> userId,
-          "role" -> "USER"
+          "role"   -> "USER"
         ),
         "version" -> 1,
-        "groups" -> Json.arr(
+        "groups"  -> Json.arr(
           Json.obj(
-            "key" -> "group1",
-            "label" -> "blalba",
+            "key"      -> "group1",
+            "label"    -> "blalba",
             "consents" -> Json.arr(
               Json.obj(
-                "key" -> "sms",
-                "label" -> "Please accept sms",
+                "key"     -> "sms",
+                "label"   -> "Please accept sms",
                 "checked" -> true
               )
             )
@@ -493,8 +479,7 @@ class OrganisationControllerSpec extends TestUtils {
         )
       )
 
-      putJson(s"/$tenant/organisations/$orgKey/users/$userId",
-              consentFactAsJson).status mustBe OK
+      putJson(s"/$tenant/organisations/$orgKey/users/$userId", consentFactAsJson).status mustBe OK
 
       delete(s"/$tenant/organisations/$orgKey").status mustBe OK
 
@@ -508,7 +493,7 @@ class OrganisationControllerSpec extends TestUtils {
 
     "create organisation with offer" in {
       val respOrgaCreated: WSResponse =
-        postJson(s"/$tenant/organisations", org3.asJson)
+        postJson(s"/$tenant/organisations", org3.asJson())
       respOrgaCreated.status mustBe CREATED
 
       val value: JsValue = respOrgaCreated.json
@@ -536,18 +521,16 @@ class OrganisationControllerSpec extends TestUtils {
       (value \ "offers").asOpt[String] mustBe None
 
       val respOrgaUpdated: WSResponse =
-        putJson(s"/$tenant/organisations/$org3Key/draft", org3Update.asJson)
+        putJson(s"/$tenant/organisations/$org3Key/draft", org3Update.asJson())
       respOrgaUpdated.status mustBe OK
 
       val valuePut: JsValue = respOrgaUpdated.json
       (valuePut \ "key").as[String] mustBe org3Update.key
       (valuePut \ "label").as[String] mustBe org3Update.label
 
-      (valuePut \ "version" \ "status").as[String] mustBe org3Update.version
-        .status
+      (valuePut \ "version" \ "status").as[String] mustBe org3Update.version.status
       (valuePut \ "version" \ "num").as[Int] mustBe org3Update.version.num
-      (valuePut \ "version" \ "latest").as[Boolean] mustBe org3Update.version
-        .latest
+      (valuePut \ "version" \ "latest").as[Boolean] mustBe org3Update.version.latest
       (valuePut \ "version" \ "neverReleased").asOpt[Boolean] mustBe None
 
       val groupsPut = (valuePut \ "groups").as[JsArray]
@@ -569,27 +552,24 @@ class OrganisationControllerSpec extends TestUtils {
   "validate release management" should {
     "create released without organisation creation" in {
       val orgKey = "orgTest5"
-      val org = Organisation(
+      val org    = Organisation(
         key = orgKey,
         label = "lbl",
         groups = Seq(
-          PermissionGroup(key = "group1",
-                          label = "blalba",
-                          permissions =
-                            Seq(Permission("sms", "Please accept sms")))
+          PermissionGroup(key = "group1", label = "blalba", permissions = Seq(Permission("sms", "Please accept sms")))
         )
       )
 
       val releaseErrorResponse: WSResponse =
-        postJson(s"/$tenant/organisations/$orgKey/draft/_release", org.asJson)
+        postJson(s"/$tenant/organisations/$orgKey/draft/_release", org.asJson())
       releaseErrorResponse.status mustBe NOT_FOUND
 
       val creationResponse: WSResponse =
-        postJson(s"/$tenant/organisations", org.asJson)
+        postJson(s"/$tenant/organisations", org.asJson())
       creationResponse.status mustBe CREATED
 
       val releaseResponse: WSResponse =
-        postJson(s"/$tenant/organisations/$orgKey/draft/_release", org.asJson)
+        postJson(s"/$tenant/organisations/$orgKey/draft/_release", org.asJson())
       releaseResponse.status mustBe OK
     }
   }
@@ -598,7 +578,7 @@ class OrganisationControllerSpec extends TestUtils {
 
     "validate version" in {
       val orgKey = "orgTest6"
-      val org = Organisation(
+      val org    = Organisation(
         key = orgKey,
         label = "lbl",
         version = VersionInfo(
@@ -606,16 +586,13 @@ class OrganisationControllerSpec extends TestUtils {
           status = "RELEASED"
         ),
         groups = Seq(
-          PermissionGroup(key = "group1",
-                          label = "blalba",
-                          permissions =
-                            Seq(Permission("sms", "Please accept sms")))
+          PermissionGroup(key = "group1", label = "blalba", permissions = Seq(Permission("sms", "Please accept sms")))
         )
       )
 
       // Create organisation with wrong version num/ version status
       val createResponse: WSResponse =
-        postJson(s"/$tenant/organisations", org.asJson)
+        postJson(s"/$tenant/organisations", org.asJson())
       createResponse.status mustBe CREATED
 
       val createOrganisationJson: JsValue = createResponse.json
@@ -631,7 +608,7 @@ class OrganisationControllerSpec extends TestUtils {
 
       // Update organisation with wrong version num/ version status
       val updateResponse: WSResponse =
-        putJson(s"/$tenant/organisations/$orgKey/draft", org.asJson)
+        putJson(s"/$tenant/organisations/$orgKey/draft", org.asJson())
       updateResponse.status mustBe OK
 
       val updateOrganisationJson: JsValue = updateResponse.json
@@ -652,7 +629,7 @@ class OrganisationControllerSpec extends TestUtils {
     "if we create a new organisation on a inexisting tenant" in {
 
       val orgKey = "orgTest6"
-      val org = Organisation(
+      val org    = Organisation(
         key = orgKey,
         label = "lbl",
         version = VersionInfo(
@@ -660,16 +637,13 @@ class OrganisationControllerSpec extends TestUtils {
           status = "RELEASED"
         ),
         groups = Seq(
-          PermissionGroup(key = "group1",
-                          label = "blalba",
-                          permissions =
-                            Seq(Permission("sms", "Please accept sms")))
+          PermissionGroup(key = "group1", label = "blalba", permissions = Seq(Permission("sms", "Please accept sms")))
         )
       )
 
       // Create organisation with wrong version num/ version status
       val createResponse: WSResponse =
-        postJson(s"/tenantunknow/organisations", org.asJson)
+        postJson(s"/tenantunknow/organisations", org.asJson())
       createResponse.status mustBe NOT_FOUND
 
     }
@@ -679,7 +653,7 @@ class OrganisationControllerSpec extends TestUtils {
   "organisation with error" should {
     "error" in {
 
-      val orgKey = "error"
+      val orgKey            = "error"
       val org: Organisation = Organisation(
         key = orgKey,
         label = "lbl",
@@ -688,25 +662,26 @@ class OrganisationControllerSpec extends TestUtils {
           status = "RELEASED"
         ),
         groups = Seq(
-          PermissionGroup(key = "bla-qlkfqlj _lk",
-                          label = "label",
-                          permissions = Seq(
-                            Permission("fjslkjf sjklfl", "Please accept sms")))
+          PermissionGroup(
+            key = "bla-qlkfqlj _lk",
+            label = "label",
+            permissions = Seq(Permission("fjslkjf sjklfl", "Please accept sms"))
+          )
         ),
         offers = Some(
           Seq(
-            Offer(key = "toto",
-                  label = "toto",
-                  groups = Seq(
-                    PermissionGroup(key = "group1",
-                                    label = "bla-qlkfqlj _lk",
-                                    permissions = Seq.empty)
-                  ))
+            Offer(
+              key = "toto",
+              label = "toto",
+              groups = Seq(
+                PermissionGroup(key = "group1", label = "bla-qlkfqlj _lk", permissions = Seq.empty)
+              )
+            )
           )
         )
       )
 
-      val response: WSResponse = postJson(s"/$tenant/organisations", org.asJson)
+      val response: WSResponse = postJson(s"/$tenant/organisations", org.asJson())
 
       response.status mustBe BAD_REQUEST
 

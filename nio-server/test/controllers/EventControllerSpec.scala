@@ -3,7 +3,7 @@ package controllers
 import java.util.concurrent.atomic.AtomicBoolean
 
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
+import akka.stream.{ActorMaterializer, Materializer}
 import play.api.libs.json.Json
 import play.api.libs.ws.WSResponse
 import play.api.test.Helpers._
@@ -18,7 +18,7 @@ class EventControllerSpec extends TestUtils {
   val secret = "tenant-admin-secret" -> "secret"
 
   val tenant1AsJson = Json.obj(
-    "key" -> tenant1,
+    "key"         -> tenant1,
     "description" -> "a new tenant"
   )
 
@@ -29,7 +29,7 @@ class EventControllerSpec extends TestUtils {
     "listen events, create a new tenant then check that the received event is valid" ignore {
       val system = nioComponents.actorSystem
 
-      implicit val materializer = ActorMaterializer()(system)
+      implicit val materializer = Materializer(system)
 
       val response: WSResponse =
         callJson("/tenants", POST, tenant1AsJson, headers = jsonHeaders)
@@ -54,7 +54,7 @@ class EventControllerSpec extends TestUtils {
             (Json.parse(json) \ "tenant").asOpt[String] match {
               case Some(x) if x == tenant1 =>
                 isOk.set(true)
-              case _ => isOk.set(false)
+              case _                       => isOk.set(false)
             }
           }
         }

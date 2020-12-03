@@ -1,7 +1,7 @@
 package libs.xmlorjson
 
 import controllers.ReadableEntity
-import play.api.Logger
+import utils.NioLogger
 import play.api.libs.json.JsValue
 import play.api.mvc.{AnyContent, BodyParser, PlayBodyParsers}
 import play.mvc.Http.MimeTypes
@@ -35,13 +35,13 @@ object XmlOrJson {
   ): Either[AppErrors, T] = {
     xmlOrJson match {
       case JsonBody(json) =>
-        Logger.info(s"Content type Json : $json")
+        NioLogger.info(s"Content type Json : $json")
         readableEntity.fromJson(json)
       case XmlBody(xml) =>
-        Logger.info(s"Content type Xml : ${xml.head.asInstanceOf[Elem]}")
+        NioLogger.info(s"Content type Xml : ${xml.head.asInstanceOf[Elem]}")
         readableEntity.fromXml(xml.head.asInstanceOf[Elem])
       case Other(other) =>
-        Logger.info(s"Content type Other : $other")
+        NioLogger.info(s"Content type Other : $other")
         AppErrors(Seq(ErrorMessage("wrong.content.type")))
           .asLeft[T]
     }
@@ -57,12 +57,12 @@ object XmlOrJson {
             JsonBody(json)
           }
         case Some(MimeTypes.XML) =>
-          Logger.info(s"Content type Xml")
+          NioLogger.info(s"Content type Xml")
           parse.xml.map { xml =>
             XmlBody(xml)
           }
         case other =>
-          Logger.info(s"Content type Unknow $other")
+          NioLogger.info(s"Content type Unknow $other")
           parse.anyContent.map { c =>
             Other(c)
           }

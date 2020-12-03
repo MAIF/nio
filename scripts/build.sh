@@ -13,6 +13,7 @@ build_ui () {
   cd $LOCATION/nio-server/javascript
   yarn install
   yarn build
+  cd $LOCATION
 }
 
 build_provider () {

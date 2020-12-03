@@ -15,9 +15,9 @@ import utils.DateUtils
 import utils.Result.AppErrors
 
 import scala.xml.{Elem, NodeSeq}
+import scala.collection.Seq
 
-case class OrganisationUser(userId: String, orgKey: String)
-    extends ModelTransformAs {
+case class OrganisationUser(userId: String, orgKey: String) extends ModelTransformAs {
   override def asXml(): Elem = <organisationUser>
     <userId>
       {userId}
@@ -59,10 +59,11 @@ object OrganisationUser {
       .map(error => error.mkString(", "))
 }
 
-case class Account(accountId: String,
-                   lastUpdate: DateTime = DateTime.now(DateTimeZone.UTC),
-                   organisationsUsers: Seq[OrganisationUser])
-    extends ModelTransformAs {
+case class Account(
+    accountId: String,
+    lastUpdate: DateTime = DateTime.now(DateTimeZone.UTC),
+    organisationsUsers: Seq[OrganisationUser]
+) extends ModelTransformAs {
   override def asXml(): Elem = <account>
     <accountId>
       {accountId}
@@ -83,8 +84,7 @@ object Account extends ReadableEntity[Account] {
   implicit val read: Reads[Account] = (
     (__ \ "accountId").read[String] and
       (__ \ "lastUpdate")
-        .readWithDefault[DateTime](DateTime.now(DateTimeZone.UTC))(
-          DateUtils.utcDateTimeReads) and
+        .readWithDefault[DateTime](DateTime.now(DateTimeZone.UTC))(DateUtils.utcDateTimeReads) and
       (__ \ "organisationsUsers").read[Seq[OrganisationUser]]
   )(Account.apply _)
 
@@ -95,21 +95,18 @@ object Account extends ReadableEntity[Account] {
       (JsPath \ "organisationsUsers").write[Seq[OrganisationUser]]
   )(unlift(Account.unapply))
 
-  implicit val format: Format[Account] = Format(read, write)
+  implicit val format: Format[Account]   = Format(read, write)
   implicit val oformat: OFormat[Account] = OFormat(read, write)
 
   implicit val readXml: XMLRead[Account] =
     (node: NodeSeq, path: Option[String]) =>
       (
         (node \ "accountId").validate[String](Some("account.accountId")),
-        (node \ "organisationsUsers").validate[Seq[OrganisationUser]](
-          Some("account.organisationsUsers"))
-      ).mapN((accountId, organisationsUsers) =>
-        Account(accountId = accountId, organisationsUsers = organisationsUsers))
+        (node \ "organisationsUsers").validate[Seq[OrganisationUser]](Some("account.organisationsUsers"))
+      ).mapN((accountId, organisationsUsers) => Account(accountId = accountId, organisationsUsers = organisationsUsers))
 
-  override def fromXml(xml: Elem): Either[AppErrors, Account] = {
+  override def fromXml(xml: Elem): Either[AppErrors, Account] =
     readXml.read(xml, Some("account")).toEither
-  }
 
   override def fromJson(json: JsValue): Either[AppErrors, Account] =
     json

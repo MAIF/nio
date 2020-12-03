@@ -1,29 +1,26 @@
 package controllers
 
 import java.io.ByteArrayInputStream
+import java.util
 
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
+import akka.stream.Materializer
 import akka.stream.scaladsl.{Flow, Source}
 import akka.util.ByteString
 import auth._
 import com.amazonaws.services.s3.model.{
   CompleteMultipartUploadRequest,
   InitiateMultipartUploadRequest,
+  PartETag,
   UploadPartRequest,
   UploadPartResult
 }
 import db.ExtractionTaskMongoDataStore
 import messaging.KafkaMessageBroker
 import models._
-import play.api.Logger
+import utils.NioLogger
 import play.api.libs.streams.Accumulator
-import play.api.mvc.{
-  ActionBuilder,
-  AnyContent,
-  BodyParser,
-  ControllerComponents
-}
+import play.api.mvc.{ActionBuilder, AnyContent, BodyParser, ControllerComponents}
 import s3.{S3, S3Configuration, S3FileDataStore}
 import utils.UploadTracker
 
@@ -31,24 +28,27 @@ import scala.concurrent.{ExecutionContext, Future}
 import ErrorManager.ErrorManagerResult
 import ErrorManager.AppErrorManagerResult
 
+import scala.jdk.CollectionConverters._
+
 class ExtractionController(
     val AuthAction: ActionBuilder[SecuredAuthContext, AnyContent],
     val cc: ControllerComponents,
     val s3Conf: S3Configuration,
     val s3: S3,
-    val s3FileDataStore: S3FileDataStore)(
-    implicit val ec: ExecutionContext,
+    val s3FileDataStore: S3FileDataStore
+)(implicit
+    val ec: ExecutionContext,
     val system: ActorSystem,
     val store: ExtractionTaskMongoDataStore,
-    val broker: KafkaMessageBroker)
-    extends ControllerUtils(cc) {
+    val broker: KafkaMessageBroker
+) extends ControllerUtils(cc) {
 
-  implicit val mat = ActorMaterializer()(system)
+  implicit val mat = Materializer(system)
 
-  val fileBodyParser: BodyParser[Source[ByteString, _]] = BodyParser { _ =>
+  val fileBodyParser: BodyParser[Source[ByteString, _]]            = BodyParser { _ =>
     Accumulator.source[ByteString].map(s => Right(s))
   }
-  implicit val readable: ReadableEntity[AppIds] = AppIds
+  implicit val readable: ReadableEntity[AppIds]                    = AppIds
   implicit val readableFileMetadata: ReadableEntity[FilesMetadata] =
     FilesMetadata
 
@@ -56,9 +56,9 @@ class ExtractionController(
     AuthAction.async(bodyParser) { implicit req =>
       req.body.read[AppIds] match {
         case Left(error) =>
-          Logger.error(s"Unable to parse extraction task input due to $error")
+          NioLogger.error(s"Unable to parse extraction task input due to $error")
           Future.successful(error.badRequest())
-        case Right(o) =>
+        case Right(o)    =>
           val task = ExtractionTask.newFrom(orgKey, userId, o.appIds.toSet)
           store.insert(tenant, task).map { _ =>
             task.appIds.foreach { appId =>
@@ -81,22 +81,19 @@ class ExtractionController(
       }
     }
 
-  def setFilesMetadata(tenant: String,
-                       orgKey: String,
-                       extractionTaskId: String,
-                       appId: String) = AuthAction.async(bodyParser) {
-    implicit req =>
+  def setFilesMetadata(tenant: String, orgKey: String, extractionTaskId: String, appId: String) =
+    AuthAction.async(bodyParser) { implicit req =>
       req.body.read[FilesMetadata] match {
-        case Left(error) =>
-          Logger.error(s"Unable to parse extraction task input due to $error")
+        case Left(error)           =>
+          NioLogger.error(s"Unable to parse extraction task input due to $error")
           Future.successful(error.badRequest())
         case Right(extractedFiles) =>
           store.findById(tenant, extractionTaskId).flatMap {
-            case None =>
+            case None                                       =>
               Future.successful("error.unknown.extractionTaskId".notFound())
             case Some(task) if !task.appIds.contains(appId) =>
               Future.successful("error.unknown.appId".notFound())
-            case Some(task) =>
+            case Some(task)                                 =>
               val updatedTask =
                 task.copyWithUpdatedAppState(appId, extractedFiles)
               store.updateById(tenant, task._id, updatedTask).map { _ =>
@@ -117,24 +114,18 @@ class ExtractionController(
               }
           }
       }
-  }
+    }
 
-  def allExtractionTasksByOrgKey(tenant: String,
-                                 orgKey: String,
-                                 page: Int = 0,
-                                 pageSize: Int = 10) =
+  def allExtractionTasksByOrgKey(tenant: String, orgKey: String, page: Int = 0, pageSize: Int = 10) =
     AuthAction.async { implicit request =>
-      store.findAllByOrgKey(tenant, orgKey, page, pageSize).map {
-        case (extractionTasks, count) =>
-          val pagedExtractionTasks =
-            PagedExtractionTasks(page, pageSize, count, extractionTasks)
-          renderMethod(pagedExtractionTasks)
+      store.findAllByOrgKey(tenant, orgKey, page, pageSize).map { case (extractionTasks, count) =>
+        val pagedExtractionTasks =
+          PagedExtractionTasks(page, pageSize, count, extractionTasks)
+        renderMethod(pagedExtractionTasks)
       }
     }
 
-  def findExtractedTask(tenant: String,
-                        orgKey: String,
-                        extractionTaskId: String) =
+  def findExtractedTask(tenant: String, orgKey: String, extractionTaskId: String) =
     AuthAction.async { implicit request =>
       store.findById(tenant, extractionTaskId).map {
         case None                 => "error.extraction.task.not.found".notFound()
@@ -142,52 +133,41 @@ class ExtractionController(
       }
     }
 
-  def uploadFile(tenant: String,
-                 orgKey: String,
-                 extractionTaskId: String,
-                 appId: String,
-                 name: String) =
-    ExtractionAction(tenant, extractionTaskId, fileBodyParser).async {
-      implicit req =>
-        if (!req.task.appIds.contains(appId)) {
-          Future.successful("error.unknown.app".notFound())
-        } else {
-          val appState = req.task.states.find(_.appId == appId).get
-          appState.files.find(_.name == name) match {
-            case None =>
-              Future.successful("error.unknown.appId".notFound())
-            case Some(fileMetadata) =>
-              (if (s3Conf.v4auth) {
-                 upload(tenant, req.task, appId, name)
-               } else {
-                 oldUpload(tenant, req.task, appId, name)
-               }).flatMap { location =>
-                // Check all files are done for this app
-                if (req.task.allFilesDone(appId)) {
-                  val updatedTask =
-                    req.task.copyWithFileUploadHandled(appId, appState)
-                  updatedTask
-                    .storeAndEmitEvents(tenant,
-                                        appId,
-                                        req.authInfo.sub,
-                                        req.authInfo.metadatas)
-                    .map { _ =>
-                      Ok(location)
-                    }
-                } else {
-                  Future.successful(Ok(location))
-                }
+  def uploadFile(tenant: String, orgKey: String, extractionTaskId: String, appId: String, name: String) =
+    ExtractionAction(tenant, extractionTaskId, fileBodyParser).async { implicit req =>
+      if (!req.task.appIds.contains(appId)) {
+        Future.successful("error.unknown.app".notFound())
+      } else {
+        val appState = req.task.states.find(_.appId == appId).get
+        appState.files.find(_.name == name) match {
+          case None               =>
+            Future.successful("error.unknown.appId".notFound())
+          case Some(fileMetadata) =>
+            (if (s3Conf.v4auth) {
+               upload(tenant, req.task, appId, name)
+             } else {
+               oldUpload(tenant, req.task, appId, name)
+             }).flatMap { location =>
+              // Check all files are done for this app
+              if (req.task.allFilesDone(appId)) {
+                val updatedTask =
+                  req.task.copyWithFileUploadHandled(appId, appState)
+                updatedTask
+                  .storeAndEmitEvents(tenant, appId, req.authInfo.sub, req.authInfo.metadatas)
+                  .map { _ =>
+                    Ok(location)
+                  }
+              } else {
+                Future.successful(Ok(location))
               }
-          }
+            }
         }
+      }
     }
 
-  private def upload(
-      tenant: String,
-      task: ExtractionTask,
-      appId: String,
-      name: String)(implicit req: ReqWithExtractionTask[Source[ByteString, _]])
-    : Future[String] = {
+  private def upload(tenant: String, task: ExtractionTask, appId: String, name: String)(implicit
+      req: ReqWithExtractionTask[Source[ByteString, _]]
+  ): Future[String] =
     req.body
       .via(
         Flow[ByteString].map { chunk =>
@@ -202,14 +182,10 @@ class ExtractionController(
       .map { res =>
         res.location.toString()
       }
-  }
 
-  private def oldUpload(
-      tenant: String,
-      task: ExtractionTask,
-      appId: String,
-      name: String)(implicit req: ReqWithExtractionTask[Source[ByteString, _]])
-    : Future[String] = {
+  private def oldUpload(tenant: String, task: ExtractionTask, appId: String, name: String)(implicit
+      req: ReqWithExtractionTask[Source[ByteString, _]]
+  ): Future[String] = {
     val uploadKey =
       s"$tenant/${task.orgKey}/${task.userId}/${task._id}/$appId/$name"
 
@@ -226,14 +202,13 @@ class ExtractionController(
           .grouped(s3Conf.chunkSizeInMb)
           .map { chunks =>
             val groupedChunk = chunks.reduce(_ ++ _)
-            val uploadPart = new UploadPartRequest()
+            val uploadPart   = new UploadPartRequest()
               .withBucketName(s3Conf.bucketName)
               .withKey(uploadKey)
               .withUploadId(uploadId)
               .withPartNumber(partNumber)
               .withPartSize(groupedChunk.size)
-              .withInputStream(new ByteArrayInputStream(
-                groupedChunk.toArray[Byte]) {
+              .withInputStream(new ByteArrayInputStream(groupedChunk.toArray[Byte]) {
                 override def read(): Int = {
                   // Notify upload progress
                   UploadTracker.incrementUploadedBytes(task._id, appId, 1)
@@ -254,14 +229,10 @@ class ExtractionController(
         results :+ uploadResult
       }
       .map { results =>
-        val tags = scala.collection.JavaConverters
-          .seqAsJavaList(results.map(_.getPartETag))
-        val completeRequest =
-          new CompleteMultipartUploadRequest(s3Conf.bucketName,
-                                             uploadKey,
-                                             uploadId,
-                                             tags)
-        val result = s3.client.completeMultipartUpload(completeRequest)
+        val tags: util.List[PartETag] = results.map(_.getPartETag).asJava
+        val completeRequest           =
+          new CompleteMultipartUploadRequest(s3Conf.bucketName, uploadKey, uploadId, tags)
+        val result                    = s3.client.completeMultipartUpload(completeRequest)
         result.getLocation
       }
   }

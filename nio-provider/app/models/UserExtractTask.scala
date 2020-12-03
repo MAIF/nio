@@ -7,15 +7,18 @@ import play.api.libs.json.Writes._
 import play.api.libs.json._
 import utils.Result.AppErrors
 import utils.{DateUtils, Result}
+import scala.collection.Seq
 
-case class UserExtractTask(_id: String,
-                           tenant: String,
-                           orgKey: String,
-                           userId: String,
-                           email: String,
-                           startedAt: DateTime,
-                           uploadStartedAt: Option[DateTime],
-                           endedAt: Option[DateTime]) {
+case class UserExtractTask(
+    _id: String,
+    tenant: String,
+    orgKey: String,
+    userId: String,
+    email: String,
+    startedAt: DateTime,
+    uploadStartedAt: Option[DateTime],
+    endedAt: Option[DateTime]
+) {
   def asJson(): JsValue =
     UserExtractTask.userExtractTaskWrites.writes(this)
 }
@@ -60,7 +63,7 @@ object UserExtractTask {
       (JsPath \ "endedAt").writeNullable[DateTime]
   )(unlift(UserExtractTask.unapply))
 
-  implicit val format: Format[UserExtractTask] =
+  implicit val format: Format[UserExtractTask]   =
     Format(userExtractTaskReads, userExtractTaskWrites)
   implicit val oformat: OFormat[UserExtractTask] =
     OFormat(userExtractTaskReads, userExtractTaskOWrites)
