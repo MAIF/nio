@@ -56,6 +56,12 @@ case "${1}" in
     run_test
     # build_cli
     ;;
+  github)
+    clean
+    build_manual
+    build_ui
+    build_server
+    ;;
   cli)
     build_cli
     ;;

@@ -75,7 +75,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./nio/target/scala-2.13/nio.jar
+          asset_path: ./nio-server/target/scala-2.13/nio.jar
           asset_name: nio.jar
           asset_content_type: application/octet-stream
       - name: Upload a Release Asset - nio.zip
@@ -84,7 +84,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./nio/target/universal/nio.zip
+          asset_path: ./nio-server/target/universal/nio-dist.zip
           asset_name: nio-${{ github.event.inputs.releaseversion }}.zip
           asset_content_type: application/octet-stream
       - name: Zip manual
