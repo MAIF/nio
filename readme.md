@@ -1,6 +1,6 @@
 # Nio
 
-[![Build Status](https://travis-ci.org/MAIF/nio.svg?branch=master)](https://travis-ci.org/MAIF/nio)
+[![Build Status](https://github.com/maif/nio/workflows/test/badge.svg)](https://github.com/nio/workflows/actions)
 
 **Nio** is the Privacy Management Toolbox developped by the <a href="https://maif.github.io" target="_blank">MAIF OSS</a> team.
 
