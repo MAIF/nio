@@ -39,6 +39,7 @@ object KafkaSettings {
       settings
         .withProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL")
         .withProperty(BrokerSecurityConfigs.SSL_CLIENT_AUTH_CONFIG, "required")
+        .withProperty(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, null)
         .withProperty(SslConfigs.SSL_KEY_PASSWORD_CONFIG, kp)
         //.withProperty(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, getFile(ks).getAbsolutePath)
         .withProperty(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, ks)
@@ -66,6 +67,7 @@ object KafkaSettings {
       settings
         .withProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL")
         .withProperty(BrokerSecurityConfigs.SSL_CLIENT_AUTH_CONFIG, "required")
+        .withProperty(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, null)
         .withProperty(SslConfigs.SSL_KEY_PASSWORD_CONFIG, kp)
         .withProperty(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, ks)
         .withProperty(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, kp)
