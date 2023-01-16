@@ -9,12 +9,14 @@ lazy val `nio-server` = (project in file("."))
   .enablePlugins(NoPublish)
   .disablePlugins(BintrayPlugin)
 
-scalaVersion := "2.13.3"
+scalaVersion := "2.13.10"
 
 resolvers ++= Seq(
   Resolver.jcenterRepo,
   "Maven central" at "https://repo1.maven.org/maven2/"
 )
+
+ThisBuild / libraryDependencySchemes += "org.scala-lang.modules" %% "scala-xml" % VersionScheme.Always
 
 libraryDependencies ++= Seq(
   ws,
