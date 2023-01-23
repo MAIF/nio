@@ -195,14 +195,13 @@ class ConsentController(
             case (None, _)                     =>
               consentManagerService
                 .saveConsents(tenant, req.authInfo.sub, req.authInfo.metadatas, orgKey, userId, cf)
-                .map {
-                  case Right(consentFactSaved) =>
-                    renderMethod(consentFactSaved)
-                  case Left(error)             =>
+                .fold (
+                  error => {
                     NioLogger.error(s"error during consent fact saving $error")
                     error.renderError()
-                }
-
+                  },
+                  consentFactSaved => renderMethod(consentFactSaved)
+                )
             // case create or update offers and some patterns are specified
             case (Some(offers), Some(pattern)) =>
               // validate offers key are accessible
@@ -214,13 +213,13 @@ class ConsentController(
                 case Nil                =>
                   consentManagerService
                     .saveConsents(tenant, req.authInfo.sub, req.authInfo.metadatas, orgKey, userId, cf)
-                    .map {
-                      case Right(consentFactSaved) =>
-                        renderMethod(consentFactSaved)
-                      case Left(error)             =>
+                    .fold(
+                      error => {
                         NioLogger.error(s"error during consent fact saving $error")
                         error.renderError()
-                    }
+                      },
+                      consentFactSaved => renderMethod(consentFactSaved)
+                    )
 
                 // case one or more offers are not accessible
                 case unauthorizedOffers =>
@@ -306,12 +305,10 @@ class ConsentController(
                 case Some(offer) =>
                   consentManagerService
                     .delete(tenant, orgKey, userId, offer.key, req.authInfo.sub, req.authInfo.metadatas, consentFact)
-                    .flatMap {
-                      case Left(e)  =>
-                        Future.successful(e.renderError())
-                      case Right(o) =>
-                        Future.successful(renderMethod(o))
-                    }
+                    .fold(
+                      e => e.renderError(),
+                      o => renderMethod(o)
+                    )
               }
           }
     }

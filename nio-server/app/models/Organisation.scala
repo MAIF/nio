@@ -1,5 +1,6 @@
 package models
 
+import cats.Monoid
 import cats.data.Validated._
 import cats.data.ValidatedNel
 import cats.implicits._
@@ -12,11 +13,11 @@ import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.functional.syntax.{unlift, _}
 import play.api.libs.json.Reads._
 import play.api.libs.json._
-import reactivemongo.api.bson.BSONObjectID
+import reactivemongo.api.bson.{BSONObjectID, maxKey}
 import utils.DateUtils
 import utils.Result.{AppErrors, ErrorMessage, Result}
-import scala.collection.Seq
 
+import scala.collection.Seq
 import scala.xml.{Elem, NodeSeq}
 
 case class VersionInfo(
@@ -89,37 +90,74 @@ case class Organisation(
     </version>
     <groups>
       {groups.map(_.asXml())}
-    </groups>
-      {
-    offers match {
+    </groups>{offers match {
       case Some(seqOffer) if seqOffer.isEmpty => ""
-      case Some(l)                            => <offers>{l.map(_.asXml())}</offers>
-      case None                               => ""
-    }
-  }
+      case Some(l) => <offers>
+        {l.map(_.asXml())}
+      </offers>
+      case None => ""
+    }}
   </organisation>.clean()
 
   def newWith(version: VersionInfo): Organisation =
     this.copy(_id = BSONObjectID.generate().stringify, version = version)
 
-  def isValidWith(cf: ConsentFact): Option[String] =
-    if (cf.groups.length != groups.length) {
-      Some("error.invalid.groups.length")
+
+  def contentIsValid(consentGroup: ConsentGroup, permissionGroup: PermissionGroup): Either[AppErrors, ConsentGroup] = {
+    val mayBeConsentMapping: Seq[(Consent, Option[Permission])] = consentGroup.consents.map(g => (g, permissionGroup.permissions.find(perm => perm.key == g.key)))
+    val collectErrors = mayBeConsentMapping.collect {case (c, None ) => c }
+    if ( collectErrors.nonEmpty ) {
+      AppErrors(collectErrors.map(c => ErrorMessage("error.invalid.consent.key", c.key))).asLeft
     } else {
-      // check structure of org corresponds to the structure of consents
-      (cf.groups.sortBy(_.key) zip groups.sortBy(_.key)).collectFirst {
-        case (cg, og) if cg.consents.length != og.permissions.length =>
-          "error.invalid.group.consents.length"
-        case (cg, og) if cg.key != og.key                            => "error.invalid.group.key"
-        case (cg, og) if cg.label != og.label                        => "error.invalid.group.label"
-        case (cg, og)
-            if (cg.consents.sortBy(_.key) zip og.permissions.sortBy(_.key))
-              .exists { case (cgc, ogp) =>
-                cgc.key != ogp.key || cgc.label != ogp.label
-              } =>
-          "error.invalid.group.consents.key.or.label"
-      }
+      consentGroup.copy(
+        consents = mayBeConsentMapping.collect {
+          case (c, Some(p)) => c.copy(label = p.label)
+        }
+      ).asRight
     }
+  }
+
+  def isValidWith(cf: ConsentFact, previous: Option[ConsentFact]): Either[AppErrors, ConsentFact] = {
+    import cats.implicits._
+
+    val mayBeGroupMappings: Seq[(ConsentGroup, Option[PermissionGroup])] = cf.groups.map(g => (g, this.groups.find(pg => pg.key == g.key)))
+    val mayBeErrors = mayBeGroupMappings.collect { case (g, None) => g }
+
+    if (mayBeErrors.nonEmpty) {
+      AppErrors(mayBeErrors.map(group => ErrorMessage("error.invalid.group.key", group.key))).asLeft
+    } else {
+
+      val mayBeExistingGroupMapping: Option[List[ConsentGroup]] = previous.map { p => p.groups.to(List) }
+
+      val groupMappings: List[(ConsentGroup, PermissionGroup)] = mayBeGroupMappings.collect { case (g, Some(pg)) => (g, pg) }.to(List)
+
+      import AppErrors._
+
+      val errors: Either[AppErrors, List[ConsentGroup]] = groupMappings
+        // We verify that the groups en consents match the template
+        .parTraverse { case (cg, pg) => contentIsValid(cg, pg) }
+
+      val finalErrors = for {
+        currentGroups <- errors
+        _ <- mayBeExistingGroupMapping match {
+            // If group was already set, we verify that it is not removed
+            case Some(existingGroups) => existingGroups.parTraverse { group =>
+              for {
+                existingGroupFound <- Either.fromOption(currentGroups.find(cg => group.key == cg.key), AppErrors(List(ErrorMessage("error.invalid.group.missing", group.key))))
+                // If consent was already set, we verify that it is not removed
+                _ <- group.consents.to(List).parTraverse{ consent =>
+                  Either.fromOption(existingGroupFound.consents.find(c => c.key == consent.key), AppErrors(List(ErrorMessage("error.invalid.key.missing", consent.key))))
+                }
+              } yield currentGroups
+            }
+            case None => currentGroups.asRight
+          }
+
+      } yield currentGroups
+
+      finalErrors.map { groups => cf.copy(groups = groups) }
+    }
+  }
 }
 
 object OrganisationDraft extends ReadableEntity[Organisation] {
