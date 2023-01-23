@@ -485,10 +485,10 @@ class ConsentControllerSpec extends TestUtils {
        {
           "errors":[
             {
-              "message":"error.invalid.key.missing",
+              "message":"error.invalid.consent.missing",
               "args":["mail"]
             },{
-              "message":"error.invalid.key.missing",
+              "message":"error.invalid.consent.missing",
               "args":["sms"]
             },
             {
@@ -713,7 +713,7 @@ class ConsentControllerSpec extends TestUtils {
     "force lastUpdate date xml" in {
       val yesterday: DateTime = DateTime.now(DateTimeZone.UTC).minusDays(1)
 
-      val userId6 = "userId6"
+      val userId6 = "userId6Xml"
 
       val consentFact = ConsentFact(
         _id = "cf",
