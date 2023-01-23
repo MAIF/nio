@@ -6,21 +6,24 @@ import akka.stream.Materializer
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
 import auth.SecuredAuthContext
+import cats.data.EitherT
 import controllers.ErrorManager.{AppErrorManagerResult, ErrorManagerResult, ErrorWithStatusManagerResult}
 import db.{ConsentFactMongoDataStore, LastConsentFactMongoDataStore, OrganisationMongoDataStore, UserMongoDataStore}
+import libs.io.IO
+import libs.io._
 import libs.xmlorjson.XmlOrJson
 import messaging.KafkaMessageBroker
 import models.{ConsentFact, _}
 import utils.NioLogger
 import play.api.http.HttpEntity
 import play.api.mvc._
-import reactivemongo.api.{Cursor}
+import reactivemongo.api.Cursor
 import reactivemongo.api.bson.BSONDocument
 import service.{AccessibleOfferManagerService, ConsentManagerService}
 import utils.BSONUtils
 import utils.Result.{AppErrors, ErrorMessage}
-import scala.collection.Seq
 
+import scala.collection.Seq
 import scala.concurrent.{ExecutionContext, Future}
 
 class ConsentController(
@@ -37,6 +40,7 @@ class ConsentController(
     extends ControllerUtils(cc) {
 
   implicit val readable: ReadableEntity[ConsentFact] = ConsentFact
+  implicit val readablePartial: ReadableEntity[PartialConsentFact] = PartialConsentFact
 
   implicit val materializer = Materializer(system)
 
@@ -230,6 +234,14 @@ class ConsentController(
           }
       }
     }
+
+  def partialUpdate(tenant: String, orgKey: String, userId: String): Action[XmlOrJson]=
+    AuthAction.async(bodyParser) { implicit req =>
+      (for {
+        patchCommand      <- IO.fromEither(req.body.read[PartialConsentFact]).mapError { error => NioLogger.error(s"Unable to parse consentFact: $error") ; error.badRequest() }
+        consentFactSaved  <- consentManagerService.partialUpdate(tenant, req.authInfo.sub, req.authInfo.metadatas, orgKey, userId, patchCommand).mapError { _.renderError() }
+      } yield renderMethod(consentFactSaved)).merge
+  }
 
   lazy val defaultPageSize: Int =
     sys.env.get("DEFAULT_PAGE_SIZE").map(_.toInt).getOrElse(200)

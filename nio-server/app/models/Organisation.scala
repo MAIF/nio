@@ -146,7 +146,7 @@ case class Organisation(
                 existingGroupFound <- Either.fromOption(currentGroups.find(cg => group.key == cg.key), AppErrors(List(ErrorMessage("error.invalid.group.missing", group.key))))
                 // If consent was already set, we verify that it is not removed
                 _ <- group.consents.to(List).parTraverse{ consent =>
-                  Either.fromOption(existingGroupFound.consents.find(c => c.key == consent.key), AppErrors(List(ErrorMessage("error.invalid.key.missing", consent.key))))
+                  Either.fromOption(existingGroupFound.consents.find(c => c.key == consent.key), AppErrors(List(ErrorMessage("error.invalid.consent.missing", consent.key))))
                 }
               } yield currentGroups
             }

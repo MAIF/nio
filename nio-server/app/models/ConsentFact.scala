@@ -15,6 +15,7 @@ import reactivemongo.api.bson.BSONObjectID
 import utils.DateUtils
 import utils.Result.AppErrors
 import utils.Result.AppErrors._
+import utils.json.JsResultOps
 
 import scala.xml.{Elem, NodeSeq}
 import scala.collection.Seq
@@ -182,6 +183,98 @@ object ConsentOffer extends ReadableEntity[ConsentOffer] {
       case JsSuccess(value, _) => Right(value)
       case JsError(errors)     => Left(AppErrors.fromJsError(errors))
     }
+}
+
+
+case class PartialConsent(key: String, label: Option[String], checked: Option[Boolean])
+
+object PartialConsent {
+  implicit val format = Json.format[PartialConsent]
+  implicit val partialConsentReadXml: XMLRead[PartialConsent] =
+    (node: NodeSeq, path: Option[String]) =>
+      (
+        (node \ "key").validate[String](Some(s"${path.convert()}key")),
+        (node \ "label").validateNullable[String](Some(s"${path.convert()}label")),
+        (node \ "checked").validateNullable[Boolean](Some(s"${path.convert()}checked"))
+      ).mapN((key, label, checked) => PartialConsent(key, label, checked))
+}
+case class PartialConsentGroup (key: String, label: Option[String], consents: Option[Seq[PartialConsent]])
+
+object PartialConsentGroup {
+  implicit val format = Json.format[PartialConsentGroup]
+  implicit val partialConsentGroupReadXml: XMLRead[PartialConsentGroup] =
+    (node: NodeSeq, path: Option[String]) =>
+      (
+        (node \ "key").validate[String](Some(s"${path.convert()}key")),
+        (node \ "label").validateNullable[String](Some(s"${path.convert()}label")),
+        (node \ "consents").validateNullable[Seq[PartialConsent]](Some(s"${path.convert()}consents"))
+      ).mapN((key, label, consents) => PartialConsentGroup(key, label, consents))
+}
+
+case class PartialConsentOffer(key: String, label: Option[String], version: Option[Int], groups: Option[Seq[PartialConsentGroup]])
+
+object PartialConsentOffer {
+  implicit val format =
+    Json.format[PartialConsentOffer]
+
+  implicit val partialConsentOfferReadXml: XMLRead[PartialConsentOffer] =
+    (node: NodeSeq, path: Option[String]) =>
+      (
+        (node \ "key").validate[String](Some(s"${path.convert()}key")),
+        (node \ "label").validateNullable[String](Some(s"${path.convert()}label")),
+        (node \ "version").validateNullable[Int](Some(s"${path.convert()}version")),
+        (node \ "groups").validateNullable[Seq[PartialConsentGroup]](Some(s"${path.convert()}consents"))
+      ).mapN((key, label, version, groups) => PartialConsentOffer(key, label, version, groups))
+}
+case class PartialConsentFact(
+                        _id: Option[String] = None,
+                        userId: Option[String] = None,
+                        doneBy: Option[DoneBy] = None,
+                        version: Option[Int] = None,
+                        groups: Option[Seq[PartialConsentGroup]] = None,
+                        offers: Option[Seq[PartialConsentOffer]] = None,
+                        orgKey: Option[String] = None,
+                        metaData: Option[Map[String, String]] = None,
+                        sendToKafka: Option[Boolean] = None) {
+  def applyTo(lastConsentFact: ConsentFact): ConsentFact = {
+    ???
+  }
+
+}
+
+object PartialConsentFact extends ReadableEntity[PartialConsentFact] {
+
+  implicit val format = Json.format[PartialConsentFact]
+
+  implicit val partialConsentFactReadXml: XMLRead[PartialConsentFact] =
+    (node: NodeSeq, path: Option[String]) =>
+      (
+        (node \ "_id").validateNullable[String](Some(s"${path.convert()}_id")),
+        (node \ "userId").validateNullable[String](Some(s"${path.convert()}userId")),
+        (node \ "doneBy").validateNullable[DoneBy](Some(s"${path.convert()}doneBy")),
+        (node \ "version").validateNullable[Int](Some(s"${path.convert()}version")),
+        (node \ "groups").validateNullable[Seq[PartialConsentGroup]](Some(s"${path.convert()}consents")),
+        (node \ "offers").validateNullable[Seq[PartialConsentOffer]](Some(s"${path.convert()}offers")),
+        (node \ "orgKey").validateNullable[String](Some(s"${path.convert()}orgKey")),
+        (node \ "metaData").validateNullable[Seq[Metadata]](Some(s"${path.convert()}metaData")),
+        (node \ "sendToKafka").validateNullable[Boolean](Some(s"${path.convert()}sendToKafka"))
+      ).mapN((_id, userId, doneBy, version, groups, offers, orgKey, metadata, sendToKafka) =>
+        PartialConsentFact(
+          _id,
+          userId,
+          doneBy,
+          version,
+          groups,
+          offers,
+          orgKey,
+          metadata.map(m => m.map(ev => (ev.key, ev.value)).toMap),
+          sendToKafka
+        )
+      )
+
+  override def fromXml(xml: Elem): Either[AppErrors, PartialConsentFact] = PartialConsentFact.partialConsentFactReadXml.read(xml).toEither
+
+  override def fromJson(json: JsValue): Either[AppErrors, PartialConsentFact] = PartialConsentFact.format.reads(json).toEither(AppErrors.fromJsError _ )
 }
 
 // A user will have multiple consent facts
