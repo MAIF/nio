@@ -186,21 +186,55 @@ object ConsentOffer extends ReadableEntity[ConsentOffer] {
 }
 
 
-case class PartialConsent(key: String, label: Option[String], checked: Option[Boolean])
+case class PartialConsent(key: String, label: Option[String], checked: Boolean) {
+  def toConsent: Consent = Consent(key, label.getOrElse(""), checked)
+
+}
 
 object PartialConsent {
+  def merge(pcs: Seq[PartialConsent], consents: Seq[Consent]): Seq[Consent] = {
+    consents.map { c =>
+      pcs.find(pc => pc.key == c.key).fold(c) { pc =>
+        c.copy(
+          label = pc.label.getOrElse(c.label),
+          checked = pc.checked
+        )
+      }
+    } ++ pcs.filter(pc => !consents.exists(c => c.key == pc.key)).map { pc =>
+      Consent(pc.key, pc.label.getOrElse(""), pc.checked)
+    }
+  }
+
   implicit val format = Json.format[PartialConsent]
   implicit val partialConsentReadXml: XMLRead[PartialConsent] =
     (node: NodeSeq, path: Option[String]) =>
       (
         (node \ "key").validate[String](Some(s"${path.convert()}key")),
         (node \ "label").validateNullable[String](Some(s"${path.convert()}label")),
-        (node \ "checked").validateNullable[Boolean](Some(s"${path.convert()}checked"))
+        (node \ "checked").validate[Boolean](Some(s"${path.convert()}checked"))
       ).mapN((key, label, checked) => PartialConsent(key, label, checked))
 }
 case class PartialConsentGroup (key: String, label: Option[String], consents: Option[Seq[PartialConsent]])
 
 object PartialConsentGroup {
+
+  def merge(partialGroups: Seq[PartialConsentGroup], existingGroups: Seq[ConsentGroup]): Seq[ConsentGroup] = {
+    existingGroups.map { g =>
+      partialGroups.find(pg => pg.key == g.key).fold( g ) { pg =>
+          g.copy(
+            label = pg.label.getOrElse(g.label),
+            consents = pg.consents.map(pcs => PartialConsent.merge(pcs, g.consents)).getOrElse(g.consents)
+          )
+        }
+    } ++ partialGroups.filter(pg => !existingGroups.exists(g => pg.key == g.key)).map { pc =>
+      ConsentGroup(
+        pc.key,
+        pc.label.getOrElse(""),
+        pc.consents.toList.flatten.map(pc => pc.toConsent)
+      )
+    }
+  }
+
   implicit val format = Json.format[PartialConsentGroup]
   implicit val partialConsentGroupReadXml: XMLRead[PartialConsentGroup] =
     (node: NodeSeq, path: Option[String]) =>
@@ -214,6 +248,35 @@ object PartialConsentGroup {
 case class PartialConsentOffer(key: String, label: Option[String], version: Option[Int], groups: Option[Seq[PartialConsentGroup]])
 
 object PartialConsentOffer {
+  def merge(partialOffers: Seq[PartialConsentOffer], existingOffers: Option[Seq[ConsentOffer]]): Option[Seq[ConsentOffer]] = {
+    if (partialOffers.isEmpty && existingOffers.isEmpty) {
+      None
+    } else {
+      val flattenOffers = existingOffers.toList.flatten
+      val updatedOffers: Seq[ConsentOffer] = flattenOffers.map { o =>
+        partialOffers.find(pg => pg.key == o.key).fold(o) { po =>
+          o.copy(
+            label = po.label.getOrElse(o.label),
+            groups = PartialConsentGroup.merge(po.groups.toList.flatten, o.groups)
+          )
+        }
+      }
+      val newOffers: Seq[ConsentOffer] = partialOffers.filter(po => !flattenOffers.exists(o => po.key == o.key)).map { po =>
+        ConsentOffer(
+          key = po.key,
+          label = po.label.getOrElse(""),
+          version = po.version.getOrElse(0),
+          groups = po.groups.toList.flatten.map(pg => ConsentGroup(
+            key = pg.key,
+            label = pg.label.getOrElse(""),
+            consents = pg.consents.map(_.map(_.toConsent)).toList.flatten
+          ))
+        )
+      }
+      Some(updatedOffers ++ newOffers)
+    }
+  }
+
   implicit val format =
     Json.format[PartialConsentOffer]
 
@@ -237,9 +300,20 @@ case class PartialConsentFact(
                         metaData: Option[Map[String, String]] = None,
                         sendToKafka: Option[Boolean] = None) {
   def applyTo(lastConsentFact: ConsentFact): ConsentFact = {
-    ???
+    val finalConsent = lastConsentFact.copy(
+        _id = BSONObjectID.generate().stringify,
+        userId = userId.getOrElse(lastConsentFact.userId),
+        doneBy = doneBy.getOrElse(lastConsentFact.doneBy),
+        version = version.getOrElse(lastConsentFact.version),
+        groups = groups.map(g => PartialConsentGroup.merge(g, lastConsentFact.groups)).getOrElse(lastConsentFact.groups),
+        offers = offers.map(o => PartialConsentOffer.merge(o, lastConsentFact.offers)).getOrElse(lastConsentFact.offers),
+        orgKey = orgKey.orElse(lastConsentFact.orgKey),
+        metaData = metaData.map(meta => lastConsentFact.metaData.map(m => m.combine(meta)).getOrElse(meta)).orElse(lastConsentFact.metaData),
+        sendToKafka = sendToKafka.orElse(lastConsentFact.sendToKafka)
+    )
+    println(s"Merged data : $this, \n $lastConsentFact, \n $finalConsent")
+    finalConsent
   }
-
 }
 
 object PartialConsentFact extends ReadableEntity[PartialConsentFact] {

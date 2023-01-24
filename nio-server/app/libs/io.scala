@@ -6,6 +6,7 @@ import cats.implicits._
 import cats.syntax._
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success}
 
 object io {
 
@@ -19,6 +20,17 @@ object io {
         func(e)
         e
       }
+    }
+
+    def doOnFailure(func: Throwable => Unit)(implicit ec: ExecutionContext): IO[E, A] = {
+      EitherT({
+        val tmp = value.value
+        tmp.onComplete {
+          case Success(_) =>
+          case Failure(exception) => func(exception)
+        }
+        tmp
+      })
     }
 
     def keep(predicate: A => Boolean, ifFalse: => E)(implicit ec: ExecutionContext): IO[E, A] = {

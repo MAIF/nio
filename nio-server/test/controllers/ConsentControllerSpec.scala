@@ -762,6 +762,36 @@ class ConsentControllerSpec extends TestUtils {
       (xmlGet \ "lastUpdate").head.text mustBe yesterday.toString(DateUtils.utcDateFormatter)
     }
 
+
+    "Partial update on consent" in {
+      val organisationKey: String = "maif"
+
+      val path: String =
+        s"/$tenant/organisations/$organisationKey/users/$userId1"
+      val putResponse = putJson(path, user1AsJson)
+
+      putResponse.status mustBe OK
+
+      val patchResponse = patchJson(path, Json.obj(
+        "groups" -> Json.arr(
+          Json.obj(
+            "key" -> "maifNotifs",
+            "consents" -> Json.arr(
+              Json.obj("key" -> "phone", "checked" -> false)
+            )
+          )
+        )
+      ))
+
+      println(patchResponse.json)
+      patchResponse.status mustBe OK
+      patchResponse.json mustBe user1.copy(
+        orgKey = Some("maif"),
+        groups = user1.groups.updated(0,  user1.groups(0).copy(
+          consents = user1.groups(0).consents.updated(0, user1.groups(0).consents(0).copy(checked = false))
+        ))
+      ).asJson()
+    }
   }
 
   "Consent with offer" should {

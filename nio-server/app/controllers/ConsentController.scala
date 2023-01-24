@@ -6,7 +6,6 @@ import akka.stream.Materializer
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
 import auth.SecuredAuthContext
-import cats.data.EitherT
 import controllers.ErrorManager.{AppErrorManagerResult, ErrorManagerResult, ErrorWithStatusManagerResult}
 import db.{ConsentFactMongoDataStore, LastConsentFactMongoDataStore, OrganisationMongoDataStore, UserMongoDataStore}
 import libs.io.IO
@@ -207,7 +206,7 @@ class ConsentController(
                   consentFactSaved => renderMethod(consentFactSaved)
                 )
             // case create or update offers and some patterns are specified
-            case (Some(offers), Some(pattern)) =>
+            case (Some(offers), Some(_)) =>
               // validate offers key are accessible
               offers
                 .filterNot(o =>
@@ -239,8 +238,33 @@ class ConsentController(
     AuthAction.async(bodyParser) { implicit req =>
       (for {
         patchCommand      <- IO.fromEither(req.body.read[PartialConsentFact]).mapError { error => NioLogger.error(s"Unable to parse consentFact: $error") ; error.badRequest() }
-        consentFactSaved  <- consentManagerService.partialUpdate(tenant, req.authInfo.sub, req.authInfo.metadatas, orgKey, userId, patchCommand).mapError { _.renderError() }
-      } yield renderMethod(consentFactSaved)).merge
+        _                 <- if (patchCommand.userId.isDefined && !patchCommand.userId.contains(userId)) IO.error("error.userId.is.immutable".badRequest())
+                             else IO.succeed(patchCommand)
+        command           = patchCommand.copy(orgKey = Some(orgKey))
+        result                 <- patchCommand.offers match {
+          case Some(offers) =>
+            for {
+              _ <- IO.fromOption(req.authInfo.offerRestrictionPatterns, { val errorMessages = offers.map(o => ErrorMessage(s"offer.${o.key}.not.authorized")) ; NioLogger.error(s"not authorized : ${errorMessages.map(_.message)}"); AppErrors(errorMessages).unauthorized()})
+              _ <- IO.succeed[Result](offers.filterNot(o => accessibleOfferService.accessibleOfferKey(o.key, req.authInfo.offerRestrictionPatterns)))
+                .keep(offer => offer.isEmpty, { unauthorizedOffers =>
+                  val errorMessages = unauthorizedOffers.map(o => ErrorMessage(s"offer.${o.key}.not.authorized"))
+                  NioLogger.error(s"not authorized : ${errorMessages.map(_.message)}")
+                  AppErrors(errorMessages).unauthorized()
+                })
+              consentFactSaved <- consentManagerService
+                .partialUpdate(tenant, req.authInfo.sub, req.authInfo.metadatas, orgKey, userId, command)
+                .mapError { error =>
+                    NioLogger.error(s"error during consent fact saving $error")
+                    error.renderError()
+                  }
+            } yield renderMethod(consentFactSaved)
+          case None         =>
+            consentManagerService
+              .partialUpdate(tenant, req.authInfo.sub, req.authInfo.metadatas, orgKey, userId, command)
+              .mapError { _.renderError() }
+              .map { consentFactSaved => renderMethod(consentFactSaved) }
+        }
+      } yield result).merge
   }
 
   lazy val defaultPageSize: Int =
