@@ -71,7 +71,8 @@ class CatchupNioEventService(
             tenant = tenant,
             payload = catchup.lastConsentFact,
             author = "EVENT_CATCHUP",
-            metadata = None
+            metadata = None,
+            command = Json.obj()
           )
         } else {
           ConsentFactUpdated(
@@ -79,7 +80,8 @@ class CatchupNioEventService(
             oldValue = catchup.consentFact,
             payload = catchup.lastConsentFact,
             author = "EVENT_CATCHUP",
-            metadata = None
+            metadata = None,
+            command = Json.obj()
           )
         }
 

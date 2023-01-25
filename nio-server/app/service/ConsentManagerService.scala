@@ -13,6 +13,7 @@ import reactivemongo.api.bson.BSONObjectID
 
 import scala.collection.Seq
 import libs.io._
+import play.api.libs.json.{JsValue, Json}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -41,7 +42,8 @@ class ConsentManagerService(
                             metadata: Option[Seq[(String, String)]],
                             organisationKey: String,
                             userId: String,
-                            partialConsentFact: PartialConsentFact
+                            partialConsentFact: PartialConsentFact,
+                            command: JsValue
                          ): IO[AppErrorWithStatus, ConsentFact] = {
     for {
       lastConsent <- IO.fromFutureOption(lastConsentFactMongoDataStore.findByOrgKeyAndUserId(tenant, organisationKey, userId), AppErrorWithStatus(s"consentfact.${userId}.not.found", NotFound))
@@ -63,7 +65,7 @@ class ConsentManagerService(
           )
           AppErrorWithStatus("error.specified.version.not.latest")
         })
-      result <- createOrReplace(tenant, author, metadata, organisation, consentFact, Some(lastConsent))
+      result <- createOrReplace(tenant, author, metadata, organisation, consentFact, Some(lastConsent), command = command)
     } yield result
   }
 
@@ -73,7 +75,8 @@ class ConsentManagerService(
       metadata: Option[Seq[(String, String)]],
       organisation: Organisation,
       consentFact: ConsentFact,
-      maybeLastConsentFact: Option[ConsentFact] = None
+      maybeLastConsentFact: Option[ConsentFact] = None,
+      command: JsValue
   ): IO[AppErrorWithStatus, ConsentFact] =
     for {
       _                       <- IO.fromEither(organisation.isValidWith(consentFact, maybeLastConsentFact)).mapError(m => AppErrorWithStatus(m))
@@ -87,7 +90,7 @@ class ConsentManagerService(
             _ <- consentFactMongoDataStore.insert(tenant, consentFact.notYetSendToKafka()).io[AppErrorWithStatus]
             _ <- lastConsentFactMongoDataStore.insert(tenant, consentFact).io[AppErrorWithStatus]
             _ <- userMongoDataStore.insert(tenant, User(userId = userId, orgKey = organisationKey, orgVersion = organisation.version.num, latestConsentFactId = consentFact._id)).io[AppErrorWithStatus]
-            _ <- publishAndUpdateConsent(tenant, ConsentFactCreated(tenant = tenant, payload = consentFact, author = author, metadata = metadata), consentFact)
+            _ <- publishAndUpdateConsent(tenant, ConsentFactCreated(tenant = tenant, payload = consentFact, author = author, metadata = metadata, command = command), consentFact)
           } yield consentFact
         // Update user, consent fact and last consent fact
         case Some(lastConsentFactStored)
@@ -107,7 +110,7 @@ class ConsentManagerService(
           for {
             _ <- lastConsentFactMongoDataStore.update(tenant, organisationKey, userId, lastConsentFactToStore).io[AppErrorWithStatus]
             _ <- consentFactMongoDataStore.insert(tenant, consentFactToStore.notYetSendToKafka()).io[AppErrorWithStatus]
-            _ <- publishAndUpdateConsent(tenant, ConsentFactUpdated(tenant = tenant, oldValue = lastConsentFactStored, payload = lastConsentFactToStore, author = author, metadata = metadata), consentFactToStore)
+            _ <- publishAndUpdateConsent(tenant, ConsentFactUpdated(tenant = tenant, oldValue = lastConsentFactStored, payload = lastConsentFactToStore, author = author, metadata = metadata, command = command), consentFactToStore)
           } yield consentFactToStore
 
         case Some(lastConsentFactStored) if consentFact.lastUpdate.isBefore(lastConsentFactStored.lastUpdate) =>
@@ -297,7 +300,8 @@ class ConsentManagerService(
       metadata: Option[Seq[(String, String)]],
       organisationKey: String,
       userId: String,
-      consentFact: ConsentFact
+      consentFact: ConsentFact,
+      command: JsValue
   ): IO[AppErrorWithStatus, ConsentFact] =
     for {
       mayBeLastConsent <- IO.fromFuture[AppErrorWithStatus](lastConsentFactMongoDataStore.findByOrgKeyAndUserId(tenant, organisationKey, userId))
@@ -320,7 +324,7 @@ class ConsentManagerService(
                 AppErrorWithStatus("error.specified.version.not.latest")
             })
           .flatMap { organisation =>
-            createOrReplace(tenant, author, metadata, organisation, consentFact)
+            createOrReplace(tenant, author, metadata, organisation, consentFact, command = command)
           }
 
         // Update consent fact with the same organisation version
@@ -334,7 +338,7 @@ class ConsentManagerService(
               }
             )
             .flatMap { organisation =>
-              createOrReplace(tenant, author, metadata, organisation, consentFact, Some(lastConsentFactStored))
+              createOrReplace(tenant, author, metadata, organisation, consentFact, Some(lastConsentFactStored), command = command)
             }
 
         // Update consent fact with the new organisation version
@@ -351,7 +355,7 @@ class ConsentManagerService(
               AppErrorWithStatus("error.version.higher.than.release")
             })
             .flatMap { organisation =>
-                createOrReplace(tenant, author, metadata, organisation, consentFact, Option(lastConsentFactStored))
+                createOrReplace(tenant, author, metadata, organisation, consentFact, Option(lastConsentFactStored), command = command)
             }
 
         // Cannot rollback and update a consent fact to an old organisation version
@@ -468,7 +472,8 @@ class ConsentManagerService(
                                                  oldValue = lastConsentFactStored,
                                                  payload = lastConsentFactToStore,
                                                  author = author,
-                                                 metadata = metadata
+                                                 metadata = metadata,
+                                                 command = Json.obj()
                                                )
                                              ).io[AppErrorWithStatus]
                                        case None                         => IO.succeed[AppErrorWithStatus](())

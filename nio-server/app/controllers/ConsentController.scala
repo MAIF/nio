@@ -15,6 +15,7 @@ import messaging.KafkaMessageBroker
 import models.{ConsentFact, _}
 import utils.NioLogger
 import play.api.http.HttpEntity
+import play.api.libs.json.Json
 import play.api.mvc._
 import reactivemongo.api.Cursor
 import reactivemongo.api.bson.BSONDocument
@@ -82,7 +83,7 @@ class ConsentController(
                   key = pg.key,
                   label = pg.label,
                   consents = pg.permissions.map { p =>
-                    Consent(key = p.key, label = p.label, checked = false)
+                    Consent(key = p.key, label = p.label, checked = p.checkDefault())
                   }
                 )
 
@@ -197,7 +198,7 @@ class ConsentController(
             // case create or update consents without offers
             case (None, _)                     =>
               consentManagerService
-                .saveConsents(tenant, req.authInfo.sub, req.authInfo.metadatas, orgKey, userId, cf)
+                .saveConsents(tenant, req.authInfo.sub, req.authInfo.metadatas, orgKey, userId, cf, Json.toJson(cf))
                 .fold (
                   error => {
                     NioLogger.error(s"error during consent fact saving $error")
@@ -215,7 +216,7 @@ class ConsentController(
                 // case all offers in consent (body) are accessible
                 case Nil                =>
                   consentManagerService
-                    .saveConsents(tenant, req.authInfo.sub, req.authInfo.metadatas, orgKey, userId, cf)
+                    .saveConsents(tenant, req.authInfo.sub, req.authInfo.metadatas, orgKey, userId, cf, Json.toJson(cf))
                     .fold(
                       error => {
                         NioLogger.error(s"error during consent fact saving $error")
@@ -252,7 +253,7 @@ class ConsentController(
                   AppErrors(errorMessages).unauthorized()
                 })
               consentFactSaved <- consentManagerService
-                .partialUpdate(tenant, req.authInfo.sub, req.authInfo.metadatas, orgKey, userId, command)
+                .partialUpdate(tenant, req.authInfo.sub, req.authInfo.metadatas, orgKey, userId, command, Json.toJson(patchCommand))
                 .mapError { error =>
                     NioLogger.error(s"error during consent fact saving $error")
                     error.renderError()
@@ -260,7 +261,7 @@ class ConsentController(
             } yield renderMethod(consentFactSaved)
           case None         =>
             consentManagerService
-              .partialUpdate(tenant, req.authInfo.sub, req.authInfo.metadatas, orgKey, userId, command)
+              .partialUpdate(tenant, req.authInfo.sub, req.authInfo.metadatas, orgKey, userId, command, Json.toJson(patchCommand))
               .mapError { _.renderError() }
               .map { consentFactSaved => renderMethod(consentFactSaved) }
         }

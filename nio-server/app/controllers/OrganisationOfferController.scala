@@ -221,7 +221,7 @@ class OrganisationOfferController(
       }
       .mapAsync(env.config.db.batchSize)(consent =>
         consentManagerService
-          .saveConsents(tenant, authInfo.sub, authInfo.metadatas, orgKey, consent.userId, consent)
+          .saveConsents(tenant, authInfo.sub, authInfo.metadatas, orgKey, consent.userId, consent, Json.toJson(consent))
           .value
           .map { result =>
             Json.obj("userId" -> consent.userId, "status" -> result.isRight)

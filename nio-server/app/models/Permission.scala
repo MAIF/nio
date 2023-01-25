@@ -54,6 +54,11 @@ object PermissionType {
 }
 
 case class Permission(key: String, label: String, `type`: PermissionType = OptIn) {
+  def checkDefault(): Boolean = `type` match {
+    case OptIn => false
+    case OptOut => true 
+  }
+
   def asXml() = <permission>
       <key>{key}</key>
       <label>{label}</label>

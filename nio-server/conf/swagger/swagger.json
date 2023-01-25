@@ -1014,6 +1014,76 @@
             "description": "La date de mise a jour des consentements (ou des consentemnt liés à une offre) est inferieure à celle déjà précédemment renseignée"
           }
         }
+      },
+      "patch": {
+        "tags": [
+          "utilisateur"
+        ],
+        "summary": "Mise à jour partiel des consentements.",
+        "description": "Mise à jour partiel des consentements d'un utilisateur. Si l'utilisateur n'existait pas dans Nio, nous vérifions que la structure de consentements transmise corresponds bien à la structure de la dernière version publiée de l'organisation. Si l'utilisateur existe et que la version présente dans Nio est la même que la version envoyée, on vérifie que la structure de consentements transmise corresponds bien à la structure spécifiée. Si l'utilisateur existe et que la version présente dans Nio est inférieur à la version envoyée, on vérifie que la structure des consentements pour cette version corresponds bien à la version envoyée. Dans les autres cas l'api retournera une erreur 400.",
+        "parameters": [
+          {
+            "name": "$CLIENT_ID",
+            "in": "header",
+            "description": "Otoroshi client id",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "$CLIENT_SECRET",
+            "in": "header",
+            "description": "Otoroshi client secret",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "tenant",
+            "in": "path",
+            "description": "Le nom du tenant",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "orgKey",
+            "in": "path",
+            "description": "La clé de l'organisation",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "userId",
+            "in": "path",
+            "description": "L'identifiant utilisateur",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "consentements",
+            "in": "body",
+            "description": "Les consentements de l'utilisateur",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/PartialConsentFact"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Les consentements de l'utilisateur ont été mis à jour.",
+            "schema": {
+              "$ref": "#/definitions/ConsentFact"
+            }
+          },
+          "401": {
+            "description": "Le contexte utilisateur ne permet de souscrire ou de modifier les consentements d'une offre."
+          },
+          "404": {
+            "description": "Le tenant ou l'organisation n'existe pas."
+          },
+          "409": {
+            "description": "La date de mise a jour des consentements (ou des consentemnt liés à une offre) est inferieure à celle déjà précédemment renseignée"
+          }
+        }
       }
     },
     "/api/{tenant}/organisations/{orgKey}/users/{userId}/logs": {
@@ -2432,6 +2502,63 @@
     "ConsentFact": {
       "type": "object",
       "description": "structure représentant l'ensemble des consentements d'un utilisateur",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "identifiant de l'utilisateur"
+        },
+        "orgKey": {
+          "type": "string",
+          "description": "clé de l'organisation à laquelle appartient l'utilisateur"
+        },
+        "lastUpdate": {
+          "type": "string",
+          "description": "date de dernière mise à jour des consentements de l'utilisateur au format \"YYYY-MM-DDTHH:mm:ssZ\""
+        },
+        "metaData": {
+          "type": "array",
+          "description": "meta données liées au consentements",
+          "items": {
+            "$ref": "#/definitions/MetaDataEntry"
+          }
+        },
+        "doneBy": {
+          "type": "object",
+          "description": "description de la personne ou de l'entité ayant réalisé l'opération",
+          "properties": {
+            "userId": {
+              "type": "string",
+              "description": "identifiant d'un utilisateur"
+            },
+            "role": {
+              "type": "string",
+              "description": "role de l'utilisateur ayant réalisé l'opération"
+            }
+          }
+        },
+        "version": {
+          "type": "integer",
+          "description": "numéro de version publié de l'organisation associé sur laquelle la structure de consentements a été récupérée"
+        },
+        "groups": {
+          "type": "array",
+          "description": "liste des groupes de consentements associés à l'utilisateur",
+          "items": {
+            "$ref": "#/definitions/ConsentGroup"
+          }
+        },
+        "offers": {
+          "type": "array",
+          "description": "liste des offres souscrites par l'utilisateur",
+          "items": {
+            "$ref": "#/definitions/ConsentOffer"
+          }
+        }
+      }
+    },
+    "PartialConsentFact": {
+      "type": "object",
+      "description": "structure représentant un vue partielle des consentements d'un utilisateur",
       "properties": {
         "userId": {
           "type": "string",
