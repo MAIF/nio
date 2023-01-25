@@ -18,8 +18,8 @@ resolvers ++= Seq(
 
 libraryDependencies ++= Seq(
   ws,
-  "com.typesafe.akka"        %% "akka-http"                % "10.1.12",
-  "com.typesafe.akka"        %% "akka-http-xml"            % "10.1.12",
+  "com.typesafe.akka"        %% "akka-http"                % "10.1.15",
+  "com.typesafe.akka"        %% "akka-http-xml"            % "10.1.15",
   "com.typesafe.play"        %% "play-json-joda"           % playJsonJodaVersion,
   "org.reactivemongo"        %% "play2-reactivemongo"      % s"$reactiveMongoVersion-play28",
   "org.reactivemongo"        %% "reactivemongo-akkastream" % reactiveMongoVersion,
