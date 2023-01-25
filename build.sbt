@@ -2,7 +2,7 @@ import ReleaseTransformations._
 
 name := """nio"""
 organization := "fr.maif"
-scalaVersion := "2.13.3"
+scalaVersion := "2.13.10"
 
 lazy val root = (project in file("."))
   .aggregate(

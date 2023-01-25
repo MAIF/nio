@@ -74,7 +74,7 @@ class Auth0Controller(env: Env, wsClient: WSClient, cc: ControllerComponents)(im
               val future: Future[Result] = getUser(accessToken).map { user =>
                 NioLogger.info(s"auth0 callback user $user")
                 val email = (user \ "name").as[String]
-                Redirect(routes.HomeController.indexNoTenant())
+                Redirect(routes.HomeController.indexNoTenant)
                   .withSession(
                     "idToken"     -> idToken,
                     "accessToken" -> accessToken,
