@@ -8,19 +8,22 @@ import akka.util.ByteString
 import auth.SecuredAuthContext
 import controllers.ErrorManager.{AppErrorManagerResult, ErrorManagerResult, ErrorWithStatusManagerResult}
 import db.{ConsentFactMongoDataStore, LastConsentFactMongoDataStore, OrganisationMongoDataStore, UserMongoDataStore}
+import libs.io.IO
+import libs.io._
 import libs.xmlorjson.XmlOrJson
 import messaging.KafkaMessageBroker
 import models.{ConsentFact, _}
 import utils.NioLogger
 import play.api.http.HttpEntity
+import play.api.libs.json.Json
 import play.api.mvc._
-import reactivemongo.api.{Cursor}
+import reactivemongo.api.Cursor
 import reactivemongo.api.bson.BSONDocument
 import service.{AccessibleOfferManagerService, ConsentManagerService}
 import utils.BSONUtils
 import utils.Result.{AppErrors, ErrorMessage}
-import scala.collection.Seq
 
+import scala.collection.Seq
 import scala.concurrent.{ExecutionContext, Future}
 
 class ConsentController(
@@ -37,6 +40,7 @@ class ConsentController(
     extends ControllerUtils(cc) {
 
   implicit val readable: ReadableEntity[ConsentFact] = ConsentFact
+  implicit val readablePartial: ReadableEntity[PartialConsentFact] = PartialConsentFact
 
   implicit val materializer = Materializer(system)
 
@@ -79,7 +83,7 @@ class ConsentController(
                   key = pg.key,
                   label = pg.label,
                   consents = pg.permissions.map { p =>
-                    Consent(key = p.key, label = p.label, checked = false)
+                    Consent(key = p.key, label = p.label, checked = p.checkDefault())
                   }
                 )
 
@@ -194,17 +198,16 @@ class ConsentController(
             // case create or update consents without offers
             case (None, _)                     =>
               consentManagerService
-                .saveConsents(tenant, req.authInfo.sub, req.authInfo.metadatas, orgKey, userId, cf)
-                .map {
-                  case Right(consentFactSaved) =>
-                    renderMethod(consentFactSaved)
-                  case Left(error)             =>
+                .saveConsents(tenant, req.authInfo.sub, req.authInfo.metadatas, orgKey, userId, cf, Json.toJson(cf))
+                .fold (
+                  error => {
                     NioLogger.error(s"error during consent fact saving $error")
                     error.renderError()
-                }
-
+                  },
+                  consentFactSaved => renderMethod(consentFactSaved)
+                )
             // case create or update offers and some patterns are specified
-            case (Some(offers), Some(pattern)) =>
+            case (Some(offers), Some(_)) =>
               // validate offers key are accessible
               offers
                 .filterNot(o =>
@@ -213,14 +216,14 @@ class ConsentController(
                 // case all offers in consent (body) are accessible
                 case Nil                =>
                   consentManagerService
-                    .saveConsents(tenant, req.authInfo.sub, req.authInfo.metadatas, orgKey, userId, cf)
-                    .map {
-                      case Right(consentFactSaved) =>
-                        renderMethod(consentFactSaved)
-                      case Left(error)             =>
+                    .saveConsents(tenant, req.authInfo.sub, req.authInfo.metadatas, orgKey, userId, cf, Json.toJson(cf))
+                    .fold(
+                      error => {
                         NioLogger.error(s"error during consent fact saving $error")
                         error.renderError()
-                    }
+                      },
+                      consentFactSaved => renderMethod(consentFactSaved)
+                    )
 
                 // case one or more offers are not accessible
                 case unauthorizedOffers =>
@@ -231,6 +234,39 @@ class ConsentController(
           }
       }
     }
+
+  def partialUpdate(tenant: String, orgKey: String, userId: String): Action[XmlOrJson]=
+    AuthAction.async(bodyParser) { implicit req =>
+      (for {
+        patchCommand      <- IO.fromEither(req.body.read[PartialConsentFact]).mapError { error => NioLogger.error(s"Unable to parse consentFact: $error") ; error.badRequest() }
+        _                 <- if (patchCommand.userId.isDefined && !patchCommand.userId.contains(userId)) IO.error("error.userId.is.immutable".badRequest())
+                             else IO.succeed(patchCommand)
+        command           = patchCommand.copy(orgKey = Some(orgKey))
+        result                 <- patchCommand.offers match {
+          case Some(offers) =>
+            for {
+              _ <- IO.fromOption(req.authInfo.offerRestrictionPatterns, { val errorMessages = offers.map(o => ErrorMessage(s"offer.${o.key}.not.authorized")) ; NioLogger.error(s"not authorized : ${errorMessages.map(_.message)}"); AppErrors(errorMessages).unauthorized()})
+              _ <- IO.succeed[Result](offers.filterNot(o => accessibleOfferService.accessibleOfferKey(o.key, req.authInfo.offerRestrictionPatterns)))
+                .keep(offer => offer.isEmpty, { unauthorizedOffers =>
+                  val errorMessages = unauthorizedOffers.map(o => ErrorMessage(s"offer.${o.key}.not.authorized"))
+                  NioLogger.error(s"not authorized : ${errorMessages.map(_.message)}")
+                  AppErrors(errorMessages).unauthorized()
+                })
+              consentFactSaved <- consentManagerService
+                .partialUpdate(tenant, req.authInfo.sub, req.authInfo.metadatas, orgKey, userId, command, Json.toJson(patchCommand))
+                .mapError { error =>
+                    NioLogger.error(s"error during consent fact saving $error")
+                    error.renderError()
+                  }
+            } yield renderMethod(consentFactSaved)
+          case None         =>
+            consentManagerService
+              .partialUpdate(tenant, req.authInfo.sub, req.authInfo.metadatas, orgKey, userId, command, Json.toJson(patchCommand))
+              .mapError { _.renderError() }
+              .map { consentFactSaved => renderMethod(consentFactSaved) }
+        }
+      } yield result).merge
+  }
 
   lazy val defaultPageSize: Int =
     sys.env.get("DEFAULT_PAGE_SIZE").map(_.toInt).getOrElse(200)
@@ -306,12 +342,10 @@ class ConsentController(
                 case Some(offer) =>
                   consentManagerService
                     .delete(tenant, orgKey, userId, offer.key, req.authInfo.sub, req.authInfo.metadatas, consentFact)
-                    .flatMap {
-                      case Left(e)  =>
-                        Future.successful(e.renderError())
-                      case Right(o) =>
-                        Future.successful(renderMethod(o))
-                    }
+                    .fold(
+                      e => e.renderError(),
+                      o => renderMethod(o)
+                    )
               }
           }
     }

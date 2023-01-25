@@ -68,7 +68,8 @@ export class OrganisationPage extends Component {
                             [
                                 {
                                     key: '',
-                                    label: ''
+                                    label: '',
+                                    type: 'OptIn'
                                 }
                             ]
                     }]
@@ -89,7 +90,8 @@ export class OrganisationPage extends Component {
                     [
                         {
                             key: '',
-                            label: ''
+                            label: '',
+                            type: 'OptIn'
                         }
                     ]
             };

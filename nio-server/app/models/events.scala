@@ -68,14 +68,15 @@ object NioEvent {
                      ConsentFact
                        .fromJson(payload)
                        .toOption
-                       .map(o => ConsentFactCreated(tenant, author, metadata, date, id, o))
+                       .map(o => ConsentFactCreated(tenant, author, metadata, date, id, o, (json \ "oldValue").asOpt[JsValue].getOrElse(Json.obj())))
                    case EventType.ConsentFactUpdated       =>
                      for {
                        oldValue <- (json \ "oldValue")
                                      .asOpt[JsValue]
                                      .flatMap(json => ConsentFact.fromJson(json).toOption)
                        payload  <- ConsentFact.fromJson(payload).toOption
-                     } yield ConsentFactUpdated(tenant, author, metadata, date, id, payload, oldValue)
+                       command  <- Option((json \ "oldValue").asOpt[JsValue].getOrElse(Json.obj()))
+                     } yield ConsentFactUpdated(tenant, author, metadata, date, id, payload, oldValue, command)
                    case EventType.AccountDeleted           =>
                      Account
                        .fromJson(payload)
@@ -120,7 +121,7 @@ trait NioEvent {
   val date: DateTime
   val tenant: String
 
-  def tYpe: EventType.Value
+  def `type`: EventType.Value
 
   def asJson(): JsValue
 
@@ -164,12 +165,12 @@ case class TenantCreated(
 ) extends NioEvent {
   def shardId = payload.key
 
-  def tYpe = EventType.TenantCreated
+  def `type` = EventType.TenantCreated
 
   def asJson() =
     Json
       .obj(
-        "type"     -> tYpe,
+        "type"     -> `type`,
         "tenant"   -> payload.key,
         "author"   -> author,
         "metadata" -> buildMetadata(metadata),
@@ -190,12 +191,12 @@ case class TenantDeleted(
 ) extends NioEvent {
   def shardId = payload.key
 
-  def tYpe = EventType.TenantDeleted
+  def `type` = EventType.TenantDeleted
 
   def asJson() =
     Json
       .obj(
-        "type"     -> tYpe,
+        "type"     -> `type`,
         "tenant"   -> payload.key,
         "author"   -> author,
         "metadata" -> buildMetadata(metadata),
@@ -216,12 +217,12 @@ case class OrganisationCreated(
 ) extends NioEvent {
   def shardId = payload.key
 
-  def tYpe = EventType.OrganisationCreated
+  def `type` = EventType.OrganisationCreated
 
   def asJson() =
     Json
       .obj(
-        "type"     -> tYpe,
+        "type"     -> `type`,
         "tenant"   -> tenant,
         "author"   -> author,
         "metadata" -> buildMetadata(metadata),
@@ -243,12 +244,12 @@ case class OrganisationUpdated(
 ) extends NioEvent {
   def shardId = oldValue.key
 
-  def tYpe = EventType.OrganisationUpdated
+  def `type` = EventType.OrganisationUpdated
 
   def asJson() =
     Json
       .obj(
-        "type"     -> tYpe,
+        "type"     -> `type`,
         "tenant"   -> tenant,
         "author"   -> author,
         "metadata" -> buildMetadata(metadata),
@@ -270,12 +271,12 @@ case class OrganisationReleased(
 ) extends NioEvent {
   def shardId = payload.key
 
-  def tYpe = EventType.OrganisationReleased
+  def `type` = EventType.OrganisationReleased
 
   def asJson() =
     Json
       .obj(
-        "type"     -> tYpe,
+        "type"     -> `type`,
         "tenant"   -> tenant,
         "author"   -> author,
         "metadata" -> buildMetadata(metadata),
@@ -296,12 +297,12 @@ case class OrganisationDeleted(
 ) extends NioEvent {
   def shardId = payload.key
 
-  def tYpe = EventType.OrganisationDeleted
+  def `type` = EventType.OrganisationDeleted
 
   def asJson() =
     Json
       .obj(
-        "type"     -> tYpe,
+        "type"     -> `type`,
         "tenant"   -> tenant,
         "author"   -> author,
         "metadata" -> buildMetadata(metadata),
@@ -318,22 +319,24 @@ case class ConsentFactCreated(
     metadata: Option[Seq[(String, String)]] = None,
     date: DateTime = DateTime.now(DateTimeZone.UTC),
     id: Long = NioEvent.gen.nextId(),
-    payload: ConsentFact
+    payload: ConsentFact,
+    command: JsValue
 ) extends NioEvent() {
   def shardId = payload.userId
 
-  def tYpe = EventType.ConsentFactCreated
+  def `type` = EventType.ConsentFactCreated
 
   def asJson() =
     Json
       .obj(
-        "type"     -> tYpe,
+        "type"     -> `type`,
         "tenant"   -> tenant,
         "author"   -> author,
         "metadata" -> buildMetadata(metadata),
         "date"     -> date.toString(DateUtils.utcDateFormatter),
         "id"       -> id,
-        "payload"  -> payload.asJson()
+        "payload"  -> payload.asJson(),
+        "command"  -> command
       )
       .cleanMetadata()
 }
@@ -345,23 +348,25 @@ case class ConsentFactUpdated(
     date: DateTime = DateTime.now(DateTimeZone.UTC),
     id: Long = NioEvent.gen.nextId(),
     payload: ConsentFact,
-    oldValue: ConsentFact
+    oldValue: ConsentFact,
+    command: JsValue
 ) extends NioEvent {
   def shardId = oldValue.userId
 
-  def tYpe = EventType.ConsentFactUpdated
+  def `type` = EventType.ConsentFactUpdated
 
   def asJson() =
     Json
       .obj(
-        "type"     -> tYpe,
+        "type"     -> `type`,
         "tenant"   -> tenant,
         "author"   -> author,
         "metadata" -> buildMetadata(metadata),
         "date"     -> date.toString(DateUtils.utcDateFormatter),
         "id"       -> id,
         "payload"  -> payload.asJson(),
-        "oldValue" -> oldValue.asJson()
+        "oldValue" -> oldValue.asJson(),
+        "command"  -> command
       )
       .cleanMetadata()
 }
@@ -376,12 +381,12 @@ case class AccountDeleted(
 ) extends NioEvent {
   def shardId = payload.accountId
 
-  def tYpe = EventType.AccountDeleted
+  def `type` = EventType.AccountDeleted
 
   def asJson() =
     Json
       .obj(
-        "type"     -> tYpe,
+        "type"     -> `type`,
         "tenant"   -> tenant,
         "author"   -> author,
         "metadata" -> buildMetadata(metadata),
@@ -403,12 +408,12 @@ case class AccountCreated(
 ) extends NioEvent {
   def shardId = payload.accountId
 
-  def tYpe = EventType.AccountCreated
+  def `type` = EventType.AccountCreated
 
   def asJson() =
     Json
       .obj(
-        "type"     -> tYpe,
+        "type"     -> `type`,
         "tenant"   -> tenant,
         "author"   -> author,
         "metadata" -> buildMetadata(metadata),
@@ -431,12 +436,12 @@ case class AccountUpdated(
 ) extends NioEvent {
   def shardId = payload.accountId
 
-  def tYpe = EventType.AccountUpdated
+  def `type` = EventType.AccountUpdated
 
   def asJson() =
     Json
       .obj(
-        "type"     -> tYpe,
+        "type"     -> `type`,
         "tenant"   -> tenant,
         "author"   -> author,
         "metadata" -> buildMetadata(metadata),
@@ -454,12 +459,12 @@ case class SecuredEvent(
     date: DateTime = DateTime.now(DateTimeZone.UTC),
     payload: Digest
 ) extends NioEvent {
-  def tYpe = EventType.SecuredEvent
+  def `type` = EventType.SecuredEvent
 
   def asJson() =
     Json
       .obj(
-        "type"    -> tYpe,
+        "type"    -> `type`,
         "tenant"  -> tenant,
         "date"    -> date.toString(DateUtils.utcDateFormatter),
         "id"      -> id,
@@ -482,12 +487,12 @@ case class DeletionStarted(
 ) extends NioEvent {
   def shardId = payload.userId
 
-  def tYpe = EventType.DeletionStarted
+  def `type` = EventType.DeletionStarted
 
   def asJson() =
     Json
       .obj(
-        "type"     -> tYpe,
+        "type"     -> `type`,
         "tenant"   -> tenant,
         "author"   -> author,
         "metadata" -> buildMetadata(metadata),
@@ -508,12 +513,12 @@ case class DeletionAppDone(
 ) extends NioEvent {
   def shardId = payload.userId
 
-  def tYpe = EventType.DeletionAppDone
+  def `type` = EventType.DeletionAppDone
 
   def asJson() =
     Json
       .obj(
-        "type"     -> tYpe,
+        "type"     -> `type`,
         "tenant"   -> tenant,
         "author"   -> author,
         "metadata" -> buildMetadata(metadata),
@@ -534,12 +539,12 @@ case class DeletionFinished(
 ) extends NioEvent {
   def shardId = payload.userId
 
-  def tYpe = EventType.DeletionFinished
+  def `type` = EventType.DeletionFinished
 
   def asJson() =
     Json
       .obj(
-        "type"     -> tYpe,
+        "type"     -> `type`,
         "tenant"   -> tenant,
         "author"   -> author,
         "metadata" -> buildMetadata(metadata),
@@ -558,12 +563,12 @@ case class UserExtractTaskAsked(
     date: DateTime = DateTime.now(DateTimeZone.UTC),
     payload: UserExtractTask
 ) extends NioEvent {
-  override def tYpe: EventType.Value = EventType.UserExtractTaskAsked
+  override def `type`: EventType.Value = EventType.UserExtractTaskAsked
 
   override def asJson(): JsValue =
     Json
       .obj(
-        "type"     -> tYpe,
+        "type"     -> `type`,
         "tenant"   -> tenant,
         "author"   -> author,
         "metadata" -> buildMetadata(metadata),
@@ -583,12 +588,12 @@ case class UserExtractTaskCompleted(
     date: DateTime = DateTime.now(DateTimeZone.UTC),
     payload: UserExtractTask
 ) extends NioEvent {
-  override def tYpe: EventType.Value = EventType.UserExtractTaskCompleted
+  override def `type`: EventType.Value = EventType.UserExtractTaskCompleted
 
   override def asJson(): JsValue =
     Json
       .obj(
-        "type"     -> tYpe,
+        "type"     -> `type`,
         "tenant"   -> tenant,
         "author"   -> author,
         "metadata" -> buildMetadata(metadata),
@@ -611,12 +616,12 @@ case class ExtractionStarted(
 ) extends NioEvent {
   def shardId = payload.userId
 
-  def tYpe = EventType.ExtractionStarted
+  def `type` = EventType.ExtractionStarted
 
   def asJson() =
     Json
       .obj(
-        "type"     -> tYpe,
+        "type"     -> `type`,
         "tenant"   -> tenant,
         "author"   -> author,
         "metadata" -> buildMetadata(metadata),
@@ -637,12 +642,12 @@ case class ExtractionAppDone(
 ) extends NioEvent {
   def shardId = payload.userId
 
-  def tYpe = EventType.ExtractionAppDone
+  def `type` = EventType.ExtractionAppDone
 
   def asJson() =
     Json
       .obj(
-        "type"     -> tYpe,
+        "type"     -> `type`,
         "tenant"   -> tenant,
         "author"   -> author,
         "metadata" -> buildMetadata(metadata),
@@ -663,12 +668,12 @@ case class ExtractionAppFilesMetadataReceived(
 ) extends NioEvent {
   def shardId = payload.userId
 
-  def tYpe = EventType.ExtractionAppFilesMetadataReceived
+  def `type` = EventType.ExtractionAppFilesMetadataReceived
 
   def asJson() =
     Json
       .obj(
-        "type"     -> tYpe,
+        "type"     -> `type`,
         "tenant"   -> tenant,
         "author"   -> author,
         "metadata" -> buildMetadata(metadata),
@@ -689,12 +694,12 @@ case class ExtractionFinished(
 ) extends NioEvent {
   def shardId = payload.userId
 
-  def tYpe = EventType.ExtractionFinished
+  def `type` = EventType.ExtractionFinished
 
   def asJson() =
     Json
       .obj(
-        "type"     -> tYpe,
+        "type"     -> `type`,
         "tenant"   -> tenant,
         "author"   -> author,
         "metadata" -> buildMetadata(metadata),

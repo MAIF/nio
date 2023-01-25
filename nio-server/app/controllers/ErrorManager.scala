@@ -1,6 +1,10 @@
 package controllers
 
-import utils.Result.AppErrors
+import cats.kernel.Monoid
+import play.api.mvc.Results.BadRequest
+import utils.Result.{AppErrors, ErrorMessage}
+
+import scala.collection.Seq
 
 object ErrorManager {
 
@@ -76,4 +80,19 @@ object ErrorManager {
 }
 import play.api.mvc.Results.Status
 
-case class AppErrorWithStatus(appErrors: AppErrors, status: Status)
+case class AppErrorWithStatus(appErrors: AppErrors = AppErrors(), status: Status = BadRequest)
+
+object AppErrorWithStatus {
+
+  implicit val monoidInstance = Monoid.instance[AppErrorWithStatus](AppErrorWithStatus(), (err1, err2) =>
+    AppErrorWithStatus(err1.appErrors ++ err2.appErrors, err1.status)
+  )
+  def apply(message: String): AppErrorWithStatus = AppErrorWithStatus(
+    AppErrors(Seq(ErrorMessage(message))),
+    BadRequest
+  )
+  def apply(message: String, status: Status): AppErrorWithStatus = AppErrorWithStatus(
+    AppErrors(Seq(ErrorMessage(message))),
+    status
+  )
+}

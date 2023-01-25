@@ -103,6 +103,8 @@ GET           /api/:tenant/organisations/:orgKey/users/_template                
 
 PUT           /api/:tenant/organisations/:orgKey/users/:userId                                                            controllers.ConsentController.createOrReplaceIfExists(tenant: String, orgKey: String, userId: String)
 
+PATCH         /api/:tenant/organisations/:orgKey/users/:userId                                                            controllers.ConsentController.partialUpdate(tenant: String, orgKey: String, userId: String)
+
 DELETE        /api/:tenant/organisations/:orgKey/users/:userId/offers/:offerKey                                           controllers.ConsentController.deleteOffer(tenant: String, orgKey: String, userId: String, offerKey: String)
 
 GET           /api/:tenant/organisations/:orgKey/users/:userId                                                            controllers.ConsentController.find(tenant: String, orgKey: String, userId: String)

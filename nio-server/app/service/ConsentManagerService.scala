@@ -1,17 +1,19 @@
 package service
 
-import akka.http.scaladsl.util.FastFuture
+import cats.Foldable
 import cats.data.OptionT
+import cats.implicits._
 import controllers.AppErrorWithStatus
 import db.{ConsentFactMongoDataStore, LastConsentFactMongoDataStore, OrganisationMongoDataStore, UserMongoDataStore}
 import messaging.KafkaMessageBroker
 import models._
 import utils.NioLogger
-import play.api.libs.json.Json
 import play.api.mvc.Results._
 import reactivemongo.api.bson.BSONObjectID
-import utils.Result.{AppErrors, ErrorMessage}
+
 import scala.collection.Seq
+import libs.io._
+import play.api.libs.json.{JsValue, Json}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -35,114 +37,106 @@ class ConsentManagerService(
         )
     })
 
+  def partialUpdate(tenant: String,
+                            author: String,
+                            metadata: Option[Seq[(String, String)]],
+                            organisationKey: String,
+                            userId: String,
+                            partialConsentFact: PartialConsentFact,
+                            command: JsValue
+                         ): IO[AppErrorWithStatus, ConsentFact] = {
+    for {
+      lastConsent <- IO.fromFutureOption(lastConsentFactMongoDataStore.findByOrgKeyAndUserId(tenant, organisationKey, userId), AppErrorWithStatus(s"consentfact.${userId}.not.found", NotFound))
+      consentFact = partialConsentFact.applyTo(lastConsent)
+      organisation <- IO
+        .fromFutureOption(
+          organisationMongoDataStore.findLastReleasedByKey(tenant, organisationKey),
+          // If released not found
+          {
+            NioLogger.error(s"error.specified.org.never.released for organisation key $organisationKey")
+            AppErrorWithStatus("error.specified.org.never.released")
+          }
+        ).keep(
+        organisation => sameVersion(organisation, consentFact),
+        // If released not found
+        organisation => {
+          NioLogger.error(
+            s"error.specified.version.not.latest : latest version ${organisation.version.num} -> version specified ${consentFact.version}"
+          )
+          AppErrorWithStatus("error.specified.version.not.latest")
+        })
+      result <- createOrReplace(tenant, author, metadata, organisation, consentFact, Some(lastConsent), command = command)
+    } yield result
+  }
+
   private def createOrReplace(
       tenant: String,
       author: String,
       metadata: Option[Seq[(String, String)]],
       organisation: Organisation,
       consentFact: ConsentFact,
-      maybeLastConsentFact: Option[ConsentFact] = None
-  ): Future[Either[AppErrorWithStatus, ConsentFact]] =
-    organisation.isValidWith(consentFact) match {
-      case Some(error) =>
-        NioLogger.error(
-          s"invalid consent fact (compare with organisation ${organisation.key} version ${organisation.version}) : $error || ${consentFact.asJson()}"
-        )
-        toErrorWithStatus(error)
-      case None        =>
-        val organisationKey: String = organisation.key
-        val userId: String          = consentFact.userId
+      maybeLastConsentFact: Option[ConsentFact] = None,
+      command: JsValue
+  ): IO[AppErrorWithStatus, ConsentFact] =
+    for {
+      _                       <- IO.fromEither(organisation.isValidWith(consentFact, maybeLastConsentFact)).mapError(m => AppErrorWithStatus(m))
+      organisationKey: String = organisation.key
+      userId: String          = consentFact.userId
+      _                       <- validateOffersStructures(tenant, organisationKey, userId, consentFact.offers).doOnError{ e => NioLogger.error(s"validate offers structure $e") }
+      res                     <- maybeLastConsentFact match {
+        // Create a new user, consent fact and last consent fact
+        case None =>
+          for {
+            _ <- consentFactMongoDataStore.insert(tenant, consentFact.notYetSendToKafka()).io[AppErrorWithStatus]
+            _ <- lastConsentFactMongoDataStore.insert(tenant, consentFact).io[AppErrorWithStatus]
+            _ <- userMongoDataStore.insert(tenant, User(userId = userId, orgKey = organisationKey, orgVersion = organisation.version.num, latestConsentFactId = consentFact._id)).io[AppErrorWithStatus]
+            _ <- publishAndUpdateConsent(tenant, ConsentFactCreated(tenant = tenant, payload = consentFact, author = author, metadata = metadata, command = command), consentFact)
+          } yield consentFact
+        // Update user, consent fact and last consent fact
+        case Some(lastConsentFactStored)
+          if consentFact.version >= lastConsentFactStored.version
+            && !consentFact.lastUpdate.isBefore(lastConsentFactStored.lastUpdate)
+            && !isOffersUpdateConflict(lastConsentFactStored.offers, consentFact.offers) =>
 
-        validateOffersStructures(tenant, organisationKey, userId, consentFact.offers).flatMap {
-          case Left(e)  =>
-            NioLogger.error(s"validate offers structure $e")
-            FastFuture.successful(Left(e))
-          case Right(_) =>
-            maybeLastConsentFact match {
-              // Create a new user, consent fact and last consent fact
-              case None =>
-                for {
-                  _ <- consentFactMongoDataStore.insert(tenant, consentFact.notYetSendToKafka())
-                  _ <- lastConsentFactMongoDataStore.insert(tenant, consentFact)
-                  _ <- userMongoDataStore.insert(
-                         tenant,
-                         User(
-                           userId = userId,
-                           orgKey = organisationKey,
-                           orgVersion = organisation.version.num,
-                           latestConsentFactId = consentFact._id
-                         )
-                       )
-                  _ <- publishAndUpdateConsent(
-                         tenant,
-                         ConsentFactCreated(
-                           tenant = tenant,
-                           payload = consentFact,
-                           author = author,
-                           metadata = metadata
-                         ),
-                         consentFact
-                       )
-                } yield Right(consentFact)
-              // Update user, consent fact and last consent fact
-              case Some(lastConsentFactStored)
-                  if consentFact.version >= lastConsentFactStored.version
-                    && !consentFact.lastUpdate.isBefore(lastConsentFactStored.lastUpdate)
-                    && !isOffersUpdateConflict(lastConsentFactStored.offers, consentFact.offers) =>
-                val offers             = consentFact.offers match {
-                  case Some(newOffers) =>
-                    lastConsentFactStored.offers match {
-                      case Some(lastOffers) =>
-                        Some(newOffers ++ lastOffers.filterNot(o => newOffers.exists(no => no.key == o.key)))
-                      case None             => Some(newOffers)
-                    }
-                  case None            => lastConsentFactStored.offers
-                }
-                val consentFactToStore = consentFact.copy(offers = offers)
+          val offers = consentFact.offers.fold(lastConsentFactStored.offers) ( newOffers =>
+              lastConsentFactStored.offers.fold(newOffers) ( lastOffers =>
+                newOffers ++ lastOffers.filterNot(o => newOffers.exists(no => no.key == o.key))
+              ).some
+          )
 
-                val lastConsentFactToStore =
-                  consentFactToStore.copy(lastConsentFactStored._id)
+          val consentFactToStore = consentFact.copy(offers = offers)
+          val lastConsentFactToStore = consentFactToStore.copy(lastConsentFactStored._id)
 
-                for {
-                  _ <- lastConsentFactMongoDataStore.update(tenant, organisationKey, userId, lastConsentFactToStore)
-                  _ <- consentFactMongoDataStore.insert(tenant, consentFactToStore.notYetSendToKafka())
-                  _ <- publishAndUpdateConsent(
-                         tenant,
-                         ConsentFactUpdated(
-                           tenant = tenant,
-                           oldValue = lastConsentFactStored,
-                           payload = lastConsentFactToStore,
-                           author = author,
-                           metadata = metadata
-                         ),
-                         consentFactToStore
-                       )
-                } yield Right(consentFactToStore)
+          for {
+            _ <- lastConsentFactMongoDataStore.update(tenant, organisationKey, userId, lastConsentFactToStore).io[AppErrorWithStatus]
+            _ <- consentFactMongoDataStore.insert(tenant, consentFactToStore.notYetSendToKafka()).io[AppErrorWithStatus]
+            _ <- publishAndUpdateConsent(tenant, ConsentFactUpdated(tenant = tenant, oldValue = lastConsentFactStored, payload = lastConsentFactToStore, author = author, metadata = metadata, command = command), consentFactToStore)
+          } yield consentFactToStore
 
-              case Some(lastConsentFactStored) if consentFact.lastUpdate.isBefore(lastConsentFactStored.lastUpdate) =>
-                NioLogger.error(
-                  s"consentFact.lastUpdate < lastConsentFactStored.lastUpdate (${consentFact.lastUpdate} < ${lastConsentFactStored.lastUpdate}) for ${lastConsentFactStored._id}"
-                )
-                toErrorWithStatus("the.specified.update.date.must.be.greater.than.the.saved.update.date", Conflict)
-              case Some(lastConsentFactStored)
-                  if isOffersUpdateConflict(lastConsentFactStored.offers, consentFact.offers) =>
-                val conflictedOffers =
-                  conflictedOffersByLastUpdate(lastConsentFactStored.offers, consentFact.offers).get
-                NioLogger.error(s"offer.lastUpdate < lastOfferStored.lastUpdate (${conflictedOffers
-                  .map(o => s"${o._1.key} -> ${o._2.lastUpdate} < ${o._1.lastUpdate}")
-                  .mkString(", ")})")
-                toErrorWithStatus(
-                  "the.specified.offer.update.date.must.be.greater.than.the.saved.offer.update.date",
-                  Conflict
-                )
-              case Some(lastConsentFactStored)                                                                      =>
-                NioLogger.error(
-                  s"lastConsentFactStored.version > consentFact.version (${lastConsentFactStored.version} > ${consentFact.version}) for ${lastConsentFactStored._id}"
-                )
-                toErrorWithStatus("invalid.lastConsentFactStored.version.sup.consentFact.version")
-            }
-        }
-    }
+        case Some(lastConsentFactStored) if consentFact.lastUpdate.isBefore(lastConsentFactStored.lastUpdate) =>
+          NioLogger.error(
+            s"consentFact.lastUpdate < lastConsentFactStored.lastUpdate (${consentFact.lastUpdate} < ${lastConsentFactStored.lastUpdate}) for ${lastConsentFactStored._id}"
+          )
+          IO(toErrorWithStatus("the.specified.update.date.must.be.greater.than.the.saved.update.date", Conflict))
+        case Some(lastConsentFactStored)
+          if isOffersUpdateConflict(lastConsentFactStored.offers, consentFact.offers) =>
+          val conflictedOffers = conflictedOffersByLastUpdate(lastConsentFactStored.offers, consentFact.offers).get
+          NioLogger.error(s"offer.lastUpdate < lastOfferStored.lastUpdate (${
+            conflictedOffers
+              .map(o => s"${o._1.key} -> ${o._2.lastUpdate} < ${o._1.lastUpdate}")
+              .mkString(", ")
+          })")
+          IO(toErrorWithStatus(
+            "the.specified.offer.update.date.must.be.greater.than.the.saved.offer.update.date",
+            Conflict
+          ))
+        case Some(lastConsentFactStored) =>
+          NioLogger.error(
+            s"lastConsentFactStored.version > consentFact.version (${lastConsentFactStored.version} > ${consentFact.version}) for ${lastConsentFactStored._id}"
+          )
+          IO(toErrorWithStatus("invalid.lastConsentFactStored.version.sup.consentFact.version"))
+      }
+    } yield res
 
   private def conflictedOffersByLastUpdate(
       lastOffers: Option[Seq[ConsentOffer]],
@@ -172,7 +166,7 @@ class ConsentManagerService(
       }
     )).getOrElse(false)
 
-  private def publishAndUpdateConsent(tenant: String, event: NioEvent, consentFact: ConsentFact) = {
+  private def publishAndUpdateConsent(tenant: String, event: NioEvent, consentFact: ConsentFact): IO[AppErrorWithStatus, Boolean] = {
     kafkaMessageBroker
       .publish(event)
       .flatMap(_ =>
@@ -180,7 +174,7 @@ class ConsentManagerService(
           .updateOne(tenant, consentFact._id, consentFact.nowSendToKafka())
       )
 
-    FastFuture.successful(true)
+    IO.succeed(true)
   }
 
   private def validateOffersStructures(
@@ -188,25 +182,13 @@ class ConsentManagerService(
       orgKey: String,
       userId: String,
       maybeConsentOffersToCompare: Option[Seq[ConsentOffer]]
-  ): Future[Either[AppErrorWithStatus, Option[Seq[ConsentOffer]]]] =
+  ): IO[AppErrorWithStatus, Option[Seq[ConsentOffer]]] =
     maybeConsentOffersToCompare match {
-      case None                                             =>
-        FastFuture.successful(Right(None))
-      case Some(offersToCompare) if offersToCompare.isEmpty =>
-        FastFuture.successful(Right(None))
-      case Some(offersToCompare)                            =>
-        Future
-          .traverse(offersToCompare) {
-            validateOfferStructureWithOrganisation(tenant, orgKey, userId, _)
-          }
-          .map(sequence)
-          .map {
-            case Left(errors) =>
-              val messages: Seq[ErrorMessage] =
-                errors.flatMap(_.appErrors.errors)
-              Left(controllers.AppErrorWithStatus(AppErrors(messages), BadRequest))
-            case Right(_)     => Right(Some(offersToCompare))
-          }
+      case None                                             => IO.succeed(None)
+      case Some(offersToCompare) if offersToCompare.isEmpty => IO.succeed(None)
+      case Some(offersToCompare)                            => offersToCompare.to(List)
+          .traverse {validateOfferStructureWithOrganisation(tenant, orgKey, userId, _)}
+          .mapError(errs => Foldable[List].fold(errs.to(List))).map(_.some)
     }
 
   private def validateOfferStructureWithOrganisation(
@@ -214,53 +196,56 @@ class ConsentManagerService(
       orgKey: String,
       userId: String,
       offerToCompare: ConsentOffer
-  ): Future[Either[AppErrorWithStatus, ConsentOffer]] =
-    organisationMongoDataStore
-      .findOffer(tenant, orgKey, offerToCompare.key)
-      .flatMap {
-        case Left(error)                                                                      => toErrorWithStatus(error, NotFound)
-        case Right(None)                                                                      =>
-          toErrorWithStatus(s"offer.${offerToCompare.key}.not.found", NotFound)
-        case Right(Some(offer)) if offerToCompare.version > offer.version                     =>
-          NioLogger.error(s"offer.${offerToCompare.key}.version.${offerToCompare.version} > ${offer.version}")
-          toErrorWithStatus(s"offer.${offerToCompare.key}.version.${offerToCompare.version}.unavailable")
-        case Right(Some(permissionOffer)) if offerToCompare.version < permissionOffer.version =>
-          validateOfferStructureWithConsent(tenant, orgKey, userId, offerToCompare)
-        case Right(Some(permissionOffer))
-            if offerToCompare.version == permissionOffer.version && compareConsentOfferWithPermissionOfferStructure(
-              offerToCompare,
-              permissionOffer
-            ) =>
-          FastFuture.successful(Right(offerToCompare))
-        case _                                                                                =>
-          NioLogger.error(s"offer.${offerToCompare.key}.structure.unavailable.compare.to.organisation")
-          toErrorWithStatus(s"offer.${offerToCompare.key}.structure.unavailable.compare.to.organisation")
-      }
+  ): IO[AppErrorWithStatus, ConsentOffer] = {
+    for {
+      mayBeOffer  <- IO(organisationMongoDataStore.findOffer(tenant, orgKey, offerToCompare.key)).mapError(err => AppErrorWithStatus(err, NotFound))
+      offer       <- IO.fromOption(mayBeOffer, AppErrorWithStatus(s"offer.${offerToCompare.key}.not.found", NotFound))
+      res         <- offer match {
+                      case offer if offerToCompare.version > offer.version =>
+                        NioLogger.error(s"offer.${offerToCompare.key}.version.${offerToCompare.version} > ${offer.version}")
+                        IO(toErrorWithStatus(s"offer.${offerToCompare.key}.version.${offerToCompare.version}.unavailable"))
+                      case permissionOffer if offerToCompare.version < permissionOffer.version =>
+                        validateOfferStructureWithConsent(tenant, orgKey, userId, offerToCompare)
+                      case permissionOffer
+                        if offerToCompare.version == permissionOffer.version && compareConsentOfferWithPermissionOfferStructure(
+                          offerToCompare,
+                          permissionOffer
+                        ) =>
+                        IO.succeed[AppErrorWithStatus](offerToCompare)
+                      case _ =>
+                        NioLogger.error(s"offer.${offerToCompare.key}.structure.unavailable.compare.to.organisation")
+                        IO(toErrorWithStatus(s"offer.${offerToCompare.key}.structure.unavailable.compare.to.organisation"))
+                  }
+    } yield res
+  }
 
   private def validateOfferStructureWithConsent(
       tenant: String,
       orgKey: String,
       userId: String,
       offerToCompare: ConsentOffer
-  ): Future[Either[AppErrorWithStatus, ConsentOffer]] =
-    lastConsentFactMongoDataStore
-      .findConsentOffer(tenant, orgKey, userId, offerToCompare.key)
-      .flatMap {
-        case Left(errors)                                                                                     => toErrorWithStatus(errors, BadRequest)
-        case Right(None)                                                                                      =>
-          NioLogger.error(s"offer.${offerToCompare.key}.with.version.${offerToCompare.version}.unavailable")
-          toErrorWithStatus(s"offer.${offerToCompare.key}.with.version.${offerToCompare.version}.unavailable")
-        case Right(Some(offer)) if offer.version != offerToCompare.version                                    =>
-          NioLogger.error(
-            s"offer.${offerToCompare.key}.with.version.${offerToCompare.version}.not.equal.to.${offer.version}"
-          )
-          toErrorWithStatus(s"offer.${offerToCompare.key}.with.version.${offerToCompare.version}.unavailable")
-        case Right(Some(lastConsentOffer)) if compareConsentOffersStructure(offerToCompare, lastConsentOffer) =>
-          FastFuture.successful(Right(offerToCompare))
-        case _                                                                                                =>
-          NioLogger.error(s"offer.${offerToCompare.key}.structure.unavailable.compare.to.lastconsent")
-          toErrorWithStatus(s"offer.${offerToCompare.key}.structure.unavailable.compare.to.lastconsentfact")
-      }
+  ): IO[AppErrorWithStatus, ConsentOffer] = {
+    for {
+      mayBeOffer <- IO(lastConsentFactMongoDataStore.findConsentOffer(tenant, orgKey, userId, offerToCompare.key)).mapError(errors => AppErrorWithStatus(errors, BadRequest))
+      res <- IO.fromOption(mayBeOffer, {
+        NioLogger.error(s"offer.${offerToCompare.key}.with.version.${offerToCompare.version}.unavailable")
+        AppErrorWithStatus(s"offer.${offerToCompare.key}.with.version.${offerToCompare.version}.unavailable")
+      }).keep(
+        offer => compareConsentOffersStructure(offerToCompare, offer),
+        offer => {
+          if (offer.version != offerToCompare.version) {
+            NioLogger.error(
+              s"offer.${offerToCompare.key}.with.version.${offerToCompare.version}.not.equal.to.${offer.version}"
+            )
+            AppErrorWithStatus(s"offer.${offerToCompare.key}.with.version.${offerToCompare.version}.unavailable")
+          } else {
+            NioLogger.error(s"offer.${offerToCompare.key}.structure.unavailable.compare.to.lastconsent")
+            AppErrorWithStatus(s"offer.${offerToCompare.key}.structure.unavailable.compare.to.lastconsentfact")
+          }
+        }
+      )
+    } yield res
+  }
 
   private def convertConsentOfferToPermissionOffer(consentOffer: ConsentOffer): Offer =
     Offer(
@@ -306,66 +291,71 @@ class ConsentManagerService(
         )
     )
 
+  private def sameVersion(organisation: Organisation, consentFact: ConsentFact): Boolean =
+    organisation.version.num == consentFact.version
+
   def saveConsents(
       tenant: String,
       author: String,
       metadata: Option[Seq[(String, String)]],
       organisationKey: String,
       userId: String,
-      consentFact: ConsentFact
-  ): Future[Either[AppErrorWithStatus, ConsentFact]] =
-    lastConsentFactMongoDataStore
-      .findByOrgKeyAndUserId(tenant, organisationKey, userId)
-      .flatMap {
-        // Insert a new user, last consent fact, historic consent fact
-        case None                                                                                =>
-          organisationMongoDataStore
-            .findLastReleasedByKey(tenant, organisationKey)
-            .flatMap {
-              case None =>
+      consentFact: ConsentFact,
+      command: JsValue
+  ): IO[AppErrorWithStatus, ConsentFact] =
+    for {
+      mayBeLastConsent <- IO.fromFuture[AppErrorWithStatus](lastConsentFactMongoDataStore.findByOrgKeyAndUserId(tenant, organisationKey, userId))
+      res <- mayBeLastConsent match {
+        case None => IO
+            .fromFutureOption(
+              organisationMongoDataStore.findLastReleasedByKey(tenant, organisationKey),
+              // If released not found
+              {
                 NioLogger.error(s"error.specified.org.never.released for organisation key $organisationKey")
-                toErrorWithStatus("error.specified.org.never.released")
-
-              case Some(organisation) if organisation.version.num != consentFact.version =>
+                AppErrorWithStatus("error.specified.org.never.released")
+              }
+            ).keep(
+              organisation => sameVersion(organisation, consentFact),
+              // If released not found
+              organisation => {
                 NioLogger.error(
                   s"error.specified.version.not.latest : latest version ${organisation.version.num} -> version specified ${consentFact.version}"
                 )
-                toErrorWithStatus("error.specified.version.not.latest")
-
-              case Some(organisation) if organisation.version.num == consentFact.version =>
-                createOrReplace(tenant, author, metadata, organisation, consentFact)
-            }
+                AppErrorWithStatus("error.specified.version.not.latest")
+            })
+          .flatMap { organisation =>
+            createOrReplace(tenant, author, metadata, organisation, consentFact, command = command)
+          }
 
         // Update consent fact with the same organisation version
         case Some(lastConsentFactStored) if lastConsentFactStored.version == consentFact.version =>
-          organisationMongoDataStore
-            .findReleasedByKeyAndVersionNum(tenant, organisationKey, lastConsentFactStored.version)
-            .flatMap {
-              case Some(organisation) =>
-                createOrReplace(tenant, author, metadata, organisation, consentFact, Some(lastConsentFactStored))
-              case None               =>
+          IO
+            .fromFutureOption(
+              organisationMongoDataStore.findReleasedByKeyAndVersionNum(tenant, organisationKey, lastConsentFactStored.version),
+              {
                 NioLogger.error(s"error.unknow.specified.version : version specified ${lastConsentFactStored.version}")
-                toErrorWithStatus("error.unknow.specified.version")
+                AppErrorWithStatus("error.unknow.specified.version")
+              }
+            )
+            .flatMap { organisation =>
+              createOrReplace(tenant, author, metadata, organisation, consentFact, Some(lastConsentFactStored), command = command)
             }
 
         // Update consent fact with the new organisation version
         case Some(lastConsentFactStored) if lastConsentFactStored.version <= consentFact.version =>
-          organisationMongoDataStore
-            .findLastReleasedByKey(tenant, organisationKey)
-            .flatMap {
-              case None =>
-                NioLogger.error(s"error.specified.org.never.released for organisation key $organisationKey")
-                toErrorWithStatus("error.specified.org.never.released")
-
-              case Some(organisation) if organisation.version.num < consentFact.version =>
-                NioLogger.error(
-                  s"error.version.higher.than.release : last version saved ${lastConsentFactStored.version} -> version specified ${consentFact.version}"
-                )
-
-                toErrorWithStatus("error.version.higher.than.release")
-
-              case Some(organisation) =>
-                createOrReplace(tenant, author, metadata, organisation, consentFact, Option(lastConsentFactStored))
+          IO
+            .fromFutureOption(organisationMongoDataStore.findLastReleasedByKey(tenant, organisationKey), {
+              NioLogger.error(s"error.specified.org.never.released for organisation key $organisationKey")
+              AppErrorWithStatus("error.specified.org.never.released")
+            })
+            .keep(organisation => !(organisation.version.num < consentFact.version), {
+              NioLogger.error(
+                s"error.version.higher.than.release : last version saved ${lastConsentFactStored.version} -> version specified ${consentFact.version}"
+              )
+              AppErrorWithStatus("error.version.higher.than.release")
+            })
+            .flatMap { organisation =>
+                createOrReplace(tenant, author, metadata, organisation, consentFact, Option(lastConsentFactStored), command = command)
             }
 
         // Cannot rollback and update a consent fact to an old organisation version
@@ -373,8 +363,9 @@ class ConsentManagerService(
           NioLogger.error(
             s"error.version.lower.than.stored : last version saved ${lastConsentFactStored.version} -> version specified ${consentFact.version}"
           )
-          toErrorWithStatus("error.version.lower.than.stored")
+          IO(toErrorWithStatus("error.version.lower.than.stored"))
       }
+    } yield res
 
   def mergeTemplateWithConsentFact(
       tenant: String,
@@ -404,7 +395,7 @@ class ConsentManagerService(
       template: ConsentFact,
       consentFact: ConsentFact,
       userId: String
-  ) = {
+  ): ConsentFact = {
     NioLogger.info(s"consent fact exist")
 
     val mergeConsentGroup =
@@ -443,7 +434,6 @@ class ConsentManagerService(
             .map { cOffer =>
               val groups: Seq[ConsentGroup] = offer.groups.map { group =>
                 val maybeGroup = cOffer.groups.find(cg => cg.key == group.key && cg.label == group.label)
-
                 mergeConsentGroup(maybeGroup, group)
               }
               offer.copy(groups = groups)
@@ -465,29 +455,28 @@ class ConsentManagerService(
       author: String,
       metadata: Option[Seq[(String, String)]],
       lastConsentFactStored: ConsentFact
-  ): Future[Either[AppErrorWithStatus, ConsentOffer]] = {
+  ): IO[AppErrorWithStatus, ConsentOffer] = {
     import cats.implicits._
     for {
-      removeResult                <- lastConsentFactMongoDataStore.removeOfferById(tenant, orgKey, userId, offerKey)
-      mayBelastConsentFactToStore <- lastConsentFactMongoDataStore
-                                       .findByOrgKeyAndUserId(tenant, orgKey, userId)
+      removeResult                <- IO(lastConsentFactMongoDataStore.removeOfferById(tenant, orgKey, userId, offerKey))
+      mayBelastConsentFactToStore <- lastConsentFactMongoDataStore.findByOrgKeyAndUserId(tenant, orgKey, userId).io[AppErrorWithStatus]
       _                           <- mayBelastConsentFactToStore match {
                                        case Some(lastConsentFactToStore) =>
-                                         val lastConsentFactToStoreCopy =
-                                           lastConsentFactToStore.copy(_id = BSONObjectID.generate().stringify)
-                                         consentFactMongoDataStore.insert(tenant, lastConsentFactToStoreCopy) *>
-                                         FastFuture.successful(
-                                           kafkaMessageBroker.publish(
-                                             ConsentFactUpdated(
-                                               tenant = tenant,
-                                               oldValue = lastConsentFactStored,
-                                               payload = lastConsentFactToStore,
-                                               author = author,
-                                               metadata = metadata
-                                             )
-                                           )
-                                         )
-                                       case None                         => FastFuture.successful(())
+
+                                         val lastConsentFactToStoreCopy = lastConsentFactToStore.copy(_id = BSONObjectID.generate().stringify)
+
+                                         consentFactMongoDataStore.insert(tenant, lastConsentFactToStoreCopy).io[AppErrorWithStatus] *>
+                                             kafkaMessageBroker.publish(
+                                               ConsentFactUpdated(
+                                                 tenant = tenant,
+                                                 oldValue = lastConsentFactStored,
+                                                 payload = lastConsentFactToStore,
+                                                 author = author,
+                                                 metadata = metadata,
+                                                 command = Json.obj()
+                                               )
+                                             ).io[AppErrorWithStatus]
+                                       case None                         => IO.succeed[AppErrorWithStatus](())
                                      }
 
     } yield removeResult

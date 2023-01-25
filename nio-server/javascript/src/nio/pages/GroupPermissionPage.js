@@ -1,6 +1,6 @@
 import {Component} from "react";
 import _ from "lodash";
-import {TextInput} from "../../common/ui/inputs";
+import {SelectInput, TextInput} from "../../common/ui/inputs";
 import PropTypes from "prop-types";
 import React from "react";
 
@@ -143,7 +143,8 @@ class Permission extends Component {
     state = {
         permission: {
             key: '',
-            label: ''
+            label: '',
+            type: 'OptIn'
         }
     };
 
@@ -189,6 +190,15 @@ class Permission extends Component {
                            disabled={this.props.readOnlyMode}
                            errorMessage={this.props.errors}
                            errorKey={`${this.props.prefixe}permissions.${this.props.index}.label.required`}/>
+
+                <SelectInput label={"Type de permission"}
+                             value={this.state.permission.type}
+                             placeholder={"OptIn or OptOut"}
+                             onChange={(e) => this.onChange(e, "type")}
+                             disabled={this.props.readOnlyMode}
+                             errorMessage={this.props.errors}
+                             possibleValues={["OptIn", "OptOut"]}
+                             errorKey={`${this.props.prefixe}permissions.${this.props.index}.type.required`}/>
 
             </div>
         );

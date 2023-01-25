@@ -88,6 +88,11 @@ export class NioApp extends Component {
                                             Consentement
                                         </Link>
                                     </li>
+                                    <li>
+                                        <a href="/docs/swagger-ui/index.html?url=/assets/swagger/swagger.json" target="_blank">
+                                            Open API doc
+                                        </a>
+                                    </li>
                                 </ul>
                             </div>
                             <div className="col-xs-12 col-sm-10 col-sm-offset-2 backoffice-container">

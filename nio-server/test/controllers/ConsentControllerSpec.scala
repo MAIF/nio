@@ -15,6 +15,8 @@ class ConsentControllerSpec extends TestUtils {
   val userId2: String = "userId2"
   val userId3: String = "userId3"
   val userId4: String = "userId4"
+  val userId5: String = "userId5"
+  val userId6: String = "userId6"
 
   val user1       = ConsentFact(
     userId = userId1,
@@ -75,7 +77,7 @@ class ConsentControllerSpec extends TestUtils {
   )
   val user3AsJson = user3.asJson()
 
-  val user2InvalidFormatAsJson = Json.obj(
+  val user2SubsetOfContentAsJson = Json.obj(
     "userId"  -> userId2,
     "doneBy"  -> Json.obj(
       "userId" -> userId2,
@@ -87,31 +89,78 @@ class ConsentControllerSpec extends TestUtils {
         "key"      -> "maifNotifs",
         "label"    -> "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF",
         "consents" -> Json.arr(
-          Json.obj(
-            "key"     -> "sms",
-            "label"   -> "Par SMS / MMS / VMS",
-            "checked" -> false
-          )
+          Json.obj("key" -> "sms", "label" -> "Par SMS / MMS / VMS", "checked" -> false)
         )
       ),
       Json.obj(
         "key"      -> "partenaireNotifs",
         "label"    -> "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées des partenaires du groupe MAIF",
         "consents" -> Json.arr(
-          Json.obj(
-            "key"     -> "mail",
-            "label"   -> "Par contact électronique",
-            "checked" -> false
-          ),
-          Json.obj(
-            "key"     -> "sms",
-            "label"   -> "Par SMS / MMS / VMS",
-            "checked" -> false
-          )
+          Json.obj("key" -> "mail", "label" -> "Par contact électronique", "checked" -> false),
+          Json.obj("key" -> "sms", "label" -> "Par SMS / MMS / VMS", "checked" -> false)
         )
       )
     )
   )
+
+  val user5InvalidContentWithUnknownKeyAsJson = Json.obj(
+    "userId"  -> userId5,
+    "doneBy"  -> Json.obj(
+      "userId" -> userId5,
+      "role"   -> "USER"
+    ),
+    "version" -> 2,
+    "groups"  -> Json.arr(
+      Json.obj(
+        "key"      -> "maifNotifs",
+        "label"    -> "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF",
+        "consents" -> Json.arr(
+          Json.obj("key" -> "sms", "label" -> "Par SMS / MMS / VMS", "checked" -> false),
+          Json.obj("key" -> "fax", "label" -> "Par FAX", "checked" -> false)
+        )
+      ),
+      Json.obj(
+        "key"      -> "partenaireNotifs",
+        "label"    -> "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées des partenaires du groupe MAIF",
+        "consents" -> Json.arr(
+          Json.obj("key" -> "mail", "label" -> "Par contact électronique", "checked" -> false),
+          Json.obj("key" -> "sms", "label" -> "Par SMS / MMS / VMS", "checked" -> false)
+        )
+      )
+    )
+  )
+
+
+  val user6 = ConsentFact(
+    userId = userId6,
+    doneBy = DoneBy(userId = userId6, role = "USER"),
+    version = 2,
+    groups = Seq(
+      ConsentGroup(
+        key = "maifNotifs",
+        label = "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF",
+        consents = Seq(
+          Consent(key = "phone", label = "Par contact téléphonique", checked = true),
+          Consent(key = "mail", label = "Par contact électronique", checked = false),
+          Consent(key = "sms", label = "Par SMS / MMS / VMS", checked = true)
+        )
+      ),
+      ConsentGroup(
+        key = "partenaireNotifs",
+        label =
+          "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées des partenaires du groupe MAIF",
+        consents = Seq(
+          Consent(key = "phone", label = "Par contact téléphonique", checked = false),
+          Consent(key = "mail", label = "Par contact électronique", checked = true),
+          Consent(key = "sms", label = "Par SMS / MMS / VMS", checked = false)
+        )
+      )
+    )
+  )
+  val user6AsJson = user6.asJson()
+
+  val user6Modified = user6.copy(groups = user6.groups.take(1).map(g => g.copy(consents = g.consents.take(1))))
+  val user6ModifiedAsJson = user6Modified.asJson()
 
   private def offerToConsentOffer(offer: Offer): ConsentOffer =
     ConsentOffer(
@@ -413,11 +462,54 @@ class ConsentControllerSpec extends TestUtils {
         .as[Boolean] mustBe user1Modified.groups(1).consents(2).checked
     }
 
-    "update user with invalid consents compare to organisation version" in {
-      putJson(
+    "update user with a subset of consents compare to organisation version" in {
+      val response = putJson(
         s"/$tenant/organisations/$organisationKey/users/$userId2",
-        user2InvalidFormatAsJson
-      ).status mustBe BAD_REQUEST
+        user2SubsetOfContentAsJson
+      )
+      response.status mustBe OK
+    }
+
+    "update user removing data should fail" in {
+      putJson(
+        s"/$tenant/organisations/$organisationKey/users/$userId6",
+        user6AsJson
+      ).status mustBe OK
+
+      val response = putJson(
+        s"/$tenant/organisations/$organisationKey/users/$userId6",
+        user6ModifiedAsJson
+      )
+      response.status mustBe BAD_REQUEST
+      response.json mustBe Json.parse("""
+       {
+          "errors":[
+            {
+              "message":"error.invalid.consent.missing",
+              "args":["mail"]
+            },{
+              "message":"error.invalid.consent.missing",
+              "args":["sms"]
+            },
+            {
+              "message":"error.invalid.group.missing",
+              "args":["partenaireNotifs"]}],
+              "fieldErrors":{}
+            }
+      """)
+      println(response.json)
+
+    }
+
+    "update user with invalid consents compare to organisation version" in {
+      val response = putJson(
+        s"/$tenant/organisations/$organisationKey/users/$userId5",
+        user5InvalidContentWithUnknownKeyAsJson
+      )
+      response.status mustBe BAD_REQUEST
+
+      println(response.json)
+      response.json mustBe Json.parse("""{"errors":[{"message":"error.invalid.consent.key","args":["fax"]}],"fieldErrors":{}}""")
     }
 
     "get consents history" in {
@@ -621,7 +713,7 @@ class ConsentControllerSpec extends TestUtils {
     "force lastUpdate date xml" in {
       val yesterday: DateTime = DateTime.now(DateTimeZone.UTC).minusDays(1)
 
-      val userId6 = "userId6"
+      val userId6 = "userId6Xml"
 
       val consentFact = ConsentFact(
         _id = "cf",
@@ -670,6 +762,36 @@ class ConsentControllerSpec extends TestUtils {
       (xmlGet \ "lastUpdate").head.text mustBe yesterday.toString(DateUtils.utcDateFormatter)
     }
 
+
+    "Partial update on consent" in {
+      val organisationKey: String = "maif"
+
+      val path: String =
+        s"/$tenant/organisations/$organisationKey/users/$userId1"
+      val putResponse = putJson(path, user1AsJson)
+
+      putResponse.status mustBe OK
+
+      val patchResponse = patchJson(path, Json.obj(
+        "groups" -> Json.arr(
+          Json.obj(
+            "key" -> "maifNotifs",
+            "consents" -> Json.arr(
+              Json.obj("key" -> "phone", "checked" -> false)
+            )
+          )
+        )
+      ))
+
+      println(patchResponse.json)
+      patchResponse.status mustBe OK
+      patchResponse.json mustBe user1.copy(
+        orgKey = Some("maif"),
+        groups = user1.groups.updated(0,  user1.groups(0).copy(
+          consents = user1.groups(0).consents.updated(0, user1.groups(0).consents(0).copy(checked = false))
+        ))
+      ).asJson()
+    }
   }
 
   "Consent with offer" should {

@@ -264,6 +264,10 @@ trait TestUtils
         ws.url(s"$suffix$path")
           .withHttpHeaders(headers: _*)
           .put(body)
+      case PATCH    =>
+        ws.url(s"$suffix$path")
+          .withHttpHeaders(headers: _*)
+          .patch(body)
       case _      =>
         Future.failed(new IllegalArgumentException(s"Unknown http verb: $httpVerb"))
     }
@@ -288,6 +292,9 @@ trait TestUtils
 
   def putJson(path: String, body: JsValue, headers: Seq[(String, String)] = jsonHeaders) =
     callByType[JsValue](path = path, httpVerb = PUT, body = body, headers = headers)
+
+  def patchJson(path: String, body: JsValue, headers: Seq[(String, String)] = jsonHeaders) =
+    callByType[JsValue](path = path, httpVerb = PATCH, body = body, headers = headers)
 
   def delete(path: String, headers: Seq[(String, String)] = jsonHeaders) =
     callByType[JsValue](path = path, httpVerb = DELETE, headers = headers)
