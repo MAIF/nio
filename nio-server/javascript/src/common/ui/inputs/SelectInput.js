@@ -53,6 +53,7 @@ export class SelectInput extends Component {
   };
 
   render() {
+    console.log("Value : ", this.state.value, this.state.values);
     return (
       <div className="row selectContent">
         <FieldError errorKey={this.props.errorKey} errorMessage={this.props.errorMessage}>
@@ -66,7 +67,9 @@ export class SelectInput extends Component {
                   style={{width: this.props.more ? '100%' : '100%'}}
                   name={`${this.props.label}-search`}
                   isLoading={this.state.loading}
-                  value={this.state.value}
+                  value={this.state.values.filter(
+                      v => v.value === this.state.value
+                  )}
                   placeholder={this.props.placeholder}
                   options={this.state.values}
                   onChange={this.onChange}

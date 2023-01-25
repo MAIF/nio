@@ -101,26 +101,6 @@ export class OrganisationDiffPage extends Component {
                 </div> : ""
             }
           </div>
-
-          {/*{*/}
-            {/*this.state.v1 && this.state.v2 &&*/}
-            {/*<div className="btn-group btn-group-toggle" data-toggle="buttons">*/}
-              {/*<label className={`btn btn-secondary ${this.state.format === "unified" ? "active" : ""}`}*/}
-                     {/*onClick={() => this.setState({format: "unified"})}>*/}
-                {/*<input type="radio" name="options" id="option1" autoComplete="off"*/}
-                       {/*checked={this.state.format === "unified"}*/}
-                       {/*onChange={() => {*/}
-                       {/*}}/> Unifier*/}
-              {/*</label>*/}
-              {/*<label className={`btn btn-secondary ${this.state.format === "splited" ? "active" : ""}`}*/}
-                     {/*onClick={() => this.setState({format: "splited"})}>*/}
-                {/*<input type="radio" name="options" id="option2" autoComplete="off"*/}
-                       {/*checked={this.state.format === "splited"}*/}
-                       {/*onChange={() => {*/}
-                       {/*}}/> Séparer*/}
-              {/*</label>*/}
-            {/*</div>*/}
-          {/*}*/}
           {
             this.state.v1 && this.state.v2 &&
             <ReactDiff inputA={this.state.v1} inputB={this.state.v2} type="json" format={this.state.format}/>
