@@ -242,7 +242,7 @@ class ConsentController(
         _                 <- if (patchCommand.userId.isDefined && !patchCommand.userId.contains(userId)) IO.error("error.userId.is.immutable".badRequest())
                              else IO.succeed(patchCommand)
         command           = patchCommand.copy(orgKey = Some(orgKey))
-        result                 <- patchCommand.offers match {
+        result            <- patchCommand.offers match {
           case Some(offers) =>
             for {
               _ <- IO.fromOption(req.authInfo.offerRestrictionPatterns, { val errorMessages = offers.map(o => ErrorMessage(s"offer.${o.key}.not.authorized")) ; NioLogger.error(s"not authorized : ${errorMessages.map(_.message)}"); AppErrors(errorMessages).unauthorized()})
@@ -257,7 +257,7 @@ class ConsentController(
                 .mapError { error =>
                     NioLogger.error(s"error during consent fact saving $error")
                     error.renderError()
-                  }
+                }
             } yield renderMethod(consentFactSaved)
           case None         =>
             consentManagerService
