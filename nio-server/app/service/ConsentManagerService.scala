@@ -28,14 +28,7 @@ class ConsentManagerService(
     extends ServiceUtils {
 
   def consentFactWithAccessibleOffers(consentFact: ConsentFact, maybePattern: Option[Seq[String]]): ConsentFact =
-    consentFact.copy(offers = consentFact.offers match {
-      case None         => None
-      case Some(offers) =>
-        Some(
-          offers
-            .filter(offer => accessibleOfferService.accessibleOfferKey(offer.key, maybePattern))
-        )
-    })
+    consentFact.copy(offers = consentFact.offers.map(_.filter(offer => accessibleOfferService.accessibleOfferKey(offer.key, maybePattern))))
 
   def partialUpdate(tenant: String,
                             author: String,

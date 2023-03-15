@@ -321,7 +321,10 @@ case class PartialConsentFact(
 
 object PartialConsentFact extends ReadableEntity[PartialConsentFact] {
 
-  implicit val format = Json.format[PartialConsentFact]
+  implicit val format = {
+    implicit val dateRead = DateUtils.utcDateTimeFormats
+    Json.format[PartialConsentFact]
+  }
 
   implicit val partialConsentFactReadXml: XMLRead[PartialConsentFact] =
     (node: NodeSeq, path: Option[String]) =>
