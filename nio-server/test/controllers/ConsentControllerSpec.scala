@@ -785,8 +785,11 @@ class ConsentControllerSpec extends TestUtils {
 
       println(patchResponse.json)
       patchResponse.status mustBe OK
+
+      val expectedDate: DateTime = (patchResponse.json \ "lastUpdate").validate(DateUtils.utcDateTimeReads).get
       patchResponse.json mustBe user1.copy(
         orgKey = Some("maif"),
+        lastUpdate = expectedDate,
         groups = user1.groups.updated(0,  user1.groups(0).copy(
           consents = user1.groups(0).consents.updated(0, user1.groups(0).consents(0).copy(checked = false))
         ))
