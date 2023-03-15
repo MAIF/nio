@@ -28,14 +28,7 @@ class ConsentManagerService(
     extends ServiceUtils {
 
   def consentFactWithAccessibleOffers(consentFact: ConsentFact, maybePattern: Option[Seq[String]]): ConsentFact =
-    consentFact.copy(offers = consentFact.offers match {
-      case None         => None
-      case Some(offers) =>
-        Some(
-          offers
-            .filter(offer => accessibleOfferService.accessibleOfferKey(offer.key, maybePattern))
-        )
-    })
+    consentFact.copy(offers = consentFact.offers.map(_.filter(offer => accessibleOfferService.accessibleOfferKey(offer.key, maybePattern))))
 
   def partialUpdate(tenant: String,
                             author: String,
@@ -46,26 +39,10 @@ class ConsentManagerService(
                             command: JsValue
                          ): IO[AppErrorWithStatus, ConsentFact] = {
     for {
-      lastConsent <- IO.fromFutureOption(lastConsentFactMongoDataStore.findByOrgKeyAndUserId(tenant, organisationKey, userId), AppErrorWithStatus(s"consentfact.${userId}.not.found", NotFound))
-      consentFact = partialConsentFact.applyTo(lastConsent)
-      organisation <- IO
-        .fromFutureOption(
-          organisationMongoDataStore.findLastReleasedByKey(tenant, organisationKey),
-          // If released not found
-          {
-            NioLogger.error(s"error.specified.org.never.released for organisation key $organisationKey")
-            AppErrorWithStatus("error.specified.org.never.released")
-          }
-        ).keep(
-        organisation => sameVersion(organisation, consentFact),
-        // If released not found
-        organisation => {
-          NioLogger.error(
-            s"error.specified.version.not.latest : latest version ${organisation.version.num} -> version specified ${consentFact.version}"
-          )
-          AppErrorWithStatus("error.specified.version.not.latest")
-        })
-      result <- createOrReplace(tenant, author, metadata, organisation, consentFact, Some(lastConsent), command = command)
+      lastConsent  <- IO.fromFutureOption(lastConsentFactMongoDataStore.findByOrgKeyAndUserId(tenant, organisationKey, userId), AppErrorWithStatus(s"consentfact.${userId}.not.found", NotFound))
+      organisation <- IO.fromFutureOption(organisationMongoDataStore.findLastReleasedByKey(tenant, organisationKey), {NioLogger.error(s"error.specified.org.never.released for organisation key $organisationKey"); AppErrorWithStatus("error.specified.org.never.released")})
+      consentFact  = partialConsentFact.applyTo(lastConsent, organisation.version)
+      result       <- createOrReplace(tenant, author, metadata, organisation, consentFact, Some(lastConsent), command = command)
     } yield result
   }
 
