@@ -245,7 +245,7 @@ object PartialConsentGroup {
       ).mapN((key, label, consents) => PartialConsentGroup(key, label, consents))
 }
 
-case class PartialConsentOffer(key: String, label: Option[String], version: Option[Int], groups: Option[Seq[PartialConsentGroup]])
+case class PartialConsentOffer(key: String, label: Option[String], lastUpdate: Option[DateTime], version: Option[Int], groups: Option[Seq[PartialConsentGroup]])
 
 object PartialConsentOffer {
   def merge(partialOffers: Seq[PartialConsentOffer], existingOffers: Option[Seq[ConsentOffer]]): Option[Seq[ConsentOffer]] = {
@@ -266,6 +266,7 @@ object PartialConsentOffer {
           key = po.key,
           label = po.label.getOrElse(""),
           version = po.version.getOrElse(0),
+          lastUpdate = po.lastUpdate.getOrElse(DateTime.now(DateTimeZone.UTC)),
           groups = po.groups.toList.flatten.map(pg => ConsentGroup(
             key = pg.key,
             label = pg.label.getOrElse(""),
@@ -277,17 +278,20 @@ object PartialConsentOffer {
     }
   }
 
-  implicit val format =
+  implicit val format =  {
+    implicit val dateRead = DateUtils.utcDateTimeFormats
     Json.format[PartialConsentOffer]
+  }
 
   implicit val partialConsentOfferReadXml: XMLRead[PartialConsentOffer] =
     (node: NodeSeq, path: Option[String]) =>
       (
         (node \ "key").validate[String](Some(s"${path.convert()}key")),
         (node \ "label").validateNullable[String](Some(s"${path.convert()}label")),
+        (node \ "lastUpdate").validateNullable[DateTime](Some(s"${path.convert()}lastUpdate")),
         (node \ "version").validateNullable[Int](Some(s"${path.convert()}version")),
         (node \ "groups").validateNullable[Seq[PartialConsentGroup]](Some(s"${path.convert()}consents"))
-      ).mapN((key, label, version, groups) => PartialConsentOffer(key, label, version, groups))
+      ).mapN((key, label, lastUpdate, version, groups) => PartialConsentOffer(key, label, lastUpdate, version, groups))
 }
 case class PartialConsentFact(
                         _id: Option[String] = None,
