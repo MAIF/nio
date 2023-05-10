@@ -257,6 +257,8 @@ object PartialConsentOffer {
         partialOffers.find(pg => pg.key == o.key).fold(o) { po =>
           o.copy(
             label = po.label.getOrElse(o.label),
+            lastUpdate = po.lastUpdate.getOrElse(o.lastUpdate),
+            version = po.version.getOrElse(o.version),
             groups = PartialConsentGroup.merge(po.groups.toList.flatten, o.groups)
           )
         }
@@ -310,7 +312,7 @@ case class PartialConsentFact(
         userId = userId.getOrElse(lastConsentFact.userId),
         doneBy = doneBy.getOrElse(lastConsentFact.doneBy),
         version = version.getOrElse(currentVersion.num),
-        lastUpdate = lastUpdate.getOrElse(DateTime.now(DateTimeZone.UTC)),
+        lastUpdate = lastUpdate.getOrElse(lastConsentFact.lastUpdate),
         lastUpdateSystem = DateTime.now(DateTimeZone.UTC),
         groups = groups.map(g => PartialConsentGroup.merge(g, lastConsentFact.groups)).getOrElse(lastConsentFact.groups),
         offers = offers.map(o => PartialConsentOffer.merge(o, lastConsentFact.offers)).getOrElse(lastConsentFact.offers),

@@ -838,6 +838,7 @@ class ConsentControllerSpec extends TestUtils {
             key = "offer1",
             label = "offer one",
             version = 1,
+            lastUpdate = DateTime.now().minusHours(2).withMillis(0),
             groups = Seq(
               ConsentGroup(
                 key = "maifNotifs",
@@ -869,6 +870,30 @@ class ConsentControllerSpec extends TestUtils {
           )
         )
       )
+    )
+
+    val updatedDate = DateTime.now().minusHours(1).withMillis(0)
+
+    val patchConsentFact = PartialConsentFact(
+      offers = Some(Seq(
+        PartialConsentOffer(
+          key = "offer1",
+          label = Option.none[String],
+          lastUpdate = Some(updatedDate),
+          version = Option.none[Int],
+          groups = Some(Seq(
+            PartialConsentGroup(
+              key = "maifNotifs",
+              label = Option.none[String],
+              consents = Some(Seq(
+                PartialConsent(key = "phone", label = Option.none[String], checked = true),
+                PartialConsent(key = "mail", label = Option.none[String], checked = true),
+                PartialConsent(key = "sms", label = Option.none[String], checked = false)
+              ))
+            )
+          ))
+        )
+      ))
     )
 
     val basicConsentFact: ConsentFact = ConsentFact(
@@ -973,6 +998,20 @@ class ConsentControllerSpec extends TestUtils {
       (offer2group1perm3 \ "label").as[String] mustBe "Par SMS / MMS / VMS"
       (offer2group1perm3 \ "checked").as[Boolean] mustBe false
 
+      // Patch offer :
+      val responsePatch = patchJson(s"/$tenant/organisations/$orgKey/users/$userId", Json.toJson(patchConsentFact))
+      println(responsePatch.json)
+      responsePatch.status mustBe OK
+
+      val patchedValue: JsValue = responsePatch.json
+
+      val patchedOffers: JsArray = (patchedValue \ "offers").as[JsArray]
+      patchedOffers.value.length mustBe 2
+
+      (patchedOffers \ 0 \ "key").as[String] mustBe "offer1"
+      (patchedOffers \ 0 \ "lastUpdate").as[DateTime](DateUtils.utcDateTimeFormats) mustBe updatedDate
+
+
     }
 
     "version consent >  version org on error" in {
@@ -1011,10 +1050,12 @@ class ConsentControllerSpec extends TestUtils {
       val consentWithVersionEqualToOrgAndStrucEq: ConsentFact =
         basicConsentFact.copy(offers = Some(Seq(offerToConsentOffer(offer2).copy(version = 3))))
 
-      putJson(
+      val r = putJson(
         s"/$tenant/organisations/$orgKey/users/$userId",
         consentWithVersionEqualToOrgAndStrucEq.asJson()
-      ).status mustBe OK
+      )
+      println(r.json)
+      r.status mustBe OK
 
       val consentWithVersionEqualToOrgAndStrucDif: ConsentFact =
         basicConsentFact.copy(offers = Some(Seq(offerToConsentOffer(offer2V3OnError))))
