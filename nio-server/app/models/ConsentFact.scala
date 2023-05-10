@@ -617,3 +617,33 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
   def addOrgKey(consentFact: ConsentFact, orgKey: String): ConsentFact =
     consentFact.copy(orgKey = Some(orgKey))
 }
+
+sealed trait ConsentFactCommand
+
+object ConsentFactCommand {
+  case class PatchConsentFact(userId: String, command: PartialConsentFact) extends ConsentFactCommand
+
+  object PatchConsentFact {
+    val format = Json.format[PatchConsentFact]
+  }
+  case class UpdateConsentFact(userId: String, command: ConsentFact) extends ConsentFactCommand
+
+  object UpdateConsentFact {
+    val format = Json.format[UpdateConsentFact]
+  }
+
+  implicit val format = Format(
+    Reads[ConsentFactCommand] { js =>
+      (js \ "type").validate[String].flatMap {
+        case "Update" => UpdateConsentFact.format.reads(js)
+        case "Patch" => PatchConsentFact.format.reads(js)
+      }
+    },
+    Writes[ConsentFactCommand] {
+      case c: UpdateConsentFact => UpdateConsentFact.format.writes(c) ++ Json.obj("type" -> "Update")
+      case c: PatchConsentFact => PatchConsentFact.format.writes(c) ++ Json.obj("type" -> "Patch")
+    }
+  )
+
+}
+

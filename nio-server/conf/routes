@@ -101,6 +101,8 @@ POST          /api/:tenant/organisations/:orgKey/draft/_release                 
 
 GET           /api/:tenant/organisations/:orgKey/users/_template                                                          controllers.ConsentController.getTemplate(tenant: String, orgKey: String, userId: Option[String] ?= None, offerKeys: Option[Seq[String]] ?= None)
 
+POST          /api/:tenant/organisations/:orgKey/users/_batch                                                             controllers.ConsentController.batchImport(tenant: String, orgKey)
+
 PUT           /api/:tenant/organisations/:orgKey/users/:userId                                                            controllers.ConsentController.createOrReplaceIfExists(tenant: String, orgKey: String, userId: String)
 
 PATCH         /api/:tenant/organisations/:orgKey/users/:userId                                                            controllers.ConsentController.partialUpdate(tenant: String, orgKey: String, userId: String)

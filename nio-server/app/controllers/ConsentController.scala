@@ -3,19 +3,21 @@ package controllers
 import akka.actor.ActorSystem
 import akka.http.scaladsl.util.FastFuture
 import akka.stream.Materializer
-import akka.stream.scaladsl.Source
+import akka.stream.scaladsl.{Flow, Framing, Sink, Source}
 import akka.util.ByteString
-import auth.SecuredAuthContext
+import auth.{AuthAction, SecuredAuthContext}
 import controllers.ErrorManager.{AppErrorManagerResult, ErrorManagerResult, ErrorWithStatusManagerResult}
 import db.{ConsentFactMongoDataStore, LastConsentFactMongoDataStore, OrganisationMongoDataStore, UserMongoDataStore}
 import libs.io.IO
 import libs.io._
 import libs.xmlorjson.XmlOrJson
 import messaging.KafkaMessageBroker
+import models.ConsentFactCommand.{PatchConsentFact, UpdateConsentFact}
 import models.{ConsentFact, _}
 import utils.NioLogger
 import play.api.http.HttpEntity
-import play.api.libs.json.Json
+import play.api.libs.json.{JsError, JsNull, JsValue, Json}
+import play.api.libs.streams.Accumulator
 import play.api.mvc._
 import reactivemongo.api.Cursor
 import reactivemongo.api.bson.BSONDocument
@@ -266,6 +268,142 @@ class ConsentController(
               .map { consentFactSaved => renderMethod(consentFactSaved) }
         }
       } yield result).merge
+  }
+
+  val newLineSplit = Framing.delimiter(ByteString("\n"), 10000, allowTruncation = true)
+  val toJson = Flow[ByteString] via newLineSplit map (_.utf8String) filterNot (_.isEmpty) map (l => Json.parse(l))
+  def ndJson(implicit ec: ExecutionContext): BodyParser[Source[JsValue, _]] =
+    BodyParser(_ => Accumulator.source[ByteString].map(s => Right(s.via(toJson)))(ec))
+
+
+  object ImportError {
+    implicit val format = Json.format[ImportError]
+  }
+  case class ImportError(message: String, detailedError: JsValue = JsNull, command: JsValue = JsNull)
+  object ImportResult {
+    def error(message: String, command: JsValue = JsNull): ImportResult = {
+      ImportResult(errorsCount = 1, errors = List(ImportError(message, command = command)))
+    }
+
+    implicit val format = Json.format[ImportResult]
+  }
+  case class ImportResult(successCount: Int = 0, errorsCount: Int = 0, errors: List[ImportError] = List.empty) {
+    def combine (other: ImportResult) : ImportResult =
+      ImportResult(
+        successCount = successCount + other.successCount,
+        errorsCount = errorsCount + other.errorsCount,
+        errors = errors ++ other.errors
+      )
+  }
+
+  def batchImport(tenant: String, orgKey: String) = AuthAction(ndJson).async { implicit req =>
+    val result: Future[JsValue] = req.body.mapAsync(10) { json =>
+      json.validate[ConsentFactCommand].fold(
+        { err => FastFuture.successful(ImportResult(errorsCount = 1, errors = List(ImportError("json parsing error", detailedError = JsError.toJson(err), command = json)))) },
+        {
+          case UpdateConsentFact(userId, consentFact) => handleImportUpdate(tenant, orgKey, req, json, userId, consentFact)
+          case PatchConsentFact(userId, patchCommand) => handleImportPatch(tenant, orgKey, req, json, userId, patchCommand)
+        }
+      )
+    }
+    .fold(ImportResult()){ (acc, elt) => acc combine elt }
+    .map { importResult => Json.toJson(importResult) }
+    .runWith(Sink.head)
+
+    result.map { json => Ok(json) }
+  }
+
+  private def handleImportPatch(tenant: String, orgKey: String, req: SecuredAuthContext[Source[JsValue, _]], json: JsValue, userId: String, patchCommand: PartialConsentFact): Future[ImportResult] = {
+    (for {
+      _ <- if (patchCommand.userId.isDefined && !patchCommand.userId.contains(userId)) IO.error(ImportResult.error("error.userId.is.immutable", command = json))
+      else IO.succeed(patchCommand)
+      command = patchCommand.copy(orgKey = Some(orgKey))
+      result <- patchCommand.offers match {
+        case Some(offers) =>
+          for {
+            _ <- IO.fromOption(req.authInfo.offerRestrictionPatterns, {
+              val errorMessages = offers.map(o => ImportError(s"offer.${o.key}.not.authorized", command = json));
+              NioLogger.error(s"not authorized : ${errorMessages.map(_.message)}");
+              ImportResult(errorsCount = errorMessages.size, errors = errorMessages.to(List))
+            })
+            _ <- IO.succeed[ImportResult](offers.filterNot(o => accessibleOfferService.accessibleOfferKey(o.key, req.authInfo.offerRestrictionPatterns)))
+              .keep(offer => offer.isEmpty, { unauthorizedOffers =>
+                val errorMessages = unauthorizedOffers.map(o => ImportError(s"offer.${o.key}.not.authorized", command = json))
+                NioLogger.error(s"not authorized : ${errorMessages.map(_.message)}")
+                ImportResult(errorsCount = errorMessages.size, errors = errorMessages.to(List))
+              })
+            consentFactSaved <- consentManagerService
+              .partialUpdate(tenant, req.authInfo.sub, req.authInfo.metadatas, orgKey, userId, command, Json.toJson(patchCommand))
+              .mapError { error =>
+                NioLogger.error(s"error during consent fact saving $error")
+                ImportResult(errorsCount = 1, errors = List(ImportError(message = "Error during update", detailedError = error.appErrors.asJson(), command = json)))
+              }
+          } yield ImportResult(successCount = 1)
+        case None =>
+          consentManagerService
+            .partialUpdate(tenant, req.authInfo.sub, req.authInfo.metadatas, orgKey, userId, command, Json.toJson(patchCommand))
+            .mapError { error =>
+              ImportResult(errorsCount = 1, errors = List(ImportError(message = "Error during update", detailedError = error.appErrors.asJson(), command = json)))
+            }
+            .map { _ => ImportResult(successCount = 1) }
+      }
+    } yield result).merge
+  }
+
+  private def handleImportUpdate(tenant: String, orgKey: String, req: SecuredAuthContext[Source[JsValue, _]], json: JsValue, userId: String, consentFact: ConsentFact): Future[ImportResult] = {
+    if (consentFact.userId != userId) {
+      NioLogger.error(s"error.userId.is.immutable : userId in path $userId // userId on body ${consentFact.userId}")
+
+      FastFuture.successful(ImportResult.error("error.userId.is.immutable", command = json))
+    } else {
+      val cf: ConsentFact = ConsentFact.addOrgKey(consentFact, orgKey)
+
+      (cf.offers, req.authInfo.offerRestrictionPatterns) match {
+        // case ask create or update offers but no pattern allowed
+        case (Some(offers), None) =>
+          val errorMessages =
+            offers.map(o => ImportError(s"offer.${o.key}.not.authorized", command = json))
+          NioLogger.error(s"not authorized : ${errorMessages.map(_.message)}")
+          Future.successful(ImportResult(errorsCount = errorMessages.size, errors = errorMessages.to(List)))
+
+        // case create or update consents without offers
+        case (None, _) =>
+          consentManagerService
+            .saveConsents(tenant, req.authInfo.sub, req.authInfo.metadatas, orgKey, userId, cf, Json.toJson(cf))
+            .fold(
+              error => {
+                NioLogger.error(s"error during consent fact saving $error")
+                ImportResult(errorsCount = 1, errors = List(ImportError(message = "Error during update", detailedError = error.appErrors.asJson(), command = json)))
+              },
+              consentFactSaved => ImportResult(successCount = 1)
+            )
+        // case create or update offers and some patterns are specified
+        case (Some(offers), Some(_)) =>
+          // validate offers key are accessible
+          offers
+            .filterNot(o =>
+              accessibleOfferService.accessibleOfferKey(o.key, req.authInfo.offerRestrictionPatterns)
+            ) match {
+            // case all offers in consent (body) are accessible
+            case Nil =>
+              consentManagerService
+                .saveConsents(tenant, req.authInfo.sub, req.authInfo.metadatas, orgKey, userId, cf, Json.toJson(cf))
+                .fold(
+                  error => {
+                    NioLogger.error(s"error during consent fact saving $error")
+                    ImportResult(errorsCount = 1, errors = List(ImportError(message = "Error during update", detailedError = error.appErrors.asJson(), command = json)))
+                  },
+                  _ => ImportResult(successCount = 1)
+                )
+
+            // case one or more offers are not accessible
+            case unauthorizedOffers =>
+              val errorMessages = unauthorizedOffers.map(o => ImportError(s"offer.${o.key}.not.authorized", command = json))
+              NioLogger.error(s"not authorized : ${errorMessages.map(_.message)}")
+              FastFuture.successful(ImportResult(errorsCount = errorMessages.size, errors = errorMessages.to(List)))
+          }
+      }
+    }
   }
 
   lazy val defaultPageSize: Int =
