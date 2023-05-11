@@ -629,7 +629,11 @@ object ConsentFactCommand {
   case class UpdateConsentFact(userId: String, command: ConsentFact) extends ConsentFactCommand
 
   object UpdateConsentFact {
-    val format = Json.format[UpdateConsentFact]
+    val format = OFormat[UpdateConsentFact](
+      ((__ \ "userId").read[String] and
+        (__ \ "command").read[ConsentFact](ConsentFact.consentFactReadsWithoutIdAndLastUpdate))(UpdateConsentFact.apply _),
+      Json.writes[UpdateConsentFact]
+    )
   }
 
   implicit val format = Format(

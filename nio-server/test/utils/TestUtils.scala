@@ -277,6 +277,9 @@ trait TestUtils
   def postJson(path: String, body: JsValue, headers: Seq[(String, String)] = jsonHeaders) =
     callByType[JsValue](path = path, httpVerb = POST, body = body, headers = headers)
 
+  def postText(path: String, body: String, headers: Seq[(String, String)] = jsonHeaders) =
+    callByType[String](path = path, httpVerb = POST, body = body, headers = headers)
+
   def postBinaryFile(path: String, body: File, api: Boolean = true, headers: Seq[(String, String)] = jsonHeaders) = {
     val suffix         = if (api) apiPath else serverHost
     val futureResponse = ws

@@ -272,9 +272,7 @@ class ConsentController(
 
   val newLineSplit = Framing.delimiter(ByteString("\n"), 10000, allowTruncation = true)
   val toJson = Flow[ByteString] via newLineSplit map (_.utf8String) filterNot (_.isEmpty) map (l => Json.parse(l))
-  def ndJson(implicit ec: ExecutionContext): BodyParser[Source[JsValue, _]] =
-    BodyParser(_ => Accumulator.source[ByteString].map(s => Right(s.via(toJson)))(ec))
-
+  def ndJson(implicit ec: ExecutionContext): BodyParser[Source[JsValue, _]] = BodyParser(_ => Accumulator.source[ByteString].map(s => Right(s.via(toJson)))(ec))
 
   object ImportError {
     implicit val format = Json.format[ImportError]
@@ -296,7 +294,7 @@ class ConsentController(
       )
   }
 
-  def batchImport(tenant: String, orgKey: String) = AuthAction(ndJson).async { implicit req =>
+  def batchImport(tenant: String, orgKey: String) = AuthAction.async(ndJson) { implicit req =>
     val result: Future[JsValue] = req.body.mapAsync(10) { json =>
       json.validate[ConsentFactCommand].fold(
         { err => FastFuture.successful(ImportResult(errorsCount = 1, errors = List(ImportError("json parsing error", detailedError = JsError.toJson(err), command = json)))) },
