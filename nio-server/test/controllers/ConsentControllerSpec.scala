@@ -462,6 +462,29 @@ class ConsentControllerSpec extends TestUtils {
         .as[Boolean] mustBe user1Modified.groups(1).consents(2).checked
     }
 
+    "batch import consent" in {
+
+      val commands = List(
+        Json.obj("userId" -> user6Modified.userId, "type" -> "Update", "command" -> user6ModifiedAsJson),
+        Json.obj("userId" -> user1.userId, "type" -> "Patch", "command" -> Json.obj(
+          "groups" -> Json.arr(
+            Json.obj(
+              "key" -> "maifNotifs",
+              "consents" -> Json.arr(
+                Json.obj("key" -> "phone", "checked" -> false)
+              )
+            )
+          )
+        ))
+      ).map(Json.stringify _).mkString("", "\n", "\n")
+
+      val response = postText(s"/$tenant/organisations/$organisationKey/users/_batch", commands)
+      println(response.body)
+      response.status mustBe OK
+      (response.json \ "successCount").validate[Int].get mustBe 2
+
+    }
+
     "update user with a subset of consents compare to organisation version" in {
       val response = putJson(
         s"/$tenant/organisations/$organisationKey/users/$userId2",
