@@ -5,11 +5,11 @@ import java.nio.file.Files
 import java.util
 import java.util.Base64
 
-import akka.NotUsed
-import akka.actor.ActorSystem
-import akka.stream.{IOResult, Materializer}
-import akka.stream.scaladsl.{Flow, Source, StreamConverters}
-import akka.util.ByteString
+import org.apache.pekko.NotUsed
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.stream.{IOResult, Materializer}
+import org.apache.pekko.stream.scaladsl.{Flow, Source, StreamConverters}
+import org.apache.pekko.util.ByteString
 import com.amazonaws.ClientConfiguration
 import com.amazonaws.auth.{AWSStaticCredentialsProvider, BasicAWSCredentials}
 import com.amazonaws.client.builder.AwsClientBuilder

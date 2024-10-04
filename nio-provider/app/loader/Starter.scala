@@ -1,7 +1,7 @@
 package loader
 
 import actor.KafkaActor
-import akka.actor.ActorSystem
+import org.apache.pekko.actor.ActorSystem
 import messaging.KafkaMessageBroker
 
 class Starter(kafkaMessageBroker: KafkaMessageBroker,

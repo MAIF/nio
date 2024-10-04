@@ -1,11 +1,11 @@
 package service
 
-import akka.NotUsed
-import akka.actor.ActorSystem
-import akka.kafka.ProducerMessage
-import akka.kafka.scaladsl.Producer
-import akka.stream.scaladsl.{Broadcast, Flow, GraphDSL, Merge, RunnableGraph, Sink, Source}
-import akka.stream.{ClosedShape, Materializer}
+import org.apache.pekko.NotUsed
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.kafka.ProducerMessage
+import org.apache.pekko.kafka.scaladsl.Producer
+import org.apache.pekko.stream.scaladsl.{Broadcast, Flow, GraphDSL, Merge, RunnableGraph, Sink, Source}
+import org.apache.pekko.stream.{ClosedShape, Materializer}
 import configuration.Env
 import db.{CatchupLockMongoDatastore, ConsentFactMongoDataStore, LastConsentFactMongoDataStore, TenantMongoDataStore}
 import messaging.KafkaMessageBroker
@@ -13,7 +13,7 @@ import models.{ConsentFact, ConsentFactCreated, ConsentFactUpdated}
 import org.apache.kafka.clients.producer.ProducerRecord
 import utils.NioLogger
 import play.api.libs.json.Json
-import reactivemongo.akkastream.State
+import reactivemongo.pekkostream.State
 
 import scala.concurrent.{ExecutionContext, Future}
 

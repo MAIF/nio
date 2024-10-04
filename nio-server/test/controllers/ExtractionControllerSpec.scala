@@ -9,7 +9,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.util.concurrent.TimeUnit
 
-import akka.stream.scaladsl.FileIO
+import org.apache.pekko.stream.scaladsl.FileIO
 import com.amazonaws.services.s3.AmazonS3
 import play.api.libs.ws.SourceBody
 import s3.{S3, S3Configuration}

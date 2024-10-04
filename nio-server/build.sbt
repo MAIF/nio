@@ -9,21 +9,32 @@ lazy val `nio-server` = (project in file("."))
   .enablePlugins(NoPublish)
   .disablePlugins(BintrayPlugin)
 
-scalaVersion := "2.13.10"
+scalaVersion := "2.13.14"
 
 resolvers ++= Seq(
   Resolver.jcenterRepo,
   "Maven central" at "https://repo1.maven.org/maven2/"
 )
 
+dependencyOverrides ++= Seq(
+  "com.github.luben"          % "zstd-jni"                 % "1.5.6-4",
+  "org.scala-lang.modules" %% "scala-xml" % "2.2.0"
+)
+
 libraryDependencies ++= Seq(
   ws,
-  "com.typesafe.akka"        %% "akka-http"                % "10.1.15",
-  "com.typesafe.akka"        %% "akka-http-xml"            % "10.1.15",
-  "com.typesafe.play"        %% "play-json-joda"           % playJsonJodaVersion,
-  "org.reactivemongo"        %% "play2-reactivemongo"      % s"$reactiveMongoVersion-play28",
-  "org.reactivemongo"        %% "reactivemongo-akkastream" % reactiveMongoVersion,
-  "com.typesafe.akka"        %% "akka-stream-kafka"        % akkaStreamKafka,
+  "org.apache.pekko"         %% "pekko-stream"              % pekko,
+  "org.apache.pekko"         %% "pekko-actor-typed"         % pekko,
+  "org.apache.pekko"         %% "pekko-slf4j"               % pekko,
+  "org.apache.pekko"         %% "pekko-slf4j"               % pekko,
+  "org.apache.pekko"         %% "pekko-serialization-jackson" % pekko,
+  "org.apache.pekko"         %% "pekko-http"                % "1.1.0",
+  "org.apache.pekko"         %% "pekko-http-xml"            % "1.1.0",
+  "org.apache.pekko"         %% "pekko-connectors-kafka"    % pekkoKafka,
+  "org.reactivemongo"        %% "reactivemongo"             % s"$reactiveMongoVersion-pekko.RC13",
+  "org.reactivemongo"        %% "play2-reactivemongo"       % s"$reactiveMongoVersion-play30.RC13",
+  "org.reactivemongo"        %% "reactivemongo-pekkostream" % s"$reactiveMongoVersion-RC13",
+
   "org.apache.commons"        % "commons-lang3"            % "3.11",
   "de.svenkubiak"             % "jBCrypt"                  % "0.4.1", //  ISC/BSD
   "com.auth0"                 % "java-jwt"                 % javaJwt, // MIT license
@@ -38,7 +49,7 @@ libraryDependencies ++= Seq(
   "io.dropwizard.metrics"     % "metrics-jvm"              % metricsVersion, // Apache 2.0
 
   // S3 client for akka-stream
-  "com.lightbend.akka"     %% "akka-stream-alpakka-s3" % alpakkaS3Version,
+  "org.apache.pekko"       %% "pekko-connectors-s3" % pekkoS3Version,
   "org.scalatestplus.play" %% "scalatestplus-play"     % scalatestPlay % Test
 )
 
@@ -51,12 +62,12 @@ scalacOptions ++= Seq(
 
 /// ASSEMBLY CONFIG
 
-parallelExecution in Test := false
-mainClass in assembly := Some("play.core.server.ProdServerStart")
-test in assembly := {}
-assemblyJarName in assembly := "nio.jar"
-fullClasspath in assembly += Attributed.blank(PlayKeys.playPackageAssets.value)
-assemblyMergeStrategy in assembly := {
+Test / parallelExecution := false
+assembly / mainClass := Some("play.core.server.ProdServerStart")
+assembly / test := {}
+assembly / assemblyJarName := "nio.jar"
+assembly / fullClasspath += Attributed.blank(PlayKeys.playPackageAssets.value)
+assembly / assemblyMergeStrategy := {
   case PathList("javax", xs @ _*)                                             => MergeStrategy.first
   case PathList("META-INF", "native", xs @ _*)                                => MergeStrategy.first
   case PathList("org", "apache", "commons", "logging", xs @ _*)               => MergeStrategy.discard

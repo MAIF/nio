@@ -9,17 +9,20 @@ lazy val `nio-provider` = (project in file("."))
   .enablePlugins(NoPublish)
   .disablePlugins(BintrayPlugin)
 
-scalaVersion := "2.13.10"
+scalaVersion := "2.13.14"
 
 resolvers ++= Seq(
   Resolver.jcenterRepo,
   "Maven central" at "https://repo1.maven.org/maven2/"
 )
 
+dependencyOverrides ++= Seq(
+  "com.github.luben"          % "zstd-jni"                 % "1.5.6-4"
+)
+
 libraryDependencies ++= Seq(
   ws,
-  "com.typesafe.play"        %% "play-json-joda"     % playJsonJodaVersion,
-  "com.typesafe.akka"        %% "akka-stream-kafka"  % akkaStreamKafka,
+  "org.apache.pekko"         %% "pekko-connectors-kafka"        % pekkoKafka,
   "de.svenkubiak"             % "jBCrypt"            % "0.4.1", //  ISC/BSD
   "com.auth0"                 % "java-jwt"           % javaJwt, // MIT license
   "com.github.pureconfig"    %% "pureconfig"         % pureConfig, // Apache 2.0

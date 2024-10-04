@@ -1,6 +1,6 @@
 package models
 
-import org.joda.time.{DateTime, DateTimeZone}
+import java.time.{LocalDateTime, Clock}
 import play.api.libs.functional.syntax.{unlift, _}
 import play.api.libs.json.Reads._
 import play.api.libs.json.Writes._
@@ -15,16 +15,16 @@ case class UserExtractTask(
     orgKey: String,
     userId: String,
     email: String,
-    startedAt: DateTime,
-    uploadStartedAt: Option[DateTime],
-    endedAt: Option[DateTime]
+    startedAt: LocalDateTime,
+    uploadStartedAt: Option[LocalDateTime],
+    endedAt: Option[LocalDateTime]
 ) {
   def asJson(): JsValue =
     UserExtractTask.userExtractTaskWrites.writes(this)
 }
 
 object UserExtractTask {
-  implicit val dateFormats: Format[DateTime] = DateUtils.utcDateTimeFormats
+  implicit val dateFormats: Format[LocalDateTime] = DateUtils.utcDateTimeFormats
 
   implicit val userExtractTaskReads: Reads[UserExtractTask] = (
     (__ \ "_id").readNullable[String].map { maybeId =>
@@ -34,11 +34,11 @@ object UserExtractTask {
       (__ \ "orgKey").read[String] and
       (__ \ "userId").read[String] and
       (__ \ "email").read[String] and
-      (__ \ "startedAt").readNullable[DateTime].map { maybeStartedAt =>
-        maybeStartedAt.getOrElse(DateTime.now(DateTimeZone.UTC))
+      (__ \ "startedAt").readNullable[LocalDateTime].map { maybeStartedAt =>
+        maybeStartedAt.getOrElse(LocalDateTime.now(Clock.systemUTC))
       } and
-      (__ \ "uploadStartedAt").readNullable[DateTime] and
-      (__ \ "endedAt").readNullable[DateTime]
+      (__ \ "uploadStartedAt").readNullable[LocalDateTime] and
+      (__ \ "endedAt").readNullable[LocalDateTime]
   )(UserExtractTask.apply _)
 
   implicit val userExtractTaskWrites: Writes[UserExtractTask] = (
@@ -47,9 +47,9 @@ object UserExtractTask {
       (JsPath \ "orgKey").write[String] and
       (JsPath \ "userId").write[String] and
       (JsPath \ "email").write[String] and
-      (JsPath \ "startedAt").write[DateTime] and
-      (JsPath \ "uploadStartedAt").writeNullable[DateTime] and
-      (JsPath \ "endedAt").writeNullable[DateTime]
+      (JsPath \ "startedAt").write[LocalDateTime] and
+      (JsPath \ "uploadStartedAt").writeNullable[LocalDateTime] and
+      (JsPath \ "endedAt").writeNullable[LocalDateTime]
   )(unlift(UserExtractTask.unapply))
 
   implicit val userExtractTaskOWrites: OWrites[UserExtractTask] = (
@@ -58,9 +58,9 @@ object UserExtractTask {
       (JsPath \ "orgKey").write[String] and
       (JsPath \ "userId").write[String] and
       (JsPath \ "email").write[String] and
-      (JsPath \ "startedAt").write[DateTime] and
-      (JsPath \ "uploadStartedAt").writeNullable[DateTime] and
-      (JsPath \ "endedAt").writeNullable[DateTime]
+      (JsPath \ "startedAt").write[LocalDateTime] and
+      (JsPath \ "uploadStartedAt").writeNullable[LocalDateTime] and
+      (JsPath \ "endedAt").writeNullable[LocalDateTime]
   )(unlift(UserExtractTask.unapply))
 
   implicit val format: Format[UserExtractTask]   =

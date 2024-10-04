@@ -1,8 +1,8 @@
 package service
 
-import akka.http.scaladsl.model.HttpMethods
-import akka.stream.scaladsl.Source
-import akka.util.ByteString
+import org.apache.pekko.http.scaladsl.model.HttpMethods
+import org.apache.pekko.stream.scaladsl.Source
+import org.apache.pekko.util.ByteString
 import configuration.{Env, NioConfig}
 import play.api.libs.json.JsValue
 import play.api.libs.ws.WSClient

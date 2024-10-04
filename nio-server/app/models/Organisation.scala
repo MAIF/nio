@@ -9,7 +9,7 @@ import libs.xml.XMLRead
 import libs.xml.XmlUtil.XmlCleaner
 import libs.xml.implicits._
 import libs.xml.syntax._
-import org.joda.time.{DateTime, DateTimeZone}
+import java.time.{LocalDateTime, Clock}
 import play.api.libs.functional.syntax.{unlift, _}
 import play.api.libs.json.Reads._
 import play.api.libs.json._
@@ -25,9 +25,9 @@ case class VersionInfo(
     num: Int = 1,
     latest: Boolean = false,
     neverReleased: Option[Boolean] = Some(true),
-    lastUpdate: DateTime = DateTime.now(DateTimeZone.UTC)
+    lastUpdate: LocalDateTime = LocalDateTime.now(Clock.systemUTC)
 ) {
-  def copyUpdated = copy(lastUpdate = DateTime.now(DateTimeZone.UTC))
+  def copyUpdated = copy(lastUpdate = LocalDateTime.now(Clock.systemUTC))
 }
 
 object VersionInfo {
@@ -37,7 +37,7 @@ object VersionInfo {
         "status"     -> versionInfo.status,
         "num"        -> versionInfo.num,
         "latest"     -> versionInfo.latest,
-        "lastUpdate" -> versionInfo.lastUpdate.toString(DateUtils.utcDateFormatter)
+        "lastUpdate" -> versionInfo.lastUpdate.format(DateUtils.utcDateFormatter)
       )
     }
   implicit val utcDateTimeFormats                                         = DateUtils.utcDateTimeFormats
@@ -50,7 +50,7 @@ object VersionInfo {
         (node \ "num").validate[Int](Some(s"${path.convert()}num")),
         (node \ "latest").validate[Boolean](Some(s"${path.convert()}latest")),
         (node \ "lastUpdate")
-          .validateNullable[DateTime](DateTime.now(DateTimeZone.UTC), Some(s"${path.convert()}lastUpdate"))
+          .validateNullable[LocalDateTime](LocalDateTime.now(Clock.systemUTC), Some(s"${path.convert()}lastUpdate"))
       ).mapN { (status, num, latest, lastUpdate) =>
         VersionInfo(status = status, num = num, latest = latest, lastUpdate = lastUpdate)
       }
@@ -85,7 +85,7 @@ case class Organisation(
         {version.latest}
       </latest>
       <lastUpdate>
-        {version.lastUpdate.toString(DateUtils.utcDateFormatter)}
+        {version.lastUpdate.format(DateUtils.utcDateFormatter)}
       </lastUpdate>
     </version>
     <groups>
@@ -286,7 +286,7 @@ case class Organisations(organisations: Seq[Organisation]) extends ModelTransfor
 
 object Organisations {}
 
-case class VersionInfoLight(status: String, num: Int, lastUpdate: DateTime)
+case class VersionInfoLight(status: String, num: Int, lastUpdate: LocalDateTime)
 
 case class OrganisationLight(key: String, label: String, version: VersionInfoLight) {
   def asXml() = <organisationLight>
@@ -304,7 +304,7 @@ case class OrganisationLight(key: String, label: String, version: VersionInfoLig
         {version.num}
       </num>
       <lastUpdate>
-        {version.lastUpdate.toString(DateUtils.utcDateFormatter)}
+        {version.lastUpdate.format(DateUtils.utcDateFormatter)}
       </lastUpdate>
     </version>
   </organisationLight>.clean()
@@ -316,7 +316,7 @@ case class OrganisationLight(key: String, label: String, version: VersionInfoLig
       "version" -> Json.obj(
         "status"     -> version.status,
         "num"        -> version.num,
-        "lastUpdate" -> version.lastUpdate.toString(DateUtils.utcDateFormatter)
+        "lastUpdate" -> version.lastUpdate.format(DateUtils.utcDateFormatter)
       )
     )
 }

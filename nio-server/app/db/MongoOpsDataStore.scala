@@ -1,7 +1,7 @@
 package db
 
-import akka.stream.Materializer
-import akka.stream.scaladsl.Source
+import org.apache.pekko.stream.Materializer
+import org.apache.pekko.stream.scaladsl.Source
 import reactivemongo.api.{Cursor, ReadPreference}
 import reactivemongo.api.bson.collection.BSONCollection
 
@@ -15,7 +15,7 @@ object MongoOpsDataStore {
     import play.api.libs.json._
     import reactivemongo.api.bson._
     import reactivemongo.play.json.compat._
-    import reactivemongo.akkastream._
+    import reactivemongo.pekkostream._
 
     def insertOne[T](objToInsert: T)(implicit oformat: OFormat[T]): Future[Boolean] = {
       import json2bson._
