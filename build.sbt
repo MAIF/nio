@@ -1,4 +1,6 @@
-import ReleaseTransformations._
+import ReleaseTransformations.*
+
+import scala.collection.Seq
 
 name := """nio"""
 organization := "fr.maif"

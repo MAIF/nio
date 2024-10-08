@@ -25,7 +25,8 @@ libraryDependencies ++= Seq(
   "org.apache.pekko"         %% "pekko-connectors-kafka"        % pekkoKafka,
   "de.svenkubiak"             % "jBCrypt"            % "0.4.1", //  ISC/BSD
   "com.auth0"                 % "java-jwt"           % javaJwt, // MIT license
-  "com.github.pureconfig"    %% "pureconfig"         % pureConfig, // Apache 2.0
+  "com.github.pureconfig"    %% "pureconfig-core"    % pureConfig, // Apache 2.0
+  "com.github.pureconfig"    %% "pureconfig-generic-scala3" % pureConfig, // Apache 2.0
   "org.scalactic"            %% "scalactic"          % scalaticVersion, // Apache 2.0
   "org.webjars"               % "swagger-ui"         % "3.12.1",
   "org.typelevel"            %% "cats-core"          % catsVersion, // MIT
@@ -37,16 +38,18 @@ scalacOptions ++= Seq(
   "-feature",
   "-language:higherKinds",
   "-language:implicitConversions",
-  "-language:existentials"
+  "-language:existentials",
+  "-Ykind-projector:underscores",
+  "Xsource:3"
 )
 
 /// ASSEMBLY CONFIG
 
-mainClass in assembly := Some("play.core.server.ProdServerStart")
-test in assembly := {}
-assemblyJarName in assembly := "nio-provider.jar"
-fullClasspath in assembly += Attributed.blank(PlayKeys.playPackageAssets.value)
-assemblyMergeStrategy in assembly := {
+assembly / mainClass := Some("play.core.server.ProdServerStart")
+assembly / test := {}
+assembly / assemblyJarName := "nio-provider.jar"
+assembly / fullClasspath  += Attributed.blank(PlayKeys.playPackageAssets.value)
+assembly / assemblyMergeStrategy := {
   case PathList("javax", xs @ _*)                                             => MergeStrategy.first
   case PathList("META-INF", "native", xs @ _*)                                => MergeStrategy.first
   case PathList("org", "apache", "commons", "logging", xs @ _*)               => MergeStrategy.discard
@@ -65,8 +68,8 @@ assemblyMergeStrategy in assembly := {
 
 lazy val packageAll = taskKey[Unit]("PackageAll")
 packageAll := {
-  (dist in Compile).value
-  (assembly in Compile).value
+  (Compile / dist).value
+  (Compile / assembly).value
 }
 
 /// DOCKER CONFIG
@@ -74,9 +77,9 @@ packageAll := {
 dockerExposedPorts := Seq(
   9000
 )
-packageName in Docker := "nio-provider"
+Docker / packageName := "nio-provider"
 
-maintainer in Docker := "MAIF Team <maif@maif.fr>"
+Docker / maintainer := "MAIF Team <maif@maif.fr>"
 
 dockerBaseImage := "openjdk:8"
 
@@ -109,4 +112,4 @@ dockerEntrypoint ++= Seq(
 
 dockerUpdateLatest := true
 
-packageName in Universal := s"nio-provider"
+Universal / packageName := s"nio-provider"

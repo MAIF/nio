@@ -11,6 +11,8 @@ lazy val `nio-server` = (project in file("."))
 
 scalaVersion := "2.13.14"
 
+semanticdbVersion := scalafixSemanticdb.revision
+
 resolvers ++= Seq(
   Resolver.jcenterRepo,
   "Maven central" at "https://repo1.maven.org/maven2/"
@@ -38,8 +40,9 @@ libraryDependencies ++= Seq(
   "org.apache.commons"        % "commons-lang3"            % "3.11",
   "de.svenkubiak"             % "jBCrypt"                  % "0.4.1", //  ISC/BSD
   "com.auth0"                 % "java-jwt"                 % javaJwt, // MIT license
-  "com.github.pureconfig"    %% "pureconfig"               % pureConfig, // Apache 2.0
-  "org.scalactic"            %% "scalactic"                % scalaticVersion, // Apache 2.0
+  "com.github.pureconfig"    %% "pureconfig-core"          % pureConfig, // Apache 2.0
+//  "com.github.pureconfig"    %% "pureconfig-generic-scala3" % pureConfig, // Apache 2.0
+    //  "org.scalactic"            %% "scalactic"                % scalaticVersion, // Apache 2.0
   "org.webjars"               % "swagger-ui"               % "3.12.1",
   "org.typelevel"            %% "cats-core"                % catsVersion, // MIT
   "com.softwaremill.macwire" %% "macros"                   % macwireVersion % "provided",
@@ -57,7 +60,8 @@ scalacOptions ++= Seq(
   "-feature",
   "-language:higherKinds",
   "-language:implicitConversions",
-  "-language:existentials"
+  "-language:existentials",
+  "Xsource:3"
 )
 
 /// ASSEMBLY CONFIG
@@ -95,9 +99,9 @@ packageAll := {
 dockerExposedPorts := Seq(
   9000
 )
-packageName in Docker := "nio"
+Docker / packageName := "nio"
 
-maintainer in Docker := "MAIF Team <maif@maif.fr>"
+Docker / maintainer := "MAIF Team <maif@maif.fr>"
 
 dockerBaseImage := "openjdk:8"
 
@@ -134,4 +138,4 @@ dockerEntrypoint ++= Seq(
 
 dockerUpdateLatest := true
 
-packageName in Universal := s"nio"
+Universal / packageName := s"nio"
