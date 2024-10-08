@@ -1,12 +1,14 @@
 package controllers
 
 import models._
-import org.joda.time.{DateTime, DateTimeZone}
-import utils.NioLogger
+
+import java.time.{Clock, LocalDateTime}
+import utils.{DateUtils, NioLogger, TestUtils}
 import play.api.libs.json.{JsArray, JsValue, Json}
 import play.api.libs.ws.WSResponse
 import play.api.test.Helpers._
-import utils.TestUtils
+
+import java.time.format.DateTimeFormatter
 
 class OrganisationControllerSpec extends TestUtils {
 
@@ -78,7 +80,7 @@ class OrganisationControllerSpec extends TestUtils {
     )
 
     "create new organisation" in {
-      val beforeNewOrgCreation = DateTime.now(DateTimeZone.UTC).minusSeconds(1)
+      val beforeNewOrgCreation = LocalDateTime.now(Clock.systemUTC).minusSeconds(1)
 
       val path: String   = s"/$tenant/organisations"
       val createResponse = postJson(path, org1AsJson)
@@ -103,8 +105,8 @@ class OrganisationControllerSpec extends TestUtils {
       (value \ "version" \ "latest").as[Boolean] mustBe org1.version.latest
       (value \ "version" \ "neverReleased").asOpt[Boolean] mustBe None
       (value \ "version" \ "lastUpdate").asOpt[String].map { s =>
-        val lastUpdate = DateTime.parse(s)
-        lastUpdate.isAfter(beforeNewOrgCreation) && lastUpdate.isBefore(DateTime.now(DateTimeZone.UTC).plusSeconds(1))
+        val lastUpdate = LocalDateTime.parse(s, DateUtils.utcDateFormatter)
+        lastUpdate.isAfter(beforeNewOrgCreation) && lastUpdate.isBefore(LocalDateTime.now(Clock.systemUTC).plusSeconds(1))
       } mustBe Some(true)
 
       val groups = (value \ "groups").as[JsArray]
@@ -134,8 +136,8 @@ class OrganisationControllerSpec extends TestUtils {
       (organisations \ 1 \ "version" \ "status").as[String] mustBe "DRAFT"
       (organisations \ 1 \ "version" \ "num").as[Int] mustBe 1
       (organisations \ 1 \ "version" \ "lastUpdate").asOpt[String].map { s =>
-        val lastUpdate = DateTime.parse(s)
-        lastUpdate.isAfter(beforeNewOrgCreation) && lastUpdate.isBefore(DateTime.now(DateTimeZone.UTC).plusSeconds(1))
+        val lastUpdate = LocalDateTime.parse(s, DateUtils.utcDateFormatter)
+        lastUpdate.isAfter(beforeNewOrgCreation) && lastUpdate.isBefore(LocalDateTime.now(Clock.systemUTC).plusSeconds(1))
       } mustBe Some(true)
     }
 
@@ -186,8 +188,8 @@ class OrganisationControllerSpec extends TestUtils {
       (value \ "version" \ "status").as[String] mustBe "RELEASED"
       (value \ "version" \ "num").as[Int] mustBe org1.version.num
       (value \ "version" \ "lastUpdate").asOpt[String].map { s =>
-        val lastUpdate = DateTime.parse(s)
-        lastUpdate.isBefore(DateTime.now(DateTimeZone.UTC).plusSeconds(1))
+        val lastUpdate = LocalDateTime.parse(s, DateUtils.utcDateFormatter)
+        lastUpdate.isBefore(LocalDateTime.now(Clock.systemUTC).plusSeconds(1))
       } mustBe Some(true)
     }
 

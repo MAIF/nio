@@ -1,6 +1,6 @@
 package models
 
-import org.joda.time.{DateTime, DateTimeZone}
+import java.time.{LocalDateTime, Clock}
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.play.PlaySpec
@@ -21,7 +21,7 @@ class ConsentFactSpec extends PlaySpec with AnyWordSpecLike with Matchers {
         ConsentGroup("a", "a", Seq(Consent("a", "a", false))),
         ConsentGroup("b", "b", Seq(Consent("b", "b", false)))
       ),
-      lastUpdate = DateTime.now(DateTimeZone.UTC),
+      lastUpdate = LocalDateTime.now(Clock.systemUTC),
       metaData = Some(Map(mdKey1 -> mdVal1, "tata" -> "val2"))
     )
 

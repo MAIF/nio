@@ -2,7 +2,7 @@ package filters
 
 import java.util.Base64
 
-import akka.stream.Materializer
+import org.apache.pekko.stream.Materializer
 import auth.AuthInfo
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm

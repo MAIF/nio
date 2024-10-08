@@ -1,7 +1,7 @@
 package loader
 
 import actor.{EventActor, KafkaActor}
-import akka.actor.{ActorRef, ActorSystem}
+import org.apache.pekko.actor.{ActorRef, ActorSystem}
 import auth._
 import com.softwaremill.macwire.wire
 import configuration._

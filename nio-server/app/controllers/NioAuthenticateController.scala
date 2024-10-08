@@ -1,7 +1,7 @@
 package controllers
 
-import akka.actor.ActorSystem
-import akka.http.scaladsl.util.FastFuture
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.http.scaladsl.util.FastFuture
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import configuration.{DefaultFilterConfig, Env}

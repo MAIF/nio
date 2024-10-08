@@ -1,6 +1,6 @@
 package controllers
 
-import akka.http.scaladsl.util.FastFuture
+import org.apache.pekko.http.scaladsl.util.FastFuture
 import auth.SecuredAuthContext
 import controllers.ErrorManager.{AppErrorManagerResult, ErrorManagerResult}
 import db.NioAccountMongoDataStore

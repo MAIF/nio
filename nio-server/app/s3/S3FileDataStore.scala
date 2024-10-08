@@ -1,8 +1,8 @@
 package s3
 
-import akka.actor.ActorSystem
-import akka.stream.alpakka.s3.scaladsl.S3
-import akka.stream.alpakka.s3.{AccessStyle, MemoryBufferType, S3Attributes, S3Ext, S3Settings}
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.stream.connectors.s3.scaladsl.S3
+import org.apache.pekko.stream.connectors.s3.{AccessStyle, MemoryBufferType, S3Attributes, S3Ext, S3Settings}
 import software.amazon.awssdk.auth.credentials.{AwsBasicCredentials, StaticCredentialsProvider}
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.regions.providers.AwsRegionProvider

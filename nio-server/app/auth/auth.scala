@@ -1,6 +1,6 @@
 package auth
 
-import akka.http.scaladsl.util.FastFuture
+import org.apache.pekko.http.scaladsl.util.FastFuture
 import configuration.Env
 import db.ExtractionTaskMongoDataStore
 import utils.NioLogger

@@ -1,7 +1,8 @@
 package db
 
-import akka.http.scaladsl.util.FastFuture
-import org.joda.time.DateTime
+import org.apache.pekko.http.scaladsl.util.FastFuture
+
+import java.time.{Clock, Instant, LocalDateTime, ZoneId}
 import utils.NioLogger
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoApi
@@ -11,7 +12,7 @@ import reactivemongo.api.bson.collection.BSONCollection
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
-import scala.collection.{immutable, Seq}
+import scala.collection.{Seq, immutable}
 
 class CatchupLockMongoDatastore(val reactiveMongoApi: ReactiveMongoApi)(implicit val ec: ExecutionContext)
     extends DataStoreUtils {
@@ -74,7 +75,7 @@ class CatchupLockMongoDatastore(val reactiveMongoApi: ReactiveMongoApi)(implicit
       )
 }
 
-case class CatchupLock(tenant: String, expireAt: DateTime = DateTime.now)
+case class CatchupLock(tenant: String, expireAt: LocalDateTime = LocalDateTime.now)
 
 object CatchupLock {
   implicit val catchupLockFormats: Format[CatchupLock] =
@@ -97,11 +98,15 @@ object CatchupLock {
       )
     }
 
-  implicit val jodaDateFormat = new Format[org.joda.time.DateTime] {
-    override def reads(d: JsValue): JsResult[DateTime] =
-      JsSuccess(new DateTime(d.as[JsObject].\("$date").as[JsNumber].value.toLong))
+  implicit val jodaDateFormat = new Format[LocalDateTime] {
+    override def reads(d: JsValue): JsResult[LocalDateTime] =
+      JsSuccess(Instant
+        .ofEpochMilli(d.as[JsObject].\("$date").as[JsNumber].value.toLong)
+        .atZone(ZoneId.systemDefault())
+        .toLocalDateTime
+      )
 
-    override def writes(d: DateTime): JsValue =
-      JsObject(Seq("$date" -> JsNumber(d.getMillis)))
+    override def writes(d: LocalDateTime): JsValue =
+      JsObject(Seq("$date" -> JsNumber(d.atZone(ZoneId.systemDefault()).toInstant.toEpochMilli)))
   }
 }

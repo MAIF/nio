@@ -2,8 +2,8 @@ package loader
 
 import java.security.SecureRandom
 
-import akka.actor.ActorSystem
-import akka.http.scaladsl.util.FastFuture
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.http.scaladsl.util.FastFuture
 import auth._
 import com.softwaremill.macwire.wire
 import configuration._

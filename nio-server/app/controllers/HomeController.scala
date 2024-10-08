@@ -2,8 +2,8 @@ package controllers
 
 import java.nio.file.Files
 
-import akka.actor.ActorSystem
-import akka.http.scaladsl.util.FastFuture
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.http.scaladsl.util.FastFuture
 import auth.AuthContextWithEmail
 import configuration.Env
 import controllers.ErrorManager.ErrorManagerResult

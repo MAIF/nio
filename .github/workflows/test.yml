@@ -11,7 +11,7 @@ jobs:
         with:
           java-version: 11
       - name: Start docker
-        run: docker-compose -f docker-compose.test.yml up -d
+        run: docker compose -f docker-compose.test.yml up -d
       - name: Build javascript
         id: buildjs
         run: sh ./scripts/build.sh ui

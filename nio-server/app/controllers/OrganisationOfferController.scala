@@ -1,11 +1,11 @@
 package controllers
 
-import akka.NotUsed
-import akka.actor.ActorSystem
-import akka.http.scaladsl.util.FastFuture
-import akka.stream.Materializer
-import akka.stream.scaladsl.{Flow, Framing, Sink, Source}
-import akka.util.ByteString
+import org.apache.pekko.NotUsed
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.http.scaladsl.util.FastFuture
+import org.apache.pekko.stream.Materializer
+import org.apache.pekko.stream.scaladsl.{Flow, Framing, Sink, Source}
+import org.apache.pekko.util.ByteString
 import auth.{AuthInfo, SecuredAuthContext}
 import configuration.Env
 import controllers.ErrorManager.{AppErrorManagerResult, ErrorManagerResult, ErrorWithStatusManagerResult}
@@ -13,8 +13,9 @@ import db.OrganisationMongoDataStore
 import libs.xmlorjson.XmlOrJson
 import messaging.KafkaMessageBroker
 import models._
-import org.joda.time.DateTime
-import utils.NioLogger
+
+import java.time.{Clock, LocalDateTime}
+import utils.{DateUtils, NioLogger}
 import play.api.http.HttpEntity
 import play.api.libs.json.Reads._
 import play.api.libs.json.{JsValue, Json}
@@ -22,8 +23,9 @@ import play.api.libs.streams.Accumulator
 import play.api.mvc.{ActionBuilder, AnyContent, ControllerComponents}
 import reactivemongo.api.bson.BSONObjectID
 import service.{ConsentManagerService, OfferManagerService}
-import scala.collection.Seq
 
+import java.time.format.DateTimeFormatter
+import scala.collection.Seq
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
@@ -205,14 +207,14 @@ class OrganisationOfferController(
                               )
                           )
                       )
-                    val date                = DateTime.parse(value.date)
+                    val date                = LocalDateTime.parse(value.date, DateUtils.utcDateFormatter)
                     offers.filter(off => off.key != offerKey) ++ Seq(offer.copy(lastUpdate = date))
                 }
             }
 
             cf.copy(
               _id = BSONObjectID.generate().stringify,
-              lastUpdateSystem = DateTime.now(),
+              lastUpdateSystem = LocalDateTime.now(Clock.systemUTC()),
               userId = value.id,
               doneBy = DoneBy(authInfo.sub, "admin"),
               offers = Some(consentOffers)
