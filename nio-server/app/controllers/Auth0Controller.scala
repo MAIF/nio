@@ -4,7 +4,7 @@ import java.math.BigInteger
 import java.security.SecureRandom
 import java.util.UUID.randomUUID
 
-import akka.http.scaladsl.util.FastFuture
+import org.apache.pekko.http.scaladsl.util.FastFuture
 import configuration.{Auth0Config, Env}
 import controllers.ErrorManager.AppErrorManagerResult
 import org.apache.commons.lang3.StringUtils

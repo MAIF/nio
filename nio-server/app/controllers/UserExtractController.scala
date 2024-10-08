@@ -2,11 +2,10 @@ package controllers
 
 import java.io.FileInputStream
 import java.util.Base64
-
-import akka.actor.ActorSystem
-import akka.stream.IOResult
-import akka.stream.scaladsl.{Source, StreamConverters}
-import akka.util.ByteString
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.stream.IOResult
+import org.apache.pekko.stream.scaladsl.{Source, StreamConverters}
+import org.apache.pekko.util.ByteString
 import auth.{AuthAction, SecuredAction, SecuredAuthContext}
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
@@ -15,7 +14,8 @@ import controllers.ErrorManager.{AppErrorManagerResult, ErrorManagerResult}
 import db.{OrganisationMongoDataStore, UserExtractTaskDataStore}
 import messaging.KafkaMessageBroker
 import models._
-import org.joda.time.{DateTime, DateTimeZone}
+
+import java.time.{Clock, LocalDateTime}
 import utils.NioLogger
 import play.api.http.HttpEntity
 import play.api.libs.Files
@@ -149,7 +149,7 @@ class UserExtractController(
                 .notFound()
             )
           case Some(extractTask) =>
-            val startUploadAt = DateTime.now(DateTimeZone.UTC)
+            val startUploadAt = LocalDateTime.now(Clock.systemUTC)
 
             val future: Future[Either[AppErrors, String]] = for {
               downloadedFileUrl                    <- Future {
@@ -159,7 +159,7 @@ class UserExtractController(
               _                                    <- mailService.sendDownloadedFile(extractTask.email, downloadedFileUrl.toString)
               taskUpdateEndedDate: UserExtractTask <- Future {
                                                         extractTask.copy(
-                                                          endedAt = Some(DateTime.now(DateTimeZone.UTC)),
+                                                          endedAt = Some(LocalDateTime.now(Clock.systemUTC)),
                                                           uploadStartedAt = Some(startUploadAt)
                                                         )
                                                       }

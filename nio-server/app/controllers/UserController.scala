@@ -1,8 +1,8 @@
 package controllers
 
-import akka.actor.ActorSystem
-import akka.stream.Materializer
-import akka.util.ByteString
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.stream.Materializer
+import org.apache.pekko.util.ByteString
 import auth.{AuthAction, SecuredAction, SecuredAuthContext}
 import db.UserMongoDataStore
 import models.PagedUsers

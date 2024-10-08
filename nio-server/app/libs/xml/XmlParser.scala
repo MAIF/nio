@@ -1,17 +1,16 @@
 package libs.xml
 
-import java.util.concurrent.atomic.{AtomicInteger, AtomicReference}
-
 import cats.data.Validated
 import libs.xml.syntax.XmlResult
-import org.joda.time.DateTime
-import org.joda.time.format.DateTimeFormatter
 import utils.DateUtils
-import utils.Result.{AppErrors, ErrorMessage}
+import utils.Result.AppErrors
 
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.util.concurrent.atomic.AtomicInteger
+import scala.collection.Seq
 import scala.util.Try
 import scala.xml.{Elem, NodeSeq}
-import scala.collection.Seq
 
 object syntax {
   import cats.implicits._
@@ -101,16 +100,16 @@ object implicits {
         .map(_.valid)
         .getOrElse(buildError(path).invalid)
 
-  implicit def defaultReadDateTime: XMLRead[DateTime] =
+  implicit def defaultReadDateTime: XMLRead[LocalDateTime] =
     readDateTime(DateUtils.utcDateFormatter)
 
-  def readDateTime(dateTimeFormatter: DateTimeFormatter): XMLRead[DateTime] =
+  def readDateTime(dateTimeFormatter: DateTimeFormatter): XMLRead[LocalDateTime] =
     (xml: NodeSeq, path: Option[String]) =>
       Try(xml.head.text)
         .map(_.valid)
         .getOrElse(buildError(path).invalid)
         .andThen { t =>
-          Try(dateTimeFormatter.parseDateTime(t))
+          Try(LocalDateTime.parse(t, dateTimeFormatter))
             .map(_.valid)
             .getOrElse(AppErrors.error(s"parse.error${toPath(path)}").invalid)
         }

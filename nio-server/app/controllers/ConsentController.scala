@@ -1,11 +1,11 @@
 package controllers
 
-import akka.NotUsed
-import akka.actor.ActorSystem
-import akka.http.scaladsl.util.FastFuture
-import akka.stream.{FlowShape, Materializer}
-import akka.stream.scaladsl.{Flow, Framing, GraphDSL, Merge, Partition, Sink, Source}
-import akka.util.ByteString
+import org.apache.pekko.NotUsed
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.http.scaladsl.util.FastFuture
+import org.apache.pekko.stream.{FlowShape, Materializer}
+import org.apache.pekko.stream.scaladsl.{Flow, Framing, GraphDSL, Merge, Partition, Sink, Source}
+import org.apache.pekko.util.ByteString
 import auth.{AuthAction, SecuredAuthContext}
 import controllers.ErrorManager.{AppErrorManagerResult, ErrorManagerResult, ErrorWithStatusManagerResult}
 import db.{ConsentFactMongoDataStore, LastConsentFactMongoDataStore, OrganisationMongoDataStore, UserMongoDataStore}
@@ -17,7 +17,7 @@ import models.ConsentFactCommand.{PatchConsentFact, UpdateConsentFact}
 import models.{ConsentFact, _}
 import utils.NioLogger
 import play.api.http.HttpEntity
-import play.api.libs.json.{JsError, JsNull, JsValue, Json}
+import play.api.libs.json.{JsError, JsNull, JsValue, Json, OFormat}
 import play.api.libs.streams.Accumulator
 import play.api.mvc._
 import reactivemongo.api.Cursor
@@ -277,7 +277,7 @@ class ConsentController(
   def ndJson(implicit ec: ExecutionContext): BodyParser[Source[JsValue, _]] = BodyParser(_ => Accumulator.source[ByteString].map(s => Right(s.via(toJson)))(ec))
 
   object ImportError {
-    implicit val format = Json.format[ImportError]
+    implicit val format: OFormat[ImportError] = Json.format[ImportError]
   }
   case class ImportError(message: String, detailedError: JsValue = JsNull, command: JsValue = JsNull)
   object ImportResult {
@@ -449,7 +449,7 @@ class ConsentController(
 
   def downloadBulked(tenant: String) = AuthAction { implicit req =>
     NioLogger.info(s"Downloading consents (using bulked reads) from tenant $tenant")
-    import reactivemongo.akkastream.cursorProducer
+    import reactivemongo.pekkostream.cursorProducer
 
     val src = Source
       .futureSource {

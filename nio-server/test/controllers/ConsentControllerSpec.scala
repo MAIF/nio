@@ -1,13 +1,16 @@
 package controllers
 
-import akka.japi.Option
+import org.apache.pekko.japi.Option
 import models._
-import org.joda.time.{DateTime, DateTimeZone}
+
+import java.time.{Clock, LocalDateTime}
 import utils.NioLogger
 import play.api.libs.json.{JsArray, JsObject, JsValue, Json}
 import play.api.libs.ws.WSResponse
 import utils.{DateUtils, TestUtils}
 import play.api.test.Helpers._
+
+import java.time.format.DateTimeFormatter
 
 class ConsentControllerSpec extends TestUtils {
 
@@ -621,7 +624,7 @@ class ConsentControllerSpec extends TestUtils {
             )
           )
         ),
-        lastUpdate = DateTime.now(DateTimeZone.UTC)
+        lastUpdate = LocalDateTime.now(Clock.systemUTC)
       )
 
       val consentFactasXml = consentFact.asXml()
@@ -645,7 +648,7 @@ class ConsentControllerSpec extends TestUtils {
     }
 
     "force lastUpdate date" in {
-      val tomorrow: DateTime = DateTime.now(DateTimeZone.UTC).plusDays(1)
+      val tomorrow: LocalDateTime = LocalDateTime.now(Clock.systemUTC).plusDays(1)
 
       val consentFact = ConsentFact(
         _id = "cf",
@@ -682,7 +685,7 @@ class ConsentControllerSpec extends TestUtils {
 
       val json: JsValue = resp.json
 
-      (json \ "lastUpdate").as[String] mustBe tomorrow.toString(DateUtils.utcDateFormatter)
+      (json \ "lastUpdate").as[String] mustBe tomorrow.format(DateUtils.utcDateFormatter)
 
       val respGet =
         getJson(s"/$tenant/organisations/$organisationKey/users/$userId4")
@@ -691,7 +694,7 @@ class ConsentControllerSpec extends TestUtils {
 
       val jsonGet: JsValue = respGet.json
 
-      (jsonGet \ "lastUpdate").as[String] mustBe tomorrow.toString(DateUtils.utcDateFormatter)
+      (jsonGet \ "lastUpdate").as[String] mustBe tomorrow.format(DateUtils.utcDateFormatter)
     }
 
     "not force update date" in {
@@ -734,7 +737,7 @@ class ConsentControllerSpec extends TestUtils {
     }
 
     "force lastUpdate date xml" in {
-      val yesterday: DateTime = DateTime.now(DateTimeZone.UTC).minusDays(1)
+      val yesterday: LocalDateTime = LocalDateTime.now(Clock.systemUTC).minusDays(1)
 
       val userId6 = "userId6Xml"
 
@@ -773,7 +776,7 @@ class ConsentControllerSpec extends TestUtils {
 
       val xml = resp.xml
 
-      (xml \ "lastUpdate").head.text mustBe yesterday.toString(DateUtils.utcDateFormatter)
+      (xml \ "lastUpdate").head.text mustBe yesterday.format(DateUtils.utcDateFormatter)
 
       val respGet =
         getXml(s"/$tenant/organisations/$organisationKey/users/$userId6")
@@ -782,7 +785,7 @@ class ConsentControllerSpec extends TestUtils {
 
       val xmlGet = respGet.xml
 
-      (xmlGet \ "lastUpdate").head.text mustBe yesterday.toString(DateUtils.utcDateFormatter)
+      (xmlGet \ "lastUpdate").head.text mustBe yesterday.format(DateUtils.utcDateFormatter)
     }
 
 
@@ -809,7 +812,7 @@ class ConsentControllerSpec extends TestUtils {
       println(patchResponse.json)
       patchResponse.status mustBe OK
 
-      val expectedDate: DateTime = (patchResponse.json \ "lastUpdate").validate(DateUtils.utcDateTimeReads).get
+      val expectedDate: LocalDateTime = (patchResponse.json \ "lastUpdate").validate(DateUtils.utcDateTimeReads).get
       patchResponse.json mustBe user1.copy(
         orgKey = Some("maif"),
         lastUpdate = expectedDate,
@@ -861,7 +864,7 @@ class ConsentControllerSpec extends TestUtils {
             key = "offer1",
             label = "offer one",
             version = 1,
-            lastUpdate = DateTime.now().minusHours(2).withMillis(0),
+            lastUpdate = LocalDateTime.now().minusHours(2).withNano(0),
             groups = Seq(
               ConsentGroup(
                 key = "maifNotifs",
@@ -895,7 +898,7 @@ class ConsentControllerSpec extends TestUtils {
       )
     )
 
-    val updatedDate = DateTime.now().minusHours(1).withMillis(0)
+    val updatedDate = LocalDateTime.now().minusHours(1).withNano(0)
 
     val patchConsentFact = PartialConsentFact(
       offers = Some(Seq(
@@ -1032,7 +1035,7 @@ class ConsentControllerSpec extends TestUtils {
       patchedOffers.value.length mustBe 2
 
       (patchedOffers \ 0 \ "key").as[String] mustBe "offer1"
-      (patchedOffers \ 0 \ "lastUpdate").as[DateTime](DateUtils.utcDateTimeFormats) mustBe updatedDate
+      (patchedOffers \ 0 \ "lastUpdate").as[LocalDateTime](DateUtils.utcDateTimeFormats) mustBe updatedDate
 
 
     }
@@ -1264,7 +1267,7 @@ class ConsentControllerSpec extends TestUtils {
           ConsentGroup("a", "a", Seq(Consent("a", "a", false))),
           ConsentGroup("b", "b", Seq(Consent("b", "b", false)))
         ),
-        lastUpdate = DateTime.now(DateTimeZone.UTC),
+        lastUpdate = LocalDateTime.now(Clock.systemUTC),
         metaData = Some(Map("mdKey1" -> "mdVal1", "tata" -> "val2"))
       )
 
@@ -1325,7 +1328,7 @@ class ConsentControllerSpec extends TestUtils {
   }
 
   "last update date must be >= last update date in db" should {
-    val lastUpdate = DateTime.now(DateTimeZone.UTC)
+    val lastUpdate = LocalDateTime.now(Clock.systemUTC)
 
     val userIdDate  = "userIdWithLastUpdateDate"
     val consentFact = ConsentFact(
@@ -1401,9 +1404,9 @@ class ConsentControllerSpec extends TestUtils {
   }
 
   "last update offer date must be >= last update offer date in db" should {
-    val today     = DateTime.now(DateTimeZone.UTC)
-    val yesterday = DateTime.now(DateTimeZone.UTC).minusDays(1)
-    val tommorrow = DateTime.now(DateTimeZone.UTC).plusDays(1)
+    val today     = LocalDateTime.now(Clock.systemUTC)
+    val yesterday = LocalDateTime.now(Clock.systemUTC).minusDays(1)
+    val tommorrow = LocalDateTime.now(Clock.systemUTC).plusDays(1)
 
     val userIdDate  = "userIdWithLastUpdateDate"
     val consentFact = ConsentFact(
@@ -1502,8 +1505,8 @@ class ConsentControllerSpec extends TestUtils {
   }
 
   "put just offer2 with user has 1 & 2" should {
-    val today     = DateTime.now(DateTimeZone.UTC)
-    val yesterday = DateTime.now(DateTimeZone.UTC).minusDays(1)
+    val today     = LocalDateTime.now(Clock.systemUTC)
+    val yesterday = LocalDateTime.now(Clock.systemUTC).minusDays(1)
 
     val consentOffer1: ConsentOffer = offerToConsentOffer(offer1).copy(lastUpdate = yesterday)
     val consentOffer2: ConsentOffer = offerToConsentOffer(offer2).copy(lastUpdate = yesterday)
@@ -1593,16 +1596,16 @@ class ConsentControllerSpec extends TestUtils {
         .as[String] mustBe "offer1"
 
       (payloadOffers \ 0 \ "lastUpdate")
-        .as[String] mustBe today.toString("yyyy-MM-dd'T'HH:mm:ss'Z'")
+        .as[String] mustBe today.format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'"))
       (payloadOffers \ 1 \ "lastUpdate")
-        .as[String] mustBe yesterday.toString("yyyy-MM-dd'T'HH:mm:ss'Z'")
+        .as[String] mustBe yesterday.format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'"))
 
     }
   }
 
   "put no offers with user has 1 & 2" should {
-    val today     = DateTime.now(DateTimeZone.UTC)
-    val yesterday = DateTime.now(DateTimeZone.UTC).minusDays(1)
+    val today     = LocalDateTime.now(Clock.systemUTC)
+    val yesterday = LocalDateTime.now(Clock.systemUTC).minusDays(1)
 
     val consentOffer1: ConsentOffer = offerToConsentOffer(offer1).copy(lastUpdate = yesterday)
     val consentOffer2: ConsentOffer = offerToConsentOffer(offer2).copy(lastUpdate = yesterday)

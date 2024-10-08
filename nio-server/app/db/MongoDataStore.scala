@@ -1,8 +1,8 @@
 package db
 
-import akka.http.scaladsl.util.FastFuture
-import akka.stream.Materializer
-import akka.stream.scaladsl.Source
+import org.apache.pekko.http.scaladsl.util.FastFuture
+import org.apache.pekko.stream.Materializer
+import org.apache.pekko.stream.scaladsl.Source
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoApi
 import reactivemongo.api.indexes.Index
@@ -26,7 +26,7 @@ trait MongoDataStore[T] {
   import Request.ImprovedRequest
   import reactivemongo.api.bson._
   import reactivemongo.play.json.compat._
-  import reactivemongo.akkastream._
+  import reactivemongo.pekkostream._
   import bson2json._
   import json2bson._
 

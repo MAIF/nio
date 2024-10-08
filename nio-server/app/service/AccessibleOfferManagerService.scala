@@ -2,7 +2,7 @@ package service
 
 import java.util.regex.Pattern
 
-import akka.http.scaladsl.util.FastFuture
+import org.apache.pekko.http.scaladsl.util.FastFuture
 import controllers.AppErrorWithStatus
 import db.OrganisationMongoDataStore
 import models.{Offer, Organisation}

@@ -1,7 +1,7 @@
 package service
 
-import akka.http.scaladsl.model._
-import akka.http.scaladsl.util.FastFuture
+import org.apache.pekko.http.scaladsl.model._
+import org.apache.pekko.http.scaladsl.util.FastFuture
 import configuration.{Env, MailGunConfig}
 import utils.NioLogger
 import play.api.libs.ws.{WSClient, _}

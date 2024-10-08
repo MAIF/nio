@@ -11,7 +11,7 @@ import libs.xml.implicits._
 import libs.xml.syntax._
 import messaging.KafkaMessageBroker
 import models.ExtractionTaskStatus.ExtractionTaskStatus
-import org.joda.time.{DateTime, DateTimeZone}
+import java.time.{LocalDateTime, Clock}
 import play.api.libs.json.Reads._
 import play.api.libs.json._
 import reactivemongo.api.bson.BSONObjectID
@@ -136,11 +136,11 @@ case class ExtractionTask(
     _id: String,
     orgKey: String,
     userId: String,
-    startedAt: DateTime,
+    startedAt: LocalDateTime,
     appIds: Set[String],
     states: Set[AppState],
     status: ExtractionTaskStatus,
-    lastUpdate: DateTime,
+    lastUpdate: LocalDateTime,
     done: Int = 0
 ) extends ModelTransformAs {
 
@@ -149,12 +149,12 @@ case class ExtractionTask(
     "id"         -> _id,
     "orgKey"     -> orgKey,
     "userId"     -> userId,
-    "startedAt"  -> startedAt.toString(DateUtils.utcDateFormatter),
+    "startedAt"  -> startedAt.format(DateUtils.utcDateFormatter),
     "appIds"     -> appIds,
     "states"     -> states.map(_.asJson()),
     "status"     -> status.toString,
     "progress"   -> progress,
-    "lastUpdate" -> lastUpdate.toString(DateUtils.utcDateFormatter),
+    "lastUpdate" -> lastUpdate.format(DateUtils.utcDateFormatter),
     "done"       -> done
   )
 
@@ -162,12 +162,12 @@ case class ExtractionTask(
       <id>{_id}</id>
       <orgKey>{orgKey}</orgKey>
       <userId>{userId}</userId>
-      <startedAt>{startedAt.toString(DateUtils.utcDateFormatter)}</startedAt>
+      <startedAt>{startedAt.format(DateUtils.utcDateFormatter)}</startedAt>
       <appIds>{appIds.map(appId => <appId>{appId}</appId>)}</appIds>
       <states>{states.map(_.asXml())}</states>
       <status>{status}</status>
       <progress>{progress}</progress>
-      <lastUpdate>{lastUpdate.toString(DateUtils.utcDateFormatter)}</lastUpdate>
+      <lastUpdate>{lastUpdate.format(DateUtils.utcDateFormatter)}</lastUpdate>
       <done>{done}</done>
     </extractionTask>.clean()
 
@@ -197,7 +197,7 @@ case class ExtractionTask(
     val newAppState    = appState.copy(files = appExtractedFiles.files, totalBytes = sizeOfAllFiles)
 
     UploadTracker.addApp(this._id, appId)
-    copy(states = states.filterNot(_.appId == appId) + newAppState, lastUpdate = DateTime.now(DateTimeZone.UTC))
+    copy(states = states.filterNot(_.appId == appId) + newAppState, lastUpdate = LocalDateTime.now(Clock.systemUTC))
   }
 
   def copyWithFileUploadHandled(appId: String, appState: AppState) = {
@@ -210,7 +210,7 @@ case class ExtractionTask(
       status =
         if (allWillBeDone) ExtractionTaskStatus.Done
         else ExtractionTaskStatus.Running,
-      lastUpdate = DateTime.now(DateTimeZone.UTC)
+      lastUpdate = LocalDateTime.now(Clock.systemUTC)
     )
   }
 
@@ -257,7 +257,7 @@ object ExtractionTask {
   implicit val fmt = Json.format[ExtractionTask]
 
   def newFrom(orgKey: String, userId: String, appIds: Set[String]) = {
-    val now = DateTime.now(DateTimeZone.UTC)
+    val now = LocalDateTime.now(Clock.systemUTC)
     ExtractionTask(
       _id = BSONObjectID.generate().stringify,
       orgKey = orgKey,

@@ -1,7 +1,7 @@
 package models
 
 import models.DeletionTaskStatus.DeletionTaskStatus
-import org.joda.time.{DateTime, DateTimeZone}
+import java.time.{LocalDateTime, Clock}
 import play.api.libs.json._
 import reactivemongo.api.bson.BSONObjectID
 import utils.DateUtils
@@ -47,11 +47,11 @@ case class DeletionTask(
     _id: String,
     orgKey: String,
     userId: String,
-    startedAt: DateTime,
+    startedAt: LocalDateTime,
     appIds: Set[String],
     states: Set[AppDeletionState],
     status: DeletionTaskStatus,
-    lastUpdate: DateTime
+    lastUpdate: LocalDateTime
 ) extends ModelTransformAs {
 
   def copyWithAppDone(appId: String) = {
@@ -67,21 +67,21 @@ case class DeletionTask(
     "id"         -> _id,
     "orgKey"     -> orgKey,
     "userId"     -> userId,
-    "startedAt"  -> startedAt.toString(DateUtils.utcDateFormatter),
+    "startedAt"  -> startedAt.format(DateUtils.utcDateFormatter),
     "appIds"     -> appIds,
     "states"     -> states.map(_.asJson()),
     "status"     -> status.toString,
-    "lastUpdate" -> startedAt.toString(DateUtils.utcDateFormatter)
+    "lastUpdate" -> startedAt.format(DateUtils.utcDateFormatter)
   )
 
   def asXml() = <destroyTask>
       <orgKey>{orgKey}</orgKey>
       <userId>{userId}</userId>
-      <startedAt>{startedAt.toString(DateUtils.utcDateFormatter)}</startedAt>
+      <startedAt>{startedAt.format(DateUtils.utcDateFormatter)}</startedAt>
       <appIds>{appIds.map(appId => <appId>appId</appId>)}</appIds>
       <states>{states.map(_.asXml())}</states>
       <status>{status.toString}</status>
-      <lastUpdate>{lastUpdate.toString(DateUtils.utcDateFormatter)}</lastUpdate>
+      <lastUpdate>{lastUpdate.format(DateUtils.utcDateFormatter)}</lastUpdate>
     </destroyTask>.clean()
 }
 
@@ -91,7 +91,7 @@ object DeletionTask {
   implicit val deletionTaskFormats = Json.format[DeletionTask]
 
   def newTask(orgKey: String, userId: String, appIds: Set[String]) = {
-    val now = DateTime.now(DateTimeZone.UTC)
+    val now = LocalDateTime.now(Clock.systemUTC)
     DeletionTask(
       BSONObjectID.generate().stringify,
       orgKey,

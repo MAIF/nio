@@ -1,6 +1,6 @@
 package models
 
-import org.joda.time.{DateTime, DateTimeZone}
+import java.time.{LocalDateTime, Clock}
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import play.api.libs.json.JsValue
@@ -11,7 +11,7 @@ import scala.xml.Elem
 
 class ModelValidationSpec extends AnyWordSpecLike with Matchers {
 
-  val now: DateTime = DateTime.now(DateTimeZone.UTC)
+  val now: LocalDateTime = LocalDateTime.now(Clock.systemUTC)
 
   "Validation ConsentFact" should {
     val consentFact: ConsentFact = ConsentFact(
@@ -148,7 +148,7 @@ class ModelValidationSpec extends AnyWordSpecLike with Matchers {
       )
     }
       </groups>
-      <invalidLastUpdate>{consentFact.lastUpdate.toString(DateUtils.utcDateFormatter)}</invalidLastUpdate>
+      <invalidLastUpdate>{consentFact.lastUpdate.format(DateUtils.utcDateFormatter)}</invalidLastUpdate>
       <invalidOrgKey>{consentFact.orgKey.getOrElse("")}</invalidOrgKey>
       {
       if (consentFact.metaData.isDefined)
@@ -188,7 +188,7 @@ class ModelValidationSpec extends AnyWordSpecLike with Matchers {
       consentFact.groups(1).consents(1).label must be("group 2 consent 2")
       consentFact.groups(1).consents(1).checked must be(false)
 
-      consentFact.lastUpdate.toString(DateUtils.utcDateFormatter) must be(now.toString(DateUtils.utcDateFormatter))
+      consentFact.lastUpdate.format(DateUtils.utcDateFormatter) must be(now.format(DateUtils.utcDateFormatter))
 
       consentFact.orgKey.get must be("orgKey")
 
@@ -247,7 +247,7 @@ class ModelValidationSpec extends AnyWordSpecLike with Matchers {
 
     def invalidAccount(account: Account): Elem = <account>
     <invalidAccountId>{account.accountId}</invalidAccountId>
-      <invalidLastUpdate>{account.lastUpdate.toString(DateUtils.utcDateFormatter)}</invalidLastUpdate>
+      <invalidLastUpdate>{account.lastUpdate.format(DateUtils.utcDateFormatter)}</invalidLastUpdate>
       <organisationsUsers>
         {
       account.organisationsUsers.map(ou => <organisationUser>
@@ -371,7 +371,7 @@ class ModelValidationSpec extends AnyWordSpecLike with Matchers {
         <invalidStatus>{organisation.version.status}</invalidStatus>
         <invalidNum>{organisation.version.num}</invalidNum>
         <invalidLatest>{organisation.version.latest}</invalidLatest>
-        <invalidLastUpdate>{organisation.version.lastUpdate.toString(DateUtils.utcDateFormatter)}</invalidLastUpdate>
+        <invalidLastUpdate>{organisation.version.lastUpdate.format(DateUtils.utcDateFormatter)}</invalidLastUpdate>
       </version>
       <groups>{
       organisation.groups.map(group =>
@@ -396,7 +396,7 @@ class ModelValidationSpec extends AnyWordSpecLike with Matchers {
       organisation.version.num must be(2)
       organisation.version.latest must be(true)
       organisation.version.lastUpdate
-        .toString(DateUtils.utcDateFormatter) must be(now.toString(DateUtils.utcDateFormatter))
+        .format(DateUtils.utcDateFormatter) must be(now.format(DateUtils.utcDateFormatter))
 
       organisation.groups.size must be(2)
       organisation.groups.head.key must be("group1")

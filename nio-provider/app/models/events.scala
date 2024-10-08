@@ -1,6 +1,6 @@
 package models
 
-import org.joda.time.{DateTime, DateTimeZone}
+import java.time.{LocalDateTime, Clock}
 import utils.NioLogger
 import play.api.libs.json._
 import utils.DateUtils
@@ -47,7 +47,7 @@ object NioEvent {
 
 trait NioEvent {
   val id: Long
-  val date: DateTime
+  val date: LocalDateTime
   val tenant: String
 
   def tYpe: EventType.Value
@@ -70,7 +70,7 @@ case class UserExtractTaskAsked(
     author: String,
     metadata: Option[Seq[(String, String)]] = None,
     id: Long,
-    date: DateTime = DateTime.now(DateTimeZone.UTC),
+    date: LocalDateTime = LocalDateTime.now(Clock.systemUTC),
     payload: UserExtractTask
 ) extends NioEvent {
   override def tYpe: EventType.Value = EventType.UserExtractTaskAsked
@@ -82,7 +82,7 @@ case class UserExtractTaskAsked(
         "tenant"   -> tenant,
         "author"   -> author,
         "metadata" -> buildMetadata(metadata),
-        "date"     -> date.toString(DateUtils.utcDateFormatter),
+        "date"     -> date.format(DateUtils.utcDateFormatter),
         "id"       -> id,
         "payload"  -> payload.asJson()
       )
@@ -94,7 +94,7 @@ case class UserExtractTaskCompleted(
     author: String,
     metadata: Option[Seq[(String, String)]] = None,
     id: Long,
-    date: DateTime = DateTime.now(DateTimeZone.UTC),
+    date: LocalDateTime = LocalDateTime.now(Clock.systemUTC),
     payload: UserExtractTask
 ) extends NioEvent {
   override def tYpe: EventType.Value = EventType.UserExtractTaskCompleted
@@ -106,7 +106,7 @@ case class UserExtractTaskCompleted(
         "tenant"   -> tenant,
         "author"   -> author,
         "metadata" -> buildMetadata(metadata),
-        "date"     -> date.toString(DateUtils.utcDateFormatter),
+        "date"     -> date.format(DateUtils.utcDateFormatter),
         "id"       -> id,
         "payload"  -> payload.asJson()
       )

@@ -7,7 +7,7 @@ import libs.xml.XMLRead
 import libs.xml.XmlUtil.XmlCleaner
 import libs.xml.implicits._
 import libs.xml.syntax._
-import org.joda.time.{DateTime, DateTimeZone}
+import java.time.{LocalDateTime, Clock}
 import play.api.libs.functional.syntax.{unlift, _}
 import play.api.libs.json.Reads._
 import play.api.libs.json.{JsValue, _}
@@ -61,7 +61,7 @@ object OrganisationUser {
 
 case class Account(
     accountId: String,
-    lastUpdate: DateTime = DateTime.now(DateTimeZone.UTC),
+    lastUpdate: LocalDateTime = LocalDateTime.now(Clock.systemUTC),
     organisationsUsers: Seq[OrganisationUser]
 ) extends ModelTransformAs {
   override def asXml(): Elem = <account>
@@ -69,7 +69,7 @@ case class Account(
       {accountId}
     </accountId>
     <lastUpdate>
-      {lastUpdate.toString(DateUtils.utcDateFormatter)}
+      {lastUpdate.format(DateUtils.utcDateFormatter)}
     </lastUpdate>
     <organisationsUsers>
       {organisationsUsers.map(_.asXml())}
@@ -84,14 +84,14 @@ object Account extends ReadableEntity[Account] {
   implicit val read: Reads[Account] = (
     (__ \ "accountId").read[String] and
       (__ \ "lastUpdate")
-        .readWithDefault[DateTime](DateTime.now(DateTimeZone.UTC))(DateUtils.utcDateTimeReads) and
+        .readWithDefault[LocalDateTime](LocalDateTime.now(Clock.systemUTC))(DateUtils.utcDateTimeReads) and
       (__ \ "organisationsUsers").read[Seq[OrganisationUser]]
   )(Account.apply _)
 
   implicit val write: OWrites[Account] = (
     (JsPath \ "accountId").write[String] and
       (JsPath \ "lastUpdate")
-        .write[DateTime](DateUtils.utcDateTimeWrites) and
+        .write[LocalDateTime](DateUtils.utcDateTimeWrites) and
       (JsPath \ "organisationsUsers").write[Seq[OrganisationUser]]
   )(unlift(Account.unapply))
 

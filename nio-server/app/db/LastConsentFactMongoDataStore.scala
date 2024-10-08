@@ -1,16 +1,16 @@
 package db
 
-import akka.http.scaladsl.util.FastFuture
-import akka.stream._
-import akka.stream.scaladsl.{Sink, Source}
-import akka.util.ByteString
+import org.apache.pekko.http.scaladsl.util.FastFuture
+import org.apache.pekko.stream._
+import org.apache.pekko.stream.scaladsl.{Sink, Source}
+import org.apache.pekko.util.ByteString
 import controllers.AppErrorWithStatus
 import models._
 import utils.NioLogger
 import play.api.libs.json.{JsValue, Json, OFormat}
 import play.api.mvc.Results.NotFound
 import play.modules.reactivemongo.ReactiveMongoApi
-import reactivemongo.akkastream.cursorProducer
+import reactivemongo.pekkostream.cursorProducer
 import reactivemongo.api.{Cursor, ReadPreference}
 import reactivemongo.api.bson.collection.BSONCollection
 import reactivemongo.api.indexes.{Index, IndexType}
@@ -26,7 +26,7 @@ class LastConsentFactMongoDataStore(val mongoApi: ReactiveMongoApi)(implicit val
 
   import reactivemongo.api.bson._
   import reactivemongo.play.json.compat._
-  import reactivemongo.akkastream._
+  import reactivemongo.pekkostream._
   import lax._
   import bson2json._
   import json2bson._
@@ -165,7 +165,7 @@ class LastConsentFactMongoDataStore(val mongoApi: ReactiveMongoApi)(implicit val
 
   def streamAll(tenant: String, pageSize: Int, parallelisation: Int)(implicit
       m: Materializer
-  ): Source[JsValue, akka.NotUsed]                                                                      =
+  ): Source[JsValue, org.apache.pekko.NotUsed]                                                                      =
     Source
       .future(storedCollection(tenant))
       .mapAsync(1)(coll => coll.count().map(c => (coll, c)))
@@ -199,7 +199,7 @@ class LastConsentFactMongoDataStore(val mongoApi: ReactiveMongoApi)(implicit val
 
   def streamAllBSON(tenant: String, pageSize: Int, parallelisation: Int)(implicit
       m: Materializer
-  ): Source[ByteString, akka.NotUsed] =
+  ): Source[ByteString, org.apache.pekko.NotUsed] =
     Source
       .future(storedBSONCollection(tenant))
       .mapAsync(1)(coll => coll.count().map(c => (coll, c)))

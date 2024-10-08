@@ -1,6 +1,6 @@
 package service
 
-import akka.http.scaladsl.util.FastFuture
+import org.apache.pekko.http.scaladsl.util.FastFuture
 import controllers.AppErrorWithStatus
 import db.{LastConsentFactMongoDataStore, OrganisationMongoDataStore}
 import models.{Offer, Organisation}

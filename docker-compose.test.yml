@@ -5,14 +5,6 @@ services:
     command: mongod --port 27018
     ports:
       - 27018:27018
-  kafka:
-    image: spotify/kafka
-    ports:
-     - 2181:2181
-     - 9092:9092
-    environment:
-      ADVERTISED_HOST: 127.0.0.1
-      ADVERTISED_PORT: 9092
   s3server:
     image: scality/s3server
     ports:
@@ -20,3 +12,49 @@ services:
     environment:
       - "SCALITY_ACCESS_KEY_ID=newAccessKey"
       - "SCALITY_SECRET_ACCESS_KEY=newSecretKey"
+  zookeeper_test:
+    image: confluentinc/cp-zookeeper:5.2.3
+    ports:
+      - 32182:32182
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 32182
+      ZOOKEEPER_TICK_TIME: 2000
+    extra_hosts:
+      - "moby:127.0.0.1"
+      - "localhost: 127.0.0.1"
+  kafka_test:
+    image: confluentinc/cp-kafka:5.2.3
+    ports:
+      - 9092:9092
+    depends_on:
+      - zookeeper_test
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper_test:32182
+      KAFKA_LISTENERS: "INTERNAL://:9093,EXTERNAL://:9092"
+      KAFKA_ADVERTISED_LISTENERS: "INTERNAL://kafka_test:9093,EXTERNAL://localhost:9092"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "INTERNAL"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_DELETE_TOPIC_ENABLE: "true"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_NUM_PARTITIONS: 1
+    extra_hosts:
+      - "moby:127.0.0.1"
+      - "localhost: 127.0.0.1"
+  akhq_test:
+    image: tchiotludo/akhq
+    ports:
+      - 9005:8080
+    environment:
+      AKHQ_CONFIGURATION: |
+        akhq:
+          connections:
+            docker-kafka-server:
+              properties:
+                bootstrap.servers: "kafka_test:9092"
+    depends_on:
+      - kafka_test
+    extra_hosts:
+      - "moby:127.0.0.1"
+      - "localhost: 127.0.0.1"

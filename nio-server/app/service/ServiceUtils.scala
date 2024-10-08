@@ -1,6 +1,6 @@
 package service
 
-import akka.http.scaladsl.util.FastFuture
+import org.apache.pekko.http.scaladsl.util.FastFuture
 import controllers.AppErrorWithStatus
 import play.api.mvc.Results._
 import utils.Result.{AppErrors, ErrorMessage}

@@ -1,10 +1,13 @@
 package models
 
 import models.OrganisationUser.{read, write}
-import org.joda.time.{DateTime, DateTimeZone}
+import java.time.{LocalDateTime, Clock}
+
+import java.time.{Clock, LocalDateTime}
 import utils.NioLogger
 import play.api.libs.json._
 import utils.{DateUtils, IdGenerator}
+
 import scala.collection.Seq
 
 object EventType extends Enumeration {
@@ -118,7 +121,7 @@ object NioEvent {
 
 trait NioEvent {
   val id: Long
-  val date: DateTime
+  val date: LocalDateTime
   val tenant: String
 
   def `type`: EventType.Value
@@ -156,12 +159,12 @@ object CleanUpMetadata {
 import CleanUpMetadata.CleanMetadata
 
 case class TenantCreated(
-    tenant: String,
-    author: String = "tenant-admin",
-    metadata: Option[Seq[(String, String)]] = None,
-    date: DateTime = DateTime.now(DateTimeZone.UTC),
-    id: Long = NioEvent.gen.nextId(),
-    payload: Tenant
+                          tenant: String,
+                          author: String = "tenant-admin",
+                          metadata: Option[Seq[(String, String)]] = None,
+                          date: LocalDateTime = LocalDateTime.now(Clock.systemUTC),
+                          id: Long = NioEvent.gen.nextId(),
+                          payload: Tenant
 ) extends NioEvent {
   def shardId = payload.key
 
@@ -174,7 +177,7 @@ case class TenantCreated(
         "tenant"   -> payload.key,
         "author"   -> author,
         "metadata" -> buildMetadata(metadata),
-        "date"     -> date.toString(DateUtils.utcDateFormatter),
+        "date"     -> date.format(DateUtils.utcDateFormatter),
         "id"       -> id,
         "payload"  -> payload.asJson()
       )
@@ -185,7 +188,7 @@ case class TenantDeleted(
     tenant: String,
     author: String = "tenant-admin",
     metadata: Option[Seq[(String, String)]] = None,
-    date: DateTime = DateTime.now(DateTimeZone.UTC),
+    date: LocalDateTime = LocalDateTime.now(Clock.systemUTC),
     id: Long = NioEvent.gen.nextId(),
     payload: Tenant
 ) extends NioEvent {
@@ -200,7 +203,7 @@ case class TenantDeleted(
         "tenant"   -> payload.key,
         "author"   -> author,
         "metadata" -> buildMetadata(metadata),
-        "date"     -> date.toString(DateUtils.utcDateFormatter),
+        "date"     -> date.format(DateUtils.utcDateFormatter),
         "id"       -> id,
         "payload"  -> payload.asJson()
       )
@@ -211,7 +214,7 @@ case class OrganisationCreated(
     tenant: String,
     author: String,
     metadata: Option[Seq[(String, String)]] = None,
-    date: DateTime = DateTime.now(DateTimeZone.UTC),
+    date: LocalDateTime = LocalDateTime.now(Clock.systemUTC),
     id: Long = NioEvent.gen.nextId(),
     payload: Organisation
 ) extends NioEvent {
@@ -226,7 +229,7 @@ case class OrganisationCreated(
         "tenant"   -> tenant,
         "author"   -> author,
         "metadata" -> buildMetadata(metadata),
-        "date"     -> date.toString(DateUtils.utcDateFormatter),
+        "date"     -> date.format(DateUtils.utcDateFormatter),
         "id"       -> id,
         "payload"  -> payload.asJson()
       )
@@ -237,7 +240,7 @@ case class OrganisationUpdated(
     tenant: String,
     author: String,
     metadata: Option[Seq[(String, String)]] = None,
-    date: DateTime = DateTime.now(DateTimeZone.UTC),
+    date: LocalDateTime = LocalDateTime.now(Clock.systemUTC),
     id: Long = NioEvent.gen.nextId(),
     payload: Organisation,
     oldValue: Organisation
@@ -253,7 +256,7 @@ case class OrganisationUpdated(
         "tenant"   -> tenant,
         "author"   -> author,
         "metadata" -> buildMetadata(metadata),
-        "date"     -> date.toString(DateUtils.utcDateFormatter),
+        "date"     -> date.format(DateUtils.utcDateFormatter),
         "id"       -> id,
         "payload"  -> payload.asJson(),
         "oldValue" -> oldValue.asJson()
@@ -265,7 +268,7 @@ case class OrganisationReleased(
     tenant: String,
     author: String,
     metadata: Option[Seq[(String, String)]] = None,
-    date: DateTime = DateTime.now(DateTimeZone.UTC),
+    date: LocalDateTime = LocalDateTime.now(Clock.systemUTC),
     id: Long = NioEvent.gen.nextId(),
     payload: Organisation
 ) extends NioEvent {
@@ -280,7 +283,7 @@ case class OrganisationReleased(
         "tenant"   -> tenant,
         "author"   -> author,
         "metadata" -> buildMetadata(metadata),
-        "date"     -> date.toString(DateUtils.utcDateFormatter),
+        "date"     -> date.format(DateUtils.utcDateFormatter),
         "id"       -> id,
         "payload"  -> payload.asJson()
       )
@@ -291,7 +294,7 @@ case class OrganisationDeleted(
     tenant: String,
     author: String,
     metadata: Option[Seq[(String, String)]] = None,
-    date: DateTime = DateTime.now(DateTimeZone.UTC),
+    date: LocalDateTime = LocalDateTime.now(Clock.systemUTC),
     id: Long = NioEvent.gen.nextId(),
     payload: Organisation
 ) extends NioEvent {
@@ -306,7 +309,7 @@ case class OrganisationDeleted(
         "tenant"   -> tenant,
         "author"   -> author,
         "metadata" -> buildMetadata(metadata),
-        "date"     -> date.toString(DateUtils.utcDateFormatter),
+        "date"     -> date.format(DateUtils.utcDateFormatter),
         "id"       -> id,
         "payload"  -> payload.asJson()
       )
@@ -317,7 +320,7 @@ case class ConsentFactCreated(
     tenant: String,
     author: String,
     metadata: Option[Seq[(String, String)]] = None,
-    date: DateTime = DateTime.now(DateTimeZone.UTC),
+    date: LocalDateTime = LocalDateTime.now(Clock.systemUTC),
     id: Long = NioEvent.gen.nextId(),
     payload: ConsentFact,
     command: JsValue
@@ -333,7 +336,7 @@ case class ConsentFactCreated(
         "tenant"   -> tenant,
         "author"   -> author,
         "metadata" -> buildMetadata(metadata),
-        "date"     -> date.toString(DateUtils.utcDateFormatter),
+        "date"     -> date.format(DateUtils.utcDateFormatter),
         "id"       -> id,
         "payload"  -> payload.asJson(),
         "command"  -> command
@@ -345,7 +348,7 @@ case class ConsentFactUpdated(
     tenant: String,
     author: String,
     metadata: Option[Seq[(String, String)]] = None,
-    date: DateTime = DateTime.now(DateTimeZone.UTC),
+    date: LocalDateTime = LocalDateTime.now(Clock.systemUTC),
     id: Long = NioEvent.gen.nextId(),
     payload: ConsentFact,
     oldValue: ConsentFact,
@@ -362,7 +365,7 @@ case class ConsentFactUpdated(
         "tenant"   -> tenant,
         "author"   -> author,
         "metadata" -> buildMetadata(metadata),
-        "date"     -> date.toString(DateUtils.utcDateFormatter),
+        "date"     -> date.format(DateUtils.utcDateFormatter),
         "id"       -> id,
         "payload"  -> payload.asJson(),
         "oldValue" -> oldValue.asJson(),
@@ -376,7 +379,7 @@ case class AccountDeleted(
     author: String,
     metadata: Option[Seq[(String, String)]] = None,
     id: Long = NioEvent.gen.nextId(),
-    date: DateTime = DateTime.now(DateTimeZone.UTC),
+    date: LocalDateTime = LocalDateTime.now(Clock.systemUTC),
     payload: Account
 ) extends NioEvent {
   def shardId = payload.accountId
@@ -391,7 +394,7 @@ case class AccountDeleted(
         "author"   -> author,
         "metadata" -> buildMetadata(metadata),
         "account"  -> payload.accountId,
-        "date"     -> date.toString(DateUtils.utcDateFormatter),
+        "date"     -> date.format(DateUtils.utcDateFormatter),
         "id"       -> id,
         "payload"  -> payload.asJson()
       )
@@ -403,7 +406,7 @@ case class AccountCreated(
     author: String,
     metadata: Option[Seq[(String, String)]] = None,
     id: Long = NioEvent.gen.nextId(),
-    date: DateTime = DateTime.now(DateTimeZone.UTC),
+    date: LocalDateTime = LocalDateTime.now(Clock.systemUTC),
     payload: Account
 ) extends NioEvent {
   def shardId = payload.accountId
@@ -418,7 +421,7 @@ case class AccountCreated(
         "author"   -> author,
         "metadata" -> buildMetadata(metadata),
         "account"  -> payload.accountId,
-        "date"     -> date.toString(DateUtils.utcDateFormatter),
+        "date"     -> date.format(DateUtils.utcDateFormatter),
         "id"       -> id,
         "payload"  -> payload.asJson()
       )
@@ -430,7 +433,7 @@ case class AccountUpdated(
     author: String,
     metadata: Option[Seq[(String, String)]] = None,
     id: Long = NioEvent.gen.nextId(),
-    date: DateTime = DateTime.now(DateTimeZone.UTC),
+    date: LocalDateTime = LocalDateTime.now(Clock.systemUTC),
     payload: Account,
     oldValue: Account
 ) extends NioEvent {
@@ -446,7 +449,7 @@ case class AccountUpdated(
         "author"   -> author,
         "metadata" -> buildMetadata(metadata),
         "account"  -> payload.accountId,
-        "date"     -> date.toString(DateUtils.utcDateFormatter),
+        "date"     -> date.format(DateUtils.utcDateFormatter),
         "id"       -> id,
         "payload"  -> payload.asJson(),
         "oldValue" -> oldValue.asJson()
@@ -456,7 +459,7 @@ case class AccountUpdated(
 
 case class SecuredEvent(
     id: Long = NioEvent.gen.nextId(),
-    date: DateTime = DateTime.now(DateTimeZone.UTC),
+    date: LocalDateTime = LocalDateTime.now(Clock.systemUTC),
     payload: Digest
 ) extends NioEvent {
   def `type` = EventType.SecuredEvent
@@ -466,7 +469,7 @@ case class SecuredEvent(
       .obj(
         "type"    -> `type`,
         "tenant"  -> tenant,
-        "date"    -> date.toString(DateUtils.utcDateFormatter),
+        "date"    -> date.format(DateUtils.utcDateFormatter),
         "id"      -> id,
         "payload" -> payload.digest
       )
@@ -482,7 +485,7 @@ case class DeletionStarted(
     author: String,
     metadata: Option[Seq[(String, String)]] = None,
     id: Long = NioEvent.gen.nextId(),
-    date: DateTime = DateTime.now(DateTimeZone.UTC),
+    date: LocalDateTime = LocalDateTime.now(Clock.systemUTC),
     payload: DeletionTaskInfoPerApp
 ) extends NioEvent {
   def shardId = payload.userId
@@ -496,7 +499,7 @@ case class DeletionStarted(
         "tenant"   -> tenant,
         "author"   -> author,
         "metadata" -> buildMetadata(metadata),
-        "date"     -> date.toString(DateUtils.utcDateFormatter),
+        "date"     -> date.format(DateUtils.utcDateFormatter),
         "id"       -> id,
         "payload"  -> payload.asJson()
       )
@@ -508,7 +511,7 @@ case class DeletionAppDone(
     author: String,
     metadata: Option[Seq[(String, String)]] = None,
     id: Long = NioEvent.gen.nextId(),
-    date: DateTime = DateTime.now(DateTimeZone.UTC),
+    date: LocalDateTime = LocalDateTime.now(Clock.systemUTC),
     payload: AppDone
 ) extends NioEvent {
   def shardId = payload.userId
@@ -522,7 +525,7 @@ case class DeletionAppDone(
         "tenant"   -> tenant,
         "author"   -> author,
         "metadata" -> buildMetadata(metadata),
-        "date"     -> date.toString(DateUtils.utcDateFormatter),
+        "date"     -> date.format(DateUtils.utcDateFormatter),
         "id"       -> id,
         "payload"  -> payload.asJson()
       )
@@ -534,7 +537,7 @@ case class DeletionFinished(
     author: String,
     metadata: Option[Seq[(String, String)]] = None,
     id: Long = NioEvent.gen.nextId(),
-    date: DateTime = DateTime.now(DateTimeZone.UTC),
+    date: LocalDateTime = LocalDateTime.now(Clock.systemUTC),
     payload: DeletionTask
 ) extends NioEvent {
   def shardId = payload.userId
@@ -548,7 +551,7 @@ case class DeletionFinished(
         "tenant"   -> tenant,
         "author"   -> author,
         "metadata" -> buildMetadata(metadata),
-        "date"     -> date.toString(DateUtils.utcDateFormatter),
+        "date"     -> date.format(DateUtils.utcDateFormatter),
         "id"       -> id,
         "payload"  -> payload.asJson()
       )
@@ -560,7 +563,7 @@ case class UserExtractTaskAsked(
     author: String,
     metadata: Option[Seq[(String, String)]] = None,
     id: Long = NioEvent.gen.nextId(),
-    date: DateTime = DateTime.now(DateTimeZone.UTC),
+    date: LocalDateTime = LocalDateTime.now(Clock.systemUTC),
     payload: UserExtractTask
 ) extends NioEvent {
   override def `type`: EventType.Value = EventType.UserExtractTaskAsked
@@ -572,7 +575,7 @@ case class UserExtractTaskAsked(
         "tenant"   -> tenant,
         "author"   -> author,
         "metadata" -> buildMetadata(metadata),
-        "date"     -> date.toString(DateUtils.utcDateFormatter),
+        "date"     -> date.format(DateUtils.utcDateFormatter),
         "id"       -> id,
         "payload"  -> payload.asJson()
       )
@@ -585,7 +588,7 @@ case class UserExtractTaskCompleted(
     author: String,
     metadata: Option[Seq[(String, String)]] = None,
     id: Long = NioEvent.gen.nextId(),
-    date: DateTime = DateTime.now(DateTimeZone.UTC),
+    date: LocalDateTime = LocalDateTime.now(Clock.systemUTC),
     payload: UserExtractTask
 ) extends NioEvent {
   override def `type`: EventType.Value = EventType.UserExtractTaskCompleted
@@ -597,7 +600,7 @@ case class UserExtractTaskCompleted(
         "tenant"   -> tenant,
         "author"   -> author,
         "metadata" -> buildMetadata(metadata),
-        "date"     -> date.toString(DateUtils.utcDateFormatter),
+        "date"     -> date.format(DateUtils.utcDateFormatter),
         "id"       -> id,
         "payload"  -> payload.asJson()
       )
@@ -611,7 +614,7 @@ case class ExtractionStarted(
     author: String,
     metadata: Option[Seq[(String, String)]] = None,
     id: Long = NioEvent.gen.nextId(),
-    date: DateTime = DateTime.now(DateTimeZone.UTC),
+    date: LocalDateTime = LocalDateTime.now(Clock.systemUTC),
     payload: ExtractionTaskInfoPerApp
 ) extends NioEvent {
   def shardId = payload.userId
@@ -625,7 +628,7 @@ case class ExtractionStarted(
         "tenant"   -> tenant,
         "author"   -> author,
         "metadata" -> buildMetadata(metadata),
-        "date"     -> date.toString(DateUtils.utcDateFormatter),
+        "date"     -> date.format(DateUtils.utcDateFormatter),
         "id"       -> id,
         "payload"  -> payload.asJson()
       )
@@ -637,7 +640,7 @@ case class ExtractionAppDone(
     author: String,
     metadata: Option[Seq[(String, String)]] = None,
     id: Long = NioEvent.gen.nextId(),
-    date: DateTime = DateTime.now(DateTimeZone.UTC),
+    date: LocalDateTime = LocalDateTime.now(Clock.systemUTC),
     payload: AppDone
 ) extends NioEvent {
   def shardId = payload.userId
@@ -651,7 +654,7 @@ case class ExtractionAppDone(
         "tenant"   -> tenant,
         "author"   -> author,
         "metadata" -> buildMetadata(metadata),
-        "date"     -> date.toString(DateUtils.utcDateFormatter),
+        "date"     -> date.format(DateUtils.utcDateFormatter),
         "id"       -> id,
         "payload"  -> payload.asJson()
       )
@@ -663,7 +666,7 @@ case class ExtractionAppFilesMetadataReceived(
     author: String,
     metadata: Option[Seq[(String, String)]] = None,
     id: Long = NioEvent.gen.nextId(),
-    date: DateTime = DateTime.now(DateTimeZone.UTC),
+    date: LocalDateTime = LocalDateTime.now(Clock.systemUTC),
     payload: AppFilesMetadata
 ) extends NioEvent {
   def shardId = payload.userId
@@ -677,7 +680,7 @@ case class ExtractionAppFilesMetadataReceived(
         "tenant"   -> tenant,
         "author"   -> author,
         "metadata" -> buildMetadata(metadata),
-        "date"     -> date.toString(DateUtils.utcDateFormatter),
+        "date"     -> date.format(DateUtils.utcDateFormatter),
         "id"       -> id,
         "payload"  -> payload.asJson()
       )
@@ -689,7 +692,7 @@ case class ExtractionFinished(
     author: String,
     metadata: Option[Seq[(String, String)]] = None,
     id: Long = NioEvent.gen.nextId(),
-    date: DateTime = DateTime.now(DateTimeZone.UTC),
+    date: LocalDateTime = LocalDateTime.now(Clock.systemUTC),
     payload: ExtractionTask
 ) extends NioEvent {
   def shardId = payload.userId
@@ -703,7 +706,7 @@ case class ExtractionFinished(
         "tenant"   -> tenant,
         "author"   -> author,
         "metadata" -> buildMetadata(metadata),
-        "date"     -> date.toString(DateUtils.utcDateFormatter),
+        "date"     -> date.format(DateUtils.utcDateFormatter),
         "id"       -> id,
         "payload"  -> payload.asJson()
       )

@@ -1,6 +1,6 @@
 package controllers
 
-import akka.actor.ActorSystem
+import org.apache.pekko.actor.ActorSystem
 import auth.{AuthAction, SecuredAction, SecuredAuthContext}
 import db.{ConsentFactMongoDataStore, DeletionTaskMongoDataStore, OrganisationMongoDataStore, UserMongoDataStore}
 import messaging.KafkaMessageBroker

@@ -1,5 +1,5 @@
 // The Play plugin
-addSbtPlugin("com.typesafe.play" % "sbt-plugin" % "2.8.19")
+addSbtPlugin("org.playframework" % "sbt-plugin" % "3.0.0")
 
 addSbtPlugin("org.scalameta" % "sbt-scalafmt" % "2.4.2") // Apache 2.0
 
@@ -12,5 +12,9 @@ addSbtPlugin("com.eed3si9n" % "sbt-buildinfo" % "0.10.0") // Apache 2.0
 addSbtPlugin("com.typesafe.sbt" % "sbt-git" % "1.0.0") // Apache 2.0
 
 addSbtPlugin("com.github.gseitz" % "sbt-release" % "1.0.13") // Apache 2.0
+
+addSbtPlugin("ch.epfl.scala" % "sbt-scala3-migrate" % "0.6.1")
+
+addSbtPlugin("ch.epfl.scala" % "sbt-scalafix" % "0.13.0")
 
 ThisBuild / libraryDependencySchemes += "org.scala-lang.modules" %% "scala-xml" % VersionScheme.Always

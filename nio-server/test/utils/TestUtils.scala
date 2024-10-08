@@ -4,12 +4,12 @@ import java.io.File
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 import java.{lang, util}
-import akka.actor.ActorSystem
-import akka.http.scaladsl.model.HttpEntity
-import akka.kafka.scaladsl.Consumer
-import akka.kafka.{ConsumerSettings, Subscriptions}
-import akka.stream.{ActorMaterializer, Materializer}
-import akka.stream.scaladsl.Sink
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.http.scaladsl.model.HttpEntity
+import org.apache.pekko.kafka.scaladsl.Consumer
+import org.apache.pekko.kafka.{ConsumerSettings, Subscriptions}
+import org.apache.pekko.stream.{ActorMaterializer, Materializer}
+import org.apache.pekko.stream.scaladsl.Sink
 import com.amazonaws.services.s3.model.PutObjectResult
 import com.typesafe.config.{Config, ConfigFactory}
 import filters.AuthInfoMock
@@ -199,7 +199,7 @@ trait TestUtils
       .alsoTo(Sink.foreach(v => println(s"read events ${Json.stringify(v)}")))
       .runWith(Sink.last)
 
-    Await.result[JsValue](lastEvent, Duration(10, TimeUnit.SECONDS))
+    Await.result[JsValue](lastEvent, Duration(30, TimeUnit.SECONDS))
   }
 
   def readLastNKafkaEvents(n: Int): Seq[JsValue] = {

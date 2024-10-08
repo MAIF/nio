@@ -3,10 +3,10 @@ package controllers
 import java.io.FileInputStream
 
 import actor.EventActor
-import akka.actor.ActorSystem
-import akka.stream.Materializer
-import akka.stream.scaladsl.{Source, StreamConverters}
-import akka.util.ByteString
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.stream.Materializer
+import org.apache.pekko.stream.scaladsl.{Source, StreamConverters}
+import org.apache.pekko.util.ByteString
 import auth.AuthActionWithEmail
 import configuration.Env
 import play.api.libs.streams.ActorFlow

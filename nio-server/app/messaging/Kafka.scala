@@ -2,7 +2,7 @@ package messaging
 
 import java.io.File
 
-import akka.actor.ActorSystem
+import org.apache.pekko.actor.ActorSystem
 import configuration.KafkaConfig
 import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.common.config.internals.BrokerSecurityConfigs
@@ -13,7 +13,7 @@ import org.apache.kafka.common.serialization.{
 
 object KafkaSettings {
 
-  import akka.kafka.{ConsumerSettings, ProducerSettings}
+  import org.apache.pekko.kafka.{ConsumerSettings, ProducerSettings}
   import org.apache.kafka.clients.consumer.ConsumerConfig
   import org.apache.kafka.common.config.SslConfigs
   import org.apache.kafka.common.serialization.ByteArrayDeserializer

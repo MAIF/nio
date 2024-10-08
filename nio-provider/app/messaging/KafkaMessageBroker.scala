@@ -1,11 +1,11 @@
 package messaging
 
-import akka.NotUsed
-import akka.actor.ActorSystem
-import akka.kafka.Subscriptions
-import akka.kafka.scaladsl.Consumer
-import akka.stream.Materializer
-import akka.stream.scaladsl.{Flow, Sink, Source}
+import org.apache.pekko.NotUsed
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.kafka.Subscriptions
+import org.apache.pekko.kafka.scaladsl.Consumer
+import org.apache.pekko.stream.Materializer
+import org.apache.pekko.stream.scaladsl.{Flow, Sink, Source}
 import configuration.{Env, KafkaConfig}
 import models.NioEvent
 import utils.NioLogger

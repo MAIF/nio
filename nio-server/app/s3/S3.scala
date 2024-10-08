@@ -1,10 +1,9 @@
 package s3
 
-import java.util
-
-import akka.actor.ActorSystem
-import akka.stream.Materializer
-import akka.stream.scaladsl.Source
+import java.{time, util}
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.stream.Materializer
+import org.apache.pekko.stream.scaladsl.Source
 import com.amazonaws.ClientConfiguration
 import com.amazonaws.auth.{AWSStaticCredentialsProvider, BasicAWSCredentials}
 import com.amazonaws.client.builder.AwsClientBuilder
@@ -13,9 +12,9 @@ import com.amazonaws.services.s3.model._
 import com.amazonaws.services.s3.model.lifecycle.{LifecycleAndOperator, LifecycleFilter, LifecycleTagPredicate}
 import db.{ExtractionTaskMongoDataStore, TenantMongoDataStore}
 import models.{ExtractionTask, ExtractionTaskStatus}
-import org.joda.time.{DateTime, DateTimeZone, Days}
 import utils.NioLogger
 
+import java.time.{Clock, LocalDateTime}
 import scala.jdk.CollectionConverters._
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
@@ -96,9 +95,9 @@ class S3(val conf: S3Configuration, val system: ActorSystem, val tenantStore: Te
                     _.runForeach { taskJson =>
                       try {
                         val task = ExtractionTask.fmt.reads(taskJson).get
-                        val days = Days
-                          .daysBetween(DateTime.now(DateTimeZone.UTC), task.lastUpdate)
-                          .getDays
+                        val days = time.Duration
+                          .between(LocalDateTime.now(Clock.systemUTC), task.lastUpdate)
+                          .toDays
                         if (days >= conf.expirationInDays) {
                           val keys      = task.states.flatMap { state =>
                             state.files.map { f =>

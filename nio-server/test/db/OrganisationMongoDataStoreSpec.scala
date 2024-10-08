@@ -3,7 +3,7 @@ package db
 import java.util.concurrent.TimeUnit
 
 import models.{Organisation, Permission, PermissionGroup, VersionInfo}
-import org.joda.time.{DateTime, DateTimeZone}
+import java.time.{LocalDateTime, Clock}
 import utils.{DateUtils, TestUtils}
 
 import scala.concurrent.Await
@@ -31,16 +31,16 @@ class OrganisationMongoDataStoreSpec extends TestUtils {
       val org2Key = "org2Draft"
 
       val beforeInsert =
-        DateTime.now(DateTimeZone.UTC).toString(DateUtils.utcDateFormatter)
+        LocalDateTime.now(Clock.systemUTC).format(DateUtils.utcDateFormatter)
 
       Await.result(
         for {
           _ <- ds.insert(tenant, org1)
           draft1 <- ds.findDraftByKey(tenant, org1Key)
 
-          afterInsert = DateTime
-            .now(DateTimeZone.UTC)
-            .toString(DateUtils.utcDateFormatter)
+          afterInsert = LocalDateTime
+            .now(Clock.systemUTC())
+            .format(DateUtils.utcDateFormatter)
 
           _ = Thread.sleep(1000)
 

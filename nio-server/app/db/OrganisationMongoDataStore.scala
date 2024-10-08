@@ -1,13 +1,13 @@
 package db
 
-import akka.http.scaladsl.util.FastFuture
-import akka.stream.Materializer
+import org.apache.pekko.http.scaladsl.util.FastFuture
+import org.apache.pekko.stream.Materializer
 import controllers.AppErrorWithStatus
 import models._
 import utils.NioLogger
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoApi
-import reactivemongo.akkastream.cursorProducer
+import reactivemongo.pekkostream.cursorProducer
 import reactivemongo.api.indexes.{Index, IndexType}
 import utils.Result.{AppErrors, ErrorMessage}
 
@@ -19,7 +19,7 @@ class OrganisationMongoDataStore(val mongoApi: ReactiveMongoApi)(implicit val ex
 
   import reactivemongo.api.bson._
   import reactivemongo.play.json.compat._
-  import reactivemongo.akkastream._
+  import reactivemongo.pekkostream._
   import lax._
   import bson2json._
   import json2bson._

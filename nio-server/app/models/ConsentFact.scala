@@ -7,7 +7,6 @@ import libs.xml.XMLRead
 import libs.xml.XmlUtil.XmlCleaner
 import libs.xml.implicits._
 import libs.xml.syntax._
-import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.functional.syntax.{unlift, _}
 import play.api.libs.json.Reads._
 import play.api.libs.json._
@@ -17,6 +16,8 @@ import utils.Result.AppErrors
 import utils.Result.AppErrors._
 import utils.json.JsResultOps
 
+import java.time.format.DateTimeFormatter
+import java.time.{Clock, LocalDateTime}
 import scala.xml.{Elem, NodeSeq}
 import scala.collection.Seq
 
@@ -112,7 +113,7 @@ case class ConsentOffer(
     key: String,
     label: String,
     version: Int,
-    lastUpdate: DateTime = DateTime.now(DateTimeZone.UTC),
+    lastUpdate: LocalDateTime = LocalDateTime.now(Clock.systemUTC()),
     groups: Seq[ConsentGroup]
 ) extends ModelTransformAs {
   override def asXml(): Elem = <offer>
@@ -126,7 +127,7 @@ case class ConsentOffer(
       {version}
     </version>
     <lastUpdate>
-      {lastUpdate.toString(DateUtils.utcDateFormatter)}
+      {lastUpdate.format(DateUtils.utcDateFormatter)}
     </lastUpdate>
     <groups>
       {groups.map(_.asXml())}
@@ -141,7 +142,7 @@ object ConsentOffer extends ReadableEntity[ConsentOffer] {
     (__ \ "key").read[String] and
       (__ \ "label").read[String] and
       (__ \ "version").read[Int] and
-      (__ \ "lastUpdate").readWithDefault[DateTime](DateTime.now(DateTimeZone.UTC))(DateUtils.utcDateTimeReads) and
+      (__ \ "lastUpdate").readWithDefault[LocalDateTime](LocalDateTime.now(Clock.systemUTC()))(DateUtils.utcDateTimeReads) and
       (__ \ "groups").read[Seq[ConsentGroup]]
   )(ConsentOffer.apply _)
 
@@ -149,7 +150,7 @@ object ConsentOffer extends ReadableEntity[ConsentOffer] {
     (__ \ "key").write[String] and
       (__ \ "label").write[String] and
       (__ \ "version").write[Int] and
-      (__ \ "lastUpdate").write[DateTime](DateUtils.utcDateTimeWrites) and
+      (__ \ "lastUpdate").write[LocalDateTime](DateUtils.utcDateTimeWrites) and
       (__ \ "groups").write[Seq[ConsentGroup]]
   )(unlift(ConsentOffer.unapply))
 
@@ -157,7 +158,7 @@ object ConsentOffer extends ReadableEntity[ConsentOffer] {
     (__ \ "key").write[String] and
       (__ \ "label").write[String] and
       (__ \ "version").write[Int] and
-      (__ \ "lastUpdate").write[DateTime](DateUtils.utcDateTimeWrites) and
+      (__ \ "lastUpdate").write[LocalDateTime](DateUtils.utcDateTimeWrites) and
       (__ \ "groups").write[Seq[ConsentGroup]]
   )(unlift(ConsentOffer.unapply))
 
@@ -171,7 +172,7 @@ object ConsentOffer extends ReadableEntity[ConsentOffer] {
         (node \ "key").validate[String](Some(s"${path.convert()}key")),
         (node \ "label").validate[String](Some(s"${path.convert()}label")),
         (node \ "version").validate[Int](Some(s"${path.convert()}version")),
-        (node \ "lastUpdate").validate[DateTime](Some(s"${path.convert()}lastUpdate")),
+        (node \ "lastUpdate").validate[LocalDateTime](Some(s"${path.convert()}lastUpdate")),
         (node \ "groups").validate[Seq[ConsentGroup]](Some(s"${path.convert()}groups"))
       ).mapN((key, label, version, lastUpdate, groups) => ConsentOffer(key, label, version, lastUpdate, groups))
 
@@ -245,7 +246,7 @@ object PartialConsentGroup {
       ).mapN((key, label, consents) => PartialConsentGroup(key, label, consents))
 }
 
-case class PartialConsentOffer(key: String, label: Option[String], lastUpdate: Option[DateTime], version: Option[Int], groups: Option[Seq[PartialConsentGroup]])
+case class PartialConsentOffer(key: String, label: Option[String], lastUpdate: Option[LocalDateTime], version: Option[Int], groups: Option[Seq[PartialConsentGroup]])
 
 object PartialConsentOffer {
   def merge(partialOffers: Seq[PartialConsentOffer], existingOffers: Option[Seq[ConsentOffer]]): Option[Seq[ConsentOffer]] = {
@@ -268,7 +269,7 @@ object PartialConsentOffer {
           key = po.key,
           label = po.label.getOrElse(""),
           version = po.version.getOrElse(0),
-          lastUpdate = po.lastUpdate.getOrElse(DateTime.now(DateTimeZone.UTC)),
+          lastUpdate = po.lastUpdate.getOrElse(LocalDateTime.now(Clock.systemUTC)),
           groups = po.groups.toList.flatten.map(pg => ConsentGroup(
             key = pg.key,
             label = pg.label.getOrElse(""),
@@ -290,7 +291,7 @@ object PartialConsentOffer {
       (
         (node \ "key").validate[String](Some(s"${path.convert()}key")),
         (node \ "label").validateNullable[String](Some(s"${path.convert()}label")),
-        (node \ "lastUpdate").validateNullable[DateTime](Some(s"${path.convert()}lastUpdate")),
+        (node \ "lastUpdate").validateNullable[LocalDateTime](Some(s"${path.convert()}lastUpdate")),
         (node \ "version").validateNullable[Int](Some(s"${path.convert()}version")),
         (node \ "groups").validateNullable[Seq[PartialConsentGroup]](Some(s"${path.convert()}consents"))
       ).mapN((key, label, lastUpdate, version, groups) => PartialConsentOffer(key, label, lastUpdate, version, groups))
@@ -300,7 +301,7 @@ case class PartialConsentFact(
                         userId: Option[String] = None,
                         doneBy: Option[DoneBy] = None,
                         version: Option[Int] = None,
-                        lastUpdate: Option[DateTime] = None,
+                        lastUpdate: Option[LocalDateTime] = None,
                         groups: Option[Seq[PartialConsentGroup]] = None,
                         offers: Option[Seq[PartialConsentOffer]] = None,
                         orgKey: Option[String] = None,
@@ -313,7 +314,7 @@ case class PartialConsentFact(
         doneBy = doneBy.getOrElse(lastConsentFact.doneBy),
         version = version.getOrElse(currentVersion.num),
         lastUpdate = lastUpdate.getOrElse(lastConsentFact.lastUpdate),
-        lastUpdateSystem = DateTime.now(DateTimeZone.UTC),
+        lastUpdateSystem = LocalDateTime.now(Clock.systemUTC),
         groups = groups.map(g => PartialConsentGroup.merge(g, lastConsentFact.groups)).getOrElse(lastConsentFact.groups),
         offers = offers.map(o => PartialConsentOffer.merge(o, lastConsentFact.offers)).getOrElse(lastConsentFact.offers),
         orgKey = orgKey.orElse(lastConsentFact.orgKey),
@@ -339,7 +340,7 @@ object PartialConsentFact extends ReadableEntity[PartialConsentFact] {
         (node \ "userId").validateNullable[String](Some(s"${path.convert()}userId")),
         (node \ "doneBy").validateNullable[DoneBy](Some(s"${path.convert()}doneBy")),
         (node \ "version").validateNullable[Int](Some(s"${path.convert()}version")),
-        (node \ "lastUpdate").validateNullable[DateTime](Some(s"${path.convert()}lastUpdate")),
+        (node \ "lastUpdate").validateNullable[LocalDateTime](Some(s"${path.convert()}lastUpdate")),
         (node \ "groups").validateNullable[Seq[PartialConsentGroup]](Some(s"${path.convert()}consents")),
         (node \ "offers").validateNullable[Seq[PartialConsentOffer]](Some(s"${path.convert()}offers")),
         (node \ "orgKey").validateNullable[String](Some(s"${path.convert()}orgKey")),
@@ -373,8 +374,8 @@ case class ConsentFact(
     version: Int,
     groups: Seq[ConsentGroup],
     offers: Option[Seq[ConsentOffer]] = None,
-    lastUpdate: DateTime = DateTime.now(DateTimeZone.UTC),
-    lastUpdateSystem: DateTime = DateTime.now(DateTimeZone.UTC),
+    lastUpdate: LocalDateTime = LocalDateTime.now(Clock.systemUTC),
+    lastUpdateSystem: LocalDateTime = LocalDateTime.now(Clock.systemUTC),
     orgKey: Option[String] = None,
     metaData: Option[Map[String, String]] = None,
     sendToKafka: Option[Boolean] = None
@@ -422,7 +423,7 @@ case class ConsentFact(
     }
   }
     <lastUpdate>
-      {lastUpdate.toString(DateUtils.utcDateFormatter)}
+      {lastUpdate.format(DateUtils.utcDateFormatter)}
     </lastUpdate>
     <orgKey>
       {orgKey.getOrElse("")}
@@ -444,7 +445,7 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
       version: Int,
       groups: Seq[ConsentGroup],
       offers: Option[Seq[ConsentOffer]] = None,
-      lastUpdate: DateTime = DateTime.now(DateTimeZone.UTC),
+      lastUpdate: LocalDateTime = LocalDateTime.now(Clock.systemUTC),
       orgKey: Option[String] = None,
       metaData: Option[Map[String, String]] = None,
       sendToKafka: Option[Boolean] = None
@@ -468,8 +469,8 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
       version: Int,
       groups: Seq[ConsentGroup],
       offers: Option[Seq[ConsentOffer]] = None,
-      lastUpdate: DateTime = DateTime.now(DateTimeZone.UTC),
-      lastUpdateSystem: DateTime = DateTime.now(DateTimeZone.UTC),
+      lastUpdate: LocalDateTime = LocalDateTime.now(Clock.systemUTC),
+      lastUpdateSystem: LocalDateTime = LocalDateTime.now(Clock.systemUTC),
       orgKey: Option[String] = None,
       metaData: Option[Map[String, String]] = None
   ) =
@@ -492,7 +493,7 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
       (__ \ "version").read[Int] and
       (__ \ "groups").read[Seq[ConsentGroup]] and
       (__ \ "offers").readNullable[Seq[ConsentOffer]] and
-      (__ \ "lastUpdate").readWithDefault[DateTime](DateTime.now(DateTimeZone.UTC))(DateUtils.utcDateTimeReads) and
+      (__ \ "lastUpdate").readWithDefault[LocalDateTime](LocalDateTime.now(Clock.systemUTC))(DateUtils.utcDateTimeReads) and
       (__ \ "orgKey").readNullable[String] and
       (__ \ "metaData").readNullable[Map[String, String]] and
       (__ \ "sendToKafka").readNullable[Boolean]
@@ -505,8 +506,8 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
       (__ \ "version").read[Int] and
       (__ \ "groups").read[Seq[ConsentGroup]] and
       (__ \ "offers").readNullable[Seq[ConsentOffer]] and
-      (__ \ "lastUpdate").read[DateTime](DateUtils.utcDateTimeReads) and
-      (__ \ "lastUpdateSystem").read[DateTime](DateUtils.utcDateTimeReads) and
+      (__ \ "lastUpdate").read[LocalDateTime](DateUtils.utcDateTimeReads) and
+      (__ \ "lastUpdateSystem").read[LocalDateTime](DateUtils.utcDateTimeReads) and
       (__ \ "orgKey").readNullable[String] and
       (__ \ "metaData").readNullable[Map[String, String]]
   )(ConsentFact.newWithoutKafkaFlag _)
@@ -519,9 +520,9 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
       (JsPath \ "groups").write[Seq[ConsentGroup]] and
       (JsPath \ "offers").writeNullable[Seq[ConsentOffer]] and
       (JsPath \ "lastUpdate")
-        .write[DateTime](DateUtils.utcDateTimeWrites) and
+        .write[LocalDateTime](DateUtils.utcDateTimeWrites) and
       (JsPath \ "lastUpdateSystem")
-        .write[DateTime](DateUtils.utcDateTimeWrites) and
+        .write[LocalDateTime](DateUtils.utcDateTimeWrites) and
       (JsPath \ "orgKey").writeNullable[String] and
       (JsPath \ "metaData").writeNullable[Map[String, String]] and
       (JsPath \ "sendToKafka").writeNullable[Boolean]
@@ -535,10 +536,10 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
       (JsPath \ "groups").write[Seq[ConsentGroup]] and
       (JsPath \ "offers").writeNullable[Seq[ConsentOffer]] and
       (JsPath \ "lastUpdate")
-        .write[DateTime](DateUtils.utcDateTimeWrites) and
+        .write[LocalDateTime](DateUtils.utcDateTimeWrites) and
       (JsPath \ "lastUpdateSystem")
-        .writeNullable[DateTime](DateUtils.utcDateTimeWrites)
-        .contramap((_: DateTime) => None) and
+        .writeNullable[LocalDateTime](DateUtils.utcDateTimeWrites)
+        .contramap((_: LocalDateTime ) => None) and
       (JsPath \ "orgKey").writeNullable[String] and
       (JsPath \ "metaData").writeNullable[Map[String, String]] and
       (JsPath \ "sendToKafka").writeNullable[Boolean]
@@ -552,9 +553,9 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
       (JsPath \ "groups").write[Seq[ConsentGroup]] and
       (JsPath \ "offers").writeNullable[Seq[ConsentOffer]] and
       (JsPath \ "lastUpdate")
-        .write[DateTime](DateUtils.utcDateTimeWrites) and
+        .write[LocalDateTime](DateUtils.utcDateTimeWrites) and
       (JsPath \ "lastUpdateSystem")
-        .write[DateTime](DateUtils.utcDateTimeWrites) and
+        .write[LocalDateTime](DateUtils.utcDateTimeWrites) and
       (JsPath \ "orgKey").writeNullable[String] and
       (JsPath \ "metaData").writeNullable[Map[String, String]] and
       (JsPath \ "sendToKafka").writeNullable[Boolean]
@@ -573,7 +574,7 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
       version = orgVerNum,
       groups = groups,
       offers = offers,
-      lastUpdate = DateTime.now(DateTimeZone.UTC),
+      lastUpdate = LocalDateTime.now(Clock.systemUTC),
       lastUpdateSystem = null,
       orgKey = Some(orgKey)
     )
@@ -585,7 +586,7 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
         (node \ "userId").validate[String](Some(s"${path.convert()}userId")),
         (node \ "doneBy").validate[DoneBy](Some(s"${path.convert()}doneBy")),
         (node \ "lastUpdate")
-          .validateNullable[DateTime](DateTime.now(DateTimeZone.UTC), Some(s"${path.convert()}lastUpdate")),
+          .validateNullable[LocalDateTime](LocalDateTime.now(Clock.systemUTC), Some(s"${path.convert()}lastUpdate")),
         (node \ "orgKey").validateNullable[String](Some(s"${path.convert()}orgKey")),
         (node \ "version").validate[Int](Some(s"${path.convert()}version")),
         (node \ "groups").validate[Seq[ConsentGroup]](Some(s"${path.convert()}groups")),

@@ -2,14 +2,14 @@ package messaging
 
 import java.io.Closeable
 import java.security.MessageDigest
-import akka.actor.ActorSystem
-import akka.kafka.ConsumerMessage.CommittableOffsetBatch
-import akka.kafka.{CommitterSettings, ConsumerMessage, ProducerSettings, Subscriptions}
-import akka.kafka.scaladsl.{Committer, Consumer}
-import akka.stream.Materializer
-import akka.stream.scaladsl.Keep.both
-import akka.stream.scaladsl.{Flow, Source}
-import akka.{Done, NotUsed}
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.kafka.ConsumerMessage.CommittableOffsetBatch
+import org.apache.pekko.kafka.{CommitterSettings, ConsumerMessage, ProducerSettings, Subscriptions}
+import org.apache.pekko.kafka.scaladsl.{Committer, Consumer}
+import org.apache.pekko.stream.Materializer
+import org.apache.pekko.stream.scaladsl.Keep.both
+import org.apache.pekko.stream.scaladsl.{Flow, Source}
+import org.apache.pekko.{Done, NotUsed}
 import configuration.{Env, KafkaConfig}
 import models.{Digest, NioEvent, SecuredEvent}
 import org.apache.kafka.clients.producer.{Callback, KafkaProducer, Producer, ProducerRecord, RecordMetadata}

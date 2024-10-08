@@ -1,6 +1,6 @@
 package controllers
 
-import akka.actor.ActorSystem
+import org.apache.pekko.actor.ActorSystem
 import auth.{AuthAction, SecuredAction, SecuredAuthContext}
 import com.fasterxml.jackson.databind.ObjectMapper
 import configuration.Env

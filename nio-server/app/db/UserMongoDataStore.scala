@@ -1,7 +1,7 @@
 package db
 
-import akka.stream.Materializer
-import akka.stream.scaladsl.Source
+import org.apache.pekko.stream.Materializer
+import org.apache.pekko.stream.scaladsl.Source
 import models._
 import play.api.libs.json.{JsValue, Json, OFormat}
 import play.modules.reactivemongo.ReactiveMongoApi
@@ -15,7 +15,7 @@ class UserMongoDataStore(val mongoApi: ReactiveMongoApi)(implicit val executionC
 
   import reactivemongo.api.bson._
   import reactivemongo.play.json.compat._
-  import reactivemongo.akkastream._
+  import reactivemongo.pekkostream._
   import lax._
   import bson2json._
   import json2bson._

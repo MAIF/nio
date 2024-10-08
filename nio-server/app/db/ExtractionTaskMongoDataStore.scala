@@ -1,12 +1,12 @@
 package db
 
-import akka.stream.Materializer
-import akka.stream.scaladsl.Source
+import org.apache.pekko.stream.Materializer
+import org.apache.pekko.stream.scaladsl.Source
 import cats.implicits.toShow
 import models.ExtractionTask
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoApi
-import reactivemongo.akkastream.{cursorProducer, State}
+import reactivemongo.pekkostream.{cursorProducer, State}
 import reactivemongo.api.indexes.{Index, IndexType}
 
 import scala.concurrent.{ExecutionContext, Future}

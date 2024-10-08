@@ -1,6 +1,6 @@
 package actor
 
-import akka.actor.{Actor, ActorRef, Props}
+import org.apache.pekko.actor.{Actor, ActorRef, Props}
 import models.NioEvent
 import play.api.libs.json.Json
 import utils.NioLogger

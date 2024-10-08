@@ -2,10 +2,10 @@ package loader
 
 import java.util.concurrent.TimeUnit
 
-import akka.actor.ActorSystem
-import akka.http.scaladsl.util.FastFuture
-import akka.japi.Option.Some
-import akka.stream.Materializer
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.http.scaladsl.util.FastFuture
+import org.apache.pekko.japi.Option.Some
+import org.apache.pekko.stream.Materializer
 import configuration.Env
 import db.{UserExtractTaskDataStore, _}
 import models.{NioAccount, Tenant}

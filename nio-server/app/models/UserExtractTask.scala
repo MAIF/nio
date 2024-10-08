@@ -6,7 +6,7 @@ import libs.xml.XMLRead
 import libs.xml.XmlUtil.XmlCleaner
 import libs.xml.implicits._
 import libs.xml.syntax._
-import org.joda.time.{DateTime, DateTimeZone}
+import java.time.{LocalDateTime, Clock}
 import play.api.libs.functional.syntax.{unlift, _}
 import play.api.libs.json.Reads._
 import play.api.libs.json.Writes._
@@ -14,19 +14,20 @@ import play.api.libs.json._
 import reactivemongo.api.bson.BSONObjectID
 import utils.Result.AppErrors
 import utils.{DateUtils, Result}
-import scala.collection.Seq
 
+import java.time.{Clock, LocalDateTime}
+import scala.collection.Seq
 import scala.xml.{Elem, NodeSeq}
 
 case class UserExtractTask(
-    _id: String,
-    tenant: String,
-    orgKey: String,
-    userId: String,
-    email: String,
-    startedAt: DateTime,
-    uploadStartedAt: Option[DateTime],
-    endedAt: Option[DateTime]
+                            _id: String,
+                            tenant: String,
+                            orgKey: String,
+                            userId: String,
+                            email: String,
+                            startedAt: LocalDateTime,
+                            uploadStartedAt: Option[LocalDateTime],
+                            endedAt: Option[LocalDateTime]
 ) extends ModelTransformAs {
   override def asXml(): Elem = <userExtractTask>
     <tenant>
@@ -42,16 +43,16 @@ case class UserExtractTask(
       {email}
     </email>
     <startedAt>
-      {startedAt.toString(DateUtils.utcDateFormatter)}
+      {startedAt.format(DateUtils.utcDateFormatter)}
     </startedAt>
     {
     uploadStartedAt.map(date => <uploadStartedAt>
-      {date.toString(DateUtils.utcDateFormatter)}
+      {date.format(DateUtils.utcDateFormatter)}
     </uploadStartedAt>)
   }
     {
     endedAt.map(date => <endedAt>
-      {date.toString(DateUtils.utcDateFormatter)}
+      {date.format(DateUtils.utcDateFormatter)}
     </endedAt>)
   }
   </userExtractTask>.clean()
@@ -70,7 +71,7 @@ object UserExtractTask extends ReadableEntity[UserExtractTask] {
       orgKey = orgKey,
       userId = userId,
       email = email,
-      startedAt = DateTime.now(DateTimeZone.UTC),
+      startedAt = LocalDateTime.now(Clock.systemUTC),
       uploadStartedAt = None,
       endedAt = None
     )
@@ -83,11 +84,11 @@ object UserExtractTask extends ReadableEntity[UserExtractTask] {
       (__ \ "orgKey").read[String] and
       (__ \ "userId").read[String] and
       (__ \ "email").read[String] and
-      (__ \ "startedAt").readNullable[DateTime].map { maybeStartedAt =>
-        maybeStartedAt.getOrElse(DateTime.now(DateTimeZone.UTC))
+      (__ \ "startedAt").readNullable[LocalDateTime].map { maybeStartedAt =>
+        maybeStartedAt.getOrElse(LocalDateTime.now(Clock.systemUTC))
       } and
-      (__ \ "uploadStartedAt").readNullable[DateTime] and
-      (__ \ "endedAt").readNullable[DateTime]
+      (__ \ "uploadStartedAt").readNullable[LocalDateTime] and
+      (__ \ "endedAt").readNullable[LocalDateTime]
   )(UserExtractTask.apply _)
 
   implicit val userExtractTaskWrites: Writes[UserExtractTask] = (
@@ -96,9 +97,9 @@ object UserExtractTask extends ReadableEntity[UserExtractTask] {
       (JsPath \ "orgKey").write[String] and
       (JsPath \ "userId").write[String] and
       (JsPath \ "email").write[String] and
-      (JsPath \ "startedAt").write[DateTime] and
-      (JsPath \ "uploadStartedAt").writeNullable[DateTime] and
-      (JsPath \ "endedAt").writeNullable[DateTime]
+      (JsPath \ "startedAt").write[LocalDateTime] and
+      (JsPath \ "uploadStartedAt").writeNullable[LocalDateTime] and
+      (JsPath \ "endedAt").writeNullable[LocalDateTime]
   )(unlift(UserExtractTask.unapply))
 
   implicit val userExtractTaskOWrites: OWrites[UserExtractTask] = (
@@ -107,9 +108,9 @@ object UserExtractTask extends ReadableEntity[UserExtractTask] {
       (JsPath \ "orgKey").write[String] and
       (JsPath \ "userId").write[String] and
       (JsPath \ "email").write[String] and
-      (JsPath \ "startedAt").write[DateTime] and
-      (JsPath \ "uploadStartedAt").writeNullable[DateTime] and
-      (JsPath \ "endedAt").writeNullable[DateTime]
+      (JsPath \ "startedAt").write[LocalDateTime] and
+      (JsPath \ "uploadStartedAt").writeNullable[LocalDateTime] and
+      (JsPath \ "endedAt").writeNullable[LocalDateTime]
   )(unlift(UserExtractTask.unapply))
 
   implicit val format  = Format(userExtractTaskReads, userExtractTaskWrites)
@@ -124,9 +125,9 @@ object UserExtractTask extends ReadableEntity[UserExtractTask] {
         (node \ "userId").validate[String](Some(s"${path.convert()}userId")),
         (node \ "email").validate[String](Some(s"${path.convert()}email")),
         (node \ "startedAt")
-          .validateNullable[DateTime](DateTime.now(DateTimeZone.UTC), Some(s"${path.convert()}startedAt")),
-        (node \ "uploadStartedAt").validateNullable[DateTime](Some(s"${path.convert()}uploadStartedAt")),
-        (node \ "endedAt").validateNullable[DateTime](Some(s"${path.convert()}endedAt"))
+          .validateNullable[LocalDateTime](LocalDateTime.now(Clock.systemUTC), Some(s"${path.convert()}startedAt")),
+        (node \ "uploadStartedAt").validateNullable[LocalDateTime](Some(s"${path.convert()}uploadStartedAt")),
+        (node \ "endedAt").validateNullable[LocalDateTime](Some(s"${path.convert()}endedAt"))
       ).mapN((_id, tenant, orgKey, userId, email, startedAt, uploadStartedAt, endedAt) =>
         UserExtractTask(
           _id = _id,

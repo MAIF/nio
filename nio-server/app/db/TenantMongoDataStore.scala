@@ -15,7 +15,7 @@ class TenantMongoDataStore(val reactiveMongoApi: ReactiveMongoApi)(implicit val 
 
   import reactivemongo.api.bson._
   import reactivemongo.play.json.compat._
-  import reactivemongo.akkastream._
+  import reactivemongo.pekkostream._
   import lax._
   import bson2json._
   import json2bson._

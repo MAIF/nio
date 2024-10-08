@@ -2,8 +2,8 @@ package controllers
 
 import java.util.concurrent.atomic.AtomicBoolean
 
-import akka.actor.ActorSystem
-import akka.stream.{ActorMaterializer, Materializer}
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.stream.{Materializer, ActorMaterializer}
 import play.api.libs.json.Json
 import play.api.libs.ws.WSResponse
 import play.api.test.Helpers._
@@ -27,9 +27,9 @@ class EventControllerSpec extends TestUtils {
   "EventController" should {
 
     "listen events, create a new tenant then check that the received event is valid" ignore {
-      val system = nioComponents.actorSystem
+      val system: ActorSystem = nioComponents.actorSystem
 
-      implicit val materializer = Materializer(system)
+      implicit val materializer: Materializer = Materializer.createMaterializer(system)
 
       val response: WSResponse =
         callJson("/tenants", POST, tenant1AsJson, headers = jsonHeaders)
