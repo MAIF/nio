@@ -3,7 +3,7 @@ package controllers
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.util.ByteString
-import auth.{AuthAction, SecuredAction, SecuredAuthContext}
+import auth.SecuredAuthContext
 import db.UserMongoDataStore
 import models.PagedUsers
 import play.api.http.HttpEntity
@@ -19,7 +19,7 @@ class UserController(
 )(implicit val ec: ExecutionContext, system: ActorSystem)
     extends ControllerUtils(cc) {
 
-  implicit val materializer = Materializer(system)
+  implicit val materializer: Materializer = Materializer(system)
 
   def listByOrganisation(
       tenant: String,
@@ -27,7 +27,7 @@ class UserController(
       page: Int = 0,
       pageSize: Int = 10,
       maybeUserId: Option[String]
-  ) = AuthAction.async { implicit req =>
+  ): Action[AnyContent] = AuthAction.async { implicit req =>
     ds.findAllByOrgKey(tenant, orgKey, page, pageSize, maybeUserId).map { case (users, count) =>
       val pagedUsers = PagedUsers(page, pageSize, count, users)
 
@@ -35,7 +35,7 @@ class UserController(
     }
   }
 
-  def listAll(tenant: String, page: Int = 0, pageSize: Int = 10, maybeUserId: Option[String]) =
+  def listAll(tenant: String, page: Int = 0, pageSize: Int = 10, maybeUserId: Option[String]): Action[AnyContent] =
     AuthAction.async { implicit req =>
       ds.findAll(tenant, page, pageSize, maybeUserId).map { case (users, count) =>
         val pagedUsers = PagedUsers(page, pageSize, count, users)
@@ -44,7 +44,7 @@ class UserController(
       }
     }
 
-  def download(tenant: String) = AuthAction.async { implicit req =>
+  def download(tenant: String): Action[AnyContent] = AuthAction.async { _ =>
     ds.streamAll(tenant).map { source =>
       val src = source
         .map(Json.stringify)

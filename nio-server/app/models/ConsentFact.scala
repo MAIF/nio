@@ -16,7 +16,6 @@ import utils.Result.AppErrors
 import utils.Result.AppErrors._
 import utils.json.JsResultOps
 
-import java.time.format.DateTimeFormatter
 import java.time.{Clock, LocalDateTime}
 import scala.xml.{Elem, NodeSeq}
 import scala.collection.Seq
@@ -36,7 +35,7 @@ object Metadata {
 case class DoneBy(userId: String, role: String)
 
 object DoneBy {
-  implicit val doneByFormats = Json.format[DoneBy]
+  implicit val doneByFormats: OFormat[DoneBy] = Json.format[DoneBy]
 
   implicit val xmlRead: XMLRead[DoneBy] = {
     import AppErrors._
@@ -54,8 +53,8 @@ object DoneBy {
   }
 }
 
-case class Consent(key: String, label: String, checked: Boolean) {
-  def asXml() = <consent>
+case class Consent(key: String, label: String, checked: Boolean, expiredAt: Option[LocalDateTime] = None) {
+  def asXml(): Elem = <consent>
     <key>
       {key}
     </key>
@@ -65,25 +64,30 @@ case class Consent(key: String, label: String, checked: Boolean) {
     <checked>
       {checked}
     </checked>
+    {expiredAt.map(l => <expiredAt>{l.format(DateUtils.utcDateFormatter)}</expiredAt>)}
   </consent>.clean()
 }
 
 object Consent {
-  implicit val consentFormats = Json.format[Consent]
+  implicit val consentFormats: OFormat[Consent] = {
+    implicit val dateFormat: Format[LocalDateTime] = DateUtils.utcDateTimeFormats
+    Json.format[Consent]
+  }
 
   implicit val xmlRead: XMLRead[Consent] =
     (xml: NodeSeq, path: Option[String]) => {
       (
         (xml \ "key").validate[String](Some(s"${path.convert()}key")),
         (xml \ "label").validate[String](Some(s"${path.convert()}label")),
-        (xml \ "checked").validate[Boolean](Some(s"${path.convert()}checked"))
+        (xml \ "checked").validate[Boolean](Some(s"${path.convert()}checked")),
+        (xml \ "expiredAt").validateNullable[LocalDateTime](Some(s"${path.convert()}expiredAt"))
       ).mapN(Consent.apply)
     }
 
 }
 
 case class ConsentGroup(key: String, label: String, consents: Seq[Consent]) {
-  def asXml() = <consentGroup>
+  def asXml(): Elem = <consentGroup>
     <key>
       {key}
     </key>
@@ -97,7 +101,7 @@ case class ConsentGroup(key: String, label: String, consents: Seq[Consent]) {
 }
 
 object ConsentGroup {
-  implicit val consentGroupFormats = Json.format[ConsentGroup]
+  implicit val consentGroupFormats: OFormat[ConsentGroup] = Json.format[ConsentGroup]
 
   implicit val xmlRead: XMLRead[ConsentGroup] =
     (xml: NodeSeq, path: Option[String]) => {
@@ -188,25 +192,30 @@ object ConsentOffer extends ReadableEntity[ConsentOffer] {
 
 
 case class PartialConsent(key: String, label: Option[String], checked: Boolean) {
-  def toConsent: Consent = Consent(key, label.getOrElse(""), checked)
+  def toConsent(permission: Option[Permission]): Consent = Consent(key, label.getOrElse(""), checked, permission.flatMap(_.getValidityPeriod))
 
 }
 
 object PartialConsent {
-  def merge(pcs: Seq[PartialConsent], consents: Seq[Consent]): Seq[Consent] = {
+
+  def merge(pcs: Seq[PartialConsent], consents: Seq[Consent], permission: Seq[Permission]): Seq[Consent] = {
+    val keyToPermission = permission.groupBy(_.key)
     consents.map { c =>
+      val mayBePermission: Option[Permission] = keyToPermission.get(c.key).flatMap(_.headOption)
       pcs.find(pc => pc.key == c.key).fold(c) { pc =>
         c.copy(
           label = pc.label.getOrElse(c.label),
-          checked = pc.checked
+          checked = pc.checked,
+          expiredAt = mayBePermission.flatMap(_.getValidityPeriod)
         )
       }
     } ++ pcs.filter(pc => !consents.exists(c => c.key == pc.key)).map { pc =>
-      Consent(pc.key, pc.label.getOrElse(""), pc.checked)
+      val mayBePermission: Option[Permission] = keyToPermission.get(pc.key).flatMap(_.headOption)
+      Consent(pc.key, pc.label.getOrElse(""), pc.checked, mayBePermission.flatMap(_.getValidityPeriod))
     }
   }
 
-  implicit val format = Json.format[PartialConsent]
+  implicit val format: OFormat[PartialConsent] = Json.format[PartialConsent]
   implicit val partialConsentReadXml: XMLRead[PartialConsent] =
     (node: NodeSeq, path: Option[String]) =>
       (
@@ -219,24 +228,27 @@ case class PartialConsentGroup (key: String, label: Option[String], consents: Op
 
 object PartialConsentGroup {
 
-  def merge(partialGroups: Seq[PartialConsentGroup], existingGroups: Seq[ConsentGroup]): Seq[ConsentGroup] = {
+  def merge(partialGroups: Seq[PartialConsentGroup], existingGroups: Seq[ConsentGroup], permissionGroups: Seq[PermissionGroup]): Seq[ConsentGroup] = {
+    val permissionsByKey: Map[String, Seq[PermissionGroup]] = permissionGroups.groupBy(_.key)
     existingGroups.map { g =>
       partialGroups.find(pg => pg.key == g.key).fold( g ) { pg =>
+          val mayBePermission: Option[PermissionGroup] = permissionsByKey.get(pg.key).flatMap(_.headOption)
           g.copy(
             label = pg.label.getOrElse(g.label),
-            consents = pg.consents.map(pcs => PartialConsent.merge(pcs, g.consents)).getOrElse(g.consents)
+            consents = pg.consents.map(pcs => PartialConsent.merge(pcs, g.consents, mayBePermission.toList.flatMap(_.permissions))).getOrElse(g.consents)
           )
         }
-    } ++ partialGroups.filter(pg => !existingGroups.exists(g => pg.key == g.key)).map { pc =>
+    } ++ partialGroups.filter(pg => !existingGroups.exists(g => pg.key == g.key)).map { pcg =>
+      val mayBePermission: List[Permission] = permissionsByKey.get(pcg.key).toList.flatMap(_.headOption).flatMap(_.permissions)
       ConsentGroup(
-        pc.key,
-        pc.label.getOrElse(""),
-        pc.consents.toList.flatten.map(pc => pc.toConsent)
+        pcg.key,
+        pcg.label.getOrElse(""),
+        pcg.consents.toList.flatten.map(pc => pc.toConsent(mayBePermission.find(_.key == pc.key)))
       )
     }
   }
 
-  implicit val format = Json.format[PartialConsentGroup]
+  implicit val format: OFormat[PartialConsentGroup] = Json.format[PartialConsentGroup]
   implicit val partialConsentGroupReadXml: XMLRead[PartialConsentGroup] =
     (node: NodeSeq, path: Option[String]) =>
       (
@@ -260,7 +272,7 @@ object PartialConsentOffer {
             label = po.label.getOrElse(o.label),
             lastUpdate = po.lastUpdate.getOrElse(o.lastUpdate),
             version = po.version.getOrElse(o.version),
-            groups = PartialConsentGroup.merge(po.groups.toList.flatten, o.groups)
+            groups = PartialConsentGroup.merge(po.groups.toList.flatten, o.groups, Seq.empty)
           )
         }
       }
@@ -273,7 +285,7 @@ object PartialConsentOffer {
           groups = po.groups.toList.flatten.map(pg => ConsentGroup(
             key = pg.key,
             label = pg.label.getOrElse(""),
-            consents = pg.consents.map(_.map(_.toConsent)).toList.flatten
+            consents = pg.consents.map(_.map(_.toConsent(None))).toList.flatten
           ))
         )
       }
@@ -281,8 +293,8 @@ object PartialConsentOffer {
     }
   }
 
-  implicit val format =  {
-    implicit val dateRead = DateUtils.utcDateTimeFormats
+  implicit val format: OFormat[PartialConsentOffer] =  {
+    implicit val dateRead: Format[LocalDateTime] = DateUtils.utcDateTimeFormats
     Json.format[PartialConsentOffer]
   }
 
@@ -307,15 +319,15 @@ case class PartialConsentFact(
                         orgKey: Option[String] = None,
                         metaData: Option[Map[String, String]] = None,
                         sendToKafka: Option[Boolean] = None) {
-  def applyTo(lastConsentFact: ConsentFact, currentVersion: VersionInfo): ConsentFact = {
+  def applyTo(lastConsentFact: ConsentFact, organisation: Organisation): ConsentFact = {
     val finalConsent = lastConsentFact.copy(
         _id = BSONObjectID.generate().stringify,
         userId = userId.getOrElse(lastConsentFact.userId),
         doneBy = doneBy.getOrElse(lastConsentFact.doneBy),
-        version = version.getOrElse(currentVersion.num),
+        version = version.getOrElse(organisation.version.num),
         lastUpdate = lastUpdate.getOrElse(lastConsentFact.lastUpdate),
         lastUpdateSystem = LocalDateTime.now(Clock.systemUTC),
-        groups = groups.map(g => PartialConsentGroup.merge(g, lastConsentFact.groups)).getOrElse(lastConsentFact.groups),
+        groups = groups.map(g => PartialConsentGroup.merge(g, lastConsentFact.groups, organisation.groups)).getOrElse(lastConsentFact.groups),
         offers = offers.map(o => PartialConsentOffer.merge(o, lastConsentFact.offers)).getOrElse(lastConsentFact.offers),
         orgKey = orgKey.orElse(lastConsentFact.orgKey),
         metaData = metaData.map(meta => lastConsentFact.metaData.map(m => m.combine(meta)).getOrElse(meta)).orElse(lastConsentFact.metaData),
@@ -328,8 +340,8 @@ case class PartialConsentFact(
 
 object PartialConsentFact extends ReadableEntity[PartialConsentFact] {
 
-  implicit val format = {
-    implicit val dateRead = DateUtils.utcDateTimeFormats
+  implicit val format: OFormat[PartialConsentFact] = {
+    implicit val dateRead: Format[LocalDateTime] = DateUtils.utcDateTimeFormats
     Json.format[PartialConsentFact]
   }
 
@@ -381,10 +393,10 @@ case class ConsentFact(
     sendToKafka: Option[Boolean] = None
 ) extends ModelTransformAs {
 
-  def notYetSendToKafka() = this.copy(sendToKafka = Some(false))
-  def nowSendToKafka()    = this.copy(sendToKafka = Some(true))
+  def notYetSendToKafka(): ConsentFact = this.copy(sendToKafka = Some(false))
+  def nowSendToKafka(): ConsentFact = this.copy(sendToKafka = Some(true))
 
-  def asJson() =
+  def asJson(): JsValue =
     transform(ConsentFact.consentFactWritesWithoutId.writes(this))
 
   private def transform(jsValue: JsValue): JsValue =
@@ -436,6 +448,39 @@ case class ConsentFact(
       }.get
   }
   </consentFact>.clean()
+
+  case class KeyPermissionGroup(group: String, permission: String)
+
+  def setUpValidityPeriods(organisation: Organisation): ConsentFact = {
+    val indexedKeys: Seq[(KeyPermissionGroup, Permission)] = for {
+      g <- organisation.groups
+      p <- g.permissions
+    } yield (KeyPermissionGroup(g.key, p.key), p)
+    val indexed: Map[KeyPermissionGroup, Seq[(KeyPermissionGroup, Permission)]] = indexedKeys.groupBy(_._1)
+    this.copy(groups = this.groups.map( group =>
+      group.copy(
+        consents = group.consents.map ( consent =>
+          consent.copy(expiredAt = indexed.get(KeyPermissionGroup(group.key, consent.key))
+            .flatMap(_.headOption)
+            .flatMap(_._2.getValidityPeriod)
+          )
+        )
+      )
+    ))
+  }
+
+  def filterExpiredConsent(showExpiredConsents: Boolean): ConsentFact = {
+    if (showExpiredConsents) {
+      this
+    } else {
+      val now = LocalDateTime.now(Clock.systemUTC())
+      this.copy(groups = this.groups.map(group =>
+        group.copy(consents = group.consents.toList.filter(c =>
+          c.expiredAt.isEmpty || c.expiredAt.exists(d => d.isAfter(now))
+        ))
+      ))
+    }
+  }
 }
 
 object ConsentFact extends ReadableEntity[ConsentFact] {
@@ -449,7 +494,7 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
       orgKey: Option[String] = None,
       metaData: Option[Map[String, String]] = None,
       sendToKafka: Option[Boolean] = None
-  ) =
+  ): ConsentFact =
     ConsentFact(
       _id = BSONObjectID.generate().stringify,
       userId = userId,
@@ -473,7 +518,7 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
       lastUpdateSystem: LocalDateTime = LocalDateTime.now(Clock.systemUTC),
       orgKey: Option[String] = None,
       metaData: Option[Map[String, String]] = None
-  ) =
+  ): ConsentFact =
     ConsentFact(
       _id = _id,
       userId = userId,
@@ -499,7 +544,7 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
       (__ \ "sendToKafka").readNullable[Boolean]
   )(ConsentFact.newWithoutIdAndLastUpdate _)
 
-  val consentFactReads: Reads[ConsentFact] = (
+  private val consentFactReads: Reads[ConsentFact] = (
     (__ \ "_id").read[String] and
       (__ \ "userId").read[String] and
       (__ \ "doneBy").read[DoneBy] and
@@ -512,61 +557,52 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
       (__ \ "metaData").readNullable[Map[String, String]]
   )(ConsentFact.newWithoutKafkaFlag _)
 
-  val consentFactWrites: Writes[ConsentFact] = (
+  private val consentFactWrites: Writes[ConsentFact] = (
     (JsPath \ "_id").write[String] and
       (JsPath \ "userId").write[String] and
       (JsPath \ "doneBy").write[DoneBy](DoneBy.doneByFormats) and
       (JsPath \ "version").write[Int] and
       (JsPath \ "groups").write[Seq[ConsentGroup]] and
       (JsPath \ "offers").writeNullable[Seq[ConsentOffer]] and
-      (JsPath \ "lastUpdate")
-        .write[LocalDateTime](DateUtils.utcDateTimeWrites) and
-      (JsPath \ "lastUpdateSystem")
-        .write[LocalDateTime](DateUtils.utcDateTimeWrites) and
+      (JsPath \ "lastUpdate").write[LocalDateTime](DateUtils.utcDateTimeWrites) and
+      (JsPath \ "lastUpdateSystem").write[LocalDateTime](DateUtils.utcDateTimeWrites) and
       (JsPath \ "orgKey").writeNullable[String] and
       (JsPath \ "metaData").writeNullable[Map[String, String]] and
       (JsPath \ "sendToKafka").writeNullable[Boolean]
   )(unlift(ConsentFact.unapply))
 
-  val consentFactWritesWithoutId: Writes[ConsentFact] = (
+  private val consentFactWritesWithoutId: Writes[ConsentFact] = (
     (JsPath \ "_id").writeNullable[String].contramap((_: String) => None) and
       (JsPath \ "userId").write[String] and
       (JsPath \ "doneBy").write[DoneBy](DoneBy.doneByFormats) and
       (JsPath \ "version").write[Int] and
       (JsPath \ "groups").write[Seq[ConsentGroup]] and
       (JsPath \ "offers").writeNullable[Seq[ConsentOffer]] and
-      (JsPath \ "lastUpdate")
-        .write[LocalDateTime](DateUtils.utcDateTimeWrites) and
-      (JsPath \ "lastUpdateSystem")
-        .writeNullable[LocalDateTime](DateUtils.utcDateTimeWrites)
-        .contramap((_: LocalDateTime ) => None) and
+      (JsPath \ "lastUpdate").write[LocalDateTime](DateUtils.utcDateTimeWrites) and
+      (JsPath \ "lastUpdateSystem").writeNullable[LocalDateTime](DateUtils.utcDateTimeWrites).contramap((_: LocalDateTime ) => None) and
       (JsPath \ "orgKey").writeNullable[String] and
       (JsPath \ "metaData").writeNullable[Map[String, String]] and
       (JsPath \ "sendToKafka").writeNullable[Boolean]
   )(unlift(ConsentFact.unapply))
 
-  val consentFactOWrites: OWrites[ConsentFact] = (
+  private val consentFactOWrites: OWrites[ConsentFact] = (
     (JsPath \ "_id").write[String] and
       (JsPath \ "userId").write[String] and
       (JsPath \ "doneBy").write[DoneBy](DoneBy.doneByFormats) and
       (JsPath \ "version").write[Int] and
       (JsPath \ "groups").write[Seq[ConsentGroup]] and
       (JsPath \ "offers").writeNullable[Seq[ConsentOffer]] and
-      (JsPath \ "lastUpdate")
-        .write[LocalDateTime](DateUtils.utcDateTimeWrites) and
-      (JsPath \ "lastUpdateSystem")
-        .write[LocalDateTime](DateUtils.utcDateTimeWrites) and
+      (JsPath \ "lastUpdate").write[LocalDateTime](DateUtils.utcDateTimeWrites) and
+      (JsPath \ "lastUpdateSystem").write[LocalDateTime](DateUtils.utcDateTimeWrites) and
       (JsPath \ "orgKey").writeNullable[String] and
       (JsPath \ "metaData").writeNullable[Map[String, String]] and
       (JsPath \ "sendToKafka").writeNullable[Boolean]
   )(unlift(ConsentFact.unapply))
 
-  val consentFactFormats: Format[ConsentFact]            =
-    Format(consentFactReads, consentFactWrites)
-  implicit val consentFactOFormats: OFormat[ConsentFact] =
-    OFormat(consentFactReads, consentFactOWrites)
+  val consentFactFormats: Format[ConsentFact]            = Format(consentFactReads, consentFactWrites)
+  implicit val consentFactOFormats: OFormat[ConsentFact] = OFormat(consentFactReads, consentFactOWrites)
 
-  def template(orgVerNum: Int, groups: Seq[ConsentGroup], offers: Option[Seq[ConsentOffer]] = None, orgKey: String) =
+  def template(orgVerNum: Int, groups: Seq[ConsentGroup], offers: Option[Seq[ConsentOffer]] = None, orgKey: String): ConsentFact =
     ConsentFact(
       _id = null,
       userId = "fill",
@@ -625,19 +661,19 @@ object ConsentFactCommand {
   case class PatchConsentFact(userId: String, command: PartialConsentFact) extends ConsentFactCommand
 
   object PatchConsentFact {
-    val format = Json.format[PatchConsentFact]
+    val format: OFormat[PatchConsentFact] = Json.format[PatchConsentFact]
   }
   case class UpdateConsentFact(userId: String, command: ConsentFact) extends ConsentFactCommand
 
   object UpdateConsentFact {
-    val format = OFormat[UpdateConsentFact](
+    val format: OFormat[UpdateConsentFact] = OFormat[UpdateConsentFact](
       ((__ \ "userId").read[String] and
         (__ \ "command").read[ConsentFact](ConsentFact.consentFactReadsWithoutIdAndLastUpdate))(UpdateConsentFact.apply _),
       Json.writes[UpdateConsentFact]
     )
   }
 
-  implicit val format = Format(
+  implicit val format: Format[ConsentFactCommand] = Format(
     Reads[ConsentFactCommand] { js =>
       (js \ "type").validate[String].flatMap {
         case "Update" => UpdateConsentFact.format.reads(js)

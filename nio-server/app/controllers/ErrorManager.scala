@@ -84,7 +84,7 @@ case class AppErrorWithStatus(appErrors: AppErrors = AppErrors(), status: Status
 
 object AppErrorWithStatus {
 
-  implicit val monoidInstance = Monoid.instance[AppErrorWithStatus](AppErrorWithStatus(), (err1, err2) =>
+  implicit val monoidInstance: Monoid[AppErrorWithStatus] = Monoid.instance[AppErrorWithStatus](AppErrorWithStatus(), (err1, err2) =>
     AppErrorWithStatus(err1.appErrors ++ err2.appErrors, err1.status)
   )
   def apply(message: String): AppErrorWithStatus = AppErrorWithStatus(

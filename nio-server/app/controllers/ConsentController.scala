@@ -6,9 +6,9 @@ import org.apache.pekko.http.scaladsl.util.FastFuture
 import org.apache.pekko.stream.{FlowShape, Materializer}
 import org.apache.pekko.stream.scaladsl.{Flow, Framing, GraphDSL, Merge, Partition, Sink, Source}
 import org.apache.pekko.util.ByteString
-import auth.{AuthAction, SecuredAuthContext}
+import auth.SecuredAuthContext
 import controllers.ErrorManager.{AppErrorManagerResult, ErrorManagerResult, ErrorWithStatusManagerResult}
-import db.{ConsentFactMongoDataStore, LastConsentFactMongoDataStore, OrganisationMongoDataStore, UserMongoDataStore}
+import db.{ConsentFactMongoDataStore, LastConsentFactMongoDataStore, OrganisationMongoDataStore}
 import libs.io.IO
 import libs.io._
 import libs.xmlorjson.XmlOrJson
@@ -33,7 +33,6 @@ import scala.util.hashing.MurmurHash3
 class ConsentController(
     val AuthAction: ActionBuilder[SecuredAuthContext, AnyContent],
     val cc: ControllerComponents,
-    val userStore: UserMongoDataStore,
     val consentFactStore: ConsentFactMongoDataStore,
     val lastConsentFactMongoDataStore: LastConsentFactMongoDataStore,
     val organisationStore: OrganisationMongoDataStore,
@@ -46,9 +45,9 @@ class ConsentController(
   implicit val readable: ReadableEntity[ConsentFact] = ConsentFact
   implicit val readablePartial: ReadableEntity[PartialConsentFact] = PartialConsentFact
 
-  implicit val materializer = Materializer(system)
+  implicit val materializer: Materializer = Materializer(system)
 
-  def getTemplate(tenant: String, orgKey: String, maybeUserId: Option[String], maybeOfferKeys: Option[Seq[String]]) =
+  def getTemplate(tenant: String, orgKey: String, maybeUserId: Option[String], maybeOfferKeys: Option[Seq[String]]): Action[AnyContent] =
     AuthAction.async { implicit req =>
       import cats.data._
       import cats.implicits._
@@ -87,7 +86,7 @@ class ConsentController(
                   key = pg.key,
                   label = pg.label,
                   consents = pg.permissions.map { p =>
-                    Consent(key = p.key, label = p.label, checked = p.checkDefault())
+                    Consent(key = p.key, label = p.label, checked = p.checkDefault(), expiredAt = p.getValidityPeriod)
                   }
                 )
 
@@ -131,15 +130,15 @@ class ConsentController(
 
       }
 
-  def find(tenant: String, orgKey: String, userId: String) = AuthAction.async { implicit req =>
+  def find(tenant: String, orgKey: String, userId: String, showExpiredConsents: Boolean): Action[AnyContent] = AuthAction.async { implicit req =>
     import cats.data._
     import cats.implicits._
 
     EitherT(findConsentFacts(tenant, orgKey, userId, req.authInfo.offerRestrictionPatterns))
-      .fold(error => error.renderError(), consentFact => renderMethod(consentFact))
+      .fold(error => error.renderError(), consentFact => renderMethod(consentFact.filterExpiredConsent(showExpiredConsents)))
   }
 
-  def findConsentFacts(
+  private def findConsentFacts(
       tenant: String,
       orgKey: String,
       userId: String,
@@ -160,7 +159,7 @@ class ConsentController(
           Right(consentManagerService.consentFactWithAccessibleOffers(consentFact, offerRestrictionPatterns))
       }
 
-  def getConsentFactHistory(tenant: String, orgKey: String, userId: String, page: Int = 0, pageSize: Int = 10) =
+  def getConsentFactHistory(tenant: String, orgKey: String, userId: String, page: Int = 0, pageSize: Int = 10): Action[AnyContent] =
     AuthAction.async { implicit req =>
       consentFactStore
         .findAllByUserId(tenant, userId, page, pageSize)
@@ -188,7 +187,7 @@ class ConsentController(
         case Right(o) if o.userId != userId                     =>
           NioLogger.error(s"error.userId.is.immutable : userId in path $userId // userId on body ${o.userId}")
           Future.successful("error.userId.is.immutable".badRequest())
-        case Right(consentFact) if consentFact.userId == userId =>
+        case Right(consentFact) =>
           val cf: ConsentFact = ConsentFact.addOrgKey(consentFact, orgKey)
 
           (cf.offers, req.authInfo.offerRestrictionPatterns) match {
@@ -272,11 +271,11 @@ class ConsentController(
       } yield result).merge
   }
 
-  val newLineSplit = Framing.delimiter(ByteString("\n"), 10000, allowTruncation = true)
-  val toJson = Flow[ByteString] via newLineSplit map (_.utf8String) filterNot (_.isEmpty) map (l => Json.parse(l))
-  def ndJson(implicit ec: ExecutionContext): BodyParser[Source[JsValue, _]] = BodyParser(_ => Accumulator.source[ByteString].map(s => Right(s.via(toJson)))(ec))
+  val newLineSplit: Flow[ByteString, ByteString, NotUsed] = Framing.delimiter(ByteString("\n"), 10000, allowTruncation = true)
+  val toJson: Flow[ByteString, JsValue, NotUsed] = Flow[ByteString] via newLineSplit map (_.utf8String) filterNot (_.isEmpty) map (l => Json.parse(l))
+  private def ndJson(implicit ec: ExecutionContext): BodyParser[Source[JsValue, _]] = BodyParser(_ => Accumulator.source[ByteString].map(s => Right(s.via(toJson)))(ec))
 
-  object ImportError {
+  private object ImportError {
     implicit val format: OFormat[ImportError] = Json.format[ImportError]
   }
   case class ImportError(message: String, detailedError: JsValue = JsNull, command: JsValue = JsNull)
@@ -285,7 +284,7 @@ class ConsentController(
       ImportResult(errorsCount = 1, errors = List(ImportError(message, command = command)))
     }
 
-    implicit val format = Json.format[ImportResult]
+    implicit val format: OFormat[ImportResult] = Json.format[ImportResult]
   }
   case class ImportResult(successCount: Int = 0, errorsCount: Int = 0, errors: List[ImportError] = List.empty) {
     def combine (other: ImportResult) : ImportResult =
@@ -296,7 +295,7 @@ class ConsentController(
       )
   }
 
-  def sharding[In, Out](parallelism: Int, aFlow: Flow[(String, In), Out, NotUsed]) =
+  private def sharding[In, Out](parallelism: Int, aFlow: Flow[(String, In), Out, NotUsed]): Flow[(String, In), Out, NotUsed] =
     Flow.fromGraph {
       GraphDSL.create() { implicit b =>
         import GraphDSL.Implicits._
@@ -315,7 +314,7 @@ class ConsentController(
     }
 
 
-  def batchImport(tenant: String, orgKey: String) = AuthAction.async(ndJson) { implicit req =>
+  def batchImport(tenant: String, orgKey: String): Action[Source[JsValue, _]] = AuthAction.async(ndJson) { implicit req =>
     val result: Future[JsValue] = req.body
       .map(json => ((json \ "userId").validate[String].getOrElse(""), json))
       .via(sharding(10, Flow[(String, JsValue)].mapAsync(1) { case (_, json) =>
@@ -396,7 +395,7 @@ class ConsentController(
                 NioLogger.error(s"error during consent fact saving $error")
                 ImportResult(errorsCount = 1, errors = List(ImportError(message = "Error during update", detailedError = error.appErrors.asJson(), command = json)))
               },
-              consentFactSaved => ImportResult(successCount = 1)
+              _ => ImportResult(successCount = 1)
             )
         // case create or update offers and some patterns are specified
         case (Some(offers), Some(_)) =>
@@ -432,7 +431,7 @@ class ConsentController(
   lazy val defaultParSize: Int  =
     sys.env.get("DEFAULT_PAR_SIZE").map(_.toInt).getOrElse(6)
 
-  def download(tenant: String) = AuthAction { implicit req =>
+  def download(tenant: String): Action[AnyContent] = AuthAction { implicit req =>
     val src = lastConsentFactMongoDataStore
       .streamAllBSON(
         tenant,
@@ -447,7 +446,7 @@ class ConsentController(
     )
   }
 
-  def downloadBulked(tenant: String) = AuthAction { implicit req =>
+  def downloadBulked(tenant: String): Action[AnyContent] = AuthAction { _ =>
     NioLogger.info(s"Downloading consents (using bulked reads) from tenant $tenant")
     import reactivemongo.pekkostream.cursorProducer
 
@@ -478,7 +477,7 @@ class ConsentController(
     )
   }
 
-  def deleteOffer(tenant: String, orgKey: String, userId: String, offerKey: String) = AuthAction.async { implicit req =>
+  def deleteOffer(tenant: String, orgKey: String, userId: String, offerKey: String): Action[AnyContent] = AuthAction.async { implicit req =>
     req.authInfo.offerRestrictionPatterns match {
       case Some(_) if !accessibleOfferService.accessibleOfferKey(offerKey, req.authInfo.offerRestrictionPatterns) =>
         NioLogger.error(s"offer $offerKey unauthorized")
@@ -507,6 +506,9 @@ class ConsentController(
                     )
               }
           }
+      case None =>
+        NioLogger.error(s"offer $offerKey unauthorized")
+        Future.successful(s"error.offer.$offerKey.unauthorized".unauthorized())
     }
   }
 }

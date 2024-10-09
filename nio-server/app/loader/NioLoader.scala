@@ -13,7 +13,7 @@ import filters._
 import messaging.KafkaMessageBroker
 import play.api.ApplicationLoader.Context
 import play.api._
-import play.api.http.{DefaultHttpErrorHandler, HttpErrorHandler, MediaRange}
+import play.api.http.{DefaultHttpErrorHandler, HttpErrorHandler}
 import play.api.libs.json.Json
 import play.api.libs.ws.ahc.AhcWSComponents
 import play.api.mvc.BodyParsers.Default
@@ -176,7 +176,7 @@ class NioComponents(context: Context)
   override lazy val httpErrorHandler: HttpErrorHandler = new HttpErrorHandler {
 
     private lazy val defaultHandler =
-      new DefaultHttpErrorHandler(environment, configuration, sourceMapper, Some(router))
+      new DefaultHttpErrorHandler(environment, configuration, devContext.map(_.sourceMapper), Some(router))
 
     def acceptedContent(request: RequestHeader, statusCode: Int, message: String, uuid: String): Result =
       request.headers.get("Accept") match {

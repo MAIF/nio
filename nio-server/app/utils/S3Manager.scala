@@ -1,8 +1,6 @@
 package utils
 
-import java.io.{ByteArrayInputStream, File, FileInputStream, InputStream}
-import java.nio.file.Files
-import java.util
+import java.io.{ByteArrayInputStream, InputStream}
 import java.util.Base64
 
 import org.apache.pekko.NotUsed
@@ -13,13 +11,10 @@ import org.apache.pekko.util.ByteString
 import com.amazonaws.ClientConfiguration
 import com.amazonaws.auth.{AWSStaticCredentialsProvider, BasicAWSCredentials}
 import com.amazonaws.client.builder.AwsClientBuilder
-import com.amazonaws.regions.Regions
 import com.amazonaws.services.s3.model._
 import com.amazonaws.services.s3.model.lifecycle.{
-  LifecycleAndOperator,
   LifecycleFilter,
-  LifecyclePrefixPredicate,
-  LifecycleTagPredicate
+  LifecyclePrefixPredicate
 }
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 import configuration.{Env, S3Config}
@@ -48,7 +43,7 @@ trait FSUserExtractManager {
 
 class S3Manager(env: Env, actorSystem: ActorSystem) extends FSManager with FSUserExtractManager {
 
-  implicit val mat                    = Materializer(actorSystem)
+  implicit val mat: Materializer = Materializer(actorSystem)
   private lazy val s3Config: S3Config = env.config.s3Config
 
   private lazy val amazonS3: AmazonS3 = AmazonS3ClientBuilder
@@ -116,8 +111,8 @@ class S3Manager(env: Env, actorSystem: ActorSystem) extends FSManager with FSUse
     }
   }
 
-  def bucketExpiration(bucketName: String, prefixKey: String)(implicit
-      s3ExecutionContext: S3ExecutionContext
+  private def bucketExpiration(bucketName: String, prefixKey: String)(implicit
+                                                                      s3ExecutionContext: S3ExecutionContext
   ): Future[Boolean] = {
     // https://docs.aws.amazon.com/fr_fr/AmazonS3/latest/dev/manage-lifecycle-using-java.html
     val rule: BucketLifecycleConfiguration.Rule =
@@ -184,8 +179,8 @@ class S3Manager(env: Env, actorSystem: ActorSystem) extends FSManager with FSUse
       }
   }
 
-  def loadFile(key: String, uploadId: String)(implicit
-      s3ExecutionContext: S3ExecutionContext
+  private def loadFile(key: String, uploadId: String)(implicit
+                                                      s3ExecutionContext: S3ExecutionContext
   ): Flow[ByteString, UploadPartResult, NotUsed] =
     Flow[ByteString]
       .grouped(s3Config.chunkSizeInMb)

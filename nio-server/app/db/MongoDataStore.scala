@@ -28,7 +28,6 @@ trait MongoDataStore[T] {
   import reactivemongo.play.json.compat._
   import reactivemongo.pekkostream._
   import bson2json._
-  import json2bson._
 
   def mongoApi: ReactiveMongoApi
   implicit def format: OFormat[T]

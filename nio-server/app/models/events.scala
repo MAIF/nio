@@ -1,8 +1,5 @@
 package models
 
-import models.OrganisationUser.{read, write}
-import java.time.{LocalDateTime, Clock}
-
 import java.time.{Clock, LocalDateTime}
 import utils.NioLogger
 import play.api.libs.json._
@@ -147,10 +144,8 @@ object CleanUpMetadata {
         "metadata".equals(v._1) && (JsNull.equals(v._2) || JsObject.empty
           .equals(v._2))
       ) match {
-        case v if v  =>
-          jsObject.-("metadata")
-        case v if !v =>
-          jsObject
+        case v if v  => jsObject.-("metadata")
+        case _ => jsObject
       }
   }
 
@@ -166,11 +161,11 @@ case class TenantCreated(
                           id: Long = NioEvent.gen.nextId(),
                           payload: Tenant
 ) extends NioEvent {
-  def shardId = payload.key
+  def shardId: String = payload.key
 
-  def `type` = EventType.TenantCreated
+  def `type`: EventType.Value = EventType.TenantCreated
 
-  def asJson() =
+  def asJson(): JsObject =
     Json
       .obj(
         "type"     -> `type`,
@@ -192,11 +187,11 @@ case class TenantDeleted(
     id: Long = NioEvent.gen.nextId(),
     payload: Tenant
 ) extends NioEvent {
-  def shardId = payload.key
+  def shardId: String = payload.key
 
-  def `type` = EventType.TenantDeleted
+  def `type`: EventType.Value = EventType.TenantDeleted
 
-  def asJson() =
+  def asJson(): JsObject =
     Json
       .obj(
         "type"     -> `type`,
@@ -218,11 +213,11 @@ case class OrganisationCreated(
     id: Long = NioEvent.gen.nextId(),
     payload: Organisation
 ) extends NioEvent {
-  def shardId = payload.key
+  def shardId: String = payload.key
 
-  def `type` = EventType.OrganisationCreated
+  def `type`: EventType.Value = EventType.OrganisationCreated
 
-  def asJson() =
+  def asJson(): JsObject =
     Json
       .obj(
         "type"     -> `type`,
@@ -245,11 +240,11 @@ case class OrganisationUpdated(
     payload: Organisation,
     oldValue: Organisation
 ) extends NioEvent {
-  def shardId = oldValue.key
+  def shardId: String = oldValue.key
 
-  def `type` = EventType.OrganisationUpdated
+  def `type`: EventType.Value = EventType.OrganisationUpdated
 
-  def asJson() =
+  def asJson(): JsObject =
     Json
       .obj(
         "type"     -> `type`,
@@ -272,11 +267,11 @@ case class OrganisationReleased(
     id: Long = NioEvent.gen.nextId(),
     payload: Organisation
 ) extends NioEvent {
-  def shardId = payload.key
+  def shardId: String  = payload.key
 
-  def `type` = EventType.OrganisationReleased
+  def `type`: EventType.Value = EventType.OrganisationReleased
 
-  def asJson() =
+  def asJson(): JsObject =
     Json
       .obj(
         "type"     -> `type`,
@@ -298,11 +293,11 @@ case class OrganisationDeleted(
     id: Long = NioEvent.gen.nextId(),
     payload: Organisation
 ) extends NioEvent {
-  def shardId = payload.key
+  def shardId: String  = payload.key
 
-  def `type` = EventType.OrganisationDeleted
+  def `type`: EventType.Value = EventType.OrganisationDeleted
 
-  def asJson() =
+  def asJson(): JsObject =
     Json
       .obj(
         "type"     -> `type`,
@@ -325,11 +320,11 @@ case class ConsentFactCreated(
     payload: ConsentFact,
     command: JsValue
 ) extends NioEvent() {
-  def shardId = payload.userId
+  def shardId: String  = payload.userId
 
-  def `type` = EventType.ConsentFactCreated
+  def `type`: EventType.Value = EventType.ConsentFactCreated
 
-  def asJson() =
+  def asJson(): JsObject =
     Json
       .obj(
         "type"     -> `type`,
@@ -354,11 +349,11 @@ case class ConsentFactUpdated(
     oldValue: ConsentFact,
     command: JsValue
 ) extends NioEvent {
-  def shardId = oldValue.userId
+  def shardId: String  = oldValue.userId
 
-  def `type` = EventType.ConsentFactUpdated
+  def `type`: EventType.Value = EventType.ConsentFactUpdated
 
-  def asJson() =
+  def asJson(): JsObject =
     Json
       .obj(
         "type"     -> `type`,
@@ -382,11 +377,11 @@ case class AccountDeleted(
     date: LocalDateTime = LocalDateTime.now(Clock.systemUTC),
     payload: Account
 ) extends NioEvent {
-  def shardId = payload.accountId
+  def shardId: String  = payload.accountId
 
-  def `type` = EventType.AccountDeleted
+  def `type`: EventType.Value = EventType.AccountDeleted
 
-  def asJson() =
+  def asJson(): JsObject =
     Json
       .obj(
         "type"     -> `type`,
@@ -409,11 +404,11 @@ case class AccountCreated(
     date: LocalDateTime = LocalDateTime.now(Clock.systemUTC),
     payload: Account
 ) extends NioEvent {
-  def shardId = payload.accountId
+  def shardId: String  = payload.accountId
 
-  def `type` = EventType.AccountCreated
+  def `type`: EventType.Value = EventType.AccountCreated
 
-  def asJson() =
+  def asJson(): JsObject =
     Json
       .obj(
         "type"     -> `type`,
@@ -437,11 +432,11 @@ case class AccountUpdated(
     payload: Account,
     oldValue: Account
 ) extends NioEvent {
-  def shardId = payload.accountId
+  def shardId: String  = payload.accountId
 
-  def `type` = EventType.AccountUpdated
+  def `type`: EventType.Value = EventType.AccountUpdated
 
-  def asJson() =
+  def asJson(): JsObject =
     Json
       .obj(
         "type"     -> `type`,
@@ -462,9 +457,9 @@ case class SecuredEvent(
     date: LocalDateTime = LocalDateTime.now(Clock.systemUTC),
     payload: Digest
 ) extends NioEvent {
-  def `type` = EventType.SecuredEvent
+  def `type`: EventType.Value = EventType.SecuredEvent
 
-  def asJson() =
+  def asJson(): JsObject =
     Json
       .obj(
         "type"    -> `type`,
@@ -488,11 +483,11 @@ case class DeletionStarted(
     date: LocalDateTime = LocalDateTime.now(Clock.systemUTC),
     payload: DeletionTaskInfoPerApp
 ) extends NioEvent {
-  def shardId = payload.userId
+  def shardId: String  = payload.userId
 
-  def `type` = EventType.DeletionStarted
+  def `type`: EventType.Value = EventType.DeletionStarted
 
-  def asJson() =
+  def asJson(): JsObject =
     Json
       .obj(
         "type"     -> `type`,
@@ -514,11 +509,11 @@ case class DeletionAppDone(
     date: LocalDateTime = LocalDateTime.now(Clock.systemUTC),
     payload: AppDone
 ) extends NioEvent {
-  def shardId = payload.userId
+  def shardId: String  = payload.userId
 
-  def `type` = EventType.DeletionAppDone
+  def `type`: EventType.Value = EventType.DeletionAppDone
 
-  def asJson() =
+  def asJson(): JsObject =
     Json
       .obj(
         "type"     -> `type`,
@@ -540,11 +535,11 @@ case class DeletionFinished(
     date: LocalDateTime = LocalDateTime.now(Clock.systemUTC),
     payload: DeletionTask
 ) extends NioEvent {
-  def shardId = payload.userId
+  def shardId: String  = payload.userId
 
-  def `type` = EventType.DeletionFinished
+  def `type`: EventType.Value = EventType.DeletionFinished
 
-  def asJson() =
+  def asJson(): JsObject =
     Json
       .obj(
         "type"     -> `type`,
@@ -617,11 +612,11 @@ case class ExtractionStarted(
     date: LocalDateTime = LocalDateTime.now(Clock.systemUTC),
     payload: ExtractionTaskInfoPerApp
 ) extends NioEvent {
-  def shardId = payload.userId
+  def shardId: String  = payload.userId
 
-  def `type` = EventType.ExtractionStarted
+  def `type`: EventType.Value = EventType.ExtractionStarted
 
-  def asJson() =
+  def asJson(): JsObject =
     Json
       .obj(
         "type"     -> `type`,
@@ -643,11 +638,11 @@ case class ExtractionAppDone(
     date: LocalDateTime = LocalDateTime.now(Clock.systemUTC),
     payload: AppDone
 ) extends NioEvent {
-  def shardId = payload.userId
+  def shardId: String  = payload.userId
 
-  def `type` = EventType.ExtractionAppDone
+  def `type`: EventType.Value = EventType.ExtractionAppDone
 
-  def asJson() =
+  def asJson(): JsObject =
     Json
       .obj(
         "type"     -> `type`,
@@ -669,11 +664,11 @@ case class ExtractionAppFilesMetadataReceived(
     date: LocalDateTime = LocalDateTime.now(Clock.systemUTC),
     payload: AppFilesMetadata
 ) extends NioEvent {
-  def shardId = payload.userId
+  def shardId: String  = payload.userId
 
-  def `type` = EventType.ExtractionAppFilesMetadataReceived
+  def `type`: EventType.Value = EventType.ExtractionAppFilesMetadataReceived
 
-  def asJson() =
+  def asJson(): JsObject =
     Json
       .obj(
         "type"     -> `type`,
@@ -695,11 +690,11 @@ case class ExtractionFinished(
     date: LocalDateTime = LocalDateTime.now(Clock.systemUTC),
     payload: ExtractionTask
 ) extends NioEvent {
-  def shardId = payload.userId
+  def shardId: String  = payload.userId
 
-  def `type` = EventType.ExtractionFinished
+  def `type`: EventType.Value = EventType.ExtractionFinished
 
-  def asJson() =
+  def asJson(): JsObject =
     Json
       .obj(
         "type"     -> `type`,

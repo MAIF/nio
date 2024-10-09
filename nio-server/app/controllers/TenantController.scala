@@ -1,15 +1,14 @@
 package controllers
 
-import auth.{AuthAction, SecuredAction, SecuredAuthContext}
+import auth.SecuredAuthContext
 import configuration.Env
 import controllers.ErrorManager._
 import db._
 import messaging.KafkaMessageBroker
 import models.{Tenant, TenantCreated, TenantDeleted, Tenants}
 import play.api.mvc.{ActionBuilder, AnyContent, ControllerComponents}
-import play.api.{Configuration, Logger}
+import play.api.Configuration
 import utils.NioLogger
-import utils.Result.AppErrors
 
 import scala.concurrent.{ExecutionContext, Future}
 class TenantController(

@@ -200,6 +200,13 @@ class Permission extends Component {
                              possibleValues={["OptIn", "OptOut"]}
                              errorKey={`${this.props.prefixe}permissions.${this.props.index}.type.required`}/>
 
+                <TextInput label={"Validité de la permission"}
+                           value={this.state.permission.validityPeriod}
+                           onChange={(e) => this.onChange(e, "validityPeriod")}
+                           disabled={this.props.readOnlyMode}
+                           errorMessage={this.props.errors}
+                           errorKey={`${this.props.prefixe}permissions.${this.props.index}.validityPeriod.required`}
+                />
             </div>
         );
     }

@@ -3,8 +3,7 @@ package messaging
 import java.io.Closeable
 import java.security.MessageDigest
 import org.apache.pekko.actor.ActorSystem
-import org.apache.pekko.kafka.ConsumerMessage.CommittableOffsetBatch
-import org.apache.pekko.kafka.{CommitterSettings, ConsumerMessage, ProducerSettings, Subscriptions}
+import org.apache.pekko.kafka.{CommitterSettings, ProducerSettings, Subscriptions}
 import org.apache.pekko.kafka.scaladsl.{Committer, Consumer}
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.Keep.both
@@ -12,7 +11,7 @@ import org.apache.pekko.stream.scaladsl.{Flow, Source}
 import org.apache.pekko.{Done, NotUsed}
 import configuration.{Env, KafkaConfig}
 import models.{Digest, NioEvent, SecuredEvent}
-import org.apache.kafka.clients.producer.{Callback, KafkaProducer, Producer, ProducerRecord, RecordMetadata}
+import org.apache.kafka.clients.producer.{Callback, Producer, ProducerRecord, RecordMetadata}
 import org.apache.kafka.common.TopicPartition
 import utils.NioLogger
 import play.api.libs.json.Json
@@ -22,7 +21,7 @@ import scala.jdk.CollectionConverters._
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.control.NonFatal
-import scala.collection.{Seq, immutable}
+import scala.collection.Seq
 
 class KafkaMessageBroker(actorSystem: ActorSystem)(implicit context: ExecutionContext, env: Env, s3Manager: FSManager)
     extends Closeable {

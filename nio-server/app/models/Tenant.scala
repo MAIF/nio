@@ -14,15 +14,15 @@ import scala.xml.{Elem, NodeSeq}
 import scala.collection.Seq
 
 case class Tenant(key: String, description: String) extends ModelTransformAs {
-  def asJson() = Tenant.tenantFormats.writes(this)
-  def asXml()  = <tenant>
+  def asJson(): JsObject = Tenant.tenantFormats.writes(this)
+  def asXml(): Elem = <tenant>
       <key>{key}</key>
       <description>{description}</description>
     </tenant>.clean()
 }
 
 object Tenant extends ReadableEntity[Tenant] {
-  implicit val tenantFormats = Json.format[Tenant]
+  implicit val tenantFormats: OFormat[Tenant] = Json.format[Tenant]
 
   implicit val readXml: XMLRead[Tenant] =
     (node: NodeSeq, path: Option[String]) =>
@@ -31,7 +31,7 @@ object Tenant extends ReadableEntity[Tenant] {
         (node \ "description").validate[String](Some(s"${path.convert()}description"))
       ).mapN(Tenant.apply)
 
-  def fromXml(xml: Elem) =
+  def fromXml(xml: Elem): Either[AppErrors, Tenant] =
     readXml.read(xml, Some("tenant")).toEither
 
   def fromJson(json: JsValue): Either[AppErrors, Tenant] =
