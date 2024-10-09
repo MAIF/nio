@@ -15,10 +15,12 @@ import reactivemongo.api.indexes.{Index, IndexType}
 import utils.BSONUtils
 import utils.Result.{AppErrors, ErrorMessage}
 
+import scala.annotation.nowarn
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Failure
-import scala.collection.{immutable, Seq}
+import scala.collection.{Seq, immutable}
 
+@nowarn("msg=Will be removed when provided by Play-JSON itself")
 class LastConsentFactMongoDataStore(val mongoApi: ReactiveMongoApi)(implicit val executionContext: ExecutionContext)
     extends MongoDataStore[ConsentFact] {
 

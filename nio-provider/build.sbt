@@ -9,7 +9,7 @@ lazy val `nio-provider` = (project in file("."))
   .enablePlugins(NoPublish)
   .disablePlugins(BintrayPlugin)
 
-scalaVersion := "2.13.14"
+scalaVersion := _scalaVersion
 
 resolvers ++= Seq(
   Resolver.jcenterRepo,

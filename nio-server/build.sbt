@@ -9,7 +9,7 @@ lazy val `nio-server` = (project in file("."))
   .enablePlugins(NoPublish)
   .disablePlugins(BintrayPlugin)
 
-scalaVersion := "2.13.14"
+scalaVersion := Dependencies._scalaVersion
 
 resolvers ++= Seq(
   Resolver.jcenterRepo,
@@ -60,7 +60,7 @@ scalacOptions ++= Seq(
   "-language:higherKinds",
   "-language:implicitConversions",
   "-language:existentials",
-  "-Wunused"
+  "-Wunused:imports" //, "-Xsource:3"
 )
 
 /// ASSEMBLY CONFIG

@@ -12,9 +12,11 @@ import reactivemongo.api.indexes.Index.Default
 import reactivemongo.api.indexes.{Index, IndexType}
 import utils.Result.{AppErrors, ErrorMessage}
 
+import scala.annotation.nowarn
 import scala.concurrent.{ExecutionContext, Future}
 import scala.collection.{Seq, immutable}
 
+@nowarn("msg=Will be removed when provided by Play-JSON itself")
 class OrganisationMongoDataStore(val mongoApi: ReactiveMongoApi)(implicit val executionContext: ExecutionContext)
     extends MongoDataStore[Organisation] {
 

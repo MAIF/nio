@@ -11,7 +11,7 @@ object EventActor {
 
 class EventActor(out: ActorRef) extends Actor {
 
-  override def preStart: Unit = context.system.eventStream.subscribe(self, classOf[NioEvent])
+  override def preStart(): Unit = context.system.eventStream.subscribe(self, classOf[NioEvent])
 
   override def receive: Receive = { case e: NioEvent =>
     NioLogger.info(s"Event actor received a message : ${e.tYpe}")

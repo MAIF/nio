@@ -91,7 +91,7 @@ object Permission {
 
   implicit val readXmlFiniteDuration: XMLRead[FiniteDuration] = (xml: NodeSeq, path: Option[String]) =>
     Try(xml.head.text)
-      .map { str: String =>
+      .map { (str: String) =>
         Try (Duration(str)) match {
           case Success(value: FiniteDuration) => value.valid
           case Success(_) => AppErrors.error("invalid duration").invalid

@@ -5,9 +5,11 @@ import org.apache.pekko.stream.scaladsl.Source
 import reactivemongo.api.{Cursor, ReadPreference}
 import reactivemongo.api.bson.collection.BSONCollection
 
+import scala.annotation.nowarn
 import scala.concurrent.{ExecutionContext, Future}
 import scala.collection.Seq
 
+@nowarn("msg=Will be removed when provided by Play-JSON itself")
 object MongoOpsDataStore {
 
   implicit class MongoDataStore(coll: BSONCollection)(implicit executionContext: ExecutionContext) {

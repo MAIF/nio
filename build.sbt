@@ -1,8 +1,9 @@
-import ReleaseTransformations._
+import Dependencies._scalaVersion
+import ReleaseTransformations.*
 
 name := """nio"""
 organization := "fr.maif"
-scalaVersion := "2.13.11"
+scalaVersion := _scalaVersion
 
 lazy val root = (project in file("."))
   .aggregate(
@@ -15,7 +16,7 @@ lazy val `nio-provider` = project
 
 inThisBuild(
    List(
-     scalaVersion := "2.13.14",
+     scalaVersion := _scalaVersion,
      semanticdbEnabled := true,
      semanticdbVersion := scalafixSemanticdb.revision
   )

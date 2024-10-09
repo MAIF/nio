@@ -160,10 +160,10 @@ object NioAccount extends ReadableEntity[NioAccount] {
 }
 
 case class NioAccounts(page: Int, pageSize: Int, count: Long, items: Seq[NioAccount]) extends ModelTransformAs {
-  def asJson() =
+  def asJson(): JsObject =
     Json.obj("page" -> page, "pageSize" -> pageSize, "count" -> count, "items" -> JsArray(items.map(_.asJson())))
 
-  def asXml()  = <nioAccounts>
+  def asXml(): Elem = <nioAccounts>
     <page>
       {page}
     </page>
