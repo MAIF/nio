@@ -8,9 +8,7 @@ import controllers.AppErrorWithStatus
 import models._
 import utils.NioLogger
 import play.api.libs.json.{JsValue, Json, OFormat}
-import play.api.mvc.Results.NotFound
 import play.modules.reactivemongo.ReactiveMongoApi
-import reactivemongo.pekkostream.cursorProducer
 import reactivemongo.api.{Cursor, ReadPreference}
 import reactivemongo.api.bson.collection.BSONCollection
 import reactivemongo.api.indexes.{Index, IndexType}
@@ -27,7 +25,6 @@ class LastConsentFactMongoDataStore(val mongoApi: ReactiveMongoApi)(implicit val
   import reactivemongo.api.bson._
   import reactivemongo.play.json.compat._
   import reactivemongo.pekkostream._
-  import lax._
   import bson2json._
   import json2bson._
   val format: OFormat[ConsentFact] = models.ConsentFact.consentFactOFormats

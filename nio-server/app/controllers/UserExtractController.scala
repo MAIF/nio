@@ -6,7 +6,7 @@ import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.stream.IOResult
 import org.apache.pekko.stream.scaladsl.{Source, StreamConverters}
 import org.apache.pekko.util.ByteString
-import auth.{AuthAction, SecuredAction, SecuredAuthContext}
+import auth.SecuredAuthContext
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import configuration.Env
@@ -18,7 +18,6 @@ import models._
 import java.time.{Clock, LocalDateTime}
 import utils.NioLogger
 import play.api.http.HttpEntity
-import play.api.libs.Files
 import play.api.libs.json.Json
 import play.api.libs.streams.Accumulator
 import play.api.mvc._
@@ -284,7 +283,7 @@ class UserExtractController(
   }
 
   def streamFile: BodyParser[Source[ByteString, _]] =
-    BodyParser { req =>
+    BodyParser { _ =>
       Accumulator.source[ByteString].map(s => Right(s))
     }
 

@@ -5,12 +5,14 @@ import cats.kernel.Monoid
 import play.api.libs.json._
 import utils.Result.{AppErrors, ErrorMessage, Result}
 import libs.xml.XmlUtil.XmlCleaner
+
 import scala.collection.Seq
+import scala.xml.Elem
 
 object Result {
 
   case class ErrorMessage(message: String, args: String*) {
-    def asXml() =
+    def asXml(): Elem =
       <errorMessage>
         <message>
           {message}
@@ -22,7 +24,7 @@ object Result {
   }
 
   object ErrorMessage {
-    implicit val format = Json.format[ErrorMessage]
+    implicit val format: OFormat[ErrorMessage] = Json.format[ErrorMessage]
   }
 
   case class AppErrors(
@@ -30,19 +32,19 @@ object Result {
       fieldErrors: Map[String, List[ErrorMessage]] = Map.empty
   ) {
 
-    def ++(s: AppErrors) =
+    def ++(s: AppErrors): AppErrors =
       this.copy(errors = errors ++ s.errors, fieldErrors = fieldErrors ++ s.fieldErrors)
 
-    def addFieldError(field: String, errors: List[ErrorMessage]) =
+    def addFieldError(field: String, errors: List[ErrorMessage]): AppErrors =
       fieldErrors.get(field) match {
         case Some(err) =>
           AppErrors(errors, fieldErrors + (field -> (err ++ errors)))
         case None      => AppErrors(errors, fieldErrors + (field -> errors))
       }
 
-    def asJson() = Json.toJson(this)(AppErrors.format)
+    def asJson(): JsValue = Json.toJson(this)(AppErrors.format)
 
-    def asXml() =
+    def asXml(): Elem =
       <appErrors>
         <errors>
           {errors.map(_.asXml())}
@@ -69,7 +71,7 @@ object Result {
     import cats.instances.all._
     import cats.syntax.semigroup._
 
-    implicit val format = Json.format[AppErrors]
+    implicit val format: OFormat[AppErrors] = Json.format[AppErrors]
 
     def fromJsError(jsError: Seq[(JsPath, Seq[JsonValidationError])]): AppErrors = {
       val fieldErrors = jsError.map { case (k, v) =>
@@ -93,9 +95,9 @@ object Result {
       }
 
     implicit val monoid: Monoid[AppErrors] = new Monoid[AppErrors] {
-      override def empty = AppErrors()
+      override def empty: AppErrors = AppErrors()
 
-      override def combine(x: AppErrors, y: AppErrors) = {
+      override def combine(x: AppErrors, y: AppErrors): AppErrors = {
         val errors      = x.errors ++ y.errors
         val fieldErrors = mergeMap(x.fieldErrors, y.fieldErrors)
         AppErrors(errors, fieldErrors)
@@ -126,7 +128,7 @@ object Result {
 }
 
 case class ImportResult(success: Int = 0, errors: AppErrors = AppErrors()) {
-  def isError = !errors.isEmpty
+  def isError: Boolean = !errors.isEmpty
 
   def toJson: JsValue = ImportResult.format.writes(this)
 }
@@ -135,18 +137,18 @@ object ImportResult {
 
   import cats.syntax.semigroup._
 
-  implicit val format = Json.format[ImportResult]
+  implicit val format: OFormat[ImportResult] = Json.format[ImportResult]
 
-  implicit val monoid = new Monoid[ImportResult] {
-    override def empty = ImportResult()
+  implicit val monoid: Monoid[ImportResult] = new Monoid[ImportResult] {
+    override def empty: ImportResult = ImportResult()
 
-    override def combine(x: ImportResult, y: ImportResult) = (x, y) match {
+    override def combine(x: ImportResult, y: ImportResult): ImportResult = (x, y) match {
       case (ImportResult(s1, e1), ImportResult(s2, e2)) =>
         ImportResult(s1 + s2, e1 |+| e2)
     }
   }
 
-  def error(e: ErrorMessage) = ImportResult(errors = AppErrors(errors = Seq(e)))
+  def error(e: ErrorMessage): ImportResult = ImportResult(errors = AppErrors(errors = Seq(e)))
 
   def fromResult[T](r: Result[T]): ImportResult = r match {
     case Right(_)  => ImportResult(success = 1)

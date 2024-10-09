@@ -11,7 +11,6 @@ import utils.Result
 import utils.Result.AppErrors
 
 import scala.xml.{Elem, NodeSeq}
-import scala.collection.Seq
 
 case class Auth(email: String, password: String)
 

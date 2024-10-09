@@ -39,7 +39,7 @@ object Result {
     import cats.instances.all._
     import cats.syntax.semigroup._
 
-    implicit val format = Json.format[AppErrors]
+    implicit val format: OFormat[AppErrors] = Json.format[AppErrors]
 
     def fromJsError(jsError: Seq[(JsPath, Seq[JsonValidationError])]): AppErrors = {
       val fieldErrors = jsError.map { case (k, v) =>
@@ -63,9 +63,9 @@ object Result {
       }
 
     implicit val monoid: Monoid[AppErrors] = new Monoid[AppErrors] {
-      override def empty = AppErrors()
+      override def empty: AppErrors = AppErrors()
 
-      override def combine(x: AppErrors, y: AppErrors) = {
+      override def combine(x: AppErrors, y: AppErrors): AppErrors = {
         val errors      = x.errors ++ y.errors
         val fieldErrors = mergeMap(x.fieldErrors, y.fieldErrors)
         AppErrors(errors, fieldErrors)
@@ -96,7 +96,7 @@ object Result {
 }
 
 case class ImportResult(success: Int = 0, errors: AppErrors = AppErrors()) {
-  def isError = !errors.isEmpty
+  def isError: Boolean = !errors.isEmpty
 
   def toJson: JsValue = ImportResult.format.writes(this)
 }
@@ -105,18 +105,18 @@ object ImportResult {
 
   import cats.syntax.semigroup._
 
-  implicit val format = Json.format[ImportResult]
+  implicit val format: OFormat[ImportResult] = Json.format[ImportResult]
 
-  implicit val monoid = new Monoid[ImportResult] {
-    override def empty = ImportResult()
+  implicit val monoid: Monoid[ImportResult] = new Monoid[ImportResult] {
+    override def empty: ImportResult = ImportResult()
 
-    override def combine(x: ImportResult, y: ImportResult) = (x, y) match {
+    override def combine(x: ImportResult, y: ImportResult): ImportResult = (x, y) match {
       case (ImportResult(s1, e1), ImportResult(s2, e2)) =>
         ImportResult(s1 + s2, e1 |+| e2)
     }
   }
 
-  def error(e: ErrorMessage) = ImportResult(errors = AppErrors(errors = Seq(e)))
+  def error(e: ErrorMessage): ImportResult = ImportResult(errors = AppErrors(errors = Seq(e)))
 
   def fromResult[T](r: Result[T]): ImportResult = r match {
     case Right(_)  => ImportResult(success = 1)

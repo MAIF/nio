@@ -11,15 +11,15 @@ import libs.xml.XmlUtil.XmlCleaner
 import scala.collection.Seq
 
 case class AppDone(orgKey: String, userId: String, appId: String) {
-  def asJson() = AppDone.appDoneFormats.writes(this)
+  def asJson(): JsObject = AppDone.appDoneFormats.writes(this)
 }
 
 object AppDone {
-  implicit val appDoneFormats = Json.format[AppDone]
+  implicit val appDoneFormats: OFormat[AppDone] = Json.format[AppDone]
 }
 
 case class AppIds(appIds: Seq[String]) {
-  def asXml() = <appIds>
+  def asXml(): Elem = <appIds>
       {
     appIds.map(appId => <appId>
       {appId}
@@ -29,9 +29,9 @@ case class AppIds(appIds: Seq[String]) {
 }
 
 object AppIds extends ReadableEntity[AppIds] {
-  implicit val appIdsFormats = Json.format[AppIds]
+  implicit val appIdsFormats: OFormat[AppIds] = Json.format[AppIds]
 
-  def fromXml(xml: Elem) =
+  def fromXml(xml: Elem): Either[AppErrors, AppIds] =
     Try {
       val appIds = (xml \\ "appId").map(_.head.text)
       AppIds(appIds)
@@ -41,7 +41,7 @@ object AppIds extends ReadableEntity[AppIds] {
         Left(AppErrors.fromXmlError(throwable))
     }
 
-  def fromJson(json: JsValue) =
+  def fromJson(json: JsValue): Either[AppErrors, AppIds] =
     json.validate[AppIds](appIdsFormats) match {
       case JsSuccess(o, _) => Right(o)
       case JsError(errors) => Left(AppErrors.fromJsError(errors))
@@ -60,9 +60,9 @@ object Digest {
 }
 
 case class AppFilesMetadata(orgKey: String, userId: String, appId: String, files: Seq[FileMetadata]) {
-  def asJson() = AppFilesMetadata.appFilesMetadataFormats.writes(this)
+  def asJson(): JsObject = AppFilesMetadata.appFilesMetadataFormats.writes(this)
 }
 
 object AppFilesMetadata {
-  implicit val appFilesMetadataFormats = Json.format[AppFilesMetadata]
+  implicit val appFilesMetadataFormats: OFormat[AppFilesMetadata] = Json.format[AppFilesMetadata]
 }

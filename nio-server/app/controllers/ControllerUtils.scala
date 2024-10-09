@@ -3,7 +3,7 @@ package controllers
 import auth.AuthContext
 import libs.xmlorjson.XmlOrJson
 import models.ModelTransformAs
-import play.api.{mvc, Logger}
+import play.api.mvc
 import play.api.http.{HeaderNames, MimeTypes}
 import play.api.libs.json.JsValue
 import play.api.mvc.Results.Status
@@ -13,7 +13,6 @@ import utils.Result.AppErrors
 
 import scala.concurrent.ExecutionContext
 import scala.xml.Elem
-import scala.collection.Seq
 
 trait ReadableEntity[T] {
 
@@ -84,7 +83,7 @@ abstract class ControllerUtils(val controller: ControllerComponents)(implicit va
         Left(AppErrors.error("error.missing.content.type"))
     }
 
-  implicit def renderError = new ErrorManagerSuite {
+  implicit def renderError: ErrorManagerSuite = new ErrorManagerSuite {
     override def convert(appErrors: AppErrors, status: mvc.Results.Status)(implicit req: Request[Any]): Result = {
       val missingAcceptedTypes: Boolean = !req.headers
         .get(HeaderNames.ACCEPT)

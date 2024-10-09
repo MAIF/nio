@@ -11,7 +11,6 @@ import play.api.mvc.{Action, ActionBuilder, AnyContent, ControllerComponents}
 import utils.Sha
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.collection.Seq
 
 class NioAccountController(
     val AuthAction: ActionBuilder[SecuredAuthContext, AnyContent],
@@ -33,7 +32,7 @@ class NioAccountController(
             nioAccountMongoDataStore
               .findByEmail(nioAccount.email)
               .flatMap {
-                case Some(nioAccountStored) =>
+                case Some(_) =>
                   Future.successful(
                     s"error.account.email.already.used"
                       .conflict()

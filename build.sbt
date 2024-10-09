@@ -13,6 +13,14 @@ lazy val root = (project in file("."))
 lazy val `nio-server`   = project
 lazy val `nio-provider` = project
 
+inThisBuild(
+   List(
+     scalaVersion := "2.13.14",
+     semanticdbEnabled := true,
+     semanticdbVersion := scalafixSemanticdb.revision
+  )
+)
+
 releaseProcess := Seq[ReleaseStep](
   checkSnapshotDependencies, // : ReleaseStep
   inquireVersions,           // : ReleaseStep

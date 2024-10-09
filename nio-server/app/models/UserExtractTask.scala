@@ -6,7 +6,6 @@ import libs.xml.XMLRead
 import libs.xml.XmlUtil.XmlCleaner
 import libs.xml.implicits._
 import libs.xml.syntax._
-import java.time.{LocalDateTime, Clock}
 import play.api.libs.functional.syntax.{unlift, _}
 import play.api.libs.json.Reads._
 import play.api.libs.json.Writes._
@@ -62,9 +61,9 @@ case class UserExtractTask(
 }
 
 object UserExtractTask extends ReadableEntity[UserExtractTask] {
-  implicit val dateFormats = DateUtils.utcDateTimeFormats
+  implicit val dateFormats: Format[LocalDateTime] = DateUtils.utcDateTimeFormats
 
-  def instance(tenant: String, orgKey: String, userId: String, email: String) =
+  def instance(tenant: String, orgKey: String, userId: String, email: String): UserExtractTask =
     UserExtractTask(
       _id = BSONObjectID.generate().stringify,
       tenant = tenant,
@@ -113,8 +112,8 @@ object UserExtractTask extends ReadableEntity[UserExtractTask] {
       (JsPath \ "endedAt").writeNullable[LocalDateTime]
   )(unlift(UserExtractTask.unapply))
 
-  implicit val format  = Format(userExtractTaskReads, userExtractTaskWrites)
-  implicit val oformat = OFormat(userExtractTaskReads, userExtractTaskOWrites)
+  implicit val format: Format[UserExtractTask] = Format(userExtractTaskReads, userExtractTaskWrites)
+  implicit val oformat: OFormat[UserExtractTask] = OFormat(userExtractTaskReads, userExtractTaskOWrites)
 
   implicit val userExtractTaskReadXml: XMLRead[UserExtractTask] =
     (node: NodeSeq, path: Option[String]) =>

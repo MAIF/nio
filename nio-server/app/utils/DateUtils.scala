@@ -14,7 +14,7 @@ object DateUtils {
       case JsString(s) =>
         Try(LocalDateTime.parse(s, utcDateFormatter)) match {
           case Success(d) => JsSuccess(d.withNano(0))
-          case Failure(f) => JsSuccess(null)
+          case Failure(_) => JsSuccess(null)
         }
       case _ => JsError("error.expected.date")
     }

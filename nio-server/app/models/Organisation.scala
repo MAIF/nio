@@ -1,6 +1,5 @@
 package models
 
-import cats.Monoid
 import cats.data.Validated._
 import cats.data.ValidatedNel
 import cats.implicits._
@@ -13,7 +12,7 @@ import java.time.{LocalDateTime, Clock}
 import play.api.libs.functional.syntax.{unlift, _}
 import play.api.libs.json.Reads._
 import play.api.libs.json._
-import reactivemongo.api.bson.{BSONObjectID, maxKey}
+import reactivemongo.api.bson.BSONObjectID
 import utils.DateUtils
 import utils.Result.{AppErrors, ErrorMessage, Result}
 
@@ -27,7 +26,7 @@ case class VersionInfo(
     neverReleased: Option[Boolean] = Some(true),
     lastUpdate: LocalDateTime = LocalDateTime.now(Clock.systemUTC)
 ) {
-  def copyUpdated = copy(lastUpdate = LocalDateTime.now(Clock.systemUTC))
+  def copyUpdated: VersionInfo = copy(lastUpdate = LocalDateTime.now(Clock.systemUTC))
 }
 
 object VersionInfo {
@@ -40,8 +39,8 @@ object VersionInfo {
         "lastUpdate" -> versionInfo.lastUpdate.format(DateUtils.utcDateFormatter)
       )
     }
-  implicit val utcDateTimeFormats                                         = DateUtils.utcDateTimeFormats
-  implicit val formats                                                    = Json.format[VersionInfo]
+  implicit val utcDateTimeFormats: Format[LocalDateTime] = DateUtils.utcDateTimeFormats
+  implicit val formats: OFormat[VersionInfo] = Json.format[VersionInfo]
 
   implicit val readXml: XMLRead[VersionInfo] =
     (node: NodeSeq, path: Option[String]) =>
@@ -65,9 +64,9 @@ case class Organisation(
     offers: Option[Seq[Offer]] = None
 ) extends ModelTransformAs {
 
-  def asJson() = Organisation.organisationWritesWithoutId.writes(this)
+  def asJson(): JsValue = Organisation.organisationWritesWithoutId.writes(this)
 
-  def asXml() = <organisation>
+  def asXml(): Elem = <organisation>
     <key>
       {key}
     </key>
@@ -189,7 +188,7 @@ object OrganisationDraft extends ReadableEntity[Organisation] {
   def fromXml(xml: Elem): Either[AppErrors, Organisation] =
     readXml.read(xml, Some("organisation")).toEither
 
-  def fromJson(json: JsValue) =
+  def fromJson(json: JsValue): Either[AppErrors, Organisation] =
     json.validate[Organisation] match {
       case JsSuccess(o, _) => Right(o)
       case JsError(errors) => Left(AppErrors.fromJsError(errors))
@@ -245,7 +244,7 @@ object Organisation extends ReadableEntity[Organisation] {
     org.offers match {
       case Some(offers) if offers.isEmpty =>
         organisation
-      case Some(offers)                   =>
+      case Some(_)                   =>
         organisation ++ Json.obj("offers" -> org.offers.get.map(_.asJson()))
       case None                           =>
         organisation
@@ -268,7 +267,7 @@ object Organisation extends ReadableEntity[Organisation] {
   def fromXml(xml: Elem): Either[AppErrors, Organisation] =
     readXml.read(xml, Some("organisation")).toEither
 
-  def fromJson(json: JsValue) =
+  def fromJson(json: JsValue): Either[AppErrors, Organisation] =
     json.validate[Organisation] match {
       case JsSuccess(o, _) => Right(o)
       case JsError(errors) => Left(AppErrors.fromJsError(errors))
@@ -289,7 +288,7 @@ object Organisations {}
 case class VersionInfoLight(status: String, num: Int, lastUpdate: LocalDateTime)
 
 case class OrganisationLight(key: String, label: String, version: VersionInfoLight) {
-  def asXml() = <organisationLight>
+  def asXml(): Elem = <organisationLight>
     <key>
       {key}
     </key>
@@ -309,7 +308,7 @@ case class OrganisationLight(key: String, label: String, version: VersionInfoLig
     </version>
   </organisationLight>.clean()
 
-  def asJson() =
+  def asJson(): JsObject =
     Json.obj(
       "key"     -> key,
       "label"   -> label,
@@ -322,7 +321,7 @@ case class OrganisationLight(key: String, label: String, version: VersionInfoLig
 }
 
 object OrganisationLight {
-  def from(o: Organisation) =
+  def from(o: Organisation): OrganisationLight =
     OrganisationLight(
       key = o.key,
       label = o.label,

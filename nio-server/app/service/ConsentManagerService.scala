@@ -41,7 +41,7 @@ class ConsentManagerService(
     for {
       lastConsent  <- IO.fromFutureOption(lastConsentFactMongoDataStore.findByOrgKeyAndUserId(tenant, organisationKey, userId), AppErrorWithStatus(s"consentfact.${userId}.not.found", NotFound))
       organisation <- IO.fromFutureOption(organisationMongoDataStore.findLastReleasedByKey(tenant, organisationKey), {NioLogger.error(s"error.specified.org.never.released for organisation key $organisationKey"); AppErrorWithStatus("error.specified.org.never.released")})
-      consentFact  = partialConsentFact.applyTo(lastConsent, organisation.version)
+      consentFact  = partialConsentFact.applyTo(lastConsent, organisation)
       result       <- createOrReplace(tenant, author, metadata, organisation, consentFact, Some(lastConsent), command = command)
     } yield result
   }
@@ -336,7 +336,7 @@ class ConsentManagerService(
             }
 
         // Cannot rollback and update a consent fact to an old organisation version
-        case Some(lastConsentFactStored) if lastConsentFactStored.version >= consentFact.version =>
+        case Some(lastConsentFactStored)  =>
           NioLogger.error(
             s"error.version.lower.than.stored : last version saved ${lastConsentFactStored.version} -> version specified ${consentFact.version}"
           )

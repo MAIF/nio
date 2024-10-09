@@ -4,15 +4,16 @@ import org.apache.pekko.http.scaladsl.util.FastFuture
 import org.apache.pekko.stream.Materializer
 import controllers.AppErrorWithStatus
 import models._
+import org.apache.pekko.stream.scaladsl.Source
 import utils.NioLogger
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoApi
-import reactivemongo.pekkostream.cursorProducer
+import reactivemongo.api.indexes.Index.Default
 import reactivemongo.api.indexes.{Index, IndexType}
 import utils.Result.{AppErrors, ErrorMessage}
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.collection.{immutable, Seq}
+import scala.collection.{Seq, immutable}
 
 class OrganisationMongoDataStore(val mongoApi: ReactiveMongoApi)(implicit val executionContext: ExecutionContext)
     extends MongoDataStore[Organisation] {
@@ -20,7 +21,6 @@ class OrganisationMongoDataStore(val mongoApi: ReactiveMongoApi)(implicit val ex
   import reactivemongo.api.bson._
   import reactivemongo.play.json.compat._
   import reactivemongo.pekkostream._
-  import lax._
   import bson2json._
   import json2bson._
 
@@ -28,7 +28,7 @@ class OrganisationMongoDataStore(val mongoApi: ReactiveMongoApi)(implicit val ex
 
   override def collectionName(tenant: String) = s"$tenant-organisations"
 
-  override def indices = Seq(
+  override def indices: Seq[Default] = Seq(
     Index(immutable.Seq("orgKey" -> IndexType.Ascending), name = Some("orgKey"), unique = false, sparse = true),
     Index(
       immutable.Seq("orgKey" -> IndexType.Ascending, "version.num" -> IndexType.Ascending),
@@ -133,7 +133,7 @@ class OrganisationMongoDataStore(val mongoApi: ReactiveMongoApi)(implicit val ex
     findManyByQuery(tenant, query)
   }
 
-  def streamAllLatestReleasesOrDraftsByDate(tenant: String, from: String, to: String)(implicit m: Materializer) = {
+  def streamAllLatestReleasesOrDraftsByDate(tenant: String, from: String, to: String)(implicit m: Materializer): Future[Source[JsValue, Future[State]]] = {
     val query = Json.obj(
       "$or" -> Json.arr(
         Json.obj(

@@ -21,7 +21,7 @@ class OtoroshiFilter(env: Env, authInfoMock: AuthInfoMock)(implicit ec: Executio
 
   val config: OtoroshiFilterConfig = env.config.filter.otoroshi
 
-  private val logger = Logger("filter")
+  Logger("filter")
 
   override def apply(nextFilter: RequestHeader => Future[Result])(requestHeader: RequestHeader): Future[Result] = {
     val startTime                  = System.currentTimeMillis
