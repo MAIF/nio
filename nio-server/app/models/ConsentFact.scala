@@ -53,7 +53,7 @@ object DoneBy {
   }
 }
 
-case class Consent(key: String, label: String, checked: Boolean, expiredAt: Option[LocalDateTime]) {
+case class Consent(key: String, label: String, checked: Boolean, expiredAt: Option[LocalDateTime] = None) {
   def asXml(): Elem = <consent>
     <key>
       {key}
