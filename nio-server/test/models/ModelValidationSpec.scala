@@ -14,6 +14,7 @@ class ModelValidationSpec extends AnyWordSpecLike with Matchers {
   val now: LocalDateTime = LocalDateTime.now(Clock.systemUTC)
 
   "Validation ConsentFact" should {
+
     val consentFact: ConsentFact = ConsentFact(
       _id = "1",
       userId = "user1",
@@ -30,7 +31,8 @@ class ModelValidationSpec extends AnyWordSpecLike with Matchers {
             Consent(
               key = "g1c1",
               label = "group 1 consent 1",
-              checked = false
+              checked = false,
+              expiredAt = Some(LocalDateTime.now().plusMinutes(20))
             ),
             Consent(
               key = "g1c2",
