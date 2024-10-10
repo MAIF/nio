@@ -12,7 +12,7 @@ import play.api.libs.json._
 import play.api.libs.json.Reads._
 import utils.Result.AppErrors
 
-import java.time.{LocalDateTime, ZoneId}
+import java.time.{Clock, LocalDateTime, ZoneId}
 import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.util.{Failure, Success, Try}
 import scala.xml.{Elem, NodeSeq}
@@ -57,7 +57,7 @@ object PermissionType {
 
 case class Permission(key: String, label: String, `type`: PermissionType = OptIn, validityPeriod: Option[FiniteDuration] = None) {
 
-  def getValidityPeriod: Option[LocalDateTime] = validityPeriod.map(fd => LocalDateTime.now(ZoneId.systemDefault()).plusMinutes(fd.toMinutes))
+  def getValidityPeriod: Option[LocalDateTime] = validityPeriod.map(fd => LocalDateTime.now(Clock.systemUTC()).plusMinutes(fd.toMinutes).withNano(0))
 
   def checkDefault(): Boolean = `type` match {
     case OptIn => false

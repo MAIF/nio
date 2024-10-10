@@ -64,11 +64,15 @@ case class Consent(key: String, label: String, checked: Boolean, expiredAt: Opti
     <checked>
       {checked}
     </checked>
+    {expiredAt.map(l => <expiredAt>{l.format(DateUtils.utcDateFormatter)}</expiredAt>)}
   </consent>.clean()
 }
 
 object Consent {
-  implicit val consentFormats: OFormat[Consent] = Json.format[Consent]
+  implicit val consentFormats: OFormat[Consent] = {
+    implicit val dateFormat: Format[LocalDateTime] = DateUtils.utcDateTimeFormats
+    Json.format[Consent]
+  }
 
   implicit val xmlRead: XMLRead[Consent] =
     (xml: NodeSeq, path: Option[String]) => {
@@ -444,6 +448,26 @@ case class ConsentFact(
       }.get
   }
   </consentFact>.clean()
+
+  case class KeyPermissionGroup(group: String, permission: String)
+
+  def setUpValidityPeriods(organisation: Organisation): ConsentFact = {
+    val indexedKeys: Seq[(KeyPermissionGroup, Permission)] = for {
+      g <- organisation.groups
+      p <- g.permissions
+    } yield (KeyPermissionGroup(g.key, p.key), p)
+    val indexed: Map[KeyPermissionGroup, Seq[(KeyPermissionGroup, Permission)]] = indexedKeys.groupBy(_._1)
+    this.copy(groups = this.groups.map( group =>
+      group.copy(
+        consents = group.consents.map ( consent =>
+          consent.copy(expiredAt = indexed.get(KeyPermissionGroup(group.key, consent.key))
+            .flatMap(_.headOption)
+            .flatMap(_._2.getValidityPeriod)
+          )
+        )
+      )
+    ))
+  }
 }
 
 object ConsentFact extends ReadableEntity[ConsentFact] {

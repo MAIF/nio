@@ -9,6 +9,7 @@ import play.api.libs.ws.WSResponse
 import play.api.test.Helpers._
 
 import java.time.format.DateTimeFormatter
+import scala.concurrent.duration.DurationInt
 
 class OrganisationControllerSpec extends TestUtils {
 
@@ -19,7 +20,10 @@ class OrganisationControllerSpec extends TestUtils {
       key = org1Key,
       label = "lbl",
       groups = Seq(
-        PermissionGroup(key = "group1", label = "blalba", permissions = Seq(Permission("sms", "Please accept sms")))
+        PermissionGroup(key = "group1", label = "blalba", permissions = Seq(
+          Permission("sms", "Please accept sms"),
+          Permission("call", "Please accept call", validityPeriod = Some(1.hour)),
+        ))
       )
     )
     val org1AsJson = org1.asJson()
@@ -116,10 +120,12 @@ class OrganisationControllerSpec extends TestUtils {
       (groups \ 0 \ "label").as[String] mustBe org1.groups.head.label
 
       val permissions = (groups \ 0 \ "permissions").as[JsArray]
-      (permissions \ 0 \ "key")
-        .as[String] mustBe org1.groups.head.permissions.head.key
-      (permissions \ 0 \ "label")
-        .as[String] mustBe org1.groups.head.permissions.head.label
+      (permissions \ 0 \ "key").as[String] mustBe org1.groups.head.permissions.head.key
+      (permissions \ 0 \ "label").as[String] mustBe org1.groups.head.permissions.head.label
+      (permissions \ 0 \ "validityPeriod").asOpt[String] mustBe None
+      (permissions \ 1 \ "key").as[String] mustBe "call"
+      (permissions \ 1 \ "label").as[String] mustBe "Please accept call"
+      (permissions \ 1 \ "validityPeriod").as[String] mustBe "1 hour"
 
       val getOrganisationsResponse: WSResponse = getJson(path)
       getOrganisationsResponse.status mustBe OK

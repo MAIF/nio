@@ -51,16 +51,17 @@ class ConsentManagerService(
       author: String,
       metadata: Option[Seq[(String, String)]],
       organisation: Organisation,
-      consentFact: ConsentFact,
+      consentFactInput: ConsentFact,
       maybeLastConsentFact: Option[ConsentFact] = None,
       command: JsValue
   ): IO[AppErrorWithStatus, ConsentFact] =
     for {
-      _                       <- IO.fromEither(organisation.isValidWith(consentFact, maybeLastConsentFact)).mapError(m => AppErrorWithStatus(m))
-      organisationKey: String = organisation.key
-      userId: String          = consentFact.userId
-      _                       <- validateOffersStructures(tenant, organisationKey, userId, consentFact.offers).doOnError{ e => NioLogger.error(s"validate offers structure $e") }
-      res                     <- maybeLastConsentFact match {
+      _                       <- IO.fromEither(organisation.isValidWith(consentFactInput, maybeLastConsentFact)).mapError(m => AppErrorWithStatus(m))
+      consentFact: ConsentFact = consentFactInput.setUpValidityPeriods(organisation)
+      organisationKey: String  = organisation.key
+      userId: String           = consentFact.userId
+      _                        <- validateOffersStructures(tenant, organisationKey, userId, consentFact.offers).doOnError{ e => NioLogger.error(s"validate offers structure $e") }
+      res                      <- maybeLastConsentFact match {
         // Create a new user, consent fact and last consent fact
         case None =>
           for {
