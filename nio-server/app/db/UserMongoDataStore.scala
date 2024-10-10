@@ -5,10 +5,11 @@ import org.apache.pekko.stream.scaladsl.Source
 import models._
 import play.api.libs.json.{JsValue, Json, OFormat}
 import play.modules.reactivemongo.ReactiveMongoApi
+import reactivemongo.api.indexes.Index.Default
 import reactivemongo.api.indexes.{Index, IndexType}
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.collection.{immutable, Seq}
+import scala.collection.{Seq, immutable}
 
 class UserMongoDataStore(val mongoApi: ReactiveMongoApi)(implicit val executionContext: ExecutionContext)
     extends MongoDataStore[User] {
@@ -16,7 +17,6 @@ class UserMongoDataStore(val mongoApi: ReactiveMongoApi)(implicit val executionC
   import reactivemongo.api.bson._
   import reactivemongo.play.json.compat._
   import reactivemongo.pekkostream._
-  import lax._
   import bson2json._
   import json2bson._
 
@@ -24,7 +24,7 @@ class UserMongoDataStore(val mongoApi: ReactiveMongoApi)(implicit val executionC
 
   override def collectionName(tenant: String) = s"$tenant-users"
 
-  override def indices = Seq(
+  override def indices: Seq[Default] = Seq(
     Index(
       key = immutable.Seq("orgKey" -> IndexType.Ascending, "userId" -> IndexType.Ascending),
       name = Some("orgKey_userId"),
@@ -76,27 +76,6 @@ class UserMongoDataStore(val mongoApi: ReactiveMongoApi)(implicit val executionC
           Some(Json.obj("_id" -> 0, "userId" -> 1, "orgKey" -> 1, "orgVersion" -> 1))
         )
         .cursor[JsValue]()
-        .documentSource()
-    }
-
-  def streamAllConsentFactIds(tenant: String)(implicit m: Materializer): Future[Source[JsValue, Future[State]]] =
-    storedCollection(tenant).map { col =>
-      col
-        .find(
-          Json.obj(),
-          Some(Json.obj("_id" -> 0, "latestConsentFactId" -> 1))
-        )
-        .cursor[JsValue]()
-        .documentSource()
-    }
-
-  def streamAllUsersConsentFacts(tenant: String)(implicit m: Materializer): Future[Source[JsValue, Future[State]]] =
-    storedCollection(tenant).map { users =>
-      users
-        .aggregateWith[JsValue]() { framework =>
-          import framework.Lookup
-          List(Lookup(s"$tenant-consentFacts", "latestConsentFactId", "_id", "consentFact"))
-        }
         .documentSource()
     }
 

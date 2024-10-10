@@ -1,8 +1,8 @@
 package models
 
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, OFormat}
 import reactivemongo.api.bson.BSONObjectID
-import scala.collection.Seq
+
 
 case class User(
     _id: String = BSONObjectID.generate().stringify,
@@ -13,5 +13,5 @@ case class User(
 )
 
 object User {
-  implicit val formats = Json.format[User]
+  implicit val formats: OFormat[User] = Json.format[User]
 }

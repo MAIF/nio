@@ -1,4 +1,7 @@
 object Dependencies {
+
+  val _scalaVersion = "2.13.15"
+
   val reactiveMongoVersion = "1.1.0"
   val pekko                = "1.1.1"
   val pekkoKafka           = "1.1.0"

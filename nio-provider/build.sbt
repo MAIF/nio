@@ -9,7 +9,7 @@ lazy val `nio-provider` = (project in file("."))
   .enablePlugins(NoPublish)
   .disablePlugins(BintrayPlugin)
 
-scalaVersion := "2.13.14"
+scalaVersion := _scalaVersion
 
 resolvers ++= Seq(
   Resolver.jcenterRepo,
@@ -42,11 +42,11 @@ scalacOptions ++= Seq(
 
 /// ASSEMBLY CONFIG
 
-mainClass in assembly := Some("play.core.server.ProdServerStart")
-test in assembly := {}
-assemblyJarName in assembly := "nio-provider.jar"
-fullClasspath in assembly += Attributed.blank(PlayKeys.playPackageAssets.value)
-assemblyMergeStrategy in assembly := {
+assembly / mainClass := Some("play.core.server.ProdServerStart")
+assembly / test := {}
+assembly / assemblyJarName := "nio-provider.jar"
+assembly / fullClasspath += Attributed.blank(PlayKeys.playPackageAssets.value)
+assembly / assemblyMergeStrategy := {
   case PathList("javax", xs @ _*)                                             => MergeStrategy.first
   case PathList("META-INF", "native", xs @ _*)                                => MergeStrategy.first
   case PathList("org", "apache", "commons", "logging", xs @ _*)               => MergeStrategy.discard
@@ -59,14 +59,14 @@ assemblyMergeStrategy in assembly := {
   case PathList(ps @ _*) if ps.contains("buildinfo")                          => MergeStrategy.discard
   case PathList(ps @ _*) if ps.last endsWith "reflection-config.json"         => MergeStrategy.first
   case o =>
-    val oldStrategy = (assemblyMergeStrategy in assembly).value
+    val oldStrategy = (assembly / assemblyMergeStrategy).value
     oldStrategy(o)
 }
 
 lazy val packageAll = taskKey[Unit]("PackageAll")
 packageAll := {
-  (dist in Compile).value
-  (assembly in Compile).value
+  (Compile / dist).value
+  (Compile / assembly).value
 }
 
 /// DOCKER CONFIG
@@ -74,9 +74,9 @@ packageAll := {
 dockerExposedPorts := Seq(
   9000
 )
-packageName in Docker := "nio-provider"
+Docker / packageName := "nio-provider"
 
-maintainer in Docker := "MAIF Team <maif@maif.fr>"
+Docker / maintainer := "MAIF Team <maif@maif.fr>"
 
 dockerBaseImage := "openjdk:8"
 
@@ -109,4 +109,4 @@ dockerEntrypoint ++= Seq(
 
 dockerUpdateLatest := true
 
-packageName in Universal := s"nio-provider"
+Universal / packageName := s"nio-provider"

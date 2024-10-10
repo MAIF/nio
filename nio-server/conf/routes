@@ -139,7 +139,7 @@ POST          /api/tenants                                                      
 
 DELETE        /api/tenants/:tenantKey                                                                                     controllers.TenantController.deleteTenant(tenantKey)
 
-GET           /_healthCheck                                                                                               controllers.MetricsController.healthCheck
+GET           /_healthCheck                                                                                               controllers.MetricsController.healthCheck()
 
 GET           /_download/*name                                                                                            controllers.UserExtractController.downloadFile(name: String, uploadToken: String)
 

@@ -1,9 +1,7 @@
 package libs
 
-import cats.Parallel
 import cats.data.EitherT
 import cats.implicits._
-import cats.syntax._
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}

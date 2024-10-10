@@ -37,7 +37,7 @@ class Starter(
 
   def initialize() = {
 
-    implicit val mat: Materializer = Materializer(system)
+    Materializer(system)
 
     // clean up db
     val dbFlush: Boolean = config.get[Boolean]("db.flush")

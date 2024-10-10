@@ -1,6 +1,5 @@
 package service
 
-import java.util.regex.Pattern
 
 import org.apache.pekko.http.scaladsl.util.FastFuture
 import controllers.AppErrorWithStatus

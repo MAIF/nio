@@ -59,7 +59,7 @@ object implicits {
   private def toPath(path: Option[String]): String =
     path.map(p => s".$p").getOrElse("")
 
-  private def buildError(path: Option[String]): AppErrors =
+  def buildError(path: Option[String]): AppErrors =
     AppErrors.error(s"unknow.path${toPath(path)}")
 
   implicit def readString: XMLRead[String] =

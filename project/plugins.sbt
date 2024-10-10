@@ -13,4 +13,6 @@ addSbtPlugin("com.typesafe.sbt" % "sbt-git" % "1.0.0") // Apache 2.0
 
 addSbtPlugin("com.github.gseitz" % "sbt-release" % "1.0.13") // Apache 2.0
 
+addSbtPlugin("ch.epfl.scala" % "sbt-scalafix" % "0.13.0")
+
 ThisBuild / libraryDependencySchemes += "org.scala-lang.modules" %% "scala-xml" % VersionScheme.Always

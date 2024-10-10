@@ -94,7 +94,7 @@ trait TestUtils
                       |db.tenants=["$tenant"]
                       |nio.filter.securityMode="default"
        """.stripMargin)
-      .resolve()
+      .resolve().withFallback(ConfigFactory.load("default.conf"))
   }
 
   protected lazy val authInfo: AuthInfoMock = new AuthInfoTest

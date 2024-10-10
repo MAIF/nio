@@ -1,15 +1,15 @@
 package controllers
 
-import auth.{AuthAction, SecuredAction, SecuredAuthContext}
+import auth.SecuredAuthContext
 import controllers.ErrorManager.ErrorManagerResult
 import db.AccountMongoDataStore
+import libs.xmlorjson.XmlOrJson
 import messaging.KafkaMessageBroker
 import models._
 import utils.NioLogger
-import play.api.mvc.{ActionBuilder, AnyContent, ControllerComponents}
+import play.api.mvc.{Action, ActionBuilder, AnyContent, ControllerComponents}
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.collection.Seq
 
 class AccountController(
     val AuthAction: ActionBuilder[SecuredAuthContext, AnyContent],
@@ -21,24 +21,22 @@ class AccountController(
 
   implicit val readable: ReadableEntity[Account] = Account
 
-  def find(tenant: String, accountId: String) = AuthAction.async { implicit req =>
+  def find(tenant: String, accountId: String): Action[AnyContent] = AuthAction.async { implicit req =>
     accountStore
       .findByAccountId(tenant, accountId)
       .map {
-        case Some(account) =>
-          renderMethod(account)
-        case None          =>
-          "error.unknown.account".notFound()
+        case Some(account) => renderMethod(account)
+        case None          => "error.unknown.account".notFound()
       }
   }
 
-  def findAll(tenant: String, page: Int, pageSize: Int) = AuthAction.async { implicit req =>
+  def findAll(tenant: String, page: Int, pageSize: Int): Action[AnyContent] = AuthAction.async { implicit req =>
     accountStore
       .findAll(tenant, page, pageSize)
       .map(accounts => renderMethod(Accounts(accounts)))
   }
 
-  def create(tenant: String) = AuthAction(bodyParser).async { implicit req =>
+  def create(tenant: String): Action[XmlOrJson] = AuthAction(bodyParser).async { implicit req =>
     req.body.read[Account] match {
       case Left(error)    =>
         NioLogger.error(s"Invalid account format $error")
@@ -60,7 +58,7 @@ class AccountController(
     }
   }
 
-  def update(tenant: String, accountId: String) =
+  def update(tenant: String, accountId: String): Action[XmlOrJson] =
     AuthAction(bodyParser).async { implicit req =>
       req.body.read[Account] match {
         case Left(error)                                      =>
@@ -82,16 +80,16 @@ class AccountController(
                 )
                 renderMethod(account)
               }
-            case None             =>
+            case None =>
               Future.successful("error.account.not.found".notFound())
           }
 
-        case Right(account) if accountId != account.accountId =>
+        case Right(_)  =>
           Future.successful("error.accountId.is.immutable".badRequest())
       }
     }
 
-  def delete(tenant: String, accountId: String) = AuthAction.async { implicit req =>
+  def delete(tenant: String, accountId: String): Action[AnyContent] = AuthAction.async { implicit req =>
     accountStore.findByAccountId(tenant, accountId).flatMap {
       case Some(account) =>
         accountStore

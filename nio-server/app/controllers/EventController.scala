@@ -1,13 +1,13 @@
 package controllers
 
-import auth.{AuthAction, SecuredAction, SecuredAuthContext}
-import javax.inject.{Inject, Singleton}
+import auth.SecuredAuthContext
+
 import messaging.KafkaMessageBroker
 import models.NioEvent
 import play.api.libs.EventSource
 import play.api.libs.EventSource.{EventDataExtractor, EventNameExtractor}
 import play.api.libs.json.Json
-import play.api.mvc.{ActionBuilder, AnyContent, ControllerComponents}
+import play.api.mvc.{Action, ActionBuilder, AnyContent, ControllerComponents}
 
 import scala.concurrent.ExecutionContext
 
@@ -18,11 +18,10 @@ class EventController(
 )(implicit val ec: ExecutionContext)
     extends ControllerUtils(cc) {
 
-  private implicit val nameExtractor = EventNameExtractor[NioEvent](_ => None)
-  private implicit val dataExtractor =
-    EventDataExtractor[NioEvent](event => Json.stringify(event.asJson()))
+  private implicit val nameExtractor: EventNameExtractor[NioEvent] = EventNameExtractor[NioEvent](_ => None)
+  private implicit val dataExtractor: EventDataExtractor[NioEvent] = EventDataExtractor[NioEvent](event => Json.stringify(event.asJson()))
 
-  def events(tenant: String) = AuthAction { implicit req =>
+  def events(tenant: String): Action[AnyContent] = AuthAction { _ =>
     Ok.chunked(broker.events(tenant) via EventSource.flow)
       .as("text/event-stream")
   }

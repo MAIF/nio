@@ -24,7 +24,6 @@ import play.api.mvc.{ActionBuilder, AnyContent, ControllerComponents}
 import reactivemongo.api.bson.BSONObjectID
 import service.{ConsentManagerService, OfferManagerService}
 
-import java.time.format.DateTimeFormatter
 import scala.collection.Seq
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}

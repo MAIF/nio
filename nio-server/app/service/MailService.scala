@@ -5,9 +5,7 @@ import org.apache.pekko.http.scaladsl.util.FastFuture
 import configuration.{Env, MailGunConfig}
 import utils.NioLogger
 import play.api.libs.ws.{WSClient, _}
-import play.api.mvc.MultipartFormData.DataPart
 
-import scala.collection.immutable
 import scala.concurrent.{ExecutionContext, Future}
 
 trait MailService {

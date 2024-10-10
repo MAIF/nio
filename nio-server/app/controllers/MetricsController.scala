@@ -1,14 +1,13 @@
 package controllers
 
 import org.apache.pekko.actor.ActorSystem
-import auth.{AuthAction, SecuredAction, SecuredAuthContext}
-import com.fasterxml.jackson.databind.ObjectMapper
+import auth.SecuredAuthContext
 import configuration.Env
 import controllers.ErrorManager.ErrorManagerResult
 import db.TenantMongoDataStore
 import messaging.KafkaSettings
 import org.apache.kafka.clients.consumer.Consumer
-import play.api.mvc.{ActionBuilder, AnyContent, ControllerComponents}
+import play.api.mvc.{Action, ActionBuilder, AnyContent, ControllerComponents}
 
 import scala.jdk.CollectionConverters._
 import scala.concurrent.{ExecutionContext, Future}
@@ -22,12 +21,9 @@ class MetricsController(
 )(implicit ec: ExecutionContext)
     extends ControllerUtils(cc) {
 
-  val mapper = new ObjectMapper()
+  private val blockingExecutionContext = actorSystem.dispatchers.lookup("blocking-dispatcher")
 
-  val blockingExecutionContext =
-    actorSystem.dispatchers.lookup("blocking-dispatcher")
-
-  def healthCheck() = AuthAction.async { implicit req =>
+  def healthCheck(): Action[AnyContent] = AuthAction.async { implicit req =>
     req.headers.get(env.healthCheckConfig.header) match {
       case Some(secret) if secret == env.healthCheckConfig.secret =>
         tenantStore
@@ -49,8 +45,7 @@ class MetricsController(
 
             Ok
           }
-      case None                                                   =>
-        Future.successful("error.missing.secret".unauthorized())
+      case _ => Future.successful("error.missing.secret".unauthorized())
     }
   }
 

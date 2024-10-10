@@ -6,13 +6,13 @@ import libs.xml.XMLRead
 import libs.xml.XmlUtil.XmlCleaner
 import libs.xml.implicits._
 import libs.xml.syntax._
-import play.api.libs.json.Json
-import scala.collection.Seq
+import play.api.libs.json.{Json, OFormat}
 
-import scala.xml.NodeSeq
+import scala.collection.Seq
+import scala.xml.{Elem, NodeSeq}
 
 case class PermissionGroup(key: String, label: String, permissions: Seq[Permission]) {
-  def asXml() = <permissionGroup>
+  def asXml(): Elem = <permissionGroup>
       <key>{key}</key>
       <label>{label}</label>
       <permissions>{permissions.map(_.asXml())}</permissions>
@@ -20,7 +20,7 @@ case class PermissionGroup(key: String, label: String, permissions: Seq[Permissi
 }
 
 object PermissionGroup {
-  implicit val json = Json.format[PermissionGroup]
+  implicit val json: OFormat[PermissionGroup] = Json.format[PermissionGroup]
 
   implicit val readXml: XMLRead[PermissionGroup] =
     (node: NodeSeq, path: Option[String]) =>

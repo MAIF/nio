@@ -134,7 +134,7 @@ object ApiKey extends ReadableEntity[ApiKey] {
   def fromXml(xml: Elem): Either[AppErrors, ApiKey] =
     readXml.read(xml, Some("ApiKey")).toEither
 
-  def fromJson(json: JsValue) =
+  def fromJson(json: JsValue): Either[AppErrors, ApiKey] =
     json.validate[ApiKey] match {
       case JsSuccess(o, _) => Right(o)
       case JsError(errors) => Left(AppErrors.fromJsError(errors))
@@ -143,7 +143,7 @@ object ApiKey extends ReadableEntity[ApiKey] {
 }
 
 case class ApiKeys(page: Int, pageSize: Int, count: Long, items: Seq[ApiKey]) extends ModelTransformAs {
-  def asJson() =
+  def asJson(): JsObject =
     Json.obj("page" -> page, "pageSize" -> pageSize, "count" -> count, "items" -> JsArray(items.map(_.asJson())))
 
   def asXml()  = <apiKeys>

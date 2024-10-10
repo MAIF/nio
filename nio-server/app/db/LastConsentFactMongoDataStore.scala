@@ -8,26 +8,25 @@ import controllers.AppErrorWithStatus
 import models._
 import utils.NioLogger
 import play.api.libs.json.{JsValue, Json, OFormat}
-import play.api.mvc.Results.NotFound
 import play.modules.reactivemongo.ReactiveMongoApi
-import reactivemongo.pekkostream.cursorProducer
 import reactivemongo.api.{Cursor, ReadPreference}
 import reactivemongo.api.bson.collection.BSONCollection
 import reactivemongo.api.indexes.{Index, IndexType}
 import utils.BSONUtils
 import utils.Result.{AppErrors, ErrorMessage}
 
+import scala.annotation.nowarn
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Failure
-import scala.collection.{immutable, Seq}
+import scala.collection.{Seq, immutable}
 
+@nowarn("msg=Will be removed when provided by Play-JSON itself")
 class LastConsentFactMongoDataStore(val mongoApi: ReactiveMongoApi)(implicit val executionContext: ExecutionContext)
     extends MongoDataStore[ConsentFact] {
 
   import reactivemongo.api.bson._
   import reactivemongo.play.json.compat._
   import reactivemongo.pekkostream._
-  import lax._
   import bson2json._
   import json2bson._
   val format: OFormat[ConsentFact] = models.ConsentFact.consentFactOFormats

@@ -4,9 +4,6 @@ import java.util.Base64
 
 import org.apache.pekko.stream.Materializer
 import auth.AuthInfo
-import com.auth0.jwt.JWT
-import com.auth0.jwt.algorithms.Algorithm
-import com.auth0.jwt.interfaces.DecodedJWT
 import com.google.common.base.Charsets
 import configuration.Env
 import db.ApiKeyMongoDataStore
@@ -22,7 +19,7 @@ class Auth0Filter(env: Env, authInfoMock: AuthInfoMock, apiKeyMongoDataStore: Ap
     ec: ExecutionContext,
     val mat: Materializer
 ) extends Filter {
-  private val logger = Logger("filter")
+  Logger("filter")
 
   private lazy val auth0Config = env.config.filter.auth0
   private val decoder          = Base64.getDecoder
@@ -74,7 +71,7 @@ class Auth0Filter(env: Env, authInfoMock: AuthInfoMock, apiKeyMongoDataStore: Ap
         case (_, _, _, Some((clientId, clientSecret)), _, _) =>
           validateByApiKey(next, requestHeader, clientId, clientSecret)
 
-        case (_, Some(email), Some(token), _, _, _)                                              =>
+        case (_, Some(email), Some(_), _, _, _)                                              =>
           // TODO : récupérer les informations en session
           next(
             requestHeader.addAttr(FilterAttributes.Email, email)

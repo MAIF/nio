@@ -1,7 +1,7 @@
 package controllers
 
 import org.apache.pekko.actor.ActorSystem
-import auth.{AuthAction, SecuredAction, SecuredAuthContext}
+import auth.SecuredAuthContext
 import db.{ConsentFactMongoDataStore, DeletionTaskMongoDataStore, OrganisationMongoDataStore, UserMongoDataStore}
 import messaging.KafkaMessageBroker
 import models._
@@ -9,7 +9,6 @@ import utils.NioLogger
 import play.api.mvc.{ActionBuilder, AnyContent, ControllerComponents}
 import ErrorManager.ErrorManagerResult
 import ErrorManager.AppErrorManagerResult
-import scala.collection.Seq
 
 import scala.concurrent.{ExecutionContext, Future}
 

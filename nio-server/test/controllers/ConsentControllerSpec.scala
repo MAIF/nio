@@ -3,7 +3,7 @@ package controllers
 import org.apache.pekko.japi.Option
 import models._
 
-import java.time.{Clock, LocalDateTime}
+import java.time.{Clock, LocalDateTime, ZoneId}
 import utils.NioLogger
 import play.api.libs.json.{JsArray, JsObject, JsValue, Json}
 import play.api.libs.ws.WSResponse
@@ -11,6 +11,7 @@ import utils.{DateUtils, TestUtils}
 import play.api.test.Helpers._
 
 import java.time.format.DateTimeFormatter
+import scala.concurrent.duration.DurationInt
 
 class ConsentControllerSpec extends TestUtils {
 
@@ -230,6 +231,26 @@ class ConsentControllerSpec extends TestUtils {
   "ConsentController" should {
     val organisationKey: String = "maif"
 
+//    val organisation: Organisation = Organisation(
+//      key = organisationKey,
+//      label = "maif",
+//      groups = Seq(
+//        PermissionGroup(
+//          key = "maifNotifs",
+//          label = "J'accepte de recevoir par téléphone, mail et SMS des offres personnalisées du groupe MAIF",
+//          permissions = Seq(
+//            Permission(key = "phone", label = "Par contact téléphonique", validityPeriod = Some(1.minute)),
+//            Permission(key = "mail", label = "Par contact électronique"),
+//            Permission(key = "sms", label = "Par SMS / MMS / VMS")
+//          )
+//        )
+//      )
+//    )
+//    postJson(s"/$tenant/organisations", organisation.asJson()).status mustBe CREATED
+//    postJson(s"/$tenant/organisations/$organisationKey/draft/_release", organisation.asJson()).status mustBe OK
+//    postJson(s"/$tenant/organisations/$organisationKey/draft/_release", organisation.asJson()).status mustBe OK
+
+
     "user not exist" in {
       val path: String =
         s"/$tenant/organisations/$organisationKey/users/$userId1"
@@ -297,6 +318,9 @@ class ConsentControllerSpec extends TestUtils {
     }
 
     "create user consents" in {
+
+      println(getJson(s"/$tenant/organisations/$organisationKey").json)
+
       val path: String =
         s"/$tenant/organisations/$organisationKey/users/$userId1"
       val putResponse  = putJson(path, user1AsJson)
@@ -336,9 +360,12 @@ class ConsentControllerSpec extends TestUtils {
 
       consents1.value.size mustBe 3
 
-      (consents1 \ 0 \ "key").as[String] mustBe "phone"
-      (consents1 \ 0 \ "label").as[String] mustBe "Par contact téléphonique"
-      (consents1 \ 0 \ "checked").as[Boolean] mustBe true
+      val consent0 = consents1 \ 0
+      (consent0 \ "key").as[String] mustBe "phone"
+      (consent0 \ "label").as[String] mustBe "Par contact téléphonique"
+      (consent0 \ "checked").as[Boolean] mustBe true
+      (consent0 \ "expiredAt").asOpt[LocalDateTime](DateUtils.utcDateTimeReads)
+        .map(_.withSecond(0)) mustBe Some(LocalDateTime.now(Clock.systemUTC()).plusHours(1).withSecond(0).withNano(0))
 
       (consents1 \ 1 \ "key").as[String] mustBe "mail"
       (consents1 \ 1 \ "label").as[String] mustBe "Par contact électronique"
@@ -809,15 +836,18 @@ class ConsentControllerSpec extends TestUtils {
         )
       ))
 
-      println(patchResponse.json)
+      val json = patchResponse.json
+      println(json)
       patchResponse.status mustBe OK
 
-      val expectedDate: LocalDateTime = (patchResponse.json \ "lastUpdate").validate(DateUtils.utcDateTimeReads).get
-      patchResponse.json mustBe user1.copy(
+      val expectedDate: LocalDateTime = (json \ "lastUpdate").validate(DateUtils.utcDateTimeReads).get
+      json mustBe user1.copy(
         orgKey = Some("maif"),
         lastUpdate = expectedDate,
         groups = user1.groups.updated(0,  user1.groups(0).copy(
-          consents = user1.groups(0).consents.updated(0, user1.groups(0).consents(0).copy(checked = false))
+          consents = user1.groups(0).consents.updated(0, user1.groups(0).consents(0).copy(
+            checked = false,
+            expiredAt = Some(LocalDateTime.now(Clock.systemUTC()).plusHours(1).withNano(0))))
         ))
       ).asJson()
     }
