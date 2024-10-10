@@ -68,7 +68,7 @@ case class Permission(key: String, label: String, `type`: PermissionType = OptIn
       <key>{key}</key>
       <label>{label}</label>
       <type>{`type`.print}</type>
-      <validityPeriod>{validityPeriod.map(_.toString()).getOrElse("")}</validityPeriod>
+      {validityPeriod.map(p => <validityPeriod>p.toString()</validityPeriod>)}
     </permission>.clean()
 }
 
