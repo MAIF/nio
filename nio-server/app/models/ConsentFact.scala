@@ -197,7 +197,7 @@ object PartialConsent {
   def merge(pcs: Seq[PartialConsent], consents: Seq[Consent], permission: Seq[Permission]): Seq[Consent] = {
     val keyToPermission = permission.groupBy(_.key)
     consents.map { c =>
-      val mayBePermission: Option[Permission] = keyToPermission(c.key).headOption
+      val mayBePermission: Option[Permission] = keyToPermission.get(c.key).flatMap(_.headOption)
       pcs.find(pc => pc.key == c.key).fold(c) { pc =>
         c.copy(
           label = pc.label.getOrElse(c.label),
@@ -206,7 +206,7 @@ object PartialConsent {
         )
       }
     } ++ pcs.filter(pc => !consents.exists(c => c.key == pc.key)).map { pc =>
-      val mayBePermission: Option[Permission] = keyToPermission(pc.key).headOption
+      val mayBePermission: Option[Permission] = keyToPermission.get(pc.key).flatMap(_.headOption)
       Consent(pc.key, pc.label.getOrElse(""), pc.checked, mayBePermission.flatMap(_.getValidityPeriod))
     }
   }
@@ -225,17 +225,17 @@ case class PartialConsentGroup (key: String, label: Option[String], consents: Op
 object PartialConsentGroup {
 
   def merge(partialGroups: Seq[PartialConsentGroup], existingGroups: Seq[ConsentGroup], permissionGroups: Seq[PermissionGroup]): Seq[ConsentGroup] = {
-    val permissionsByKey = permissionGroups.groupBy(_.key)
+    val permissionsByKey: Map[String, Seq[PermissionGroup]] = permissionGroups.groupBy(_.key)
     existingGroups.map { g =>
       partialGroups.find(pg => pg.key == g.key).fold( g ) { pg =>
-          val mayBePermission = permissionsByKey(pg.key).headOption
+          val mayBePermission: Option[PermissionGroup] = permissionsByKey.get(pg.key).flatMap(_.headOption)
           g.copy(
             label = pg.label.getOrElse(g.label),
             consents = pg.consents.map(pcs => PartialConsent.merge(pcs, g.consents, mayBePermission.toList.flatMap(_.permissions))).getOrElse(g.consents)
           )
         }
     } ++ partialGroups.filter(pg => !existingGroups.exists(g => pg.key == g.key)).map { pcg =>
-      val mayBePermission = permissionsByKey(pcg.key).headOption.toList.flatMap(_.permissions)
+      val mayBePermission: List[Permission] = permissionsByKey.get(pcg.key).toList.flatMap(_.headOption).flatMap(_.permissions)
       ConsentGroup(
         pcg.key,
         pcg.label.getOrElse(""),
