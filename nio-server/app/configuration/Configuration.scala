@@ -2,9 +2,9 @@ package configuration
 
 import play.api.Configuration
 import pureconfig.generic.ProductHint
-import pureconfig._
-import pureconfig.generic.derivation.default._
-
+import pureconfig.*
+import pureconfig.generic.derivation.default.*
+import pureconfig.generic.semiauto.*
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -21,7 +21,7 @@ case class NioConfiguration(
     s3Config: S3Config,
     mailGunConfig: MailGunConfig,
     db: Db
-) derives ConfigReader
+)
 
 case class SecurityFilter(
     securityMode: String,
@@ -84,10 +84,10 @@ case class KafkaConfig(
 case class Location(location: Option[String])
 
 
-case class TenantConfiguration(admin: AdminConfig) derives ConfigReader
+case class TenantConfiguration(admin: AdminConfig)
 
 
-case class HealthCheckConfiguration(secret: String, header: String) derives ConfigReader
+case class HealthCheckConfiguration(secret: String, header: String)
 
 case class AdminConfig(secret: String, header: String)
 
@@ -112,22 +112,31 @@ object NioConfiguration {
 
   implicit def hint[T]: ProductHint[T] = ProductHint[T](ConfigFieldMapping(CamelCase, CamelCase))
 
-  def apply(config: Configuration): NioConfiguration =
+  def apply(config: Configuration): NioConfiguration = {
+    given ConfigReader[NioConfiguration] = deriveReader
+    given ConfigWriter[NioConfiguration] = deriveWriter
     ConfigSource.fromConfig(config.underlying).at("nio").loadOrThrow[NioConfiguration]
+  }
 }
 
 
 object TenantConfiguration {
   implicit def hint[T]: ProductHint[T] = ProductHint[T](ConfigFieldMapping(CamelCase, CamelCase))
 
-  def apply(config: Configuration): TenantConfiguration =
+  def apply(config: Configuration): TenantConfiguration = {
+    given ConfigReader[TenantConfiguration] = deriveReader
+    given ConfigWriter[TenantConfiguration] = deriveWriter
     ConfigSource.fromConfig(config.underlying).at("tenant").loadOrThrow[TenantConfiguration]
+  }
 }
 
 
 object HealthCheckConfiguration {
   implicit def hint[T]: ProductHint[T] = ProductHint[T](ConfigFieldMapping(CamelCase, CamelCase))
 
-  def apply(config: Configuration): HealthCheckConfiguration =
+  def apply(config: Configuration): HealthCheckConfiguration = {
+    given ConfigReader[HealthCheckConfiguration] = deriveReader
+    given ConfigWriter[HealthCheckConfiguration] = deriveWriter
     ConfigSource.fromConfig(config.underlying).at("healthcheck").loadOrThrow[HealthCheckConfiguration]
+  }
 }
