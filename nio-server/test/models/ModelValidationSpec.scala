@@ -1,13 +1,13 @@
 package models
 
-import java.time.{LocalDateTime, Clock}
+import java.time.{Clock, LocalDateTime}
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import play.api.libs.json.JsValue
 import utils.DateUtils
 import utils.Result.AppErrors
 
-import scala.xml.Elem
+import scala.xml.{Elem, NodeBuffer}
 
 class ModelValidationSpec extends AnyWordSpecLike with Matchers {
 
@@ -72,9 +72,7 @@ class ModelValidationSpec extends AnyWordSpecLike with Matchers {
     "xml serialize/deserialize" in {
 
       val xml: Elem                                         = consentFact.asXml()
-      val consentFactEither: Either[AppErrors, ConsentFact] =
-        ConsentFact.fromXml(xml)
-
+      val consentFactEither: Either[AppErrors, ConsentFact] = ConsentFact.fromXml(xml)
       consentFactEither.isRight must be(true)
 
       val consentFactFromXml: ConsentFact = consentFactEither.toOption.get
@@ -152,13 +150,11 @@ class ModelValidationSpec extends AnyWordSpecLike with Matchers {
       </groups>
       <invalidLastUpdate>{consentFact.lastUpdate.format(DateUtils.utcDateFormatter)}</invalidLastUpdate>
       <invalidOrgKey>{consentFact.orgKey.getOrElse("")}</invalidOrgKey>
-      {
-      if (consentFact.metaData.isDefined)
-        consentFact.metaData.map { md =>
+      {consentFact.metaData.map { md =>
           <metaData>
             {md.map(e => <metaDataEntry invalidKey={e._1} invalidValue={e._2}/>)}
           </metaData>
-        }.get
+        }.getOrElse(new NodeBuffer())
     }
     </consentFact>
 
@@ -194,8 +190,7 @@ class ModelValidationSpec extends AnyWordSpecLike with Matchers {
 
       consentFact.orgKey.get must be("orgKey")
 
-      consentFact.metaData.get.toSeq.head must be("key1", "value1")
-      consentFact.metaData.get.toSeq(1) must be("key2", "value2")
+      consentFact.metaData must be(Some(Map("key1" -> "value1", "key2" -> "value2")))
     }
   }
 

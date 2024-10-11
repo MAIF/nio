@@ -1,23 +1,23 @@
 package models
 
-import cats.data.Validated._
-import cats.implicits._
+import cats.data.Validated.*
+import cats.implicits.*
 import controllers.ReadableEntity
 import libs.xml.XMLRead
 import libs.xml.XmlUtil.XmlCleaner
-import libs.xml.implicits._
-import libs.xml.syntax._
-import play.api.libs.functional.syntax._
-import play.api.libs.json.Reads._
-import play.api.libs.json._
+import libs.xml.implicits.*
+import libs.xml.syntax.*
+import play.api.libs.functional.syntax.*
+import play.api.libs.json.Reads.*
+import play.api.libs.json.*
 import reactivemongo.api.bson.BSONObjectID
 import utils.DateUtils
 import utils.Result.AppErrors
-import utils.Result.AppErrors._
+import utils.Result.AppErrors.*
 import utils.json.JsResultOps
 
 import java.time.{Clock, LocalDateTime}
-import scala.xml.{Elem, NodeSeq}
+import scala.xml.{Elem, NodeBuffer, NodeSeq}
 import scala.collection.Seq
 
 case class Metadata(key: String, value: String)
@@ -64,7 +64,7 @@ case class Consent(key: String, label: String, checked: Boolean, expiredAt: Opti
     <checked>
       {checked}
     </checked>
-    {expiredAt.map(l => <expiredAt>{l.format(DateUtils.utcDateFormatter)}</expiredAt>)}
+    {expiredAt.map(l => <expiredAt>{l.format(DateUtils.utcDateFormatter)}</expiredAt>).getOrElse(new NodeBuffer())}
   </consent>.clean()
 }
 
@@ -439,14 +439,13 @@ case class ConsentFact(
     </lastUpdate>
     <orgKey>
       {orgKey.getOrElse("")}
-    </orgKey>{
-    if (metaData.isDefined)
-      metaData.map { md =>
-        <metaData>
-          {md.map(e => <metaDataEntry key={e._1} value={e._2}/>)}
-        </metaData>
-      }.get
-  }
+    </orgKey>
+    {metaData.map { md =>
+          <metaData>
+            {md.map(e => <metaDataEntry key={e._1} value={e._2}/>)}
+          </metaData>
+        }.getOrElse(new NodeBuffer())
+    }
   </consentFact>.clean()
 
   case class KeyPermissionGroup(group: String, permission: String)
