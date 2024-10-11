@@ -2,12 +2,15 @@ package configuration
 
 import play.api.Configuration
 import pureconfig._
+import pureconfig.generic.derivation.default._
 import pureconfig.generic.ProductHint
 
 import scala.concurrent.duration.FiniteDuration
 
 object NioConfiguration {
-  import pureconfig.generic.auto._
+  import pureconfig._
+  import pureconfig.generic.derivation.default._
+
   implicit def hint[T]: ProductHint[T] =
     ProductHint[T](ConfigFieldMapping(CamelCase, CamelCase))
 
@@ -15,7 +18,7 @@ object NioConfiguration {
     ConfigSource.fromConfig(config.underlying).at("nio").loadOrThrow[NioConfiguration]
 }
 
-case class NioConfiguration(websocketHost: String, filter: Otoroshi, kafka: KafkaConfig, nio: NioConfig)
+case class NioConfiguration(websocketHost: String, filter: Otoroshi, kafka: KafkaConfig, nio: NioConfig) derives ConfigReader
 
 case class NioConfig(url: String, headerValueClientId: String, headerValueClientSecret: String)
 

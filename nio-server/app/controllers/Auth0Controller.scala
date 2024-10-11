@@ -91,7 +91,8 @@ class Auth0Controller(env: Env, wsClient: WSClient, cc: ControllerComponents)(im
     }
   }
 
-  private def getToken(code: String, sessionId: String): Future[Either[AppErrors, (String, String)]] =
+  private def getToken(code: String, sessionId: String): Future[Either[AppErrors, (String, String)]] = {
+    import play.api.libs.ws.writeableOf_JsValue
     wsClient
       .url(s"https://${auth0Config.domain}/oauth/token")
       .addHttpHeaders(HeaderNames.ACCEPT -> MimeTypes.JSON)
@@ -118,6 +119,7 @@ class Auth0Controller(env: Env, wsClient: WSClient, cc: ControllerComponents)(im
             Left(AppErrors(Seq(ErrorMessage("tokens.not.send"))))
         }
       }
+  }
 
   private def getUser(accessToken: String): Future[JsValue] =
     wsClient

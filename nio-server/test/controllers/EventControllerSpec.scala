@@ -3,7 +3,7 @@ package controllers
 import java.util.concurrent.atomic.AtomicBoolean
 
 import org.apache.pekko.actor.ActorSystem
-import org.apache.pekko.stream.{Materializer, ActorMaterializer}
+import org.apache.pekko.stream.Materializer
 import play.api.libs.json.Json
 import play.api.libs.ws.WSResponse
 import play.api.test.Helpers._
@@ -42,7 +42,7 @@ class EventControllerSpec extends TestUtils {
       val isOk = new AtomicBoolean(false)
 
       ws.url(s"$apiPath/$tenant1/events")
-        .withHttpHeaders(jsonHeaders: _*)
+        .withHttpHeaders(jsonHeaders*)
         .withMethod("GET")
         .withRequestTimeout(Duration.Inf)
         .stream()

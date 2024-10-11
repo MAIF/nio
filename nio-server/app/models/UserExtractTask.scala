@@ -6,7 +6,7 @@ import libs.xml.XMLRead
 import libs.xml.XmlUtil.XmlCleaner
 import libs.xml.implicits._
 import libs.xml.syntax._
-import play.api.libs.functional.syntax.{unlift, _}
+import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import play.api.libs.json.Writes._
 import play.api.libs.json._
@@ -88,10 +88,10 @@ object UserExtractTask extends ReadableEntity[UserExtractTask] {
       } and
       (__ \ "uploadStartedAt").readNullable[LocalDateTime] and
       (__ \ "endedAt").readNullable[LocalDateTime]
-  )(UserExtractTask.apply _)
+  )(UserExtractTask.apply)
 
   implicit val userExtractTaskWrites: Writes[UserExtractTask] = (
-    (JsPath \ "_id").write[String] and
+      (JsPath \ "_id").write[String] and
       (JsPath \ "tenant").write[String] and
       (JsPath \ "orgKey").write[String] and
       (JsPath \ "userId").write[String] and
@@ -99,7 +99,7 @@ object UserExtractTask extends ReadableEntity[UserExtractTask] {
       (JsPath \ "startedAt").write[LocalDateTime] and
       (JsPath \ "uploadStartedAt").writeNullable[LocalDateTime] and
       (JsPath \ "endedAt").writeNullable[LocalDateTime]
-  )(unlift(UserExtractTask.unapply))
+  )(ue => (ue._id, ue.tenant, ue.orgKey, ue.userId, ue.email, ue.startedAt, ue.uploadStartedAt, ue.endedAt))
 
   implicit val userExtractTaskOWrites: OWrites[UserExtractTask] = (
     (JsPath \ "_id").write[String] and
@@ -110,7 +110,7 @@ object UserExtractTask extends ReadableEntity[UserExtractTask] {
       (JsPath \ "startedAt").write[LocalDateTime] and
       (JsPath \ "uploadStartedAt").writeNullable[LocalDateTime] and
       (JsPath \ "endedAt").writeNullable[LocalDateTime]
-  )(unlift(UserExtractTask.unapply))
+  )(ue => (ue._id, ue.tenant, ue.orgKey, ue.userId, ue.email, ue.startedAt, ue.uploadStartedAt, ue.endedAt))
 
   implicit val format: Format[UserExtractTask] = Format(userExtractTaskReads, userExtractTaskWrites)
   implicit val oformat: OFormat[UserExtractTask] = OFormat(userExtractTaskReads, userExtractTaskOWrites)

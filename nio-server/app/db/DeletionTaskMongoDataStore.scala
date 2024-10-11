@@ -10,7 +10,7 @@ import scala.collection.{immutable, Seq}
 
 class DeletionTaskMongoDataStore(val mongoApi: ReactiveMongoApi)(implicit val executionContext: ExecutionContext)
     extends MongoDataStore[DeletionTask] {
-  val format: OFormat[DeletionTask]           = models.DeletionTask.deletionTaskFormats
+  val format: OFormat[DeletionTask]           = models.DeletionTask.deletionTaskOFormats
   override def collectionName(tenant: String) = s"$tenant-deletionTasks"
 
   override def indices = Seq(

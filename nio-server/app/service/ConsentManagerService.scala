@@ -330,7 +330,7 @@ class ConsentManagerService(
               NioLogger.error(
                 s"error.version.higher.than.release : last version saved ${lastConsentFactStored.version} -> version specified ${consentFact.version}"
               )
-              AppErrorWithStatus("error.version.higher.than.release")
+              _ => AppErrorWithStatus("error.version.higher.than.release")
             })
             .flatMap { organisation =>
                 createOrReplace(tenant, author, metadata, organisation, consentFact, Option(lastConsentFactStored), command = command)

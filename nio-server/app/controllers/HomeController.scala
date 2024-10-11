@@ -1,16 +1,15 @@
 package controllers
 
 import java.nio.file.Files
-
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.http.scaladsl.util.FastFuture
 import auth.AuthContextWithEmail
 import configuration.Env
 import controllers.ErrorManager.ErrorManagerResult
 import db.TenantMongoDataStore
-import play.api.mvc.{ActionBuilder, AnyContent, ControllerComponents}
+import play.api.mvc.{Action, ActionBuilder, AnyContent, ControllerComponents}
 
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.concurrent.ExecutionContext
 
 class HomeController(
@@ -54,7 +53,7 @@ class HomeController(
     .replace("$CLIENT_ID", env.config.filter.otoroshi.headerGatewayHeaderClientId)
     .replace("$CLIENT_SECRET", env.config.filter.otoroshi.headerGatewayHeaderClientSecret)
 
-  def index(tenant: String) = AuthAction.async { implicit req =>
+  def index(tenant: String): Action[AnyContent] = AuthAction.async { implicit req =>
     req.authInfo match {
       case Some(authInfo) if authInfo.isAdmin =>
         tenantStore.findByKey(tenant).map {
@@ -72,7 +71,7 @@ class HomeController(
     }
   }
 
-  def indexNoTenant = AuthAction { implicit req =>
+  def indexNoTenant: Action[AnyContent] = AuthAction { implicit req =>
     req.authInfo match {
       case Some(authInfo) if authInfo.isAdmin =>
         Ok(
@@ -86,13 +85,13 @@ class HomeController(
     }
   }
 
-  def login = AuthAction { _ =>
+  def login: Action[AnyContent] = AuthAction { _ =>
     Ok(views.html.indexLogin(env))
   }
 
-  def indexOther(tenant: String) = index(tenant)
+  def indexOther(tenant: String): Action[AnyContent] = index(tenant)
 
-  def otherRoutes(tenant: String, route: String) = AuthAction.async { implicit req =>
+  def otherRoutes(tenant: String, route: String): Action[AnyContent] = AuthAction.async { implicit req =>
     req.authInfo match {
       case Some(authInfo) if authInfo.isAdmin =>
         tenantStore.findByKey(tenant).map {
@@ -110,7 +109,7 @@ class HomeController(
     }
   }
 
-  def swagger() = AuthAction { _ =>
+  def swagger(): Action[AnyContent] = AuthAction { _ =>
     Ok(swaggerContent).as("application/json")
   }
 }

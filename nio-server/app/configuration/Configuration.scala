@@ -1,19 +1,13 @@
 package configuration
 
 import play.api.Configuration
-import pureconfig._
 import pureconfig.generic.ProductHint
-import pureconfig.generic.auto._
+import pureconfig._
+import pureconfig.generic.derivation.default._
+
 
 import scala.concurrent.duration.FiniteDuration
 
-object NioConfiguration {
-
-  implicit def hint[T]: ProductHint[T] = ProductHint[T](ConfigFieldMapping(CamelCase, CamelCase))
-
-  def apply(config: Configuration): NioConfiguration =
-    ConfigSource.fromConfig(config.underlying).at("nio").loadOrThrow[NioConfiguration]
-}
 
 case class NioConfiguration(
     baseUrl: String,
@@ -27,7 +21,7 @@ case class NioConfiguration(
     s3Config: S3Config,
     mailGunConfig: MailGunConfig,
     db: Db
-)
+) derives ConfigReader
 
 case class SecurityFilter(
     securityMode: String,
@@ -89,25 +83,11 @@ case class KafkaConfig(
 
 case class Location(location: Option[String])
 
-object TenantConfiguration {
-  implicit def hint[T]: ProductHint[T] =
-    ProductHint[T](ConfigFieldMapping(CamelCase, CamelCase))
 
-  def apply(config: Configuration): TenantConfiguration =
-    ConfigSource.fromConfig(config.underlying).at("tenant").loadOrThrow[TenantConfiguration]
-}
+case class TenantConfiguration(admin: AdminConfig) derives ConfigReader
 
-case class TenantConfiguration(admin: AdminConfig)
 
-object HealthCheckConfiguration {
-  implicit def hint[T]: ProductHint[T] =
-    ProductHint[T](ConfigFieldMapping(CamelCase, CamelCase))
-
-  def apply(config: Configuration): HealthCheckConfiguration =
-    ConfigSource.fromConfig(config.underlying).at("healthcheck").loadOrThrow[HealthCheckConfiguration]
-}
-
-case class HealthCheckConfiguration(secret: String, header: String)
+case class HealthCheckConfiguration(secret: String, header: String) derives ConfigReader
 
 case class AdminConfig(secret: String, header: String)
 
@@ -127,3 +107,27 @@ case class MailGunConfig(apiKey: String, endpoint: String, from: String)
 case class CatchUpEventsConfig(strategy: String, delay: FiniteDuration, interval: FiniteDuration)
 
 case class Db(batchSize: Int)
+
+object NioConfiguration {
+
+  implicit def hint[T]: ProductHint[T] = ProductHint[T](ConfigFieldMapping(CamelCase, CamelCase))
+
+  def apply(config: Configuration): NioConfiguration =
+    ConfigSource.fromConfig(config.underlying).at("nio").loadOrThrow[NioConfiguration]
+}
+
+
+object TenantConfiguration {
+  implicit def hint[T]: ProductHint[T] = ProductHint[T](ConfigFieldMapping(CamelCase, CamelCase))
+
+  def apply(config: Configuration): TenantConfiguration =
+    ConfigSource.fromConfig(config.underlying).at("tenant").loadOrThrow[TenantConfiguration]
+}
+
+
+object HealthCheckConfiguration {
+  implicit def hint[T]: ProductHint[T] = ProductHint[T](ConfigFieldMapping(CamelCase, CamelCase))
+
+  def apply(config: Configuration): HealthCheckConfiguration =
+    ConfigSource.fromConfig(config.underlying).at("healthcheck").loadOrThrow[HealthCheckConfiguration]
+}

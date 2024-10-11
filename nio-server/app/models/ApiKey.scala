@@ -8,7 +8,7 @@ import libs.xml.XMLRead
 import libs.xml.XmlUtil.XmlCleaner
 import libs.xml.implicits._
 import libs.xml.syntax._
-import play.api.libs.functional.syntax.{unlift, _}
+import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import play.api.libs.json.{JsValue, _}
 import reactivemongo.api.bson.BSONObjectID
@@ -85,7 +85,7 @@ object ApiKey extends ReadableEntity[ApiKey] {
       (__ \ "clientId").read[String] and
       (__ \ "clientSecret").read[String] and
       (__ \ "offerRestrictionPatterns").readNullable[Seq[String]]
-  )(ApiKey.apply _)
+  )(ApiKey.apply)
 
   implicit val writeClean: Writes[ApiKey] = Writes { userAccount =>
     Json.obj(
@@ -97,18 +97,18 @@ object ApiKey extends ReadableEntity[ApiKey] {
   }
 
   implicit val write: Writes[ApiKey] = (
-    (JsPath \ "_id").write[String] and
+      (JsPath \ "_id").write[String] and
       (JsPath \ "clientId").write[String] and
       (JsPath \ "clientSecret").write[String] and
       (JsPath \ "offerRestrictionPatterns").writeNullable[Seq[String]]
-  )(unlift(ApiKey.unapply))
+  )(k => (k._id, k.clientId, k.clientSecret, k.offerRestrictionPatterns))
 
   implicit val owrite: OWrites[ApiKey] = (
     (JsPath \ "_id").write[String] and
       (JsPath \ "clientId").write[String] and
       (JsPath \ "clientSecret").write[String] and
       (JsPath \ "offerRestrictionPatterns").writeNullable[Seq[String]]
-  )(unlift(ApiKey.unapply))
+  )(k => (k._id, k.clientId, k.clientSecret, k.offerRestrictionPatterns))
 
   implicit val formats: Format[ApiKey]   = Format(read, write)
   implicit val oformats: OFormat[ApiKey] = OFormat(read, owrite)

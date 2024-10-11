@@ -67,10 +67,12 @@ trait MongoDataStore[T] {
       function(col)
     }
 
-  def insertOne(tenant: String, objToInsert: T): Future[Boolean] =
+  def insertOne(tenant: String, objToInsert: T): Future[Boolean] = {
+    import reactivemongo.play.json.compat.json2bson.toDocumentWriter
     tenant.request[Boolean] { col =>
       col.insertOne[T](objToInsert)
     }
+  }
 
   def updateOne(tenant: String, id: String, objToUpdate: T): Future[Boolean] =
     tenant.request[Boolean] { col =>
@@ -82,10 +84,12 @@ trait MongoDataStore[T] {
       col.updateOneByQuery(query, objToUpdate)
     }
 
-  def updateByQuery(tenant: String, query: JsObject, update: JsObject): Future[Boolean] =
+  def updateByQuery(tenant: String, query: JsObject, update: JsObject): Future[Boolean] = {
+    import reactivemongo.play.json.compat.json2bson.toDocumentWriter
     tenant.request[Boolean] { col =>
       col.updateByQuery(query, update)
     }
+  }
 
   def findOneById(tenant: String, id: String): Future[Option[T]] =
     tenant.request[Option[T]] { col =>

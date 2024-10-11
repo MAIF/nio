@@ -1,14 +1,13 @@
 package controllers
 
-import models._
+import models.*
 
 import java.time.{Clock, LocalDateTime}
-import utils.{DateUtils, NioLogger, TestUtils}
+import utils.{DateUtils, TestUtils}
 import play.api.libs.json.{JsArray, JsValue, Json}
 import play.api.libs.ws.WSResponse
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 
-import java.time.format.DateTimeFormatter
 import scala.concurrent.duration.DurationInt
 
 class OrganisationControllerSpec extends TestUtils {

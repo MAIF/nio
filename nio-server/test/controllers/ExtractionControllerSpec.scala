@@ -12,8 +12,8 @@ import java.util.concurrent.TimeUnit
 import org.apache.pekko.stream.scaladsl.FileIO
 import com.amazonaws.services.s3.AmazonS3
 import play.api.libs.ws.SourceBody
-import s3.{S3, S3Configuration}
 
+import play.api.libs.ws.writeableOf_WsBody
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 

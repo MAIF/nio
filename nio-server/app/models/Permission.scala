@@ -106,7 +106,7 @@ object Permission {
         (__ \ "label").read[String] and
         (__ \ "type").read[PermissionType].orElse(Reads.pure(OptIn)) and
         (__ \ "validityPeriod").readNullable[FiniteDuration]
-      )(Permission.apply _),
+      )(Permission.apply),
     Json.writes[Permission]
   )
 

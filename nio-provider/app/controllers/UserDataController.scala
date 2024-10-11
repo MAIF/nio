@@ -35,7 +35,7 @@ class UserDataController(
   def uploadFile(tenant: String, orgKey: String, userId: String, name: String): Action[MultipartFormData[Files.TemporaryFile]] =
     AuthAction.async(parse.multipartFormData) { implicit req =>
       NioLogger.info(s"upload file $name")
-      val src: Source[ByteString, _] =
+      val src: Source[ByteString, ?] =
         StreamConverters.fromInputStream { () =>
           new FileInputStream(req.body.files.head.ref)
         }

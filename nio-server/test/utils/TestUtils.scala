@@ -5,22 +5,19 @@ import java.util.UUID
 import java.util.concurrent.TimeUnit
 import java.{lang, util}
 import org.apache.pekko.actor.ActorSystem
-import org.apache.pekko.http.scaladsl.model.HttpEntity
 import org.apache.pekko.kafka.scaladsl.Consumer
 import org.apache.pekko.kafka.{ConsumerSettings, Subscriptions}
-import org.apache.pekko.stream.{ActorMaterializer, Materializer}
+import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.Sink
 import com.amazonaws.services.s3.model.PutObjectResult
 import com.typesafe.config.{Config, ConfigFactory}
 import filters.AuthInfoMock
-import loader.NioLoader
 import models.Tenant
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.{ByteArrayDeserializer, StringDeserializer}
 import org.scalatest._
 import org.scalatest.matchers.must
-import org.scalatest.time.SpanSugar.convertIntToGrainOfTime
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatestplus.play.{BaseOneServerPerSuite, FakeApplicationFactory, PlaySpec}
 import play.api.inject.DefaultApplicationLifecycle
@@ -28,7 +25,6 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.libs.ws.{BodyWritable, WSClient, WSResponse}
 import play.api.test.Helpers._
 import play.api.{Application, ApplicationLoader, Configuration, Environment}
-import play.core.DefaultWebCommands
 import play.modules.reactivemongo.ReactiveMongoApi
 import reactivemongo.api.bson.collection.BSONCollection
 import service.ConsentManagerService
@@ -36,6 +32,7 @@ import service.ConsentManagerService
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.xml.Elem
+import play.api.libs.ws.DefaultBodyWritables._
 
 class MockS3Manager extends FSManager {
   override def addFile(key: String, content: String)(implicit
@@ -56,8 +53,8 @@ trait TestUtils
     with BeforeAndAfterEach
     with BeforeAndAfterAll {
 
-  protected implicit val actorSystem  = ActorSystem("test")
-  protected implicit val materializer = Materializer(actorSystem)
+  protected implicit val actorSystem: ActorSystem = ActorSystem("test")
+  protected implicit val materializer: Materializer = Materializer(actorSystem)
 
   def kafkaPort: Int                    = 9092
   def mongoPort: Int                    = 27018
@@ -131,7 +128,6 @@ trait TestUtils
     val reactiveMongoApi: ReactiveMongoApi          = nioComponents.reactiveMongoApi
 
     import play.api.libs.json._
-    import reactivemongo.api.bson._
     import reactivemongo.play.json.compat._
 
     def delete(query: JsObject)(coll: BSONCollection): Future[Boolean] = {
@@ -250,23 +246,23 @@ trait TestUtils
     val futureResponse = httpVerb match {
       case GET    =>
         ws.url(s"$suffix$path")
-          .withHttpHeaders(headers: _*)
+          .withHttpHeaders(headers*)
           .get()
       case DELETE =>
         ws.url(s"$suffix$path")
-          .withHttpHeaders(headers: _*)
+          .withHttpHeaders(headers*)
           .delete()
       case POST   =>
         ws.url(s"$suffix$path")
-          .withHttpHeaders(headers: _*)
+          .withHttpHeaders(headers*)
           .post(body)
       case PUT    =>
         ws.url(s"$suffix$path")
-          .withHttpHeaders(headers: _*)
+          .withHttpHeaders(headers*)
           .put(body)
       case PATCH    =>
         ws.url(s"$suffix$path")
-          .withHttpHeaders(headers: _*)
+          .withHttpHeaders(headers*)
           .patch(body)
       case _      =>
         Future.failed(new IllegalArgumentException(s"Unknown http verb: $httpVerb"))
@@ -274,42 +270,58 @@ trait TestUtils
     Await.result[WSResponse](futureResponse, Duration(10, TimeUnit.SECONDS))
   }
 
-  def postJson(path: String, body: JsValue, headers: Seq[(String, String)] = jsonHeaders) =
+  def postJson(path: String, body: JsValue, headers: Seq[(String, String)] = jsonHeaders): WSResponse = {
+    import play.api.libs.ws.writeableOf_JsValue
     callByType[JsValue](path = path, httpVerb = POST, body = body, headers = headers)
+  }
 
-  def postText(path: String, body: String, headers: Seq[(String, String)] = jsonHeaders) =
+  def postText(path: String, body: String, headers: Seq[(String, String)] = jsonHeaders): WSResponse =
     callByType[String](path = path, httpVerb = POST, body = body, headers = headers)
 
-  def postBinaryFile(path: String, body: File, api: Boolean = true, headers: Seq[(String, String)] = jsonHeaders) = {
+  def postBinaryFile(path: String, body: File, api: Boolean = true, headers: Seq[(String, String)] = jsonHeaders): WSResponse = {
     val suffix         = if (api) apiPath else serverHost
     val futureResponse = ws
       .url(s"$suffix$path")
-      .withHttpHeaders(headers: _*)
+      .withHttpHeaders(headers*)
       .post(body)
 
     Await.result[WSResponse](futureResponse, Duration(10, TimeUnit.SECONDS))
   }
 
-  def getJson(path: String, headers: Seq[(String, String)] = jsonHeaders) =
+  def getJson(path: String, headers: Seq[(String, String)] = jsonHeaders): WSResponse = {
+    import play.api.libs.ws.writeableOf_JsValue
     callByType[JsValue](path = path, httpVerb = GET, headers = headers)
+  }
 
-  def putJson(path: String, body: JsValue, headers: Seq[(String, String)] = jsonHeaders) =
+  def putJson(path: String, body: JsValue, headers: Seq[(String, String)] = jsonHeaders): WSResponse = {
+    import play.api.libs.ws.writeableOf_JsValue
     callByType[JsValue](path = path, httpVerb = PUT, body = body, headers = headers)
+  }
 
-  def patchJson(path: String, body: JsValue, headers: Seq[(String, String)] = jsonHeaders) =
+  def patchJson(path: String, body: JsValue, headers: Seq[(String, String)] = jsonHeaders): WSResponse = {
+    import play.api.libs.ws.writeableOf_JsValue
     callByType[JsValue](path = path, httpVerb = PATCH, body = body, headers = headers)
+  }
 
-  def delete(path: String, headers: Seq[(String, String)] = jsonHeaders) =
+  def delete(path: String, headers: Seq[(String, String)] = jsonHeaders): WSResponse = {
+    import play.api.libs.ws.writeableOf_JsValue
     callByType[JsValue](path = path, httpVerb = DELETE, headers = headers)
+  }
 
-  def postXml(path: String, body: Elem, headers: Seq[(String, String)] = xmlHeaders) =
+  def postXml(path: String, body: Elem, headers: Seq[(String, String)] = xmlHeaders): WSResponse = {
+    import play.api.libs.ws.writeableOf_NodeSeq
     callByType[Elem](path = path, httpVerb = POST, body = body, headers = headers)
+  }
 
-  def getXml(path: String, headers: Seq[(String, String)] = xmlHeaders) =
+  def getXml(path: String, headers: Seq[(String, String)] = xmlHeaders): WSResponse = {
+    import play.api.libs.ws.writeableOf_NodeSeq
     callByType[Elem](path = path, httpVerb = GET, headers = headers)
+  }
 
-  def putXml(path: String, body: Elem, headers: Seq[(String, String)] = xmlHeaders) =
+  def putXml(path: String, body: Elem, headers: Seq[(String, String)] = xmlHeaders): WSResponse = {
+    import play.api.libs.ws.writeableOf_NodeSeq
     callByType[Elem](path = path, httpVerb = PUT, body = body, headers = headers)
+  }
 
   protected def callJson(
       path: String,
@@ -320,8 +332,10 @@ trait TestUtils
         ACCEPT       -> JSON,
         CONTENT_TYPE -> JSON
       )
-  ): WSResponse =
+  ): WSResponse = {
+    import play.api.libs.ws.writeableOf_JsValue
     callByType[JsValue](path, httpVerb, body, api, headers)
+  }
 
   protected def callXml(
       path: String,
@@ -332,6 +346,8 @@ trait TestUtils
         ACCEPT       -> XML,
         CONTENT_TYPE -> XML
       )
-  ): WSResponse =
+  ): WSResponse = {
+    import play.api.libs.ws.writeableOf_NodeSeq
     callByType[Elem](path, httpVerb, body, api, headers)
+  }
 }

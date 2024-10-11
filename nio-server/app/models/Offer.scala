@@ -6,7 +6,7 @@ import libs.xml.XMLRead
 import libs.xml.XmlUtil.XmlCleaner
 import libs.xml.implicits._
 import libs.xml.syntax._
-import play.api.libs.functional.syntax.{unlift, _}
+import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import play.api.libs.json._
 import utils.Result.{AppErrors, ErrorMessage, Result}
@@ -41,21 +41,21 @@ object Offer extends ReadableEntity[Offer] {
         version.getOrElse(1)
       } and
       (__ \ "groups").read[Seq[PermissionGroup]]
-  )(Offer.apply _)
+  )(Offer.apply)
 
   implicit val offerWrites: Writes[Offer] = (
     (__ \ "key").write[String] and
       (__ \ "label").write[String] and
       (__ \ "version").write[Int] and
       (__ \ "groups").write[Seq[PermissionGroup]]
-  )(unlift(Offer.unapply))
+  )(o => (o.key, o.label, o.version, o.groups))
 
   implicit val offerOWrites: OWrites[Offer] = (
     (__ \ "key").write[String] and
       (__ \ "label").write[String] and
       (__ \ "version").write[Int] and
       (__ \ "groups").write[Seq[PermissionGroup]]
-  )(unlift(Offer.unapply))
+  )(o => (o.key, o.label, o.version, o.groups))
 
   implicit val format: Format[Offer]   = Format(offerReads, offerWrites)
   implicit val oformat: OFormat[Offer] = OFormat(offerReads, offerOWrites)

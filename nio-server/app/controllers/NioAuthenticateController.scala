@@ -7,8 +7,9 @@ import com.auth0.jwt.algorithms.Algorithm
 import configuration.{DefaultFilterConfig, Env}
 import controllers.ErrorManager.AppErrorManagerResult
 import db.NioAccountMongoDataStore
+import libs.xmlorjson.XmlOrJson
 import models.{Auth, NioAccount}
-import play.api.mvc.{ControllerComponents, Cookie}
+import play.api.mvc.{Action, AnyContent, ControllerComponents, Cookie}
 import utils.Sha
 
 import scala.concurrent.ExecutionContext
@@ -27,7 +28,7 @@ class NioAuthenticateController(
   lazy val cookieName: String = config.cookieClaim
   lazy val algorithm: Algorithm = Algorithm.HMAC512(config.sharedKey)
 
-  def login = Action(bodyParser).async { implicit req =>
+  def login: Action[XmlOrJson] = Action(bodyParser).async { implicit req =>
     req.body.read[Auth] match {
       case Left(e) =>
         FastFuture.successful(e.forbidden())
@@ -55,7 +56,7 @@ class NioAuthenticateController(
       .sign(algorithm)
   }
 
-  def logout = Action { _ =>
+  def logout: Action[AnyContent] = Action { _ =>
     Redirect(s"${env.config.baseUrl}")
       .withCookies(Cookie(name = cookieName, value = "", maxAge = Some(0)))
   }

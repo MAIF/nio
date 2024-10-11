@@ -24,8 +24,9 @@ class NioService(env: Env, wSClient: WSClient)(
                       orgKey: String,
                       userId: String,
                       name: String,
-                      src: Source[ByteString, _],
+                      src: Source[ByteString, ?],
                       contentTypeHeader: Option[String]): Future[JsValue] = {
+    import play.api.libs.ws.bodyWritableOf_Multipart
     wSClient
       .url(
         s"${env.config.nio.url}/api/$tenant/organisations/$orgKey/users/$userId/_files/$name")

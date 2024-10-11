@@ -3,7 +3,7 @@ package controllers
 import org.apache.pekko.japi.Option
 import models._
 
-import java.time.{Clock, LocalDateTime, ZoneId}
+import java.time.{Clock, LocalDateTime}
 import utils.NioLogger
 import play.api.libs.json.{JsArray, JsObject, JsValue, Json}
 import play.api.libs.ws.WSResponse
@@ -11,7 +11,6 @@ import utils.{DateUtils, TestUtils}
 import play.api.test.Helpers._
 
 import java.time.format.DateTimeFormatter
-import scala.concurrent.duration.DurationInt
 
 class ConsentControllerSpec extends TestUtils {
 
@@ -506,7 +505,7 @@ class ConsentControllerSpec extends TestUtils {
             )
           )
         ))
-      ).map(Json.stringify _).mkString("", "\n", "\n")
+      ).map(Json.stringify).mkString("", "\n", "\n")
 
       val response = postText(s"/$tenant/organisations/$organisationKey/users/_batch", commands)
       println(response.body)

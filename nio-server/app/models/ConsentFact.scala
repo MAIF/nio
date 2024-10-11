@@ -7,7 +7,7 @@ import libs.xml.XMLRead
 import libs.xml.XmlUtil.XmlCleaner
 import libs.xml.implicits._
 import libs.xml.syntax._
-import play.api.libs.functional.syntax.{unlift, _}
+import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import play.api.libs.json._
 import reactivemongo.api.bson.BSONObjectID
@@ -148,15 +148,15 @@ object ConsentOffer extends ReadableEntity[ConsentOffer] {
       (__ \ "version").read[Int] and
       (__ \ "lastUpdate").readWithDefault[LocalDateTime](LocalDateTime.now(Clock.systemUTC()))(DateUtils.utcDateTimeReads) and
       (__ \ "groups").read[Seq[ConsentGroup]]
-  )(ConsentOffer.apply _)
+  )(ConsentOffer.apply)
 
   implicit val offerWrites: Writes[ConsentOffer] = (
-    (__ \ "key").write[String] and
+    (__ \   "key").write[String] and
       (__ \ "label").write[String] and
       (__ \ "version").write[Int] and
       (__ \ "lastUpdate").write[LocalDateTime](DateUtils.utcDateTimeWrites) and
       (__ \ "groups").write[Seq[ConsentGroup]]
-  )(unlift(ConsentOffer.unapply))
+  )(o => (o.key, o.label, o.version, o.lastUpdate, o.groups))
 
   implicit val offerOWrites: OWrites[ConsentOffer] = (
     (__ \ "key").write[String] and
@@ -164,7 +164,7 @@ object ConsentOffer extends ReadableEntity[ConsentOffer] {
       (__ \ "version").write[Int] and
       (__ \ "lastUpdate").write[LocalDateTime](DateUtils.utcDateTimeWrites) and
       (__ \ "groups").write[Seq[ConsentGroup]]
-  )(unlift(ConsentOffer.unapply))
+  )(o => (o.key, o.label, o.version, o.lastUpdate, o.groups))
 
   implicit val format: Format[ConsentOffer]   = Format(offerReads, offerWrites)
   implicit val oformat: OFormat[ConsentOffer] =
@@ -375,7 +375,7 @@ object PartialConsentFact extends ReadableEntity[PartialConsentFact] {
 
   override def fromXml(xml: Elem): Either[AppErrors, PartialConsentFact] = PartialConsentFact.partialConsentFactReadXml.read(xml).toEither
 
-  override def fromJson(json: JsValue): Either[AppErrors, PartialConsentFact] = PartialConsentFact.format.reads(json).toEither(AppErrors.fromJsError _ )
+  override def fromJson(json: JsValue): Either[AppErrors, PartialConsentFact] = PartialConsentFact.format.reads(json).toEither(AppErrors.fromJsError)
 }
 
 // A user will have multiple consent facts
@@ -542,7 +542,7 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
       (__ \ "orgKey").readNullable[String] and
       (__ \ "metaData").readNullable[Map[String, String]] and
       (__ \ "sendToKafka").readNullable[Boolean]
-  )(ConsentFact.newWithoutIdAndLastUpdate _)
+  )(ConsentFact.newWithoutIdAndLastUpdate)
 
   private val consentFactReads: Reads[ConsentFact] = (
     (__ \ "_id").read[String] and
@@ -555,10 +555,10 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
       (__ \ "lastUpdateSystem").read[LocalDateTime](DateUtils.utcDateTimeReads) and
       (__ \ "orgKey").readNullable[String] and
       (__ \ "metaData").readNullable[Map[String, String]]
-  )(ConsentFact.newWithoutKafkaFlag _)
+  )(ConsentFact.newWithoutKafkaFlag)
 
   private val consentFactWrites: Writes[ConsentFact] = (
-    (JsPath \ "_id").write[String] and
+      (JsPath \ "_id").write[String] and
       (JsPath \ "userId").write[String] and
       (JsPath \ "doneBy").write[DoneBy](DoneBy.doneByFormats) and
       (JsPath \ "version").write[Int] and
@@ -569,7 +569,7 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
       (JsPath \ "orgKey").writeNullable[String] and
       (JsPath \ "metaData").writeNullable[Map[String, String]] and
       (JsPath \ "sendToKafka").writeNullable[Boolean]
-  )(unlift(ConsentFact.unapply))
+  )(cf => (cf._id, cf.userId, cf.doneBy, cf.version, cf.groups, cf.offers, cf.lastUpdate, cf.lastUpdateSystem, cf.orgKey, cf.metaData, cf.sendToKafka))
 
   private val consentFactWritesWithoutId: Writes[ConsentFact] = (
     (JsPath \ "_id").writeNullable[String].contramap((_: String) => None) and
@@ -583,7 +583,7 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
       (JsPath \ "orgKey").writeNullable[String] and
       (JsPath \ "metaData").writeNullable[Map[String, String]] and
       (JsPath \ "sendToKafka").writeNullable[Boolean]
-  )(unlift(ConsentFact.unapply))
+  )(cf => (cf._id, cf.userId, cf.doneBy, cf.version, cf.groups, cf.offers, cf.lastUpdate, cf.lastUpdateSystem, cf.orgKey, cf.metaData, cf.sendToKafka))
 
   private val consentFactOWrites: OWrites[ConsentFact] = (
     (JsPath \ "_id").write[String] and
@@ -597,7 +597,7 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
       (JsPath \ "orgKey").writeNullable[String] and
       (JsPath \ "metaData").writeNullable[Map[String, String]] and
       (JsPath \ "sendToKafka").writeNullable[Boolean]
-  )(unlift(ConsentFact.unapply))
+  )(cf => (cf._id, cf.userId, cf.doneBy, cf.version, cf.groups, cf.offers, cf.lastUpdate, cf.lastUpdateSystem, cf.orgKey, cf.metaData, cf.sendToKafka))
 
   val consentFactFormats: Format[ConsentFact]            = Format(consentFactReads, consentFactWrites)
   implicit val consentFactOFormats: OFormat[ConsentFact] = OFormat(consentFactReads, consentFactOWrites)
@@ -668,7 +668,7 @@ object ConsentFactCommand {
   object UpdateConsentFact {
     val format: OFormat[UpdateConsentFact] = OFormat[UpdateConsentFact](
       ((__ \ "userId").read[String] and
-        (__ \ "command").read[ConsentFact](ConsentFact.consentFactReadsWithoutIdAndLastUpdate))(UpdateConsentFact.apply _),
+        (__ \ "command").read[ConsentFact](ConsentFact.consentFactReadsWithoutIdAndLastUpdate))(UpdateConsentFact.apply),
       Json.writes[UpdateConsentFact]
     )
   }

@@ -8,7 +8,7 @@ import libs.xml.XMLRead
 import libs.xml.XmlUtil.XmlCleaner
 import libs.xml.implicits._
 import libs.xml.syntax._
-import play.api.libs.functional.syntax.{unlift, _}
+import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import play.api.libs.json.{JsValue, _}
 import reactivemongo.api.bson.BSONObjectID
@@ -23,7 +23,7 @@ object NioAccountUpdate extends ReadableEntity[NioAccountUpdate] {
   implicit val read: Reads[NioAccountUpdate] = (
     (__ \ "isAdmin").read[Boolean] and
       (__ \ "offerRestrictionPatterns").readNullable[Seq[String]]
-  )(NioAccountUpdate.apply _)
+  )(NioAccountUpdate.apply)
 
   implicit val readXml: XMLRead[NioAccountUpdate] =
     (node: NodeSeq, path: Option[String]) =>
@@ -98,7 +98,7 @@ object NioAccount extends ReadableEntity[NioAccount] {
       (__ \ "password").read[String] and
       (__ \ "isAdmin").read[Boolean] and
       (__ \ "offerRestrictionPatterns").readNullable[Seq[String]]
-  )(NioAccount.apply _)
+  )(NioAccount.apply)
 
   implicit val writeClean: Writes[NioAccount] = Writes { userAccount =>
     Json.obj(
@@ -115,7 +115,7 @@ object NioAccount extends ReadableEntity[NioAccount] {
       (JsPath \ "password").write[String] and
       (JsPath \ "isAdmin").write[Boolean] and
       (JsPath \ "offerRestrictionPatterns").writeNullable[Seq[String]]
-  )(unlift(NioAccount.unapply))
+  )(a => (a._id, a.email, a.password, a.isAdmin, a.offerRestrictionPatterns))
 
   implicit val owrite: OWrites[NioAccount] = (
     (JsPath \ "_id").write[String] and
@@ -123,7 +123,7 @@ object NioAccount extends ReadableEntity[NioAccount] {
       (JsPath \ "password").write[String] and
       (JsPath \ "isAdmin").write[Boolean] and
       (JsPath \ "offerRestrictionPatterns").writeNullable[Seq[String]]
-  )(unlift(NioAccount.unapply))
+  )(a => (a._id, a.email, a.password, a.isAdmin, a.offerRestrictionPatterns))
 
   implicit val formats: Format[NioAccount]   = Format(read, write)
   implicit val oformats: OFormat[NioAccount] = OFormat(read, owrite)

@@ -31,15 +31,6 @@ object io {
       })
     }
 
-    def keep(predicate: A => Boolean, ifFalse: => E)(implicit ec: ExecutionContext): IO[E, A] = {
-      value.flatMap { a =>
-        if (predicate(a)) {
-          EitherT.rightT[Future, E](a)
-        } else {
-          EitherT.leftT[Future, A](ifFalse)
-        }
-      }
-    }
     def keep(predicate: A => Boolean, ifFalse: A => E)(implicit ec: ExecutionContext): IO[E, A] = {
       value.flatMap { a =>
         if (predicate(a)) {

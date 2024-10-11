@@ -12,15 +12,15 @@ import controllers.ErrorManager.{AppErrorManagerResult, ErrorManagerResult, Erro
 import db.OrganisationMongoDataStore
 import libs.xmlorjson.XmlOrJson
 import messaging.KafkaMessageBroker
-import models._
+import models.*
 
 import java.time.{Clock, LocalDateTime}
 import utils.{DateUtils, NioLogger}
 import play.api.http.HttpEntity
-import play.api.libs.json.Reads._
+import play.api.libs.json.Reads.*
 import play.api.libs.json.{JsValue, Json}
 import play.api.libs.streams.Accumulator
-import play.api.mvc.{ActionBuilder, AnyContent, ControllerComponents}
+import play.api.mvc.{Action, AnyContent, ActionBuilder, ControllerComponents}
 import reactivemongo.api.bson.BSONObjectID
 import service.{ConsentManagerService, OfferManagerService}
 
@@ -43,7 +43,7 @@ class OrganisationOfferController(
   implicit val readable: ReadableEntity[Offer] = Offer
   implicit val materializer: Materializer      = Materializer(actorSystem)
 
-  def findAll(tenant: String, orgKey: String) =
+  def findAll(tenant: String, orgKey: String): Action[AnyContent] =
     authAction.async { implicit req =>
       NioLogger.info(s"get offers for $orgKey")
       offerManagerService
@@ -84,7 +84,7 @@ class OrganisationOfferController(
 
     }
 
-  def add(tenant: String, orgKey: String) =
+  def add(tenant: String, orgKey: String): Action[XmlOrJson] =
     authAction.async(bodyParser) { implicit req =>
       val addOffer: (String, String, SecuredAuthContext[XmlOrJson], Offer, Option[Offer]) => Future[Result] =
         (tenant, orgKey, req, offer, maybeOffer) => {
@@ -114,7 +114,7 @@ class OrganisationOfferController(
       )
     }
 
-  def update(tenant: String, orgKey: String, offerKey: String) =
+  def update(tenant: String, orgKey: String, offerKey: String): Action[XmlOrJson] =
     authAction.async(bodyParser) { implicit req =>
       val updateOffer: (String, String, SecuredAuthContext[XmlOrJson], Offer, Option[Offer]) => Future[Result] =
         (tenant, orgKey, req, offer, maybeOffer) => {
@@ -161,14 +161,14 @@ class OrganisationOfferController(
   case class OfferConsentWithGroup(groupKey: String, consentKey: String)
   case class UserIdAndInitDate(id: String, date: String)
 
-  def handleConsent(
+  private def handleConsent(
       tenant: String,
       orgKey: String,
       authInfo: AuthInfo,
       offerKey: String,
       setToFalse: Option[Seq[OfferConsentWithGroup]],
-      source: Source[UserIdAndInitDate, _]
-  ): Source[JsValue, _] =
+      source: Source[UserIdAndInitDate, ?]
+  ): Source[JsValue, ?] =
     source
       .mapAsync(env.config.db.batchSize) { value =>
         consentController
@@ -231,12 +231,12 @@ class OrganisationOfferController(
 
   val newLineSplit: Flow[ByteString, ByteString, NotUsed]           =
     Framing.delimiter(ByteString("\n"), 10000, allowTruncation = true)
-  def jsonToIdAndDate: Flow[ByteString, UserIdAndInitDate, NotUsed] =
+  private def jsonToIdAndDate: Flow[ByteString, UserIdAndInitDate, NotUsed] =
     Flow[ByteString] via newLineSplit map (_.utf8String) filterNot (_.isEmpty) map (l => Json.parse(l)) map (value =>
       UserIdAndInitDate((value \ "userId").as[String], (value \ "date").as[String])
     )
 
-  def csvToIdAndDate(drop: Long, separator: String): Flow[ByteString, UserIdAndInitDate, NotUsed] =
+  private def csvToIdAndDate(drop: Long, separator: String): Flow[ByteString, UserIdAndInitDate, NotUsed] =
     Flow[ByteString]
       .via(newLineSplit)
       .drop(drop)
@@ -249,7 +249,7 @@ class OrganisationOfferController(
           List.empty
       }
 
-  val sourceBodyParser: BodyParser[Source[UserIdAndInitDate, _]] =
+  val sourceBodyParser: BodyParser[Source[UserIdAndInitDate, ?]] =
     BodyParser("Streaming BodyParser") { req =>
       val drop      = req.getQueryString("drop").map(_.toLong).getOrElse(0L)
       val separator = req.getQueryString("separator").getOrElse(";")
@@ -262,14 +262,14 @@ class OrganisationOfferController(
       }
     }
 
-  def initializeOffer(tenant: String, orgKey: String, offerKey: String) = authAction(sourceBodyParser) { req =>
+  def initializeOffer(tenant: String, orgKey: String, offerKey: String): Action[Source[UserIdAndInitDate, ?]] = authAction(sourceBodyParser) { req =>
     NioLogger.info(s" Begin offer initialization for tenant $tenant organisation $orgKey and offer $offerKey")
     val setToFalse: Option[Seq[OfferConsentWithGroup]] = req.queryString
       .get("setToFalse")
       .map(strings =>
         strings.map { string =>
           val index = string.indexOf('.')
-          OfferConsentWithGroup.apply _ tupled (string.take(index), string.drop(index + 1))
+          OfferConsentWithGroup(string.take(index), string.drop(index + 1))
         }
       )
 

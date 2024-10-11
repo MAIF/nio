@@ -33,7 +33,7 @@ trait FSUserExtractManager {
       userId: String,
       extractTaskId: String,
       name: String,
-      src: Source[ByteString, _]
+      src: Source[ByteString, ?]
   )(implicit s3ExecutionContext: S3ExecutionContext): Future[String]
 
   def getUploadedFile(tenant: String, orgKey: String, userId: String, extractTaskId: String, name: String)(implicit
@@ -139,7 +139,7 @@ class S3Manager(env: Env, actorSystem: ActorSystem) extends FSManager with FSUse
       userId: String,
       extractTaskId: String,
       name: String,
-      src: Source[ByteString, _]
+      src: Source[ByteString, ?]
   )(implicit s3ExecutionContext: S3ExecutionContext): Future[String] = {
     val bucketName = s3Config.uploadBucketName
 
