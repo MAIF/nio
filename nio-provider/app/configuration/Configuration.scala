@@ -9,11 +9,8 @@ import pureconfig.generic.ProductHint
 import scala.concurrent.duration.FiniteDuration
 
 object NioConfiguration {
-  import pureconfig._
-  import pureconfig.generic.derivation.default._
 
-  implicit def hint[T]: ProductHint[T] =
-    ProductHint[T](ConfigFieldMapping(CamelCase, CamelCase))
+  implicit def hint[T]: ProductHint[T] = ProductHint[T](ConfigFieldMapping(CamelCase, CamelCase))
 
   def apply(config: Configuration): NioConfiguration = {
     given ConfigReader[NioConfiguration] = deriveReader
@@ -22,7 +19,7 @@ object NioConfiguration {
   }
 }
 
-case class NioConfiguration(websocketHost: String, filter: Otoroshi, kafka: KafkaConfig, nio: NioConfig) 
+case class NioConfiguration(websocketHost: String, filter: Otoroshi, kafka: KafkaConfig, nio: NioConfig)
 
 case class NioConfig(url: String, headerValueClientId: String, headerValueClientSecret: String)
 
