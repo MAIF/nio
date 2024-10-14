@@ -32,9 +32,9 @@ class CatchupNioEventService(
 
   implicit val materializer: Materializer = Materializer(system)
 
-  def getUnsendConsentFactAsSource(tenant: String): Source[Catchup, Future[State]] =
+  private def getUnsendConsentFactAsSource(tenant: String): Source[Catchup, Future[State]] =
     Source
-      .fromFutureSource(
+      .futureSource(
         consentFactMongoDataStore
           .streamByQuery(tenant, Json.obj("sendToKafka" -> false))
       )
@@ -48,14 +48,14 @@ class CatchupNioEventService(
       }
       .mapConcat(_.toList)
 
-  def getUnrelevantConsentFactsFlow: Flow[Catchup, Catchup, NotUsed] =
+  private def getUnrelevantConsentFactsFlow: Flow[Catchup, Catchup, NotUsed] =
     Flow[Catchup]
       .filterNot { catchup =>
         catchup.lastConsentFact.lastUpdateSystem
           .isEqual(catchup.consentFact.lastUpdateSystem)
       }
 
-  def getRelevantConsentFactsAsFlow(tenant: String): Flow[Catchup, Catchup, NotUsed] =
+  private def getRelevantConsentFactsAsFlow(tenant: String): Flow[Catchup, Catchup, NotUsed] =
     Flow[Catchup]
       .filter { catchup =>
         env.config.kafka.catchUpEvents.strategy == "All" ||
@@ -63,7 +63,7 @@ class CatchupNioEventService(
           .isEqual(catchup.consentFact.lastUpdateSystem)
       }
 
-  def resendNioEventsFlow(tenant: String): Flow[Catchup, Catchup, NotUsed] =
+  private def resendNioEventsFlow(tenant: String): Flow[Catchup, Catchup, NotUsed] =
     Flow[Catchup]
       .map { catchup =>
         val event = if (catchup.isCreation) {
@@ -94,7 +94,7 @@ class CatchupNioEventService(
       .map(_.passThrough)
       .via(unflagConsentFactsFlow(tenant))
 
-  def unflagConsentFactsFlow(tenant: String): Flow[Catchup, Catchup, NotUsed] =
+  private def unflagConsentFactsFlow(tenant: String): Flow[Catchup, Catchup, NotUsed] =
     Flow[Catchup]
       .grouped(200)
       .mapAsync(1) { catchups =>
@@ -109,16 +109,12 @@ class CatchupNioEventService(
       }
       .mapConcat(_.toList)
 
-  def catchupNioEventScheduler() =
+  def catchupNioEventScheduler(): Any =
     if (env.env == "prod") {
       tenantMongoDataStore.findAll().map { tenants =>
         tenants.map { tenant =>
           NioLogger.debug(s"start catchup scheduler for tenant ${tenant.key}")
-          system.scheduler.schedule(
-            env.config.kafka.catchUpEvents.delay,
-            env.config.kafka.catchUpEvents.interval,
-            new Runnable() {
-              def run =
+          system.scheduler.scheduleWithFixedDelay(env.config.kafka.catchUpEvents.delay, env.config.kafka.catchUpEvents.interval) ({ () =>
                 catchupLockMongoDatastore
                   .findLock(tenant.key)
                   .map {
@@ -167,8 +163,7 @@ class CatchupNioEventService(
                           case false => ()
                         }
                   }
-            }
-          )
+            })
         }
       }
     }

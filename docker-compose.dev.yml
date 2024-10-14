@@ -6,7 +6,7 @@ services:
       - 27017:27017
 
   zookeeper:
-    image: confluentinc/cp-zookeeper:3.2.1
+    image: confluentinc/cp-zookeeper:5.2.3
     ports:
       - 32182:32181
     expose:
@@ -16,7 +16,7 @@ services:
       - ZOOKEEPER_TICK_TIME=2000
 
   kafka:
-    image: confluentinc/cp-kafka:3.2.1
+    image: confluentinc/cp-kafka:5.2.3
     ports:
       - 29092:29092
     expose:

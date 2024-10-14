@@ -99,7 +99,7 @@ object Account extends ReadableEntity[Account] {
   implicit val oformat: OFormat[Account] = OFormat(read, write)
 
   implicit val readXml: XMLRead[Account] =
-    (node: NodeSeq, path: Option[String]) =>
+    (node: NodeSeq, _: Option[String]) =>
       (
         (node \ "accountId").validate[String](Some("account.accountId")),
         (node \ "organisationsUsers").validate[Seq[OrganisationUser]](Some("account.organisationsUsers"))

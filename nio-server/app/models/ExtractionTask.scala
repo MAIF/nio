@@ -11,14 +11,15 @@ import libs.xml.implicits._
 import libs.xml.syntax._
 import messaging.KafkaMessageBroker
 import models.ExtractionTaskStatus.ExtractionTaskStatus
-import java.time.{LocalDateTime, Clock}
+
+import java.time.{Clock, LocalDateTime}
 import play.api.libs.json.Reads._
 import play.api.libs.json._
 import reactivemongo.api.bson.BSONObjectID
 import utils.Result.AppErrors
 import utils.{DateUtils, UploadTracker}
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 import scala.xml.{Elem, NodeSeq}
 import scala.collection.Seq
 
@@ -43,20 +44,20 @@ object ExtractionTaskStatus extends Enumeration {
     case _         => Unknown
   }
 
-  implicit val extractionTaskStatusFormat = Format[ExtractionTaskStatus](
+  implicit val extractionTaskStatusFormat: Format[ExtractionTaskStatus] = Format[ExtractionTaskStatus](
     __.read[String].map(from),
     Writes[ExtractionTaskStatus](s => JsString(s.show))
   )
 }
 
 case class FileMetadata(name: String, contentType: String, size: Long) {
-  def asJson() = Json.obj(
+  def asJson(): JsObject = Json.obj(
     "name"        -> name,
     "contentType" -> contentType,
     "size"        -> size
   )
 
-  def asXml() = <fileMetadata>
+  def asXml(): Elem = <fileMetadata>
       <name>{name}</name>
       <contentType>{contentType}</contentType>
       <size>{size}</size>
@@ -64,7 +65,7 @@ case class FileMetadata(name: String, contentType: String, size: Long) {
 }
 
 object FileMetadata {
-  implicit val fileMetadataFormats = Json.format[FileMetadata]
+  implicit val fileMetadataFormats: OFormat[FileMetadata] = Json.format[FileMetadata]
 
   implicit val readXml: XMLRead[FileMetadata] =
     (node: NodeSeq, path: Option[String]) =>
@@ -76,19 +77,19 @@ object FileMetadata {
 }
 
 case class FilesMetadata(files: Seq[FileMetadata]) {
-  def asJson() = FilesMetadata.filesMetadataFormats.writes(this)
+  def asJson(): JsObject = FilesMetadata.filesMetadataFormats.writes(this)
 
-  def asXml() =
+  def asXml(): Elem =
     <filesMetadata>
       {files.map(_.asXml())}
     </filesMetadata>.clean()
 }
 
 object FilesMetadata extends ReadableEntity[FilesMetadata] {
-  implicit val filesMetadataFormats = Json.format[FilesMetadata]
+  implicit val filesMetadataFormats: OFormat[FilesMetadata] = Json.format[FilesMetadata]
 
   implicit val readXml: XMLRead[FilesMetadata] =
-    (node: NodeSeq, path: Option[String]) => node.validate[Seq[FileMetadata]].map(files => FilesMetadata(files))
+    (node: NodeSeq, _: Option[String]) => node.validate[Seq[FileMetadata]].map(files => FilesMetadata(files))
 
   def fromXml(xml: Elem): Either[AppErrors, FilesMetadata] =
     readXml.read(xml, Some("filesMetadata")).toEither
@@ -102,10 +103,10 @@ object FilesMetadata extends ReadableEntity[FilesMetadata] {
 
 case class AppState(appId: String, files: Seq[FileMetadata], totalBytes: Long, status: ExtractionTaskStatus) {
 
-  def uploadedBytes(taskId: String) =
+  def uploadedBytes(taskId: String): Long =
     UploadTracker.getUploadedBytes(taskId, appId)
 
-  def progress(taskId: String) = {
+  def progress(taskId: String): Long = {
     val bytes = uploadedBytes(taskId)
     if (bytes == 0L) {
       0L
@@ -114,9 +115,9 @@ case class AppState(appId: String, files: Seq[FileMetadata], totalBytes: Long, s
     }
   }
 
-  def asJson() = AppState.appStateFormats.writes(this)
+  def asJson(): JsObject = AppState.appStateFormats.writes(this)
 
-  def asXml() = <appState>
+  def asXml(): Elem = <appState>
       <appId>{appId}</appId>
       <files>{files.map(_.asXml())}</files>
       <totalBytes>{totalBytes}</totalBytes>
@@ -125,7 +126,7 @@ case class AppState(appId: String, files: Seq[FileMetadata], totalBytes: Long, s
 }
 
 object AppState {
-  implicit val appStateFormats = {
+  implicit val appStateFormats: OFormat[AppState] = {
     import models.ExtractionTaskStatus._
     Json.format[AppState]
   }
@@ -145,7 +146,7 @@ case class ExtractionTask(
 ) extends ModelTransformAs {
 
   // FIXME
-  def asJson() = Json.obj(
+  def asJson(): JsObject = Json.obj(
     "id"         -> _id,
     "orgKey"     -> orgKey,
     "userId"     -> userId,
@@ -158,7 +159,7 @@ case class ExtractionTask(
     "done"       -> done
   )
 
-  def asXml() = <extractionTask>
+  def asXml(): Elem = <extractionTask>
       <id>{_id}</id>
       <orgKey>{orgKey}</orgKey>
       <userId>{userId}</userId>
@@ -182,7 +183,7 @@ case class ExtractionTask(
       }
     }
 
-  def allFilesDone(appId: String) =
+  def allFilesDone(appId: String): Boolean =
     states
       .collectFirst {
         case x if x.appId == appId => x.uploadedBytes(this._id) == x.totalBytes
@@ -200,7 +201,7 @@ case class ExtractionTask(
     copy(states = states.filterNot(_.appId == appId) + newAppState, lastUpdate = LocalDateTime.now(Clock.systemUTC))
   }
 
-  def copyWithFileUploadHandled(appId: String, appState: AppState) = {
+  def copyWithFileUploadHandled(appId: String, appState: AppState): ExtractionTask = {
     // All files are uploaded for this app
     val newAppState   = appState.copy(status = ExtractionTaskStatus.Done)
     val allWillBeDone = this.done + 1 == appIds.size
@@ -219,7 +220,7 @@ case class ExtractionTask(
       ec: ExecutionContext,
       store: ExtractionTaskMongoDataStore,
       broker: KafkaMessageBroker
-  ) =
+  ): Future[Any] =
     // Store updated task then emit events
     store.updateById(tenant, this._id, this).map { _ =>
       broker.publish(
@@ -237,12 +238,12 @@ case class ExtractionTask(
       }
     }
 
-  def expire(tenant: String)(implicit ec: ExecutionContext, store: ExtractionTaskMongoDataStore) =
+  def expire(tenant: String)(implicit ec: ExecutionContext, store: ExtractionTaskMongoDataStore): Future[Boolean] =
     store.updateById(tenant, this._id, this.copy(status = ExtractionTaskStatus.Expired))
 }
 
 case class ExtractionTaskInfoPerApp(orgKey: String, userId: String, appId: String, extractionTaskId: String) {
-  def asJson() = Json.obj(
+  def asJson(): JsObject = Json.obj(
     "orgKey"           -> orgKey,
     "userId"           -> userId,
     "appId"            -> appId,
@@ -252,11 +253,11 @@ case class ExtractionTaskInfoPerApp(orgKey: String, userId: String, appId: Strin
 
 object ExtractionTask {
 
-  implicit val dateFormats = DateUtils.utcDateTimeFormats
+  implicit val dateFormats: Format[LocalDateTime] = DateUtils.utcDateTimeFormats
 
-  implicit val fmt = Json.format[ExtractionTask]
+  implicit val fmt: OFormat[ExtractionTask] = Json.format[ExtractionTask]
 
-  def newFrom(orgKey: String, userId: String, appIds: Set[String]) = {
+  def newFrom(orgKey: String, userId: String, appIds: Set[String]): ExtractionTask = {
     val now = LocalDateTime.now(Clock.systemUTC)
     ExtractionTask(
       _id = BSONObjectID.generate().stringify,
@@ -274,10 +275,10 @@ object ExtractionTask {
 case class PagedExtractionTasks(page: Int, pageSize: Int, count: Long, items: Seq[ExtractionTask])
     extends ModelTransformAs {
 
-  def asJson() =
+  def asJson(): JsObject =
     Json.obj("page" -> page, "pageSize" -> pageSize, "count" -> count, "items" -> JsArray(items.map(_.asJson())))
 
-  def asXml()  =
+  def asXml(): Elem =
     <pagedDeletionTasks>
       <page>{page}</page>
       <pageSize>{pageSize}</pageSize>

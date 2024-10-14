@@ -18,7 +18,6 @@ class ExtractionTaskMongoDataStore(val mongoApi: ReactiveMongoApi)(implicit val 
   import reactivemongo.api.bson._
   import reactivemongo.play.json.compat._
   import models.ExtractionTaskStatus._
-  import lax._
   import bson2json._
   import json2bson._
 

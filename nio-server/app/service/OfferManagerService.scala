@@ -39,12 +39,9 @@ class OfferManagerService(
       offerRestrictionPatterns: Option[Seq[String]]
   ): Future[Either[AppErrorWithStatus, Offer]] =
     maybeOfferKey match {
-      case Some(offerKey) if offerKey != offer.key =>
-        toErrorWithStatus(s"offer.key.${offer.key}.must.be.equals.to.$offerKey", BadRequest)
-      case Some(offerKey) if offerKey == offer.key =>
-        save(tenant, orgKey, offer, offerRestrictionPatterns)
-      case None                                    =>
-        save(tenant, orgKey, offer, offerRestrictionPatterns)
+      case Some(offerKey) if offerKey != offer.key => toErrorWithStatus(s"offer.key.${offer.key}.must.be.equals.to.$offerKey", BadRequest)
+      case Some(_) => save(tenant, orgKey, offer, offerRestrictionPatterns)
+      case None => save(tenant, orgKey, offer, offerRestrictionPatterns)
     }
 
   private def save(
@@ -53,39 +50,38 @@ class OfferManagerService(
       offer: Offer,
       offerRestrictionPatterns: Option[Seq[String]]
   ): Future[Either[AppErrorWithStatus, Offer]] =
-    accessibleOfferManagerService.accessibleOfferKey(offer.key, offerRestrictionPatterns) match {
-      case true  =>
-        organisationMongoDataStore
-          .findOffer(tenant, orgKey, offer.key)
-          .flatMap {
-            case Left(e)           =>
-              toErrorWithStatus(e, NotFound)
-            case Right(maybeOffer) =>
-              maybeOffer match {
-                case Some(_) =>
-                  updateOrganisation(tenant, orgKey).flatMap {
-                    case Right(_) =>
-                      organisationMongoDataStore
-                        .updateOffer(tenant, orgKey, offer.key, offer)
-                        .map(Right(_))
+    if (accessibleOfferManagerService.accessibleOfferKey(offer.key, offerRestrictionPatterns)) {
+      organisationMongoDataStore
+        .findOffer(tenant, orgKey, offer.key)
+        .flatMap {
+          case Left(e) =>
+            toErrorWithStatus(e, NotFound)
+          case Right(maybeOffer) =>
+            maybeOffer match {
+              case Some(_) =>
+                updateOrganisation(tenant, orgKey).flatMap {
+                  case Right(_) =>
+                    organisationMongoDataStore
+                      .updateOffer(tenant, orgKey, offer.key, offer)
+                      .map(Right(_))
 
-                    case Left(e) =>
-                      toErrorWithStatus(e)
-                  }
-                case None    =>
-                  updateOrganisation(tenant, orgKey).flatMap {
-                    case Right(_) =>
-                      organisationMongoDataStore
-                        .addOffer(tenant, orgKey, offer)
-                        .map(Right(_))
+                  case Left(e) =>
+                    toErrorWithStatus(e)
+                }
+              case None =>
+                updateOrganisation(tenant, orgKey).flatMap {
+                  case Right(_) =>
+                    organisationMongoDataStore
+                      .addOffer(tenant, orgKey, offer)
+                      .map(Right(_))
 
-                    case Left(e) =>
-                      toErrorWithStatus(e)
-                  }
-              }
-          }
-      case false =>
-        toErrorWithStatus(s"offer.${offer.key}.not.accessible", Unauthorized)
+                  case Left(e) =>
+                    toErrorWithStatus(e)
+                }
+            }
+        }
+    } else {
+      toErrorWithStatus(s"offer.${offer.key}.not.accessible", Unauthorized)
     }
 
   def delete(

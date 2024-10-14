@@ -41,7 +41,7 @@ class ConsentManagerService(
     for {
       lastConsent  <- IO.fromFutureOption(lastConsentFactMongoDataStore.findByOrgKeyAndUserId(tenant, organisationKey, userId), AppErrorWithStatus(s"consentfact.${userId}.not.found", NotFound))
       organisation <- IO.fromFutureOption(organisationMongoDataStore.findLastReleasedByKey(tenant, organisationKey), {NioLogger.error(s"error.specified.org.never.released for organisation key $organisationKey"); AppErrorWithStatus("error.specified.org.never.released")})
-      consentFact  = partialConsentFact.applyTo(lastConsent, organisation.version)
+      consentFact  = partialConsentFact.applyTo(lastConsent, organisation)
       result       <- createOrReplace(tenant, author, metadata, organisation, consentFact, Some(lastConsent), command = command)
     } yield result
   }
@@ -51,16 +51,17 @@ class ConsentManagerService(
       author: String,
       metadata: Option[Seq[(String, String)]],
       organisation: Organisation,
-      consentFact: ConsentFact,
+      consentFactInput: ConsentFact,
       maybeLastConsentFact: Option[ConsentFact] = None,
       command: JsValue
   ): IO[AppErrorWithStatus, ConsentFact] =
     for {
-      _                       <- IO.fromEither(organisation.isValidWith(consentFact, maybeLastConsentFact)).mapError(m => AppErrorWithStatus(m))
-      organisationKey: String = organisation.key
-      userId: String          = consentFact.userId
-      _                       <- validateOffersStructures(tenant, organisationKey, userId, consentFact.offers).doOnError{ e => NioLogger.error(s"validate offers structure $e") }
-      res                     <- maybeLastConsentFact match {
+      _                       <- IO.fromEither(organisation.isValidWith(consentFactInput, maybeLastConsentFact)).mapError(m => AppErrorWithStatus(m))
+      consentFact: ConsentFact = consentFactInput.setUpValidityPeriods(organisation)
+      organisationKey: String  = organisation.key
+      userId: String           = consentFact.userId
+      _                        <- validateOffersStructures(tenant, organisationKey, userId, consentFact.offers).doOnError{ e => NioLogger.error(s"validate offers structure $e") }
+      res                      <- maybeLastConsentFact match {
         // Create a new user, consent fact and last consent fact
         case None =>
           for {
@@ -336,7 +337,7 @@ class ConsentManagerService(
             }
 
         // Cannot rollback and update a consent fact to an old organisation version
-        case Some(lastConsentFactStored) if lastConsentFactStored.version >= consentFact.version =>
+        case Some(lastConsentFactStored)  =>
           NioLogger.error(
             s"error.version.lower.than.stored : last version saved ${lastConsentFactStored.version} -> version specified ${consentFact.version}"
           )

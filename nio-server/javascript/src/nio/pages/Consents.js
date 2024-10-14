@@ -182,7 +182,10 @@ class Consents extends Component {
                                                    checked={consent.checked}
                                                    onChange={() => this.onChangeConsents(consent.key, !consent.checked)}/>
                                             <label style={{marginLeft: "20px"}}
-                                                   htmlFor={`${this.props.index}-${index}-${consent.key}`}>{consent.label}</label>
+                                                   htmlFor={`${this.props.index}-${index}-${consent.key}`}>{consent.label}
+                                                {consent.expiredAt && (new Date(consent.expiredAt) >= new Date()) && <span> (expire le {new Date(consent.expiredAt).toLocaleString()})</span>}
+                                                {consent.expiredAt && (new Date(consent.expiredAt) < new Date()) && <span> (a expiré le {new Date(consent.expiredAt).toLocaleString()})</span>}
+                                            </label>
                                         </div>
                                     </div>
                                 )

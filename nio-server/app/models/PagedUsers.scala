@@ -1,12 +1,14 @@
 package models
 
-import play.api.libs.json.{JsArray, Json}
+import play.api.libs.json.{JsArray, JsObject, Json}
 import libs.xml.XmlUtil.XmlCleaner
+
 import scala.collection.Seq
+import scala.xml.Elem
 
 case class PagedUsers(page: Int, pageSize: Int, count: Long, items: Seq[User]) extends ModelTransformAs {
 
-  def asJson() =
+  def asJson(): JsObject =
     Json.obj(
       "page"     -> page,
       "pageSize" -> pageSize,
@@ -14,7 +16,7 @@ case class PagedUsers(page: Int, pageSize: Int, count: Long, items: Seq[User]) e
       "items"    -> JsArray(items.map(u => Json.obj("userId" -> u.userId, "orgKey" -> u.orgKey)))
     )
 
-  def asXml() = <pagedUsers>
+  def asXml(): Elem = <pagedUsers>
       <page>{page}</page>
       <pageSize>{pageSize}</pageSize>
       <count>{count}</count>

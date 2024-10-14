@@ -9,8 +9,7 @@ import scala.concurrent.duration.FiniteDuration
 
 object NioConfiguration {
 
-  implicit def hint[T] =
-    ProductHint[T](ConfigFieldMapping(CamelCase, CamelCase))
+  implicit def hint[T]: ProductHint[T] = ProductHint[T](ConfigFieldMapping(CamelCase, CamelCase))
 
   def apply(config: Configuration): NioConfiguration =
     ConfigSource.fromConfig(config.underlying).at("nio").loadOrThrow[NioConfiguration]

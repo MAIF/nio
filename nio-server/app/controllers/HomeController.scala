@@ -86,7 +86,7 @@ class HomeController(
     }
   }
 
-  def login = AuthAction { ctx =>
+  def login = AuthAction { _ =>
     Ok(views.html.indexLogin(env))
   }
 
@@ -110,7 +110,7 @@ class HomeController(
     }
   }
 
-  def swagger() = AuthAction { req =>
+  def swagger() = AuthAction { _ =>
     Ok(swaggerContent).as("application/json")
   }
 }

@@ -43,7 +43,7 @@ class ExtractionController(
     val broker: KafkaMessageBroker
 ) extends ControllerUtils(cc) {
 
-  implicit val mat = Materializer(system)
+  implicit val mat: Materializer = Materializer(system)
 
   val fileBodyParser: BodyParser[Source[ByteString, _]]            = BodyParser { _ =>
     Accumulator.source[ByteString].map(s => Right(s))
@@ -142,7 +142,7 @@ class ExtractionController(
         appState.files.find(_.name == name) match {
           case None               =>
             Future.successful("error.unknown.appId".notFound())
-          case Some(fileMetadata) =>
+          case Some(_) =>
             (if (s3Conf.v4auth) {
                upload(tenant, req.task, appId, name)
              } else {

@@ -4,6 +4,9 @@ import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.Json
 
+import java.util.concurrent.TimeUnit
+import scala.concurrent.duration.FiniteDuration
+
 class OrganisationSpec extends PlaySpec with AnyWordSpecLike {
 
   "Organisation" should {
@@ -183,6 +186,71 @@ println(Json.prettyPrint(json))
             } ]
           } ]
         } """)
+
+    val fromJson = Organisation.fromJson(json)
+
+    fromJson.map(_.key) mustBe Right(org.key)
+  }
+
+
+  "serialize/deserialize from XML with validity" in {
+    val org = Organisation(
+      _id = "cf",
+      key = "maif",
+      label = "test org",
+      version = VersionInfo(),
+      groups = Seq(
+        PermissionGroup(
+          key = "a",
+          label = "a",
+          permissions = Seq(
+            Permission(
+              key = "a1",
+              label = "a1",
+              validityPeriod = Some(FiniteDuration(1, TimeUnit.DAYS))
+            ),
+            Permission(
+              key = "a2",
+              label = "a2"
+            )
+          )
+        )
+      )
+    )
+
+    val xml = org.asXml()
+
+    val fromXml = Organisation.fromXml(xml)
+
+    fromXml.map(_.key) mustBe Right(org.key)
+  }
+
+  "serialize/deserialize from JSON with validity" in {
+    val org = Organisation(
+      _id = "cf",
+      key = "maif",
+      label = "test org",
+      version = VersionInfo(),
+      groups = Seq(
+        PermissionGroup(
+          key = "a",
+          label = "a",
+          permissions = Seq(
+            Permission(
+              key = "a1",
+              label = "a1",
+              validityPeriod = Some(FiniteDuration(1, TimeUnit.DAYS))
+            ),
+            Permission(
+              key = "a2",
+              label = "a2"
+            )
+          )
+        )
+      )
+    )
+
+    val json = org.asJson()
 
     val fromJson = Organisation.fromJson(json)
 

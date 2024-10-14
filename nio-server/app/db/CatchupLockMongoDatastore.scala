@@ -2,12 +2,11 @@ package db
 
 import org.apache.pekko.http.scaladsl.util.FastFuture
 
-import java.time.{Clock, Instant, LocalDateTime, ZoneId}
+import java.time.{Instant, LocalDateTime, ZoneId}
 import utils.NioLogger
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoApi
 import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.api.bson.BSONDocument
 import reactivemongo.api.bson.collection.BSONCollection
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -19,8 +18,6 @@ class CatchupLockMongoDatastore(val reactiveMongoApi: ReactiveMongoApi)(implicit
 
   import reactivemongo.api.bson._
   import reactivemongo.play.json.compat._
-  import models.ExtractionTaskStatus._
-  import lax._
   import bson2json._
   import json2bson._
 
@@ -36,7 +33,7 @@ class CatchupLockMongoDatastore(val reactiveMongoApi: ReactiveMongoApi)(implicit
 
   implicit def format: Format[CatchupLock] = CatchupLock.catchupLockFormats
 
-  def init() = {
+  def init(): Future[Unit] = {
     NioLogger.debug("### init lock datastore ###")
 
     storedCollection.flatMap { col =>
@@ -51,7 +48,7 @@ class CatchupLockMongoDatastore(val reactiveMongoApi: ReactiveMongoApi)(implicit
   def storedCollection: Future[BSONCollection] =
     reactiveMongoApi.database.map(_.collection("catchupLock"))
 
-  def createLock(tenant: String) =
+  def createLock(tenant: String): Future[Boolean] =
     storedCollection
       .flatMap(
         _.find(Json.obj("tenant" -> tenant))
@@ -62,12 +59,12 @@ class CatchupLockMongoDatastore(val reactiveMongoApi: ReactiveMongoApi)(implicit
           storedCollection.flatMap { coll =>
             coll.insert.one(format.writes(CatchupLock(tenant)).as[JsObject]).map(_.writeErrors.isEmpty)
           }
-        case Some(catchupItem) =>
+        case Some(_) =>
           NioLogger.debug(s"Stored collection already locked for tenant $tenant")
           FastFuture.successful(false)
       }
 
-  def findLock(tenant: String) =
+  def findLock(tenant: String): Future[Option[CatchupLock]] =
     storedCollection
       .flatMap(
         _.find(Json.obj("tenant" -> tenant))
@@ -98,7 +95,7 @@ object CatchupLock {
       )
     }
 
-  implicit val jodaDateFormat = new Format[LocalDateTime] {
+  implicit val jodaDateFormat: Format[LocalDateTime] = new Format[LocalDateTime] {
     override def reads(d: JsValue): JsResult[LocalDateTime] =
       JsSuccess(Instant
         .ofEpochMilli(d.as[JsObject].\("$date").as[JsNumber].value.toLong)

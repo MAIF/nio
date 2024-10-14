@@ -5,9 +5,11 @@ import org.apache.pekko.stream.scaladsl.Source
 import reactivemongo.api.{Cursor, ReadPreference}
 import reactivemongo.api.bson.collection.BSONCollection
 
+import scala.annotation.nowarn
 import scala.concurrent.{ExecutionContext, Future}
 import scala.collection.Seq
 
+@nowarn("msg=Will be removed when provided by Play-JSON itself")
 object MongoOpsDataStore {
 
   implicit class MongoDataStore(coll: BSONCollection)(implicit executionContext: ExecutionContext) {
@@ -31,7 +33,6 @@ object MongoOpsDataStore {
 
     def updateByQuery[T](query: JsObject, update: JsObject)(implicit OFormat: OFormat[T]): Future[Boolean] = {
       import json2bson._
-      import bson2json._
 //      implicit val writer = implicitly[BSONDocumentWriter[T]]
       val builder = coll.update(ordered = false)
       val updates = builder.element(q = query, u = update, upsert = true, multi = false)
@@ -45,14 +46,11 @@ object MongoOpsDataStore {
     }
 
     def findOneById[T](id: String)(implicit oformat: OFormat[T]): Future[Option[T]] = {
-      import json2bson._
       import bson2json._
       findOne(Json.obj("_id" -> id))
     }
 
     def findOneByQuery[T](query: JsObject)(implicit oformat: OFormat[T]): Future[Option[T]] = {
-      import json2bson._
-      import bson2json._
       findOne(query)
     }
 
@@ -137,7 +135,6 @@ object MongoOpsDataStore {
 
     private def delete[T](query: JsObject)(implicit oformat: OFormat[T]): Future[Boolean] = {
       import json2bson._
-      import bson2json._
       val builder = coll.delete(ordered = false)
       builder
         .element(q = query, limit = None, collation = None)

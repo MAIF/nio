@@ -9,7 +9,7 @@ lazy val `nio-server` = (project in file("."))
   .enablePlugins(NoPublish)
   .disablePlugins(BintrayPlugin)
 
-scalaVersion := "2.13.14"
+scalaVersion := Dependencies._scalaVersion
 
 resolvers ++= Seq(
   Resolver.jcenterRepo,
@@ -20,6 +20,8 @@ dependencyOverrides ++= Seq(
   "com.github.luben"          % "zstd-jni"                 % "1.5.6-4",
   "org.scala-lang.modules" %% "scala-xml" % "2.2.0"
 )
+
+ThisBuild / scalafixDependencies  ++= Seq("org.reactivemongo" %% "reactivemongo-scalafix" % "1.1.0-RC13")
 
 libraryDependencies ++= Seq(
   ws,
@@ -57,7 +59,8 @@ scalacOptions ++= Seq(
   "-feature",
   "-language:higherKinds",
   "-language:implicitConversions",
-  "-language:existentials"
+  "-language:existentials",
+  "-Wunused:imports" //, "-Xsource:3"
 )
 
 /// ASSEMBLY CONFIG
@@ -80,14 +83,14 @@ assembly / assemblyMergeStrategy := {
   case PathList(ps @ _*) if ps.contains("buildinfo")                          => MergeStrategy.discard
   case PathList(ps @ _*) if ps.last endsWith "reflection-config.json"         => MergeStrategy.first
   case o =>
-    val oldStrategy = (assemblyMergeStrategy in assembly).value
+    val oldStrategy = (assembly / assemblyMergeStrategy).value
     oldStrategy(o)
 }
 
 lazy val packageAll = taskKey[Unit]("PackageAll")
 packageAll := {
-  (dist in Compile).value
-  (assembly in Compile).value
+  (Compile / dist).value
+  (Compile / assembly).value
 }
 
 /// DOCKER CONFIG
@@ -95,9 +98,9 @@ packageAll := {
 dockerExposedPorts := Seq(
   9000
 )
-packageName in Docker := "nio"
+Docker / packageName := "nio"
 
-maintainer in Docker := "MAIF Team <maif@maif.fr>"
+Docker / maintainer := "MAIF Team <maif@maif.fr>"
 
 dockerBaseImage := "openjdk:8"
 
@@ -134,4 +137,4 @@ dockerEntrypoint ++= Seq(
 
 dockerUpdateLatest := true
 
-packageName in Universal := s"nio"
+Universal / packageName := s"nio"

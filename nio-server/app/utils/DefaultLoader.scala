@@ -4,6 +4,7 @@ import db.OrganisationMongoDataStore
 import models._
 import play.api.Configuration
 
+import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
 
 class DefaultLoader(conf: Configuration, organisationStore: OrganisationMongoDataStore)(implicit ec: ExecutionContext) {
@@ -27,7 +28,9 @@ class DefaultLoader(conf: Configuration, organisationStore: OrganisationMongoDat
             permissions = groupsConf.get[Seq[Configuration]]("permissions").map { permissionsConf =>
               Permission(
                 key = permissionsConf.get[String]("key"),
-                label = permissionsConf.get[String]("label")
+                label = permissionsConf.get[String]("label"),
+                `type` = permissionsConf.getOptional[String]("type").flatMap(s => PermissionType.parse(s).toOption).getOrElse(OptIn),
+                validityPeriod = permissionsConf.getOptional[FiniteDuration]("validityPeriod")
               )
             }
           )

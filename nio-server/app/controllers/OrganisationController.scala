@@ -3,7 +3,7 @@ package controllers
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.util.ByteString
-import auth.{AuthAction, SecuredAction, SecuredAuthContext}
+import auth.SecuredAuthContext
 import db._
 import models._
 import messaging.KafkaMessageBroker
@@ -16,6 +16,7 @@ import reactivemongo.api.bson.BSONObjectID
 import scala.concurrent.{ExecutionContext, Future}
 import ErrorManager.ErrorManagerResult
 import ErrorManager.AppErrorManagerResult
+import libs.xmlorjson.XmlOrJson
 
 class OrganisationController(
     val AuthAction: ActionBuilder[SecuredAuthContext, AnyContent],
@@ -32,7 +33,7 @@ class OrganisationController(
   implicit val readable: ReadableEntity[Organisation] = OrganisationDraft
   implicit val materializer: Materializer             = Materializer(system)
 
-  def create(tenant: String) = AuthAction.async(bodyParser) { implicit req =>
+  def create(tenant: String): Action[XmlOrJson] = AuthAction.async(bodyParser) { implicit req =>
     tenantDataStore.findByKey(tenant).flatMap {
       case Some(_) =>
         req.body.read[Organisation] match {
@@ -73,7 +74,7 @@ class OrganisationController(
   }
 
   // update if exists
-  def replaceDraftIfExists(tenant: String, orgKey: String) =
+  def replaceDraftIfExists(tenant: String, orgKey: String): Action[XmlOrJson] =
     AuthAction.async(bodyParser) { implicit req =>
       req.body.read[Organisation] match {
         case Left(error)                 =>
@@ -81,7 +82,7 @@ class OrganisationController(
           Future.successful(error.badRequest())
         case Right(o) if o.key != orgKey =>
           Future.successful("error.invalid.organisation.key".badRequest())
-        case Right(o) if o.key == orgKey =>
+        case Right(o) =>
           OrganisationValidator.validateOrganisation(o) match {
             case Left(error) =>
               NioLogger.error("Organisation is not valid  " + error)
@@ -112,7 +113,7 @@ class OrganisationController(
       }
     }
 
-  def findAllReleasedByKey(tenant: String, orgKey: String) = AuthAction.async { implicit req =>
+  def findAllReleasedByKey(tenant: String, orgKey: String): Action[AnyContent] = AuthAction.async { implicit req =>
     ds.findDraftByKey(tenant, orgKey).flatMap {
       case None    =>
         Future.successful("error.organisation.not.found".notFound())
@@ -123,7 +124,7 @@ class OrganisationController(
     }
   }
 
-  def findLastReleasedByKey(tenant: String, orgKey: String) = AuthAction.async { implicit req =>
+  def findLastReleasedByKey(tenant: String, orgKey: String): Action[AnyContent] = AuthAction.async { implicit req =>
     ds.findLastReleasedByKey(tenant, orgKey).map {
       case None    => "error.organisation.not.found".notFound()
       case Some(o) =>
@@ -131,7 +132,7 @@ class OrganisationController(
     }
   }
 
-  def findDraftByKey(tenant: String, orgKey: String) = AuthAction.async { implicit req =>
+  def findDraftByKey(tenant: String, orgKey: String): Action[AnyContent] = AuthAction.async { implicit req =>
     ds.findDraftByKey(tenant, orgKey).map {
       case None      => "error.organisation.not.found".notFound()
       case Some(org) =>
@@ -139,7 +140,7 @@ class OrganisationController(
     }
   }
 
-  def findReleasedByKeyAndVersionNum(tenant: String, orgKey: String, version: Int) = AuthAction.async { implicit req =>
+  def findReleasedByKeyAndVersionNum(tenant: String, orgKey: String, version: Int): Action[AnyContent] = AuthAction.async { implicit req =>
     ds.findReleasedByKeyAndVersionNum(tenant, orgKey, version).map {
       case None      => "error.organisation.not.found".notFound()
       case Some(org) =>
@@ -147,7 +148,7 @@ class OrganisationController(
     }
   }
 
-  def releaseDraft(tenant: String, orgKey: String) =
+  def releaseDraft(tenant: String, orgKey: String): Action[AnyContent] =
     AuthAction.async { implicit req =>
       ds.findDraftByKey(tenant, orgKey).flatMap {
         case Some(previousOrganisationDraft) =>
@@ -228,7 +229,7 @@ class OrganisationController(
       }
     }
 
-  def list(tenant: String) = AuthAction.async { implicit req =>
+  def list(tenant: String): Action[AnyContent] = AuthAction.async { implicit req =>
     ds.findAllLatestReleasesOrDrafts(tenant).map { orgas =>
       val lightOrgas = orgas.map(OrganisationLight.from)
 
@@ -236,7 +237,7 @@ class OrganisationController(
     }
   }
 
-  def delete(tenant: String, orgKey: String) = AuthAction.async { implicit req =>
+  def delete(tenant: String, orgKey: String): Action[AnyContent] = AuthAction.async { implicit req =>
     for {
       maybeLastRelease <- ds.findLastReleasedByKey(tenant, orgKey)
       maybeDraft       <- ds.findDraftByKey(tenant, orgKey)
@@ -265,7 +266,7 @@ class OrganisationController(
     } yield res
   }
 
-  def download(tenant: String, from: String, to: String) = AuthAction.async { implicit req =>
+  def download(tenant: String, from: String, to: String): Action[AnyContent] = AuthAction.async { _ =>
     ds.streamAllLatestReleasesOrDraftsByDate(tenant, from, to).map { source =>
       val src = source
         .map(Json.stringify)

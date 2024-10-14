@@ -8,7 +8,7 @@ import scala.concurrent.duration.FiniteDuration
 
 object NioConfiguration {
   import pureconfig.generic.auto._
-  implicit def hint[T] =
+  implicit def hint[T]: ProductHint[T] =
     ProductHint[T](ConfigFieldMapping(CamelCase, CamelCase))
 
   def apply(config: Configuration): NioConfiguration =

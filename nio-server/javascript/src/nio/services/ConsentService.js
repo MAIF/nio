@@ -1,6 +1,6 @@
 export function getConsents(tenant, organisationKey, userId) {
 
-  return fetch(`/api/${tenant}/organisations/${organisationKey}/users/${userId}`, {
+  return fetch(`/api/${tenant}/organisations/${organisationKey}/users/${userId}?showExpiredConsents=true`, {
     method: "GET",
     credentials: 'include',
     headers: {

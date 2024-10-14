@@ -109,7 +109,7 @@ PATCH         /api/:tenant/organisations/:orgKey/users/:userId                  
 
 DELETE        /api/:tenant/organisations/:orgKey/users/:userId/offers/:offerKey                                           controllers.ConsentController.deleteOffer(tenant: String, orgKey: String, userId: String, offerKey: String)
 
-GET           /api/:tenant/organisations/:orgKey/users/:userId                                                            controllers.ConsentController.find(tenant: String, orgKey: String, userId: String)
+GET           /api/:tenant/organisations/:orgKey/users/:userId                                                            controllers.ConsentController.find(tenant: String, orgKey: String, userId: String, showExpiredConsents: Boolean ?= false)
 
 GET           /api/:tenant/organisations/:orgKey/users/:userId/logs                                                       controllers.ConsentController.getConsentFactHistory(tenant: String, orgKey: String, userId: String, page: Int ?= 0, pageSize: Int ?= 10)
 
@@ -139,7 +139,7 @@ POST          /api/tenants                                                      
 
 DELETE        /api/tenants/:tenantKey                                                                                     controllers.TenantController.deleteTenant(tenantKey)
 
-GET           /_healthCheck                                                                                               controllers.MetricsController.healthCheck
+GET           /_healthCheck                                                                                               controllers.MetricsController.healthCheck()
 
 GET           /_download/*name                                                                                            controllers.UserExtractController.downloadFile(name: String, uploadToken: String)
 
