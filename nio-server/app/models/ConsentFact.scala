@@ -325,7 +325,7 @@ case class PartialConsentFact(
         userId = userId.getOrElse(lastConsentFact.userId),
         doneBy = doneBy.getOrElse(lastConsentFact.doneBy),
         version = version.getOrElse(organisation.version.num),
-        lastUpdate = lastUpdate.getOrElse(lastConsentFact.lastUpdate),
+        lastUpdate = lastUpdate.getOrElse(LocalDateTime.now(Clock.systemUTC)),
         lastUpdateSystem = LocalDateTime.now(Clock.systemUTC),
         groups = groups.map(g => PartialConsentGroup.merge(g, lastConsentFact.groups, organisation.groups)).getOrElse(lastConsentFact.groups),
         offers = offers.map(o => PartialConsentOffer.merge(o, lastConsentFact.offers)).getOrElse(lastConsentFact.offers),
