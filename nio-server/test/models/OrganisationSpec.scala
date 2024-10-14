@@ -219,9 +219,10 @@ class OrganisationSpec extends PlaySpec with AnyWordSpecLike {
     )
 
     val xml = org.asXml()
-
+    println(xml)
     val fromXml = Organisation.fromXml(xml)
 
+    println(fromXml)
     fromXml.map(_.key) mustBe Right(org.key)
   }
 
