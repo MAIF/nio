@@ -19,29 +19,30 @@ object MongoOpsDataStore {
     import reactivemongo.play.json.compat._
     import reactivemongo.pekkostream._
 
-    def insertOne[T](objToInsert: T)(implicit oformat: OFormat[T]): Future[Boolean] = {
+    def insertOne[T](objToInsert: T)(implicit oformat: OFormat[T], writer: BSONDocumentWriter[T]): Future[Boolean] = {
       import json2bson._
-      implicit val writer = implicitly[BSONDocumentWriter[T]]
       coll.insert.one[T](objToInsert).map(_.writeErrors.isEmpty)
     }
 
-    def updateOne[T](id: String, objToUpdate: T)(implicit oformat: OFormat[T]): Future[Boolean]             =
+    def updateOne[T](id: String, objToUpdate: T)(implicit oformat: OFormat[T]): Future[Boolean]             = {
+      import reactivemongo.play.json.compat.json2bson.toDocumentWriter
       updateOne(Json.obj("_id" -> id), objToUpdate)
+    }
 
-    def updateOneByQuery[T](query: JsObject, objToUpdate: T)(implicit oformat: OFormat[T]): Future[Boolean] =
+    def updateOneByQuery[T](query: JsObject, objToUpdate: T)(implicit oformat: OFormat[T]): Future[Boolean] = {
+      import reactivemongo.play.json.compat.json2bson.toDocumentWriter
       updateOne(query, objToUpdate)
+    }
 
-    def updateByQuery[T](query: JsObject, update: JsObject)(implicit OFormat: OFormat[T]): Future[Boolean] = {
+    def updateByQuery[T](query: JsObject, update: JsObject)(implicit OFormat: OFormat[T], writer: BSONDocumentWriter[T]): Future[Boolean] = {
       import json2bson._
-//      implicit val writer = implicitly[BSONDocumentWriter[T]]
       val builder = coll.update(ordered = false)
       val updates = builder.element(q = query, u = update, upsert = true, multi = false)
       updates.flatMap(d => builder.many(List(d))).map(_.writeErrors.isEmpty)
     }
 
-    def updateOne[T](query: JsObject, objToUpdate: T)(implicit oformat: OFormat[T]): Future[Boolean] = {
+    def updateOne[T](query: JsObject, objToUpdate: T)(implicit oformat: OFormat[T], writer: BSONDocumentWriter[T]): Future[Boolean] = {
       import json2bson._
-      implicit val writer = implicitly[BSONDocumentWriter[T]]
       coll.update.one(query, objToUpdate).map(_.writeErrors.isEmpty)
     }
 
@@ -75,6 +76,7 @@ object MongoOpsDataStore {
     )(implicit oformat: OFormat[T]): Future[(Seq[T], Long)] = {
       import json2bson._
       import bson2json._
+      import reactivemongo.play.json.compat.ExtendedJsonConverters.toDocument
       val search: Future[Seq[T]] = coll
         .find(query)
         .sort(sort)
@@ -98,6 +100,7 @@ object MongoOpsDataStore {
     )(implicit oformat: OFormat[T]): Future[Seq[T]] = {
       import json2bson._
       import bson2json._
+      import reactivemongo.play.json.compat.ExtendedJsonConverters.toDocument
       coll
         .find(query)
         .sort(sort)

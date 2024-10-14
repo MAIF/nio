@@ -5,25 +5,18 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.util.concurrent.TimeUnit
 
-import org.apache.pekko.NotUsed
-import org.apache.pekko.http.scaladsl.model.Multipart.BodyPart
 import org.apache.pekko.stream.scaladsl.{FileIO, Source}
 import models.{Organisation, Permission, PermissionGroup, UserExtract}
-import org.apache.http.entity.ContentType
-import org.apache.http.entity.mime.MultipartEntityBuilder
 import play.api.libs.json.{JsArray, JsValue}
-import play.api.libs.ws.SourceBody
-import utils.NioLogger
 import play.api.mvc.MultipartFormData
-import play.api.mvc.MultipartFormData.{DataPart, FilePart}
+import play.api.mvc.MultipartFormData.FilePart
 import play.api.test.Helpers._
-import play.mvc.BodyParser.MultipartFormData
-import play.shaded.ahc.org.asynchttpclient.request.body.multipart.StringPart
 import play.shaded.ahc.org.asynchttpclient.request.body.multipart.part.StringMultipartPart
 import utils.TestUtils
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
+import play.api.libs.ws.bodyWritableOf_Multipart
 
 class UserExtractControllerSpec extends TestUtils {
 

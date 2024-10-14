@@ -8,7 +8,7 @@ import utils.{DateUtils, IdGenerator}
 import scala.collection.Seq
 
 object EventType extends Enumeration {
-  type WeekDay = Value
+  type EventType = Value
   val TenantCreated, TenantDeleted, OrganisationCreated, OrganisationUpdated, OrganisationReleased, OrganisationDeleted,
       ConsentFactCreated, ConsentFactUpdated, AccountCreated, AccountUpdated, AccountDeleted, SecuredEvent,
       DeletionStarted, DeletionAppDone, DeletionFinished, ExtractionStarted, ExtractionAppFilesMetadataReceived,
@@ -17,10 +17,12 @@ object EventType extends Enumeration {
 
   def from(name: String): Value =
     values.find(_.toString.toLowerCase == name.toLowerCase()).getOrElse(Unknown)
+
+  implicit val format: Format[EventType] = Json.formatEnum(this)
 }
 
 object NioEvent {
-  val gen = IdGenerator(1024)
+  val gen: IdGenerator = IdGenerator(1024)
 
   def fromJson(json: JsValue): Option[NioEvent] =
     for {
@@ -165,7 +167,7 @@ case class TenantCreated(
 
   def `type`: EventType.Value = EventType.TenantCreated
 
-  def asJson(): JsObject =
+  def asJson(): JsObject = {
     Json
       .obj(
         "type"     -> `type`,
@@ -177,6 +179,7 @@ case class TenantCreated(
         "payload"  -> payload.asJson()
       )
       .cleanMetadata()
+  }
 }
 
 case class TenantDeleted(
@@ -191,7 +194,7 @@ case class TenantDeleted(
 
   def `type`: EventType.Value = EventType.TenantDeleted
 
-  def asJson(): JsObject =
+  def asJson(): JsObject = {
     Json
       .obj(
         "type"     -> `type`,
@@ -203,6 +206,7 @@ case class TenantDeleted(
         "payload"  -> payload.asJson()
       )
       .cleanMetadata()
+  }
 }
 
 case class OrganisationCreated(

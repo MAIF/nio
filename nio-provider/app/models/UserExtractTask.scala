@@ -39,10 +39,10 @@ object UserExtractTask {
       } and
       (__ \ "uploadStartedAt").readNullable[LocalDateTime] and
       (__ \ "endedAt").readNullable[LocalDateTime]
-  )(UserExtractTask.apply _)
+  )(UserExtractTask.apply)
 
   implicit val userExtractTaskWrites: Writes[UserExtractTask] = (
-    (JsPath \ "_id").write[String] and
+    (JsPath \   "_id").write[String] and
       (JsPath \ "tenant").write[String] and
       (JsPath \ "orgKey").write[String] and
       (JsPath \ "userId").write[String] and
@@ -50,7 +50,7 @@ object UserExtractTask {
       (JsPath \ "startedAt").write[LocalDateTime] and
       (JsPath \ "uploadStartedAt").writeNullable[LocalDateTime] and
       (JsPath \ "endedAt").writeNullable[LocalDateTime]
-  )(unlift(UserExtractTask.unapply))
+  )(u => (u._id, u.tenant, u.orgKey, u.userId, u.email, u.startedAt, u.uploadStartedAt, u.endedAt))
 
   implicit val userExtractTaskOWrites: OWrites[UserExtractTask] = (
     (JsPath \ "_id").write[String] and
@@ -61,7 +61,7 @@ object UserExtractTask {
       (JsPath \ "startedAt").write[LocalDateTime] and
       (JsPath \ "uploadStartedAt").writeNullable[LocalDateTime] and
       (JsPath \ "endedAt").writeNullable[LocalDateTime]
-  )(unlift(UserExtractTask.unapply))
+  )(u => (u._id, u.tenant, u.orgKey, u.userId, u.email, u.startedAt, u.uploadStartedAt, u.endedAt))
 
   implicit val format: Format[UserExtractTask]   =
     Format(userExtractTaskReads, userExtractTaskWrites)

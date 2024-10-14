@@ -1,18 +1,22 @@
 package configuration
 
 import play.api.Configuration
-import pureconfig._
+import pureconfig.*
+import pureconfig.generic.derivation.default.*
+import pureconfig.generic.semiauto.*
 import pureconfig.generic.ProductHint
 
 import scala.concurrent.duration.FiniteDuration
 
 object NioConfiguration {
-  import pureconfig.generic.auto._
-  implicit def hint[T]: ProductHint[T] =
-    ProductHint[T](ConfigFieldMapping(CamelCase, CamelCase))
 
-  def apply(config: Configuration): NioConfiguration =
+  implicit def hint[T]: ProductHint[T] = ProductHint[T](ConfigFieldMapping(CamelCase, CamelCase))
+
+  def apply(config: Configuration): NioConfiguration = {
+    given ConfigReader[NioConfiguration] = deriveReader
+    given ConfigWriter[NioConfiguration] = deriveWriter
     ConfigSource.fromConfig(config.underlying).at("nio").loadOrThrow[NioConfiguration]
+  }
 }
 
 case class NioConfiguration(websocketHost: String, filter: Otoroshi, kafka: KafkaConfig, nio: NioConfig)

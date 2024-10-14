@@ -132,7 +132,7 @@ class OrganisationSpec extends PlaySpec with AnyWordSpecLike {
     )
 
     val json = org.asJson()
-println(Json.prettyPrint(json))
+    println(Json.prettyPrint(json))
     val fromJson = Organisation.fromJson(json)
 
     fromJson.map(_.key) mustBe Right(org.key)
@@ -219,9 +219,10 @@ println(Json.prettyPrint(json))
     )
 
     val xml = org.asXml()
-
+    println(xml)
     val fromXml = Organisation.fromXml(xml)
 
+    println(fromXml)
     fromXml.map(_.key) mustBe Right(org.key)
   }
 

@@ -1,21 +1,21 @@
 package models
 
 import cats.data.Validated
-import cats.data.Validated._
-import cats.implicits._
+import cats.data.Validated.*
+import cats.implicits.*
 import libs.xml.XMLRead
 import libs.xml.XmlUtil.XmlCleaner
-import libs.xml.implicits._
-import libs.xml.syntax._
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
-import play.api.libs.json.Reads._
+import libs.xml.implicits.*
+import libs.xml.syntax.*
+import play.api.libs.functional.syntax.*
+import play.api.libs.json.*
+import play.api.libs.json.Reads.*
 import utils.Result.AppErrors
 
 import java.time.{Clock, LocalDateTime, ZoneId}
 import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.util.{Failure, Success, Try}
-import scala.xml.{Elem, NodeSeq}
+import scala.xml.{Elem, NodeBuffer, NodeSeq}
 
 sealed trait PermissionType {
   def print : String = this match {
@@ -68,7 +68,7 @@ case class Permission(key: String, label: String, `type`: PermissionType = OptIn
       <key>{key}</key>
       <label>{label}</label>
       <type>{`type`.print}</type>
-      {validityPeriod.map(p => <validityPeriod>p.toString()</validityPeriod>)}
+      {validityPeriod.map(p => <validityPeriod>{p.toString}</validityPeriod>).getOrElse(new NodeBuffer())}
     </permission>.clean()
 }
 
@@ -106,7 +106,7 @@ object Permission {
         (__ \ "label").read[String] and
         (__ \ "type").read[PermissionType].orElse(Reads.pure(OptIn)) and
         (__ \ "validityPeriod").readNullable[FiniteDuration]
-      )(Permission.apply _),
+      )(Permission.apply),
     Json.writes[Permission]
   )
 

@@ -273,7 +273,7 @@ class ConsentController(
 
   val newLineSplit: Flow[ByteString, ByteString, NotUsed] = Framing.delimiter(ByteString("\n"), 10000, allowTruncation = true)
   val toJson: Flow[ByteString, JsValue, NotUsed] = Flow[ByteString] via newLineSplit map (_.utf8String) filterNot (_.isEmpty) map (l => Json.parse(l))
-  private def ndJson(implicit ec: ExecutionContext): BodyParser[Source[JsValue, _]] = BodyParser(_ => Accumulator.source[ByteString].map(s => Right(s.via(toJson)))(ec))
+  private def ndJson(implicit ec: ExecutionContext): BodyParser[Source[JsValue, ?]] = BodyParser(_ => Accumulator.source[ByteString].map(s => Right(s.via(toJson)))(ec))
 
   private object ImportError {
     implicit val format: OFormat[ImportError] = Json.format[ImportError]
@@ -314,7 +314,7 @@ class ConsentController(
     }
 
 
-  def batchImport(tenant: String, orgKey: String): Action[Source[JsValue, _]] = AuthAction.async(ndJson) { implicit req =>
+  def batchImport(tenant: String, orgKey: String): Action[Source[JsValue, ?]] = AuthAction.async(ndJson) { implicit req =>
     val result: Future[JsValue] = req.body
       .map(json => ((json \ "userId").validate[String].getOrElse(""), json))
       .via(sharding(10, Flow[(String, JsValue)].mapAsync(1) { case (_, json) =>
@@ -326,14 +326,14 @@ class ConsentController(
           }
         )
       }))
-      .fold(ImportResult()){ (acc, elt) => acc combine elt }
+      .fold(ImportResult()){ (acc, elt) => acc.combine(elt) }
       .map { importResult => Json.toJson(importResult) }
       .runWith(Sink.head)
 
     result.map { json => Ok(json) }
   }
 
-  private def handleImportPatch(tenant: String, orgKey: String, req: SecuredAuthContext[Source[JsValue, _]], json: JsValue, userId: String, patchCommand: PartialConsentFact): Future[ImportResult] = {
+  private def handleImportPatch(tenant: String, orgKey: String, req: SecuredAuthContext[Source[JsValue, ?]], json: JsValue, userId: String, patchCommand: PartialConsentFact): Future[ImportResult] = {
     (for {
       _ <- if (patchCommand.userId.isDefined && !patchCommand.userId.contains(userId)) IO.error(ImportResult.error("error.userId.is.immutable", command = json))
       else IO.succeed(patchCommand)
@@ -370,7 +370,7 @@ class ConsentController(
     } yield result).merge
   }
 
-  private def handleImportUpdate(tenant: String, orgKey: String, req: SecuredAuthContext[Source[JsValue, _]], json: JsValue, userId: String, consentFact: ConsentFact): Future[ImportResult] = {
+  private def handleImportUpdate(tenant: String, orgKey: String, req: SecuredAuthContext[Source[JsValue, ?]], json: JsValue, userId: String, consentFact: ConsentFact): Future[ImportResult] = {
     if (consentFact.userId != userId) {
       NioLogger.error(s"error.userId.is.immutable : userId in path $userId // userId on body ${consentFact.userId}")
 

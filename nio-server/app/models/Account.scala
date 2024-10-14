@@ -8,7 +8,7 @@ import libs.xml.XmlUtil.XmlCleaner
 import libs.xml.implicits._
 import libs.xml.syntax._
 import java.time.{LocalDateTime, Clock}
-import play.api.libs.functional.syntax.{unlift, _}
+import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import play.api.libs.json.{JsValue, _}
 import utils.DateUtils
@@ -35,12 +35,12 @@ object OrganisationUser {
   implicit val read: Reads[OrganisationUser] = (
     (__ \ "userId").read[String] and
       (__ \ "orgKey").read[String]
-  )(OrganisationUser.apply _)
+  )(OrganisationUser.apply)
 
   implicit val write: Writes[OrganisationUser] = (
     (JsPath \ "userId").write[String] and
       (JsPath \ "orgKey").write[String]
-  )(unlift(OrganisationUser.unapply))
+  )(o => (o.userId, o.orgKey))
 
   implicit val format: Format[OrganisationUser] = Format(read, write)
 
@@ -83,17 +83,15 @@ object Account extends ReadableEntity[Account] {
 
   implicit val read: Reads[Account] = (
     (__ \ "accountId").read[String] and
-      (__ \ "lastUpdate")
-        .readWithDefault[LocalDateTime](LocalDateTime.now(Clock.systemUTC))(DateUtils.utcDateTimeReads) and
+      (__ \ "lastUpdate").readWithDefault[LocalDateTime](LocalDateTime.now(Clock.systemUTC))(DateUtils.utcDateTimeReads) and
       (__ \ "organisationsUsers").read[Seq[OrganisationUser]]
-  )(Account.apply _)
+  )(Account.apply)
 
   implicit val write: OWrites[Account] = (
     (JsPath \ "accountId").write[String] and
-      (JsPath \ "lastUpdate")
-        .write[LocalDateTime](DateUtils.utcDateTimeWrites) and
-      (JsPath \ "organisationsUsers").write[Seq[OrganisationUser]]
-  )(unlift(Account.unapply))
+    (JsPath \ "lastUpdate").write[LocalDateTime](DateUtils.utcDateTimeWrites) and
+    (JsPath \ "organisationsUsers").write[Seq[OrganisationUser]]
+  )(a => (a.accountId, a.lastUpdate, a.organisationsUsers))
 
   implicit val format: Format[Account]   = Format(read, write)
   implicit val oformat: OFormat[Account] = OFormat(read, write)

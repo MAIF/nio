@@ -1,10 +1,10 @@
 version: '2'
 services:
-  mongo:
+  nio_mongo:
     image: mongo:3.4.3
     ports:
       - 27017:27017
-  zookeeper:
+  nio_zookeeper:
     image: confluentinc/cp-zookeeper:5.2.3
     ports:
      - 32182:32181
@@ -14,12 +14,12 @@ services:
     extra_hosts:
       - "moby:127.0.0.1"
       - "localhost: 127.0.0.1"
-  kafka:
+  nio_kafka:
     image: confluentinc/cp-kafka:5.2.3
     ports:
      - 29092:29092
     depends_on:
-      - zookeeper
+      - nio_zookeeper
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:32181
@@ -30,10 +30,26 @@ services:
     extra_hosts:
       - "moby:127.0.0.1"
       - "localhost: 127.0.0.1"
-  s3server:
+  nio_s3server:
     image: scality/s3server
     ports:
       - 8000:8000
     environment:
       - "SCALITY_ACCESS_KEY_ID=newAccessKey"
       - "SCALITY_SECRET_ACCESS_KEY=newSecretKey"
+  nio_akhq:
+    image: tchiotludo/akhq
+    ports:
+      - 9005:8080
+    environment:
+      AKHQ_CONFIGURATION: |
+        akhq:
+          connections:
+            docker-kafka-server:
+              properties:
+                bootstrap.servers: "nio_kafka:9092"
+    depends_on:
+      - nio_kafka
+    extra_hosts:
+      - "moby:127.0.0.1"
+      - "localhost: 127.0.0.1"

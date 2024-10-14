@@ -19,6 +19,9 @@ object DeletionTaskStatus extends Enumeration {
     values.find(_.toString.toLowerCase == name.toLowerCase()).getOrElse(Unknown)
 
   implicit val deletionTaskStatusReads: Reads[DeletionTaskStatus] = (json: JsValue) => JsSuccess(DeletionTaskStatus.withName(json.as[String]))
+  implicit val deletionTaskStatusWrites: Writes[DeletionTaskStatus] = Writes { s =>
+    JsString(s.toString)
+  }
 }
 
 case class AppDeletionState(appId: String, status: DeletionTaskStatus) {
@@ -31,7 +34,7 @@ case class AppDeletionState(appId: String, status: DeletionTaskStatus) {
     </appDestroyState>.clean()
 }
 object AppDeletionState {
-  implicit val appDeletionStateFormats: OFormat[AppDeletionState] = Json.format[AppDeletionState]
+  implicit val appDeletionStateFormats: Format[AppDeletionState] = Json.format[AppDeletionState]
 }
 
 case class DeletionTaskInfoPerApp(orgKey: String, userId: String, appId: String, deletionTaskId: String) {
@@ -88,7 +91,7 @@ case class DeletionTask(
 object DeletionTask {
 
   implicit val dateTimeFormats: Format[LocalDateTime] = DateUtils.utcDateTimeFormats
-  implicit val deletionTaskFormats: OFormat[DeletionTask] = Json.format[DeletionTask]
+  implicit val deletionTaskOFormats: OFormat[DeletionTask] = Json.format[DeletionTask]
 
   def newTask(orgKey: String, userId: String, appIds: Set[String]): DeletionTask = {
     val now = LocalDateTime.now(Clock.systemUTC)

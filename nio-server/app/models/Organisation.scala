@@ -9,7 +9,7 @@ import libs.xml.XmlUtil.XmlCleaner
 import libs.xml.implicits._
 import libs.xml.syntax._
 import java.time.{LocalDateTime, Clock}
-import play.api.libs.functional.syntax.{unlift, _}
+import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import play.api.libs.json._
 import reactivemongo.api.bson.BSONObjectID
@@ -208,17 +208,17 @@ object Organisation extends ReadableEntity[Organisation] {
       } and
       (__ \ "groups").read[Seq[PermissionGroup]] and
       (__ \ "offers").readNullable[Seq[Offer]]
-  )(Organisation.apply _)
+  )(Organisation.apply)
 
   implicit val organisationWrites: Writes[Organisation] = (
-    (JsPath \ "_id").write[String] and
+    (JsPath \   "_id").write[String] and
       (JsPath \ "key").write[String] and
       (JsPath \ "label").write[String] and
       (JsPath \ "version").write[VersionInfo] and
       (JsPath \ "groups").write[Seq[PermissionGroup]] and
       (JsPath \ "offers").writeNullable[Seq[Offer]]
-  )(unlift(Organisation.unapply))
-
+  )(o => (o._id, o.key, o.label, o.version, o.groups, o.offers))
+  
   implicit val organisationOWrites: OWrites[Organisation] = (
     (JsPath \ "_id").write[String] and
       (JsPath \ "key").write[String] and
@@ -226,7 +226,7 @@ object Organisation extends ReadableEntity[Organisation] {
       (JsPath \ "version").write[VersionInfo] and
       (JsPath \ "groups").write[Seq[PermissionGroup]] and
       (JsPath \ "offers").writeNullable[Seq[Offer]]
-  )(unlift(Organisation.unapply))
+  )(o => (o._id, o.key, o.label, o.version, o.groups, o.offers))
 
   implicit val formats: Format[Organisation]   =
     Format(organisationReads, organisationWrites)

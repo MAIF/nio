@@ -45,7 +45,7 @@ class ExtractionController(
 
   implicit val mat: Materializer = Materializer(system)
 
-  val fileBodyParser: BodyParser[Source[ByteString, _]]            = BodyParser { _ =>
+  val fileBodyParser: BodyParser[Source[ByteString, ?]]            = BodyParser { _ =>
     Accumulator.source[ByteString].map(s => Right(s))
   }
   implicit val readable: ReadableEntity[AppIds]                    = AppIds
@@ -166,7 +166,7 @@ class ExtractionController(
     }
 
   private def upload(tenant: String, task: ExtractionTask, appId: String, name: String)(implicit
-      req: ReqWithExtractionTask[Source[ByteString, _]]
+      req: ReqWithExtractionTask[Source[ByteString, ?]]
   ): Future[String] =
     req.body
       .via(
@@ -184,7 +184,7 @@ class ExtractionController(
       }
 
   private def oldUpload(tenant: String, task: ExtractionTask, appId: String, name: String)(implicit
-      req: ReqWithExtractionTask[Source[ByteString, _]]
+      req: ReqWithExtractionTask[Source[ByteString, ?]]
   ): Future[String] = {
     val uploadKey =
       s"$tenant/${task.orgKey}/${task.userId}/${task._id}/$appId/$name"

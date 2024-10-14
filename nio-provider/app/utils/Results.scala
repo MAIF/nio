@@ -43,7 +43,7 @@ object Result {
 
     def fromJsError(jsError: Seq[(JsPath, Seq[JsonValidationError])]): AppErrors = {
       val fieldErrors = jsError.map { case (k, v) =>
-        (k.toJsonString, v.map(err => ErrorMessage(err.message, err.args.map(_.toString): _*)).toList)
+        (k.toJsonString, v.map(err => ErrorMessage(err.message, err.args.map(_.toString)*)).toList)
       }.toMap
       AppErrors(fieldErrors = fieldErrors)
     }

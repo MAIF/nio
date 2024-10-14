@@ -7,11 +7,13 @@ import utils.DateUtils
 import scala.collection.Seq
 
 object EventType extends Enumeration {
-  type WeekDay = Value
+  type EventType = Value
   val UserExtractTaskAsked, UserExtractTaskCompleted, Unknown = Value
 
   def from(name: String): Value =
     values.find(_.toString.toLowerCase == name.toLowerCase()).getOrElse(Unknown)
+
+  implicit val format: Format[EventType] = Json.formatEnum(this)
 }
 
 object NioEvent {

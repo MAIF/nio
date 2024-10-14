@@ -282,7 +282,7 @@ class UserExtractController(
 
   }
 
-  def streamFile: BodyParser[Source[ByteString, _]] =
+  def streamFile: BodyParser[Source[ByteString, ?]] =
     BodyParser { _ =>
       Accumulator.source[ByteString].map(s => Right(s))
     }
