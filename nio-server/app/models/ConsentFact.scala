@@ -313,7 +313,7 @@ case class PartialConsentFact(
                         userId: Option[String] = None,
                         doneBy: Option[DoneBy] = None,
                         version: Option[Int] = None,
-                        lastUpdate: Option[LocalDateTime] = None,
+                        lastUpdate: Option[LocalDateTime] = Some(LocalDateTime.now(Clock.systemUTC)),
                         groups: Option[Seq[PartialConsentGroup]] = None,
                         offers: Option[Seq[PartialConsentOffer]] = None,
                         orgKey: Option[String] = None,
