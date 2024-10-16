@@ -54,6 +54,14 @@ object DoneBy {
 }
 
 case class Consent(key: String, label: String, checked: Boolean, expiredAt: Option[LocalDateTime] = None) {
+
+  def isActive: Bool = {
+    val now = LocalDateTime.now(Clock.systemUTC())
+    c.expiredAt.isEmpty || c.expiredAt.exists(d => d.isAfter(now))
+  }
+
+  def isExpired: Bool = !isActive
+
   def asXml(): Elem = <consent>
     <key>
       {key}
@@ -87,6 +95,9 @@ object Consent {
 }
 
 case class ConsentGroup(key: String, label: String, consents: Seq[Consent]) {
+
+  def activeConsents: Seq[Consent] = this.consents.filter(_.isActive)
+
   def asXml(): Elem = <consentGroup>
     <key>
       {key}
@@ -424,7 +435,7 @@ case class ConsentFact(
       {version}
     </version>
     <groups>
-      {groups.map(_.asXml())}
+      {groups.filter(cf => cf.consents).map(_.asXml())}
     </groups>
 
     {
@@ -472,12 +483,10 @@ case class ConsentFact(
     if (showExpiredConsents) {
       this
     } else {
-      val now = LocalDateTime.now(Clock.systemUTC())
-      this.copy(groups = this.groups.map(group =>
-        group.copy(consents = group.consents.toList.filter(c =>
-          c.expiredAt.isEmpty || c.expiredAt.exists(d => d.isAfter(now))
-        ))
-      ))
+      this.copy(groups = this.groups
+        .map(group => group.copy(consents = group.activeConsents))
+        .filter(group => group.consents.nonEmpty)
+      )
     }
   }
 }
