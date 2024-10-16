@@ -931,6 +931,13 @@
             "description": "L'identifiant utilisateur",
             "required": true,
             "type": "string"
+          },
+          {
+            "name": "showExpiredConsents",
+            "in": "query",
+            "description": "Consentement expiré oui / non",
+            "required": false,
+            "type": "boolean"
           }
         ],
         "responses": {
