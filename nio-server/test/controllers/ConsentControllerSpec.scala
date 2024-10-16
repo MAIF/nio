@@ -818,10 +818,13 @@ class ConsentControllerSpec extends TestUtils {
     "Partial update on consent" in {
       val organisationKey: String = "maif"
 
-      val path: String =
-        s"/$tenant/organisations/$organisationKey/users/$userId1"
-      val putResponse = putJson(path, user1AsJson)
+      val userId = userId1 + "1"
+      val user = user1.copy(userId = userId)
 
+      val path: String = s"/$tenant/organisations/$organisationKey/users/$userId"
+      val putResponse = putJson(path, user.asJson())
+
+      println(putResponse.json)
       putResponse.status mustBe OK
 
       val patchResponse = patchJson(path, Json.obj(
@@ -840,7 +843,7 @@ class ConsentControllerSpec extends TestUtils {
       patchResponse.status mustBe OK
 
       val expectedDate: LocalDateTime = (json \ "lastUpdate").validate(DateUtils.utcDateTimeReads).get
-      json mustBe user1.copy(
+      json mustBe user.copy(
         orgKey = Some("maif"),
         lastUpdate = expectedDate,
         groups = user1.groups.updated(0,  user1.groups(0).copy(
