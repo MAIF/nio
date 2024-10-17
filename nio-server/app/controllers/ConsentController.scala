@@ -86,7 +86,7 @@ class ConsentController(
                   key = pg.key,
                   label = pg.label,
                   consents = pg.permissions.map { p =>
-                    Consent(key = p.key, label = p.label, checked = p.checkDefault(), expiredAt = p.getValidityPeriod)
+                    Consent(key = p.key, label = p.label, checked = p.checkDefault(), expiredAt = None)
                   }
                 )
 

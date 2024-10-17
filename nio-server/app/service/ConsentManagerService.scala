@@ -394,7 +394,8 @@ class ConsentManagerService(
           }
           .getOrElse(group)
 
-    val consentFactFiltered = consentFact.filterExpiredConsent(true)
+    val consentFactFiltered = consentFact.filterExpiredConsent(false)
+
     val groupsUpdated: Seq[ConsentGroup] =
       template.groups.map { group =>
         val maybeGroup = consentFactFiltered.groups
