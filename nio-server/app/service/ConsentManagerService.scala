@@ -394,9 +394,12 @@ class ConsentManagerService(
           }
           .getOrElse(group)
 
+    val consentFactFiltered = consentFact.filterExpiredConsent(false)
+
     val groupsUpdated: Seq[ConsentGroup] =
       template.groups.map { group =>
-        val maybeGroup = consentFact.groups.find(cg => cg.key == group.key && cg.label == group.label)
+        val maybeGroup = consentFactFiltered.groups
+          .find(cg => cg.key == group.key && cg.label == group.label)
 
         mergeConsentGroup(maybeGroup, group)
       }
