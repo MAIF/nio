@@ -344,7 +344,6 @@ case class PartialConsentFact(
         metaData = metaData.map(meta => lastConsentFact.metaData.map(m => m.combine(meta)).getOrElse(meta)).orElse(lastConsentFact.metaData),
         sendToKafka = sendToKafka.orElse(lastConsentFact.sendToKafka)
     )
-    println(s"Merged data : $this, \n $lastConsentFact, \n $finalConsent")
     finalConsent
   }
 }
@@ -470,9 +469,9 @@ case class ConsentFact(
     this.copy(groups = this.groups.map( group =>
       group.copy(
         consents = group.consents.map ( consent =>
-          consent.copy(expiredAt = indexed.get(KeyPermissionGroup(group.key, consent.key))
+          consent.copy(expiredAt = consent.expiredAt.orElse(indexed.get(KeyPermissionGroup(group.key, consent.key))
             .flatMap(_.headOption)
-            .flatMap(_._2.getValidityPeriod)
+            .flatMap(_._2.getValidityPeriod))
           )
         )
       )

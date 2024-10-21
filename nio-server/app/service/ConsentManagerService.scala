@@ -51,13 +51,12 @@ class ConsentManagerService(
       author: String,
       metadata: Option[Seq[(String, String)]],
       organisation: Organisation,
-      consentFactInput: ConsentFact,
+      consentFact: ConsentFact,
       maybeLastConsentFact: Option[ConsentFact] = None,
       command: JsValue
   ): IO[AppErrorWithStatus, ConsentFact] =
     for {
-      _                       <- IO.fromEither(organisation.isValidWith(consentFactInput, maybeLastConsentFact)).mapError(m => AppErrorWithStatus(m))
-      consentFact: ConsentFact = consentFactInput.setUpValidityPeriods(organisation)
+      _                       <- IO.fromEither(organisation.isValidWith(consentFact, maybeLastConsentFact)).mapError(m => AppErrorWithStatus(m))
       organisationKey: String  = organisation.key
       userId: String           = consentFact.userId
       _                        <- validateOffersStructures(tenant, organisationKey, userId, consentFact.offers).doOnError{ e => NioLogger.error(s"validate offers structure $e") }
@@ -302,7 +301,7 @@ class ConsentManagerService(
                 AppErrorWithStatus("error.specified.version.not.latest")
             })
           .flatMap { organisation =>
-            createOrReplace(tenant, author, metadata, organisation, consentFact, command = command)
+            createOrReplace(tenant, author, metadata, organisation, consentFact.setUpValidityPeriods(organisation), command = command)
           }
 
         // Update consent fact with the same organisation version
@@ -316,7 +315,7 @@ class ConsentManagerService(
               }
             )
             .flatMap { organisation =>
-              createOrReplace(tenant, author, metadata, organisation, consentFact, Some(lastConsentFactStored), command = command)
+              createOrReplace(tenant, author, metadata, organisation, consentFact.setUpValidityPeriods(organisation), Some(lastConsentFactStored), command = command)
             }
 
         // Update consent fact with the new organisation version
@@ -333,7 +332,7 @@ class ConsentManagerService(
               _ => AppErrorWithStatus("error.version.higher.than.release")
             })
             .flatMap { organisation =>
-                createOrReplace(tenant, author, metadata, organisation, consentFact, Option(lastConsentFactStored), command = command)
+                createOrReplace(tenant, author, metadata, organisation, consentFact.setUpValidityPeriods(organisation), Option(lastConsentFactStored), command = command)
             }
 
         // Cannot rollback and update a consent fact to an old organisation version
