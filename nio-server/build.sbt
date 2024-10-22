@@ -6,6 +6,7 @@ organization := "fr.maif"
 
 lazy val `nio-server` = (project in file("."))
   .enablePlugins(PlayScala, DockerPlugin)
+  .disablePlugins(PlayPekkoHttpServer)
   .enablePlugins(NoPublish)
   .disablePlugins(BintrayPlugin)
 
