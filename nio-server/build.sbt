@@ -26,6 +26,7 @@ ThisBuild / scalafixDependencies  ++= Seq("org.reactivemongo" %% "reactivemongo-
 
 libraryDependencies ++= Seq(
   ws,
+  nettyServer,
   "org.apache.pekko"         %% "pekko-stream"              % pekko,
   "org.apache.pekko"         %% "pekko-actor-typed"         % pekko,
   "org.apache.pekko"         %% "pekko-slf4j"               % pekko,
