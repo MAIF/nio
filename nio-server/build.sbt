@@ -82,6 +82,7 @@ assembly / assemblyMergeStrategy := {
   case PathList(xs @ _*) if xs.lastOption.contains("mime.types")              => MergeStrategy.first
   case PathList(ps @ _*) if ps.last == "io.netty.versions.properties"         => MergeStrategy.first
   case PathList(ps @ _*) if ps.contains("reference-overrides.conf")           => MergeStrategy.concat
+  case PathList(ps @ _*) if ps.contains("reflect-config.json")                => MergeStrategy.first
   case PathList(ps @ _*) if ps.contains("native-image.properties")            => MergeStrategy.first
   case PathList(ps @ _*) if ps.last endsWith ".conf"                          => MergeStrategy.concat
   case PathList(ps @ _*) if ps.contains("buildinfo")                          => MergeStrategy.discard
