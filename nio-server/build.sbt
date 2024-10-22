@@ -6,10 +6,13 @@ organization := "fr.maif"
 
 lazy val `nio-server` = (project in file("."))
   .enablePlugins(PlayScala, DockerPlugin)
+  .disablePlugins(PlayPekkoHttpServer)
   .enablePlugins(NoPublish)
   .disablePlugins(BintrayPlugin)
 
 scalaVersion := Dependencies._scalaVersion
+
+PlayKeys.devSettings += "play.server.provider" -> "play.core.server.NettyServerProvider"
 
 resolvers ++= Seq(
   Resolver.jcenterRepo,
@@ -25,6 +28,7 @@ ThisBuild / scalafixDependencies  ++= Seq("org.reactivemongo" %% "reactivemongo-
 
 libraryDependencies ++= Seq(
   ws,
+  nettyServer,
   "org.apache.pekko"         %% "pekko-stream"              % pekko,
   "org.apache.pekko"         %% "pekko-actor-typed"         % pekko,
   "org.apache.pekko"         %% "pekko-slf4j"               % pekko,
@@ -40,7 +44,6 @@ libraryDependencies ++= Seq(
   "org.apache.commons"        % "commons-lang3"            % "3.11",
   "de.svenkubiak"             % "jBCrypt"                  % "0.4.1", //  ISC/BSD
   "com.auth0"                 % "java-jwt"                 % javaJwt, // MIT license
-//  "com.github.pureconfig"    %% "pureconfig"               % pureConfig, // Apache 2.0
   "com.github.pureconfig"    %% "pureconfig-core"          % pureConfig, // Apache 2.0
   "com.github.pureconfig"    %% "pureconfig-generic-scala3" % pureConfig, // Apache 2.0
   "org.scalactic"            %% "scalactic"                % scalaticVersion, // Apache 2.0
@@ -80,6 +83,7 @@ assembly / assemblyMergeStrategy := {
   case PathList(xs @ _*) if xs.lastOption.contains("mime.types")              => MergeStrategy.first
   case PathList(ps @ _*) if ps.last == "io.netty.versions.properties"         => MergeStrategy.first
   case PathList(ps @ _*) if ps.contains("reference-overrides.conf")           => MergeStrategy.concat
+  case PathList(ps @ _*) if ps.contains("reflect-config.json")                => MergeStrategy.first
   case PathList(ps @ _*) if ps.contains("native-image.properties")            => MergeStrategy.first
   case PathList(ps @ _*) if ps.last endsWith ".conf"                          => MergeStrategy.concat
   case PathList(ps @ _*) if ps.contains("buildinfo")                          => MergeStrategy.discard
