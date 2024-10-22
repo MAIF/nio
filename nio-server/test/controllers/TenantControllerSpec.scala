@@ -100,7 +100,7 @@ class TenantControllerSpec extends TestUtils {
         postXml(path, tenantXml, headers = Seq(CONTENT_TYPE -> XML, secret))
 
       resp.status mustBe CREATED
-      resp.contentType mustBe s"$XML; charset=UTF-8"
+      resp.contentType.toLowerCase mustBe s"$XML; charset=utf-8"
     }
 
     "create with content-type json" in {

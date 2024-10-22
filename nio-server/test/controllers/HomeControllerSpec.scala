@@ -20,7 +20,7 @@ class HomeControllerSpec extends TestUtils {
         callJson(s"/$tenant/bo", GET, api = false)
 
       response.status must be(OK)
-      response.contentType must be("text/html; charset=UTF-8")
+      response.contentType.toLowerCase must be("text/html; charset=utf-8")
     }
 
   }
