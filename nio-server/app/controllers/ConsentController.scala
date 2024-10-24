@@ -188,13 +188,12 @@ class ConsentController(
           NioLogger.error(s"error.userId.is.immutable : userId in path $userId // userId on body ${o.userId}")
           Future.successful("error.userId.is.immutable".badRequest())
         case Right(consentFact) =>
-          val cf: ConsentFact = ConsentFact.addOrgKey(consentFact, orgKey)
+          val cf: ConsentFact = ConsentFact.ignoreExpirationDates(ConsentFact.addOrgKey(consentFact, orgKey))
 
           (cf.offers, req.authInfo.offerRestrictionPatterns) match {
             // case ask create or update offers but no pattern allowed
             case (Some(offers), None)          =>
-              val errorMessages =
-                offers.map(o => ErrorMessage(s"offer.${o.key}.not.authorized"))
+              val errorMessages = offers.map(o => ErrorMessage(s"offer.${o.key}.not.authorized"))
               NioLogger.error(s"not authorized : ${errorMessages.map(_.message)}")
               Future.successful(AppErrors(errorMessages).unauthorized())
 

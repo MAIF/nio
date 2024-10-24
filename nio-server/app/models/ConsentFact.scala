@@ -658,6 +658,11 @@ object ConsentFact extends ReadableEntity[ConsentFact] {
       case JsError(errors) => Left(AppErrors.fromJsError(errors))
     }
 
+  def ignoreExpirationDates(consentFact: ConsentFact): ConsentFact =
+    consentFact.copy(groups = consentFact.groups.map(g => 
+      g.copy(consents = g.consents.map(c => c.copy(expiredAt = None)))
+    ))
+  
   def addOrgKey(consentFact: ConsentFact, orgKey: String): ConsentFact =
     consentFact.copy(orgKey = Some(orgKey))
 }
